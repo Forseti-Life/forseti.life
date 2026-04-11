@@ -1,13 +1,14 @@
 # Forseti CEO ops cadence
 
-## Every 5 minutes (iterative cycle)
+## Every 2 hours (scheduled CEO quality check)
 - Snapshot org health: active vs idle, queue sizes, blockers.
-- Ensure blockers are escalated to the right supervisor.
-- Ensure deprioritized work is explicitly documented.
+- Run `scripts/ceo-release-health.sh` for release-gate failures.
+- Run `scripts/ceo-system-health.sh` for runtime and org-health failures.
+- Surface the CEO inbox snapshot and suggested actions in one log.
 
 Implementation:
 - `scripts/ceo-ops-once.sh` (single cycle)
-- `scripts/install-cron-ceo-ops.sh` installs cron `*/5` to run `ceo-ops-once.sh`
+- `scripts/install-cron-ceo-ops.sh` installs cron `0 */2 * * *` to run `ceo-ops-once.sh`
 
 Logs:
 - `inbox/responses/ceo-ops-cron.log`

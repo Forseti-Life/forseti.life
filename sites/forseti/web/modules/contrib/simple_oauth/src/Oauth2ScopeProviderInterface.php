@@ -33,4 +33,12 @@ interface Oauth2ScopeProviderInterface extends Oauth2ScopeAdapterInterface {
    */
   public function getRoles(Oauth2ScopeInterface $scope, bool $exclude_locked_roles = FALSE): array;
 
+  /**
+   * Get the referenced permissions.
+   *
+   * @return array
+   *   Returns the permissions.
+   */
+  public function getPermissions(Oauth2ScopeInterface $scope): array;
+
 }

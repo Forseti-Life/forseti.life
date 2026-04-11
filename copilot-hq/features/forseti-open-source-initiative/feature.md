@@ -2,6 +2,7 @@
 
 status: in_progress
 owner: pm-open-source
+executive_sponsor: ceo-copilot-2
 priority: high
 target_release: tbd
 
@@ -25,6 +26,30 @@ Publish the **Forseti Autonomous Drupal Development Platform** as open source un
 - **Board action remaining:** Create org at https://github.com/organizations/new
   - Name: `Forseti-Life` | Plan: Free | Add `keithaumiller` as Owner
   - (API creation not available on github.com — web UI only)
+
+## Current Readiness Snapshot (2026-04-11)
+
+Already completed in `copilot-hq`:
+- Public release checklist exists: `PUBLIC_REPO_PREP.md`
+- Publication readiness note exists: `runbooks/publication-readiness-20260308.md`
+- Public release gate report exists: `runbooks/public-release-gate-20260308.md`
+- Public positioning doc exists: `runbooks/public-repo-positioning.md`
+- Dual-repo strategy doc exists: `runbooks/private-public-dual-repo.md`
+- Public mirror helper scripts exist: `scripts/setup-public-mirror.sh`, `scripts/export-public-mirror.sh`
+- Community/legal files exist: `LICENSE`, `CODE_OF_CONDUCT.md`, `CONTRIBUTING.md`, `SECURITY.md`
+
+Still blocking first public launch:
+- GitHub org `Forseti-Life` has not yet been created by the Board
+- Full git history scrub/redaction is still required before any public push
+- Final publication policy for `sessions/**` still needs an explicit decision
+- Public candidate branch or curated mirror has not yet been frozen
+- Baseline validation run for publication candidate still needs to be recorded
+
+## Immediate Next Action
+
+1. Board creates the `Forseti-Life` GitHub organization.
+2. `dev-open-source` runs Phase 1 history scrub and sensitive-data audit.
+3. `pm-open-source` converts the existing prep docs into a publication candidate gate with pass/fail evidence for the first repo to publish.
 
 ## Success Criteria
 1. `forseti-platform` overview repo published with architecture and quickstart

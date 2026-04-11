@@ -2,10 +2,11 @@
 
 namespace Drupal\consumers;
 
+use Drupal\consumers\Entity\ConsumerInterface;
+use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Entity\EntityStorageException;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Utility\Error;
-use Psr\Log\LoggerAwareTrait;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
@@ -15,39 +16,33 @@ use Symfony\Component\HttpFoundation\RequestStack;
  *
  * @internal
  */
-class Negotiator {
-
-  use LoggerAwareTrait;
-
-  /**
-   * Protected requestStack.
-   *
-   * @var \Symfony\Component\HttpFoundation\RequestStack
-   */
-  protected $requestStack;
-
-  /**
-   * The entity storage.
-   *
-   * @var \Drupal\Core\Entity\EntityStorageInterface
-   */
-  protected $storage;
+class Negotiator implements NegotiatorInterface {
 
   /**
    * The default consumer.
    *
-   * @var \Drupal\consumers\Entity\ConsumerInterface
+   * @var \Drupal\consumers\Entity\ConsumerInterface|null
    */
-  protected $defaultConsumer;
+  protected ?ConsumerInterface $defaultConsumer;
 
   /**
-   * Instantiates a new Negotiator object.
+   * Constructs a consumer negotiator instance.
+   *
+   * @param \Symfony\Component\HttpFoundation\RequestStack $requestStack
+   *   The request stack.
+   * @param \Psr\Log\LoggerInterface $logger
+   *   A logger instance.
+   * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entityTypeManager
+   *   The entity type manager service.
+   * @param \Drupal\Core\Cache\CacheBackendInterface $cache
+   *   The cache backend.
    */
-  public function __construct(RequestStack $request_stack, LoggerInterface $logger) {
-    $this->requestStack = $request_stack;
-    // Since we are using LoggerAwareTrait, we may as well use its setter function.
-    $this->setLogger($logger);
-  }
+  public function __construct(
+    protected RequestStack $requestStack,
+    protected LoggerInterface $logger,
+    protected EntityTypeManagerInterface $entityTypeManager,
+    protected CacheBackendInterface $cache,
+  ) {}
 
   /**
    * Obtains the consumer from the request.
@@ -58,9 +53,11 @@ class Negotiator {
    * @return \Drupal\consumers\Entity\ConsumerInterface|null
    *   The consumer.
    *
+   * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
+   * @throws \Drupal\Component\Plugin\Exception\PluginNotFoundException
    * @throws \Drupal\consumers\MissingConsumer
    */
-  protected function doNegotiateFromRequest(Request $request) {
+  protected function doNegotiateFromRequest(Request $request): ?ConsumerInterface {
     // There are several ways to negotiate the consumer:
     // 1. Via a custom header.
     $consumer_id = $request->headers->get('X-Consumer-ID');
@@ -68,27 +65,18 @@ class Negotiator {
       // 2. Via a query string parameter.
       $consumer_id = $request->query->get('consumerId');
       if (!$consumer_id && $request->query->has('_consumer_id')) {
-        $this->logger->warning('The "_consumer_id" query string parameter is deprecated and it will be removed in the next major version of the module, please use "consumerId" instead.');
+        $this->logger()->warning('The "_consumer_id" query string parameter is deprecated and it will be removed in the next major version of the module, please use "consumerId" instead.');
         $consumer_id = $request->query->get('_consumer_id');
       }
     }
     if ($consumer_id) {
       try {
-        $results = $this->storage->loadByProperties(['client_id' => $consumer_id]);
+        $results = $this->entityTypeManager->getStorage('consumer')->loadByProperties(['client_id' => $consumer_id]);
         /** @var \Drupal\consumers\Entity\ConsumerInterface $consumer */
         $consumer = !empty($results) ? reset($results) : $results;
       }
       catch (EntityStorageException $exception) {
-        // Backwards compatibility of error logging. See
-        // https://www.drupal.org/node/2932520. This can be removed when we no
-        // longer support Drupal < 10.1.
-        if (version_compare(\Drupal::VERSION, '10.1', '>=')) {
-          Error::logException($this->logger, $exception);
-        }
-        else {
-          // @phpstan-ignore-next-line
-          watchdog_exception('consumers', $exception);
-        }
+        Error::logException($this->logger, $exception);
       }
     }
     if (empty($consumer)) {
@@ -98,18 +86,70 @@ class Negotiator {
   }
 
   /**
-   * Obtains the consumer from the request.
+   * Obtains the client ID from the request.
    *
-   * @param \Symfony\Component\HttpFoundation\Request|null $request
-   *   The request object to inspect for a consumer. Set to NULL to use the
-   *   current request.
+   * @param \Symfony\Component\HttpFoundation\Request $request
+   *   The request.
    *
-   * @return \Drupal\consumers\Entity\ConsumerInterface|null
-   *   The consumer.
+   * @return string
+   *   The consumer client ID.
+   *
+   * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
+   * @throws \Drupal\Component\Plugin\Exception\PluginNotFoundException
+   * @throws \Drupal\consumers\MissingConsumer
+   */
+  protected function doNegotiateClientIdFromRequest(Request $request): string {
+    // There are several ways to negotiate the consumer:
+    // 1. Via a custom header.
+    $consumer_id = $request->headers->get('X-Consumer-ID');
+    if (!$consumer_id) {
+      // 2. Via a query string parameter.
+      $consumer_id = $request->query->get('consumerId');
+      if (!$consumer_id && $request->query->has('_consumer_id')) {
+        $this->logger()->warning('The "_consumer_id" query string parameter is deprecated and it will be removed in the next major version of the module, please use "consumerId" instead.');
+        $consumer_id = $request->query->get('_consumer_id');
+      }
+    }
+    if ($consumer_id) {
+      // Check the client ID exists.
+      $row_count = $this->entityTypeManager->getStorage('consumer')->getQuery()
+        ->accessCheck(TRUE)
+        ->condition('client_id', $consumer_id)
+        ->count()
+        ->execute();
+      if ($row_count > 0) {
+        return $consumer_id;
+      }
+    }
+
+    return $this->getDefaultClientId();
+  }
+
+  /**
+   * Gets the client ID from the default consumer.
+   *
+   * @return string
+   *   The default client ID.
    *
    * @throws \Drupal\consumers\MissingConsumer
    */
-  public function negotiateFromRequest(?Request $request = NULL) {
+  private function getDefaultClientId(): string {
+    $cache_data = $this->cache->get('consumers:default_client_id');
+    if ($cache_data === FALSE) {
+      $consumer = $this->loadDefaultConsumer();
+      $client_id = $consumer->getClientId();
+      $this->cache->set('consumers:default_client_id', $client_id, CacheBackendInterface::CACHE_PERMANENT, $consumer->getCacheTags());
+    }
+    else {
+      $client_id = $cache_data->data;
+    }
+    return $client_id;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function negotiateFromRequest(?Request $request = NULL): ?ConsumerInterface {
     // If the request is not provided, use the request from the stack.
     $request = $request ? $request : $this->requestStack->getCurrentRequest();
     $consumer = $this->doNegotiateFromRequest($request);
@@ -118,20 +158,34 @@ class Negotiator {
   }
 
   /**
+   * {@inheritdoc}
+   */
+  public function negotiateClientIdFromRequest(?Request $request = NULL): string {
+    // If the request is not provided, use the request from the stack.
+    $request = $request ? $request : $this->requestStack->getCurrentRequest();
+    $client_id = $this->doNegotiateClientIdFromRequest($request);
+    $request->attributes->set('consumer_id', $client_id);
+    return $client_id;
+  }
+
+  /**
    * Finds and loads the default consumer.
    *
-   * @return \Drupal\consumers\Entity\ConsumerInterface
+   * @return \Drupal\consumers\Entity\ConsumerInterface|null
    *   The consumer entity.
    *
+   * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
+   * @throws \Drupal\Component\Plugin\Exception\PluginNotFoundException
    * @throws \Drupal\consumers\MissingConsumer
    */
-  protected function loadDefaultConsumer() {
+  protected function loadDefaultConsumer(): ?ConsumerInterface {
     if (!empty($this->defaultConsumer)) {
       return $this->defaultConsumer;
     }
 
+    $storage = $this->entityTypeManager->getStorage('consumer');
     // Find the default consumer.
-    $results = $this->storage->getQuery()
+    $results = $storage->getQuery()
       ->accessCheck(TRUE)
       ->condition('is_default', TRUE)
       ->execute();
@@ -140,21 +194,19 @@ class Negotiator {
       // Throw if there is no default consumer.
       throw new MissingConsumer('Unable to find the default consumer.');
     }
-    $this->defaultConsumer = $this->storage->load($consumer_id);
+    $this->defaultConsumer = $storage->load($consumer_id);
 
     return $this->defaultConsumer;
   }
 
   /**
-   * Sets the storage from the entity type manager.
+   * Gets the logger.
    *
-   * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entity_type_manager
-   *   The entity type manager.
-   *
-   * @throws \Drupal\Component\Plugin\Exception\PluginException
+   * @return \Psr\Log\LoggerInterface
+   *   The logger.
    */
-  public function setEntityStorage(EntityTypeManagerInterface $entity_type_manager) {
-    $this->storage = $entity_type_manager->getStorage('consumer');
+  private function logger(): LoggerInterface {
+    return ($this->logger)();
   }
 
 }

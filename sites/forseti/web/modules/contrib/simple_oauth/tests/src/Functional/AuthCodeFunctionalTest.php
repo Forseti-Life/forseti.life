@@ -564,6 +564,58 @@ class AuthCodeFunctionalTest extends TokenBearerFunctionalTestBase {
   }
 
   /**
+   * Test permission scope on custom role.
+   */
+  public function testPermissionScopeOnCustomRole(): void {
+    // Revoke 'access content' on the authenticated role and grant it on the
+    // custom role.
+    $auth_role = Role::load(RoleInterface::AUTHENTICATED_ID);
+    $auth_role->revokePermission('access content');
+    $auth_role->save();
+    $role_id = $this->createRole(['access content'], 'custom_role', 'Custom role');
+
+    $account = $this->createUser([], NULL, FALSE, ['roles' => [$role_id]]);
+    $this->drupalLogin($account);
+
+    $this->client->set('automatic_authorization', TRUE);
+    $this->client->save();
+
+    $valid_params = [
+      'response_type' => 'code',
+      'client_id' => $this->client->getClientId(),
+      'redirect_uri' => $this->redirectUri,
+      'scope' => $this->scope,
+    ];
+
+    // Request authorization without providing scope parameter.
+    $this->drupalGet($this->authorizeUrl->toString(), [
+      'query' => $valid_params,
+    ]);
+
+    // Store the code for the second part of the flow.
+    $code = $this->getAndValidateCodeFromResponse();
+
+    // Send the code to get the access token, regardless of the scopes, since
+    // the consumer has automatic authorization enabled.
+    $response = $this->postGrantedCodeWithScopes(
+      $code,
+      $this->scope . ' ' . $this->extraScope->id()
+    );
+    $parsed_response = $this->assertValidTokenResponse($response, TRUE);
+
+    // Both roles are assigned on the user, we expect access.
+    $this->assertAccessTokenOnResource($parsed_response['access_token']);
+
+    // Revoke permission on the custom role.
+    $custom_role = Role::load($role_id);
+    $custom_role->revokePermission('access content');
+    $custom_role->save();
+
+    // Assert again.
+    $this->assertAccessTokenOnResource($parsed_response['access_token'], 403);
+  }
+
+  /**
    * Helper function to assert the current page is a valid grant form.
    *
    * @throws \Behat\Mink\Exception\ElementNotFoundException

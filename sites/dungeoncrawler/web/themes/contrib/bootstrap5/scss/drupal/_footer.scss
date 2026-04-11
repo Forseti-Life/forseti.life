@@ -7,10 +7,6 @@ footer {
 
   .region-footer {
     display: flex;
-    gap: 40px;
-    @media screen and (max-width: 767px) {
-      flex-direction: column;
-      gap: 30px;
-    }
+    flex-direction: column;
   }
 }

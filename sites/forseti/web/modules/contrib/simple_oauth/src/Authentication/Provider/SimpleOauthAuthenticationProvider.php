@@ -4,6 +4,7 @@ namespace Drupal\simple_oauth\Authentication\Provider;
 
 use Drupal\Core\Authentication\AuthenticationProviderInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Session\PermissionCheckerInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\Path\PathValidatorInterface;
 use Drupal\Core\Routing\RouteProviderInterface;
@@ -15,6 +16,7 @@ use League\OAuth2\Server\Exception\OAuthServerException;
 use Symfony\Bridge\PsrHttpMessage\HttpFoundationFactoryInterface;
 use Symfony\Bridge\PsrHttpMessage\HttpMessageFactoryInterface;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\RequestStack;
 
 /**
  * OAuth2 authentication provider.
@@ -37,89 +39,38 @@ class SimpleOauthAuthenticationProvider implements AuthenticationProviderInterfa
   use StringTranslationTrait;
 
   /**
-   * The resource server factory.
-   *
-   * @var \Drupal\simple_oauth\Server\ResourceServerFactoryInterface
-   */
-  protected ResourceServerFactoryInterface $resourceServerFactory;
-
-  /**
-   * The entity type manager.
-   *
-   * @var \Drupal\Core\Entity\EntityTypeManagerInterface
-   */
-  protected EntityTypeManagerInterface $entityTypeManager;
-
-  /**
-   * The request policy.
-   *
-   * @var \Drupal\simple_oauth\PageCache\SimpleOauthRequestPolicyInterface
-   */
-  protected SimpleOauthRequestPolicyInterface $oauthPageCacheRequestPolicy;
-
-  /**
-   * The HTTP message factory.
-   *
-   * @var \Symfony\Bridge\PsrHttpMessage\HttpMessageFactoryInterface
-   */
-  protected HttpMessageFactoryInterface $httpMessageFactory;
-
-  /**
-   * The HTTP foundation factory.
-   *
-   * @var \Symfony\Bridge\PsrHttpMessage\HttpFoundationFactoryInterface
-   */
-  protected HttpFoundationFactoryInterface $httpFoundationFactory;
-
-  /**
-   * The path validator service.
-   *
-   * @var \Drupal\Core\Path\PathValidatorInterface
-   */
-  protected PathValidatorInterface $pathValidator;
-
-  /**
-   * The route provider service.
-   *
-   * @var \Drupal\Core\Routing\RouteProviderInterface
-   */
-  protected RouteProviderInterface $routeProvider;
-
-  /**
    * Constructs an HTTP basic authentication provider object.
    *
-   * @param \Drupal\simple_oauth\Server\ResourceServerFactoryInterface $resource_server_factory
+   * @param \Drupal\simple_oauth\Server\ResourceServerFactoryInterface $resourceServerFactory
    *   The resource server factory.
-   * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entity_type_manager
+   * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entityTypeManager
    *   The entity type manager service.
-   * @param \Drupal\simple_oauth\PageCache\SimpleOauthRequestPolicyInterface $page_cache_request_policy
+   * @param \Drupal\simple_oauth\PageCache\SimpleOauthRequestPolicyInterface $oauthPageCacheRequestPolicy
    *   The page cache request policy.
-   * @param \Symfony\Bridge\PsrHttpMessage\HttpMessageFactoryInterface $http_message_factory
+   * @param \Symfony\Bridge\PsrHttpMessage\HttpMessageFactoryInterface $httpMessageFactory
    *   The HTTP message factory.
-   * @param \Symfony\Bridge\PsrHttpMessage\HttpFoundationFactoryInterface $http_foundation_factory
+   * @param \Symfony\Bridge\PsrHttpMessage\HttpFoundationFactoryInterface $httpFoundationFactory
    *   The HTTP foundation factory.
-   * @param \Drupal\Core\Path\PathValidatorInterface $path_validator
+   * @param \Drupal\Core\Path\PathValidatorInterface $pathValidator
    *   The path validator service.
-   * @param \Drupal\Core\Routing\RouteProviderInterface $route_provider
+   * @param \Drupal\Core\Routing\RouteProviderInterface $routeProvider
    *   The route provider service.
+   * @param \Symfony\Component\HttpFoundation\RequestStack $requestStack
+   *   The request stack.
+   * @param \Drupal\Core\Session\PermissionCheckerInterface $permissionChecker
+   *   The permission checker service.
    */
   public function __construct(
-    ResourceServerFactoryInterface $resource_server_factory,
-    EntityTypeManagerInterface $entity_type_manager,
-    SimpleOauthRequestPolicyInterface $page_cache_request_policy,
-    HttpMessageFactoryInterface $http_message_factory,
-    HttpFoundationFactoryInterface $http_foundation_factory,
-    PathValidatorInterface $path_validator,
-    RouteProviderInterface $route_provider,
-  ) {
-    $this->resourceServerFactory = $resource_server_factory;
-    $this->entityTypeManager = $entity_type_manager;
-    $this->oauthPageCacheRequestPolicy = $page_cache_request_policy;
-    $this->httpMessageFactory = $http_message_factory;
-    $this->httpFoundationFactory = $http_foundation_factory;
-    $this->pathValidator = $path_validator;
-    $this->routeProvider = $route_provider;
-  }
+    protected readonly ResourceServerFactoryInterface $resourceServerFactory,
+    protected readonly EntityTypeManagerInterface $entityTypeManager,
+    protected readonly SimpleOauthRequestPolicyInterface $oauthPageCacheRequestPolicy,
+    protected readonly HttpMessageFactoryInterface $httpMessageFactory,
+    protected readonly HttpFoundationFactoryInterface $httpFoundationFactory,
+    protected readonly PathValidatorInterface $pathValidator,
+    protected readonly RouteProviderInterface $routeProvider,
+    protected readonly RequestStack $requestStack,
+    protected readonly PermissionCheckerInterface $permissionChecker,
+  ) {}
 
   /**
    * {@inheritdoc}
@@ -192,8 +143,12 @@ class SimpleOauthAuthenticationProvider implements AuthenticationProviderInterfa
       'value' => $auth_request->get('oauth_access_token_id'),
     ]);
     $token = reset($tokens);
-
-    $account = new TokenAuthUser($token);
+    $account = new TokenAuthUser(
+      $this->permissionChecker,
+      $token,
+      $this->httpMessageFactory,
+      $this->requestStack
+    );
 
     // Revoke the access token for the blocked user.
     if ($account->isBlocked() && $account->isAuthenticated()) {

@@ -54,7 +54,6 @@ oauth2_token.token:
     _controller: 'Drupal\simple_oauth\Controller\Oauth2Token::token'
   methods: [POST]
   requirements:
-    _csrf_token: 'TRUE'
     _access: 'TRUE'
 
 oauth2_token.authorize:
@@ -64,7 +63,6 @@ oauth2_token.authorize:
     _title: 'Grant Access to Client'
   methods: [GET, POST]
   requirements:
-    _csrf_token: 'TRUE'
     _access: 'TRUE'
   options:
     no_cache: TRUE
@@ -88,7 +86,6 @@ simple_oauth.userinfo:
     _title: 'OpenID Connect User Info'
   methods: [GET, POST]
   requirements:
-    _csrf_token: 'TRUE'
     _role: 'authenticated'
   options:
     _auth: ['oauth2']

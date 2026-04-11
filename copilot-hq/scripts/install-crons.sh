@@ -24,7 +24,7 @@ ENTRIES=(
   "agent-exec-reboot|@reboot|${HQ_ROOT}/scripts/agent-exec-loop.sh start 60 >> ${LOG_DIR}/agent-exec-cron.log 2>&1"
   "agent-exec-watchdog|*/5 * * * *|${HQ_ROOT}/scripts/agent-exec-watchdog.sh >> ${LOG_DIR}/agent-exec-cron.log 2>&1"
   "hq-automation|* * * * *|${HQ_ROOT}/scripts/hq-automation-watchdog.sh >> ${LOG_DIR}/hq-automation-cron.log 2>&1"
-  "ceo-ops|*/5 * * * *|${HQ_ROOT}/scripts/ceo-ops-once.sh >> ${LOG_DIR}/ceo-ops-cron.log 2>&1"
+  "ceo-ops|0 */2 * * *|${HQ_ROOT}/scripts/ceo-ops-once.sh >> ${LOG_DIR}/ceo-ops-cron.log 2>&1"
   "auto-checkpoint|0 */2 * * *|${HQ_ROOT}/scripts/auto-checkpoint.sh >> ${LOG_DIR}/auto-checkpoint-cron.log 2>&1"
   "hq-health-heartbeat|*/2 * * * *|${HQ_ROOT}/scripts/hq-health-heartbeat.sh >> /tmp/hq-health-heartbeat.log 2>&1"
 )

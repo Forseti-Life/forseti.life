@@ -15,8 +15,9 @@
 #
 # What it does:
 #   1. Validates the feature is groomed (all 3 artifacts exist, status: ready)
-#   2. Writes a QA inbox item: "activate test plan for <feature-id> into suite.json"
-#   3. Updates feature.md status → in_progress (scoped for this release)
+#   2. Writes a Dev inbox item: "implement <feature-id> for this release"
+#   3. Writes a QA inbox item: "activate test plan for <feature-id> into suite.json"
+#   4. Updates feature.md status → in_progress (scoped for this release)
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -40,8 +41,12 @@ AC_FILE="${FEATURE_DIR}/01-acceptance-criteria.md"
 TEST_PLAN="${FEATURE_DIR}/03-test-plan.md"
 QA_AGENT="qa-${SITE}"
 QA_INBOX="sessions/${QA_AGENT}/inbox"
+DEV_AGENT="$(grep -im1 "^- Dev owner:" "$FEATURE_BRIEF" | sed 's/.*Dev owner:[[:space:]]*//' | tr -d '\r' || true)"
+DEV_AGENT="${DEV_AGENT:-dev-${SITE}}"
+DEV_INBOX="sessions/${DEV_AGENT}/inbox"
 DATE_TAG="$(date +%Y%m%d-%H%M%S)"
 ITEM_DIR="${QA_INBOX}/${DATE_TAG}-suite-activate-${FEATURE_ID}"
+DEV_ITEM_DIR="${DEV_INBOX}/${DATE_TAG}-impl-${FEATURE_ID}"
 
 # Validate groomed gate
 missing=()
@@ -144,6 +149,41 @@ fi
 
 echo "[pm-scope-activate] Activating: $FEATURE_ID for site: $SITE"
 echo "[pm-scope-activate] All grooming artifacts present ✓"
+
+# Write Dev implementation inbox item (durable owner handoff for the active release)
+mkdir -p "$DEV_ITEM_DIR"
+echo "200" > "$DEV_ITEM_DIR/roi.txt"
+
+cat > "$DEV_ITEM_DIR/README.md" <<EOF
+# Implementation required: ${FEATURE_ID}
+
+- Agent: ${DEV_AGENT}
+- Feature: ${FEATURE_ID}
+- Release: ${ACTIVE_RELEASE_ID}
+- Status: pending
+- Created: $(date -Iseconds)
+- Dispatched by: pm-scope-activate.sh (Stage 0 release activation)
+
+## Context
+
+This feature has been activated into the current release scope. Dev now owns the implementation handoff for this release.
+
+## Action required
+1. Review feature brief: \`features/${FEATURE_ID}/feature.md\`
+2. Review acceptance criteria: \`features/${FEATURE_ID}/01-acceptance-criteria.md\`
+3. Implement the feature for release \`${ACTIVE_RELEASE_ID}\`
+4. Run existing tests to ensure no regressions
+5. Write outbox with implementation notes and commit hash(es)
+6. Coordinate with \`${QA_AGENT}\` for Gate 2 verification once implementation is ready
+
+## Acceptance criteria
+- Implementation committed with hash recorded in outbox
+- No regression failures from existing test suites
+EOF
+
+cp "$FEATURE_BRIEF" "$DEV_ITEM_DIR/feature.md"
+cp "$AC_FILE" "$DEV_ITEM_DIR/01-acceptance-criteria.md"
+cp "$TEST_PLAN" "$DEV_ITEM_DIR/03-test-plan.md"
 
 # Write QA activation inbox item
 mkdir -p "$ITEM_DIR"
@@ -255,6 +295,7 @@ print(f"Updated {p}: status → in_progress")
 PY
 
 echo "[pm-scope-activate] QA activation item queued: $ITEM_DIR"
+echo "[pm-scope-activate] Dev implementation item queued: $DEV_ITEM_DIR"
 echo "[pm-scope-activate] Feature $FEATURE_ID is now in_progress for this release."
 echo ""
 echo "Next: add $FEATURE_ID to your release 01-change-list.md"

@@ -12,6 +12,7 @@ use Drupal\simple_oauth\Attribute\ScopeGranularity;
 use Drupal\simple_oauth\Oauth2ScopeInterface;
 use Drupal\simple_oauth\Plugin\ScopeGranularityBase;
 use Drupal\simple_oauth\Plugin\ScopeGranularityRoleInterface;
+use Drupal\user\RoleInterface;
 use Drupal\user\RoleStorageInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -92,6 +93,33 @@ class Role extends ScopeGranularityBase implements ScopeGranularityRoleInterface
     }
 
     return $exclude_locked_roles ? [$role] : [AccountInterface::AUTHENTICATED_ROLE, $role];
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getPermissions(): array {
+    $role = $this->getConfiguration()['role'];
+
+    $lockedRoles = [
+      AccountInterface::AUTHENTICATED_ROLE,
+      AccountInterface::ANONYMOUS_ROLE,
+    ];
+    $rolesToCheck = !in_array($role, $lockedRoles)
+      ? [AccountInterface::AUTHENTICATED_ROLE, $role]
+      : [$role];
+
+    $role_storage = $this->entityTypeManager->getStorage('user_role');
+    assert($role_storage instanceof RoleStorageInterface);
+
+    $permissions = [];
+    foreach ($rolesToCheck as $roleToCheck) {
+      $role = $role_storage->load($roleToCheck);
+      assert($role instanceof RoleInterface);
+      $permissions = array_unique(array_merge($permissions, $role->getPermissions()));
+    }
+
+    return $permissions;
   }
 
   /**

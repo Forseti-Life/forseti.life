@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-04-11T13:55:04.010913",
+  "generated_at": "2026-04-11T22:52:02.713133",
   "window_minutes": 15,
   "teams": [
     {
@@ -7,7 +7,7 @@
       "label": "Forseti",
       "site": "forseti.life",
       "window_minutes": 15,
-      "latest_run": "20260411-003040",
+      "latest_run": "20260411-222412",
       "latest_open_issues": 0,
       "resolved_last_window": 0,
       "introduced_last_window": 0,
@@ -19,46 +19,6 @@
         "handoff_signal": "weak"
       },
       "recent_deltas": [
-        {
-          "from_run": "20260410-081621",
-          "to_run": "20260410-090552",
-          "to_ts": "2026-04-10T09:05:52",
-          "prev_total": 0,
-          "cur_total": 0,
-          "resolved": 0,
-          "introduced": 0,
-          "elapsed_minutes": 49.52
-        },
-        {
-          "from_run": "20260410-090552",
-          "to_run": "20260410-110059",
-          "to_ts": "2026-04-10T11:00:59",
-          "prev_total": 0,
-          "cur_total": 0,
-          "resolved": 0,
-          "introduced": 0,
-          "elapsed_minutes": 115.12
-        },
-        {
-          "from_run": "20260410-110059",
-          "to_run": "20260410-170231",
-          "to_ts": "2026-04-10T17:02:31",
-          "prev_total": 0,
-          "cur_total": 0,
-          "resolved": 0,
-          "introduced": 0,
-          "elapsed_minutes": 361.53
-        },
-        {
-          "from_run": "20260410-170231",
-          "to_run": "20260410-202145",
-          "to_ts": "2026-04-10T20:21:45",
-          "prev_total": 0,
-          "cur_total": 0,
-          "resolved": 0,
-          "introduced": 0,
-          "elapsed_minutes": 199.23
-        },
         {
           "from_run": "20260410-202145",
           "to_run": "20260411-003040",
@@ -68,6 +28,46 @@
           "resolved": 0,
           "introduced": 0,
           "elapsed_minutes": 248.92
+        },
+        {
+          "from_run": "20260411-003040",
+          "to_run": "20260411-162940",
+          "to_ts": "2026-04-11T16:29:40",
+          "prev_total": 0,
+          "cur_total": 0,
+          "resolved": 0,
+          "introduced": 0,
+          "elapsed_minutes": 959.0
+        },
+        {
+          "from_run": "20260411-162940",
+          "to_run": "20260411-165211",
+          "to_ts": "2026-04-11T16:52:11",
+          "prev_total": 0,
+          "cur_total": 0,
+          "resolved": 0,
+          "introduced": 0,
+          "elapsed_minutes": 22.52
+        },
+        {
+          "from_run": "20260411-165211",
+          "to_run": "20260411-222403",
+          "to_ts": "2026-04-11T22:24:03",
+          "prev_total": 0,
+          "cur_total": 0,
+          "resolved": 0,
+          "introduced": 0,
+          "elapsed_minutes": 331.87
+        },
+        {
+          "from_run": "20260411-222403",
+          "to_run": "20260411-222412",
+          "to_ts": "2026-04-11T22:24:12",
+          "prev_total": 0,
+          "cur_total": 0,
+          "resolved": 0,
+          "introduced": 0,
+          "elapsed_minutes": 0.15
         }
       ]
     },
@@ -76,7 +76,7 @@
       "label": "Dungeoncrawler",
       "site": "dungeoncrawler",
       "window_minutes": 15,
-      "latest_run": "20260410-235540",
+      "latest_run": "20260411-223817",
       "latest_open_issues": 0,
       "resolved_last_window": 0,
       "introduced_last_window": 0,
@@ -84,59 +84,59 @@
       "workflow": {
         "dev_outbox_updates": 0,
         "dev_notify_qa_markers": 0,
-        "qa_done_markers": 0,
+        "qa_done_markers": 2,
         "handoff_signal": "weak"
       },
       "recent_deltas": [
         {
-          "from_run": "20260410-044000",
-          "to_run": "20260410-081621",
-          "to_ts": "2026-04-10T08:16:21",
+          "from_run": "20260411-165211",
+          "to_run": "20260411-165535",
+          "to_ts": "2026-04-11T16:55:35",
           "prev_total": 0,
           "cur_total": 0,
           "resolved": 0,
           "introduced": 0,
-          "elapsed_minutes": 216.35
+          "elapsed_minutes": 3.4
         },
         {
-          "from_run": "20260410-081621",
-          "to_run": "20260410-090552",
-          "to_ts": "2026-04-10T09:05:52",
+          "from_run": "20260411-165535",
+          "to_run": "20260411-222403",
+          "to_ts": "2026-04-11T22:24:03",
           "prev_total": 0,
           "cur_total": 0,
           "resolved": 0,
           "introduced": 0,
-          "elapsed_minutes": 49.52
+          "elapsed_minutes": 328.47
         },
         {
-          "from_run": "20260410-090552",
-          "to_run": "20260410-105722",
-          "to_ts": "2026-04-10T10:57:22",
+          "from_run": "20260411-222403",
+          "to_run": "20260411-222412",
+          "to_ts": "2026-04-11T22:24:12",
           "prev_total": 0,
           "cur_total": 0,
           "resolved": 0,
           "introduced": 0,
-          "elapsed_minutes": 111.5
+          "elapsed_minutes": 0.15
         },
         {
-          "from_run": "20260410-105722",
-          "to_run": "20260410-214852",
-          "to_ts": "2026-04-10T21:48:52",
+          "from_run": "20260411-222412",
+          "to_run": "20260411-223816",
+          "to_ts": "2026-04-11T22:38:16",
           "prev_total": 0,
           "cur_total": 0,
           "resolved": 0,
           "introduced": 0,
-          "elapsed_minutes": 651.5
+          "elapsed_minutes": 14.07
         },
         {
-          "from_run": "20260410-214852",
-          "to_run": "20260410-235540",
-          "to_ts": "2026-04-10T23:55:40",
+          "from_run": "20260411-223816",
+          "to_run": "20260411-223817",
+          "to_ts": "2026-04-11T22:38:17",
           "prev_total": 0,
           "cur_total": 0,
           "resolved": 0,
           "introduced": 0,
-          "elapsed_minutes": 126.8
+          "elapsed_minutes": 0.02
         }
       ]
     }

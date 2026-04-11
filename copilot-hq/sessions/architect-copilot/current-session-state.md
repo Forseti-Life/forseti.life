@@ -1,13 +1,15 @@
 # Architect Session State — architect-copilot
 
 > **Rolling file. Overwrite this at the end of each working session (and briefly before starting each task).**
-> Last updated: 2026-04-09 ~03:00 UTC (bootstrapped from outbox history — no human session active)
+> Last updated: 2026-04-11 after Drupal dependency/security maintenance
 
 ---
 
 ## Currently Working On
 
-_None — no active human session._
+Completed Drupal dependency/security maintenance across the production sites
+(`sites/forseti` and `sites/dungeoncrawler`). No active human-directed
+implementation task is currently in flight.
 
 ---
 
@@ -22,13 +24,18 @@ _None — no active human session._
 
 ## What Was Last Worked On
 
-**Sessions 2026-04-08 – 2026-04-09 (automated improvement-round dispatches)**
+**2026-04-11 — Drupal site maintenance / security notifications**
 
-All recent architect sessions were **duplicate dispatches** — CEO sessions had already covered all gaps before architect ran. No net-new architectural work was done. Three outbox entries written:
-
-1. **`20260409-improvement-round-20260409-dungeoncrawler-release-b`** — Duplicate. CEO (`b1989f216`) already closed all gaps: post-push feature cleanup GATE added, ≤7 feature cap, dev-dispatch gate before scope-activate. Observation: 4th-occurrence tooling escalation recommended if post-push cleanup gap recurs.
-2. **`20260409-improvement-round-20260409-dungeoncrawler-release-c`** — Duplicate. CEO (`8378ae369`) already fixed: pm-dungeoncrawler zero dev-impl dispatch, mandatory pre-activation dev-dispatch gate, ≤7 cap. Observation: `dungeoncrawler.next_release_id` naming anomaly (`release-b` < `release-c`).
-3. **`20260409-improvement-round-20260408-forseti-release-b`** — Duplicate. CEO (`4684baeb8`) already fixed: security AC at grooming, max-5-features guidance, carry-over guard, full-module CSRF scan step.
+- Checked both live Drupal roots: `/var/www/html/forseti` and
+  `/var/www/html/dungeoncrawler`.
+- Confirmed both sites bootstrap successfully and are on **Drupal 11.3.6**.
+- Ran Composer security audits on both live sites: **no security vulnerability
+  advisories found**.
+- Updated pending patch/minor dependencies in both the tracked source tree under
+  `sites/` and the matching live Composer installs under `/var/www/html/`.
+- Ran live `drush updatedb` and `drush cache:rebuild` after updates.
+- Final state: `composer outdated --direct --minor-only` and `--patch-only`
+  return clean on both sites.
 
 ---
 
@@ -36,24 +43,29 @@ All recent architect sessions were **duplicate dispatches** — CEO sessions had
 
 | Item | Owner | Priority | Notes |
 |---|---|---|---|
-| Post-push stale in_progress gap — 4th occurrence escalation | CEO | P2 | Architect recommended tooling solution if it recurs a 4th time |
-| `dungeoncrawler.next_release_id` naming anomaly | CEO | P3 | `release-b` sorts before `release-c` — investigate if release ordering is affected |
-| `pm-forseti-agent-tracker` inbox folder missing | CEO | P3 | Groom dispatch may not have landed |
+| Forseti stale `system.schema` entries for uninstalled modules | Future maintenance | P3 | `updatedb:status` reports notices for `backup_migrate`, `google_tag`, `social_*`, `twig_tweak`, `webform*`; not blocking updates, but worth cleanup later |
 
 ---
 
 ## Key Decisions Made (recent sessions)
 
-- All 3 instruction-level fixes (`pm-dungeoncrawler`, `pm-forseti`) were CEO authority — architect confirmed/endorsed but did not originate
-- No architectural changes to codebase made in these sessions (all duplicate dispatches)
+- Treat `/var/www/html/<site>` as the authoritative live Composer install for
+  validation and remediation, while also updating the matching tracked source
+  tree under `/home/ubuntu/forseti.life/sites/<site>` so future deployments do
+  not drift.
+- Leave dev-only major upgrades (`phpunit/phpunit`, `drupal/coder`) untouched
+  during this pass because the task was to clear live security/update
+  notifications, not to take risky major-version jumps in tooling.
 
 ---
 
 ## Next Priority Actions (pick up here next session)
 
-1. **If a human architect session starts**: ask what to work on — no blocking architectural tasks queued
-2. Monitor dungeoncrawler release-e: confirm dev-impl dispatched before `pm-scope-activate.sh`, ≤7 feature cap respected, post-push cleanup GATE fires
-3. If post-push stale in_progress recurs (4th time): escalate to CEO for automated script — instruction patches have not held for 3 consecutive occurrences
+1. If the user wants the repo changes committed, commit the Drupal dependency
+   updates for `sites/forseti` and `sites/dungeoncrawler`.
+2. Optionally clean the stale `system.schema` entries reported by Forseti if the
+   notices are causing admin noise.
+3. Otherwise, wait for the next human-directed build task.
 
 ---
 

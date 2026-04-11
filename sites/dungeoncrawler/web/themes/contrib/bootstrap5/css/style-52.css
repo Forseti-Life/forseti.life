@@ -11060,6 +11060,32 @@ a[class=button] {
   --bs-btn-disabled-border-color: #f8f9fa;
 }
 
+.accordion details {
+  overflow: unset;
+}
+.accordion details[open] .accordion-button {
+  color: var(--bs-accordion-active-color);
+  background-color: var(--bs-accordion-active-bg);
+}
+.accordion details[open] .accordion-button::after {
+  background-image: var(--bs-accordion-btn-active-icon);
+  transform: var(--bs-accordion-btn-icon-transform);
+}
+.accordion details:not([open]) {
+  border-bottom: 0;
+}
+.accordion details:not([open]) .accordion-button {
+  color: var(--bs-accordion-btn-color);
+  background-color: var(--bs-accordion-btn-bg);
+  border: unset;
+  border-bottom-right-radius: var(--bs-accordion-border-radius);
+  border-bottom-left-radius: var(--bs-accordion-border-radius);
+}
+.accordion details:not([open]) .accordion-button::after {
+  background-image: var(--bs-accordion-btn-active-icon);
+  transform: unset;
+}
+
 .form-control.image-button {
   width: unset;
 }
@@ -11251,13 +11277,7 @@ footer.footer-dark a:hover {
 }
 footer .region-footer {
   display: flex;
-  gap: 40px;
-}
-@media screen and (max-width: 767px) {
-  footer .region-footer {
-    flex-direction: column;
-    gap: 30px;
-  }
+  flex-direction: column;
 }
 
 .region-sidebar-first,

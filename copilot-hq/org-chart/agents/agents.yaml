@@ -71,7 +71,7 @@ agents:
     role: product-manager
     supervisor: ceo-copilot-2
     website_scope: ["forseti.life"]
-    module_ownership: ["job_hunter"]
+    module_ownership: ["job_hunter", "jobhunter_tester", "company_research", "forseti_content"]
 
   - id: pm-dungeoncrawler
     name: "PM (dungeoncrawler)"

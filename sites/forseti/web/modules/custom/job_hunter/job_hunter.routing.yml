@@ -1419,3 +1419,26 @@ job_hunter.deadline_save:
     _user_is_logged_in: 'TRUE'
     _csrf_token: 'TRUE'
     job_id: \d+
+
+# Bulk Status Update — Application Status Dashboard (GET)
+job_hunter.applications_dashboard:
+  path: '/jobhunter/applications'
+  defaults:
+    _controller: '\Drupal\job_hunter\Controller\ApplicationSubmissionController::applicationsDashboard'
+    _title: 'My Applications'
+  methods: [GET]
+  requirements:
+    _permission: 'access job hunter'
+    _user_is_logged_in: 'TRUE'
+
+# Bulk Status Update — bulk update POST (CSRF-protected, POST-only)
+job_hunter.applications_bulk_update:
+  path: '/jobhunter/applications/bulk-update'
+  defaults:
+    _controller: '\Drupal\job_hunter\Controller\ApplicationSubmissionController::bulkUpdateStatus'
+    _title: 'Bulk Update Application Status'
+  methods: [POST]
+  requirements:
+    _permission: 'access job hunter'
+    _user_is_logged_in: 'TRUE'
+    _csrf_token: 'TRUE'

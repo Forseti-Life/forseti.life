@@ -20,6 +20,34 @@ final class LangGraphConsoleStubController extends ControllerBase {
   const PARITY_RELATIVE  = 'inbox/responses/langgraph-parity-latest.json';
   const FEATURE_PROGRESS = 'dashboards/FEATURE_PROGRESS.md';
 
+  /** @var list<string> Subsection keys that have live data implementations. */
+  private const LIVE_SUBSECTIONS = [
+    'home/graph-contract',
+    'home/runtime-objects',
+    'home/durability-model',
+    'home/control-gates',
+    'run/threads-runs',
+    'run/stream-events',
+    'run/resume-retry',
+    'run/concurrency',
+    'observe/node-traces',
+    'observe/runtime-metrics',
+    'observe/drift-anomalies',
+    'observe/alerts-incidents',
+    'build/state-schema',
+    'build/nodes-routing',
+    'build/subgraphs',
+    'build/tool-calling',
+    'test/path-scenarios',
+    'test/checkpoint-replay',
+    'test/eval-scorecards',
+    'test/safety-gates',
+    'release/graph-versions',
+    'release/promotion-flow',
+    'admin/identity-rbac',
+    'admin/audit-change-log',
+  ];
+
   // -------------------------------------------------------------------------
   // Data helpers
   // -------------------------------------------------------------------------
@@ -791,8 +819,12 @@ final class LangGraphConsoleStubController extends ControllerBase {
       'observe/alerts-incidents' => $this->subObserveAlertsIncidents($sub_info, $back),
       'build/state-schema'    => $this->subBuildStateSchema($sub_info, $back),
       'build/nodes-routing'   => $this->subBuildNodesRouting($sub_info, $back),
+      'build/subgraphs'       => $this->subBuildSubgraphs($sub_info, $back),
+      'build/tool-calling'    => $this->subBuildToolCalling($sub_info, $back),
       'test/path-scenarios'   => $this->subTestPathScenarios($sub_info, $back),
+      'test/checkpoint-replay' => $this->subTestCheckpointReplay($sub_info, $back),
       'test/eval-scorecards'  => $this->subTestEvalScorecards($sub_info, $back),
+      'test/safety-gates'      => $this->subTestSafetyGates($sub_info, $back),
       'release/graph-versions' => $this->subReleaseGraphVersions($sub_info, $back),
       'release/promotion-flow' => $this->subReleasePromotionFlow($sub_info, $back),
       'admin/identity-rbac'   => $this->subAdminConfig($sub_info, $back),
@@ -1222,70 +1254,262 @@ final class LangGraphConsoleStubController extends ControllerBase {
     ]);
   }
 
+  /** @param array<mixed> $sub @param array<mixed> $back */
+  private function subBuildSubgraphs(array $sub, array $back): array {
+    ['tick' => $tick] = $this->loadTelemetry();
+    // Recursively search step_results for any 'subgraph' key.
+    $found = $this->findSubgraphEntries((array) ($tick['step_results'] ?? []));
+    if (empty($found)) {
+      return $this->buildSubPage((string) $sub[0], (string) $sub[1], $back, [
+        'note' => ['#markup' => '<p><em>' . $this->t('No subgraphs detected in current telemetry. Subgraph entries appear when a step_results key contains a "subgraph" field.') . '</em></p>'],
+      ]);
+    }
+    $rows = [];
+    foreach ($found as $entry) {
+      $rows[] = [(string) ($entry['path'] ?? ''), (string) ($entry['value'] ?? '')];
+    }
+    return $this->buildSubPage((string) $sub[0], (string) $sub[1], $back, [
+      'note' => ['#markup' => '<p><em>' . $this->t('Subgraph entries found in last telemetry tick.') . '</em></p>'],
+      'table' => [
+        '#type'   => 'table',
+        '#header' => [$this->t('Path'), $this->t('Value')],
+        '#rows'   => $rows,
+        '#empty'  => $this->t('No subgraph entries.'),
+      ],
+    ]);
+  }
+
+  /**
+   * Recursively find all 'subgraph' keys in a nested array.
+   *
+   * @param array<mixed> $data
+   * @param string $path
+   * @return list<array{path: string, value: string}>
+   */
+  private function findSubgraphEntries(array $data, string $path = ''): array {
+    $results = [];
+    foreach ($data as $key => $value) {
+      $current_path = $path !== '' ? $path . '.' . $key : (string) $key;
+      if ($key === 'subgraph') {
+        $results[] = ['path' => $current_path, 'value' => is_scalar($value) ? (string) $value : json_encode($value)];
+      }
+      if (is_array($value)) {
+        $results = array_merge($results, $this->findSubgraphEntries($value, $current_path));
+      }
+    }
+    return $results;
+  }
+
+  /** @param array<mixed> $sub @param array<mixed> $back */
+  private function subBuildToolCalling(array $sub, array $back): array {
+    ['tick' => $tick] = $this->loadTelemetry();
+    $manifest = $tick['tool_manifest'] ?? ($tick['step_results']['tool_manifest'] ?? NULL);
+    if ($manifest === NULL || (is_array($manifest) && empty($manifest))) {
+      return $this->buildSubPage((string) $sub[0], (string) $sub[1], $back, [
+        'note' => ['#markup' => '<p><em>' . $this->t('Tool manifest not yet available. The orchestrator will emit a "tool_manifest" field in the tick payload once tool definitions are registered.') . '</em></p>'],
+      ]);
+    }
+    $rows = [];
+    if (is_array($manifest)) {
+      foreach ($manifest as $tool_name => $tool_def) {
+        $desc = is_array($tool_def) ? (string) ($tool_def['description'] ?? json_encode($tool_def)) : (string) $tool_def;
+        $rows[] = [(string) $tool_name, $desc];
+      }
+    }
+    else {
+      $rows[] = ['manifest', (string) $manifest];
+    }
+    return $this->buildSubPage((string) $sub[0], (string) $sub[1], $back, [
+      'note' => ['#markup' => '<p><em>' . $this->t('Tool manifest from last telemetry tick.') . '</em></p>'],
+      'table' => [
+        '#type'   => 'table',
+        '#header' => [$this->t('Tool'), $this->t('Description')],
+        '#rows'   => $rows,
+        '#empty'  => $this->t('No tools registered.'),
+      ],
+    ]);
+  }
+
   // -------------------------------------------------------------------------
   // Test subsections (feature progress data)
   // -------------------------------------------------------------------------
 
   /** @param array<mixed> $sub @param array<mixed> $back */
   private function subTestPathScenarios(array $sub, array $back): array {
-    $stats = $this->featureProgressStats();
-    $by_status = $stats['by_status'] ?? [];
-    $total = array_sum($by_status);
-    $done  = (int) ($by_status['done'] ?? 0) + (int) ($by_status['shipped'] ?? 0);
-    $ip    = (int) ($by_status['in_progress'] ?? 0);
-    $ready = (int) ($by_status['ready'] ?? 0);
-
-    $rows = [
-      [$this->t('Total features tracked'), (string) $total],
-      [$this->t('Done / shipped'), (string) $done . ' (' . ($total > 0 ? round($done / $total * 100) : 0) . '%)'],
-      [$this->t('In progress'), (string) $ip],
-      [$this->t('Ready (groomed, not started)'), (string) $ready],
-      [$this->t('Deferred'), (string) ($by_status['deferred'] ?? 0)],
-    ];
-
-    // Show P0/P1 features in progress for forseti.life.
-    $p1_rows = [];
-    $features_dir = $this->hqPath('features');
-    foreach (glob("$features_dir/forseti-*/feature.md") ?: [] as $path) {
-      $content = (string) @file_get_contents($path);
-      if (preg_match('/^- Status:\s*(in_progress|ready)/m', $content) &&
-          preg_match('/^- Priority:\s*(P0|P1)/m', $content)) {
-        preg_match('/^# Feature Brief: (.+)$/m', $content, $m_name);
-        preg_match('/^- Status:\s*(.+)$/m', $content, $m_status);
-        preg_match('/^- Priority:\s*(.+)$/m', $content, $m_pri);
-        $p1_rows[] = [
-          trim($m_name[1] ?? basename(dirname($path))),
-          trim($m_status[1] ?? '?'),
-          trim($m_pri[1] ?? '?'),
-        ];
-      }
+    $suite_path = $this->hqPath('qa-suites/products/forseti.life/suite.json');
+    if (!is_readable($suite_path)) {
+      return $this->buildSubPage((string) $sub[0], (string) $sub[1], $back, [
+        'note' => ['#markup' => '<div class="messages messages--warning">' . $this->t('Test suite not yet configured. Create <code>qa-suites/products/forseti.life/suite.json</code> to populate this view.') . '</div>'],
+      ]);
     }
-
+    $suite = $this->readJson($suite_path);
+    $scenarios = (array) ($suite['scenarios'] ?? $suite['tests'] ?? $suite);
+    $rows = [];
+    foreach ($scenarios as $id => $scenario) {
+      if (is_array($scenario)) {
+        $name   = (string) ($scenario['name'] ?? $scenario['id'] ?? (string) $id);
+        $path   = (string) ($scenario['path'] ?? $scenario['description'] ?? '');
+        $status = (string) ($scenario['status'] ?? $scenario['result'] ?? '—');
+      }
+      else {
+        $name   = (string) $id;
+        $path   = (string) $scenario;
+        $status = '—';
+      }
+      $rows[] = [$name, $path, $status];
+    }
     return $this->buildSubPage((string) $sub[0], (string) $sub[1], $back, [
-      'summary' => [
+      'note' => ['#markup' => '<p><em>' . $this->t('Loaded from qa-suites/products/forseti.life/suite.json.') . '</em></p>'],
+      'table' => [
         '#type'   => 'table',
-        '#header' => [$this->t('Metric'), $this->t('Value')],
+        '#header' => [$this->t('Scenario'), $this->t('Path / Description'), $this->t('Status')],
         '#rows'   => $rows,
+        '#empty'  => $this->t('No scenarios defined in suite.json.'),
       ],
-      'p1_head' => ['#markup' => '<h4>' . $this->t('Active P0/P1 Features (forseti.life)') . '</h4>'],
-      'p1_tbl'  => [
+    ]);
+  }
+
+  /** @param array<mixed> $sub @param array<mixed> $back */
+  private function subTestCheckpointReplay(array $sub, array $back): array {
+    ['tick' => $tick] = $this->loadTelemetry();
+    if (empty($tick)) {
+      return $this->buildSubPage((string) $sub[0], (string) $sub[1], $back, [
+        'note' => ['#markup' => '<p><em>' . $this->t('No checkpoint data available. No tick file found.') . '</em></p>'],
+      ]);
+    }
+    $ts     = (string) ($tick['ts'] ?? '');
+    $teams  = (array) ($tick['step_results']['release_cycle']['teams'] ?? []);
+    $exec   = (array) ($tick['step_results']['exec_agents']['ran'] ?? []);
+    $rows   = [];
+    $rows[] = [$this->t('Last tick timestamp'), $this->fmtTs($ts), '—'];
+    foreach ($teams as $t) {
+      $rows[] = [
+        $this->t('Team: @team', ['@team' => (string) ($t['team'] ?? '?')]),
+        (string) ($t['current'] ?? '—'),
+        (string) ($t['action'] ?? '—'),
+      ];
+    }
+    foreach ($exec as $e) {
+      $rows[] = [
+        $this->t('Agent: @agent', ['@agent' => (string) ($e['agent'] ?? '?')]),
+        '—',
+        ['data' => ['#markup' => $this->rcBadge(isset($e['rc']) ? (int) $e['rc'] : -1)]],
+      ];
+    }
+    return $this->buildSubPage((string) $sub[0], (string) $sub[1], $back, [
+      'note' => ['#markup' => '<p><em>' . $this->t('Checkpoint state from last telemetry tick. Full checkpoint replay (time-travel) is planned for release-h.') . '</em></p>'],
+      'table' => [
         '#type'   => 'table',
-        '#header' => [$this->t('Feature'), $this->t('Status'), $this->t('Priority')],
-        '#rows'   => $p1_rows,
-        '#empty'  => $this->t('None active.'),
+        '#header' => [$this->t('Thread / Agent'), $this->t('State'), $this->t('Action / RC')],
+        '#rows'   => $rows,
+        '#empty'  => $this->t('No checkpoint data.'),
       ],
     ]);
   }
 
   /** @param array<mixed> $sub @param array<mixed> $back */
   private function subTestEvalScorecards(array $sub, array $back): array {
+    $outbox_dir = $this->hqPath('sessions/qa-forseti/outbox');
+    $files = glob("$outbox_dir/*.md") ?: [];
+    if (empty($files)) {
+      return $this->buildSubPage((string) $sub[0], (string) $sub[1], $back, [
+        'note' => ['#markup' => '<p><em>' . $this->t('No QA scorecard files found in sessions/qa-forseti/outbox/. Files appear after qa-forseti completes a verification cycle.') . '</em></p>'],
+        'table' => [
+          '#type'   => 'table',
+          '#header' => [$this->t('File'), $this->t('Status'), $this->t('Summary')],
+          '#rows'   => [],
+          '#empty'  => $this->t('No eval scorecard data available.'),
+        ],
+      ]);
+    }
+    // Sort by mtime descending (most recent first).
+    usort($files, fn($a, $b) => filemtime($b) - filemtime($a));
+    $files = array_slice($files, 0, 20);
+    $rows = [];
+    foreach ($files as $file) {
+      $content = (string) @file_get_contents($file);
+      preg_match('/^- Status:\s*(.+)$/m', $content, $m_status);
+      preg_match('/^- Summary:\s*(.+)$/m', $content, $m_summary);
+      $status  = trim($m_status[1] ?? '—');
+      $summary = trim($m_summary[1] ?? '—');
+      if (strlen($summary) > 120) {
+        $summary = substr($summary, 0, 117) . '…';
+      }
+      $filename = basename($file, '.md');
+      $badge = match (strtolower($status)) {
+        'done'        => '<span style="color:#2e7d32">✓ done</span>',
+        'in_progress' => '<span style="color:#e65100">⏳ in_progress</span>',
+        'blocked'     => '<span style="color:#b71c1c">✗ blocked</span>',
+        default       => htmlspecialchars($status),
+      };
+      $rows[] = [
+        $filename,
+        ['data' => ['#markup' => $badge]],
+        htmlspecialchars($summary),
+      ];
+    }
     return $this->buildSubPage((string) $sub[0], (string) $sub[1], $back, [
-      'note' => ['#markup' => '<p><em>' . $this->t('Eval scorecard data requires the agent_evaluation module (not yet available).') . '</em></p>'],
+      'note' => ['#markup' => '<p><em>' . $this->t('Latest QA outbox files from sessions/qa-forseti/outbox/ (most recent 20).') . '</em></p>'],
       'table' => [
         '#type'   => 'table',
-        '#header' => [$this->t('Agent'), $this->t('Task Type'), $this->t('Success Rate'), $this->t('Last Run')],
-        '#rows'   => [],
-        '#empty'  => $this->t('No eval scorecard data available. Install the agent_evaluation module to populate this table.'),
+        '#header' => [$this->t('File'), $this->t('Status'), $this->t('Summary')],
+        '#rows'   => $rows,
+      ],
+    ]);
+  }
+
+  /** @param array<mixed> $sub @param array<mixed> $back */
+  private function subTestSafetyGates(array $sub, array $back): array {
+    ['tick' => $tick] = $this->loadTelemetry();
+    $hq = $this->hqPath('tmp/release-cycle-active');
+
+    // Gate 1: Active release.
+    $release_id = is_readable("$hq/forseti.release_id")
+      ? trim((string) file_get_contents("$hq/forseti.release_id")) : '';
+    $gate1_ok  = $release_id !== '';
+    $gate1_val = $gate1_ok ? $release_id : '—';
+
+    // Gate 2: QA verified — check qa-forseti outbox for a recent file with Status: done.
+    $outbox_dir = $this->hqPath('sessions/qa-forseti/outbox');
+    $gate2_ok   = FALSE;
+    $gate2_val  = 'no QA outbox files';
+    foreach (glob("$outbox_dir/*.md") ?: [] as $f) {
+      $c = (string) @file_get_contents($f);
+      if (preg_match('/^- Status:\s*(done|approved|pass)/mi', $c)) {
+        $gate2_ok  = TRUE;
+        $gate2_val = basename($f, '.md');
+        break;
+      }
+    }
+
+    // Gate 3: PM signoff artifact.
+    $gate3_ok  = FALSE;
+    $gate3_val = '—';
+    if ($release_id !== '') {
+      $signoff = $this->hqPath("sessions/pm-forseti/artifacts/release-signoffs/$release_id.md");
+      $gate3_ok  = is_readable($signoff);
+      $gate3_val = $gate3_ok ? $release_id : 'no signoff file';
+    }
+
+    // Gate 4: Coordinated push done.
+    $push_status = (string) ($tick['step_results']['coordinated_push']['status'] ?? '');
+    $gate4_ok    = str_contains(strtolower($push_status), 'pushed') || str_contains(strtolower($push_status), 'done') || str_contains(strtolower($push_status), 'complete');
+    $gate4_val   = $push_status !== '' ? $push_status : '—';
+
+    $ok   = fn(bool $v): array => ['data' => ['#markup' => $v ? '<span style="color:#2e7d32">✓ PASS</span>' : '<span style="color:#b71c1c">✗ FAIL</span>']];
+    $rows = [
+      [$this->t('Gate 1: Active release ID'), $ok($gate1_ok), $gate1_val],
+      [$this->t('Gate 2: QA verified (recent done status)'), $ok($gate2_ok), $gate2_val],
+      [$this->t('Gate 3: PM signoff artifact present'), $ok($gate3_ok), $gate3_val],
+      [$this->t('Gate 4: Coordinated push completed'), $ok($gate4_ok), $gate4_val],
+    ];
+
+    return $this->buildSubPage((string) $sub[0], (string) $sub[1], $back, [
+      'note' => ['#markup' => '<p><em>' . $this->t('Pre-release safety gates — live status from release-cycle-active/ and telemetry.') . '</em></p>'],
+      'table' => [
+        '#type'   => 'table',
+        '#header' => [$this->t('Gate'), $this->t('Result'), $this->t('Detail')],
+        '#rows'   => $rows,
       ],
     ]);
   }
@@ -1515,6 +1739,8 @@ final class LangGraphConsoleStubController extends ControllerBase {
     foreach ($subsections as $slug => $info) {
       $title = (string) ($info[0] ?? '');
       $desc = (string) ($info[1] ?? '');
+      $key = $section . '/' . $slug;
+      $is_live = in_array($key, self::LIVE_SUBSECTIONS, TRUE);
       $rows[] = [
         Link::fromTextAndUrl(
           $this->t($title),
@@ -1524,7 +1750,7 @@ final class LangGraphConsoleStubController extends ControllerBase {
           ])
         )->toString(),
         $desc,
-        $this->t('Stub'),
+        ['data' => ['#markup' => $is_live ? '<span style="color:#2e7d32">🟢 Live</span>' : '<span style="color:#b71c1c">🔴 Stub</span>']],
       ];
     }
     return $rows;

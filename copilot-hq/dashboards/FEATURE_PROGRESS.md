@@ -1,6 +1,6 @@
 # Feature Progress
 
-Generated: 2026-04-11T13:54:43Z
+Generated: 2026-04-11T22:51:15Z
 
 | Work item | Website | Module | Status | Priority | PM | Dev | QA |
 |-----------|---------|--------|--------|----------|----|-----|----|
@@ -78,7 +78,7 @@ Generated: 2026-04-11T13:54:43Z
 | dc-cr-first-world-magic | dungeoncrawler | dungeoncrawler_content | ready | P3 |  |  |  |
 | dc-cr-focus-spells | dungeoncrawler | dungeoncrawler_content | done | unset (PM will set at triage) |  |  |  |
 | dc-cr-general-feats | dungeoncrawler | dungeoncrawler_content | done | unset (PM will set at triage) |  |  |  |
-| dc-cr-gm-narrative-engine | dungeoncrawler | dungeoncrawler_content | in_progress | P3 |  |  |  |
+| dc-cr-gm-narrative-engine | dungeoncrawler | dungeoncrawler_content | done | P3 |  |  |  |
 | dc-cr-gm-tools | dungeoncrawler | dungeoncrawler_content | done | unset (PM will set at triage) |  |  |  |
 | dc-cr-gnome-ancestry | dungeoncrawler | dungeoncrawler_content | done | P2 |  |  |  |
 | dc-cr-gnome-heritage-chameleon | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
@@ -102,8 +102,8 @@ Generated: 2026-04-11T13:54:43Z
 | dc-cr-magic-ch11 | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
 | dc-cr-magic-items | dungeoncrawler | dungeoncrawler_content | done | unset (PM will set at triage) |  |  |  |
 | dc-cr-mountains-stoutness | dungeoncrawler | dungeoncrawler_content | done | unset (PM will set at triage) |  |  |  |
-| dc-cr-multiclass-archetype | dungeoncrawler | dungeoncrawler_content | in_progress | P2 |  |  |  |
-| dc-cr-npc-system | dungeoncrawler | dungeoncrawler_content | in_progress | P2 |  |  |  |
+| dc-cr-multiclass-archetype | dungeoncrawler | dungeoncrawler_content | done | P2 |  |  |  |
+| dc-cr-npc-system | dungeoncrawler | dungeoncrawler_content | done | P2 |  |  |  |
 | dc-cr-rest-watch-starvation | dungeoncrawler | dungeoncrawler_content | ready | P3 |  |  |  |
 | dc-cr-rituals | dungeoncrawler | dungeoncrawler_content | done | unset (PM will set at triage) |  |  |  |
 | dc-cr-rock-runner | dungeoncrawler | dungeoncrawler_content | done | unset (PM will set at triage) |  |  |  |
@@ -149,7 +149,7 @@ Generated: 2026-04-11T13:54:43Z
 | forseti-agent-tracker-payload-size-limit | forseti.life | copilot_agent_tracker | shipped | P2 |  |  |  |
 | forseti-ai-conversation-export | forseti.life | ai_conversation | shipped | medium |  |  |  |
 | forseti-ai-conversation-history-browser | forseti.life | ai_conversation | shipped | high |  |  |  |
-| forseti-ai-conversation-job-suggestions | forseti.life | ai_conversation | in_progress | medium |  |  |  |
+| forseti-ai-conversation-job-suggestions | forseti.life | ai_conversation | shipped | medium |  |  |  |
 | forseti-ai-conversation-user-chat | forseti.life | ai_conversation | shipped | high |  |  |  |
 | forseti-ai-debug-gate | forseti.life | ai_conversation | shipped | P1 |  |  |  |
 | forseti-ai-service-db-refactor | forseti.life | ai_conversation | shipped | P2 |  |  |  |
@@ -159,8 +159,8 @@ Generated: 2026-04-11T13:54:43Z
 | forseti-csrf-post-routes-fix | forseti.life | job_hunter | shipped | P1 (security) |  |  |  |
 | forseti-jobhunter-application-controller-db-extraction | forseti.life | job_hunter | shipped | P2 |  |  |  |
 | forseti-jobhunter-application-controller-split | forseti.life | job_hunter | shipped |  |  |  |  |
-| forseti-jobhunter-application-deadline-tracker | forseti.life | job_hunter | ready | high |  |  |  |
-| forseti-jobhunter-application-notes | forseti.life | job_hunter | in_progress | medium |  |  |  |
+| forseti-jobhunter-application-deadline-tracker | forseti.life | job_hunter | done | high |  |  |  |
+| forseti-jobhunter-application-notes | forseti.life | job_hunter | shipped | medium |  |  |  |
 | forseti-jobhunter-application-status-dashboard | forseti.life | job_hunter | shipped | high |  |  |  |
 | forseti-jobhunter-application-submission | forseti.life | job_hunter | shipped | P1 |  |  |  |
 | forseti-jobhunter-browser-automation | forseti.life | job_hunter | shipped | P1 |  |  |  |
@@ -173,7 +173,7 @@ Generated: 2026-04-11T13:54:43Z
 | forseti-jobhunter-google-jobs-ux | forseti.life | job_hunter | shipped | high |  |  |  |
 | forseti-jobhunter-hook-install-fix | forseti.life | job_hunter | shipped | P1 |  |  |  |
 | forseti-jobhunter-interview-prep | forseti.life | job_hunter | shipped | high |  |  |  |
-| forseti-jobhunter-job-match-score | forseti.life | job_hunter | in_progress | low |  |  |  |
+| forseti-jobhunter-job-match-score | forseti.life | job_hunter | shipped | low |  |  |  |
 | forseti-jobhunter-profile | forseti.life | job_hunter | shipped | P0 |  |  |  |
 | forseti-jobhunter-profile-completeness | forseti.life | job_hunter | shipped | medium |  |  |  |
 | forseti-jobhunter-profile-form-db-extraction | forseti.life | job_hunter | shipped | P2 |  |  |  |
@@ -184,10 +184,10 @@ Generated: 2026-04-11T13:54:43Z
 | forseti-jobhunter-return-to-open-redirect | forseti.life | job_hunter | shipped | P2 |  |  |  |
 | forseti-jobhunter-saved-search | forseti.life | job_hunter | shipped | medium |  |  |  |
 | forseti-jobhunter-schema-fix | forseti.life | job_hunter | shipped | P2 |  |  |  |
-| forseti-jobhunter-tailoring-feedback | forseti.life | job_hunter | in_progress | medium |  |  |  |
+| forseti-jobhunter-tailoring-feedback | forseti.life | job_hunter | shipped | medium |  |  |  |
 | forseti-jobhunter-twig-csrf-cleanup | forseti.life | job_hunter | shipped | P2 |  |  |  |
 | forseti-langgraph-console-build-sections | forseti.life | copilot_agent_tracker | in_progress | high |  |  |  |
-| forseti-langgraph-console-release-panel | forseti.life | copilot_agent_tracker | ready | high |  |  |  |
+| forseti-langgraph-console-release-panel | forseti.life | copilot_agent_tracker | done | high |  |  |  |
 | forseti-langgraph-console-test-sections | forseti.life | copilot_agent_tracker | in_progress | high |  |  |  |
 | forseti-langgraph-ui | forseti.life | copilot_agent_tracker | shipped | P1 |  |  |  |
 | forseti-open-source-initiative |  |  |  |  |  |  |  |

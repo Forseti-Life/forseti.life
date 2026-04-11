@@ -124,6 +124,25 @@ class Oauth2ScopeProvider implements Oauth2ScopeProviderInterface {
   }
 
   /**
+   * {@inheritdoc}
+   */
+  public function getPermissions(Oauth2ScopeInterface $scope): array {
+    if (!$scope->isUmbrella()) {
+      $granularity = $scope->getGranularity();
+      assert($granularity instanceof ScopeGranularityInterface);
+      return $granularity->getPermissions();
+    }
+
+    $permissions = [];
+    $children = $this->loadChildren($scope->id());
+    foreach ($children as $child) {
+      $permissions = array_unique(array_merge($permissions, $child->getPermissions()));
+    }
+
+    return $permissions;
+  }
+
+  /**
    * Adds a permission to the flatten permission tree.
    *
    * @param string $permission

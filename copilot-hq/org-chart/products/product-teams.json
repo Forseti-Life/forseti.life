@@ -116,6 +116,95 @@
       ]
     },
     {
+      "id": "forseti-jobhunter-automation",
+      "label": "Forseti Jobhunter & Application Automation",
+      "site": "forseti.life",
+      "aliases": [
+        "forseti-jobhunter",
+        "jobhunter",
+        "job hunter",
+        "jobseeker",
+        "job seeker",
+        "application automation",
+        "job_hunter"
+      ],
+      "active": true,
+      "release_preflight_enabled": false,
+      "coordinated_release_default": false,
+      "qa_agent": "qa-forseti",
+      "dev_agent": "dev-forseti",
+      "pm_agent": "pm-forseti",
+      "qa_suite_manifest": "qa-suites/products/forseti-jobhunter-automation/suite.json",
+      "site_audit": {
+        "enabled": false,
+        "filter": "",
+        "base_url_env": "",
+        "drupal_web_root": "",
+        "qa_artifacts_dir": "",
+        "route_regex": "",
+        "qa_permissions_path": ""
+      },
+      "ba_agent": "ba-forseti",
+      "reference_docs": [
+        {
+          "label": "Product brief",
+          "path": "org-chart/products/forseti-jobhunter-automation.md",
+          "type": "product-brief"
+        },
+        {
+          "label": "Job Hunter module README",
+          "path": "../sites/forseti/web/modules/custom/job_hunter/README.md",
+          "type": "module-readme"
+        },
+        {
+          "label": "Job Hunter tester README",
+          "path": "../sites/forseti/web/modules/custom/jobhunter_tester/README.md",
+          "type": "qa-readme"
+        }
+      ]
+    },
+    {
+      "id": "forseti-safety-application",
+      "label": "Forseti Safety Application",
+      "site": "forseti.life",
+      "aliases": [
+        "forseti-safety",
+        "safety",
+        "safety application",
+        "community safety",
+        "amisafe"
+      ],
+      "active": true,
+      "release_preflight_enabled": false,
+      "coordinated_release_default": false,
+      "qa_agent": "qa-forseti",
+      "dev_agent": "dev-forseti",
+      "pm_agent": "pm-forseti",
+      "qa_suite_manifest": "qa-suites/products/forseti-safety-application/suite.json",
+      "site_audit": {
+        "enabled": false,
+        "filter": "",
+        "base_url_env": "",
+        "drupal_web_root": "",
+        "qa_artifacts_dir": "",
+        "route_regex": "",
+        "qa_permissions_path": ""
+      },
+      "ba_agent": "ba-forseti",
+      "reference_docs": [
+        {
+          "label": "Product brief",
+          "path": "org-chart/products/forseti-safety-application.md",
+          "type": "product-brief"
+        },
+        {
+          "label": "Forseti core content README",
+          "path": "../sites/forseti/web/modules/custom/forseti_content/README.md",
+          "type": "module-readme"
+        }
+      ]
+    },
+    {
       "id": "forseti-agent-tracker",
       "label": "Forseti Agent Tracker",
       "site": "forseti.life",

@@ -1833,6 +1833,194 @@ class ApplicationSubmissionController extends ControllerBase {
    * @return string
    *   Detected ATS platform slug, or 'custom' if unrecognized.
    */
+
+  /**
+   * Application Status Dashboard — renders all applications with bulk update controls.
+   *
+   * AC-1: Checkboxes on each application row (authenticated only).
+   * AC-2: Select all checkbox in header.
+   * AC-3: Selected count indicator.
+   * AC-4: Bulk status update control bar visible when ≥1 selected.
+   */
+  public function applicationsDashboard(): array {
+    $uid = (int) $this->currentUser()->id();
+
+    $applications = \Drupal::database()->select('jobhunter_applications', 'a')
+      ->fields('a', ['id', 'job_id', 'submission_status', 'submission_date', 'created'])
+      ->condition('a.uid', $uid)
+      ->orderBy('a.created', 'DESC')
+      ->range(0, 100)
+      ->execute()
+      ->fetchAll(\PDO::FETCH_ASSOC);
+
+    // Build status options HTML.
+    $status_options_html = '';
+    foreach (self::WORKFLOW_STATUS_ENUM as $s) {
+      $label = htmlspecialchars(ucwords(str_replace('_', ' ', $s)));
+      $val   = htmlspecialchars($s);
+      $status_options_html .= "<option value=\"$val\">$label</option>";
+    }
+
+    // Generate CSRF token for the POST route.
+    $csrf_token = $this->csrfTokenGenerator->get('job_hunter.applications_bulk_update');
+    $form_action = \Drupal\Core\Url::fromRoute('job_hunter.applications_bulk_update')->toString()
+      . '?token=' . rawurlencode($csrf_token);
+
+    // Fetch job titles for display.
+    $job_ids = array_filter(array_unique(array_column($applications, 'job_id')));
+    $job_titles = [];
+    if (!empty($job_ids)) {
+      $rows_q = \Drupal::database()->select('jobhunter_saved_jobs', 'j')
+        ->fields('j', ['id', 'title', 'company'])
+        ->condition('j.id', $job_ids, 'IN')
+        ->execute()
+        ->fetchAllAssoc('id', \PDO::FETCH_ASSOC);
+      foreach ($rows_q as $jid => $jrow) {
+        $c = !empty($jrow['company']) ? ' — ' . $jrow['company'] : '';
+        $job_titles[(int) $jid] = htmlspecialchars((string) ($jrow['title'] ?? '—')) . htmlspecialchars($c);
+      }
+    }
+
+    // Build table rows HTML.
+    $rows_html = '';
+    foreach ($applications as $app) {
+      $jid   = (int) ($app['job_id'] ?? 0);
+      $title = $job_titles[$jid] ?? '—';
+      $stat  = htmlspecialchars(ucwords(str_replace('_', ' ', (string) ($app['submission_status'] ?? ''))));
+      $date  = htmlspecialchars((string) ($app['submission_date'] ?: ($app['created'] ?? '—')));
+      $id    = (int) ($app['id'] ?? 0);
+      $rows_html .= "<tr><td><input type=\"checkbox\" class=\"app-checkbox\" name=\"job_ids[]\" value=\"$id\"></td>"
+        . "<td>$title</td><td>$stat</td><td>$date</td></tr>\n";
+    }
+    if ($rows_html === '') {
+      $rows_html = '<tr><td colspan="4">No applications found.</td></tr>';
+    }
+
+    $html = <<<HTML
+<div id="applications-dashboard">
+  <h2>My Applications</h2>
+  <form method="post" action="{$form_action}" id="bulk-update-form">
+    <div id="bulk-control-bar" style="display:none; margin-bottom:1em; padding:0.75em; background:#f5f5f5; border:1px solid #ccc; border-radius:3px;">
+      <span id="selected-count" style="font-weight:bold; margin-right:1em;">0 selected</span>
+      <label for="bulk-status">Update status to:&nbsp;<select name="new_status" id="bulk-status">{$status_options_html}</select></label>
+      &nbsp;
+      <button type="submit" id="bulk-apply-btn" class="button button--primary" disabled>Apply</button>
+    </div>
+    <table class="views-table cols-4" style="width:100%">
+      <thead>
+        <tr>
+          <th><input type="checkbox" id="select-all-checkbox" title="Select all"></th>
+          <th>Job</th>
+          <th>Status</th>
+          <th>Date</th>
+        </tr>
+      </thead>
+      <tbody>
+        {$rows_html}
+      </tbody>
+    </table>
+  </form>
+</div>
+<script>
+(function() {
+  var checkboxes = document.querySelectorAll('.app-checkbox');
+  var selectAll  = document.getElementById('select-all-checkbox');
+  var countEl    = document.getElementById('selected-count');
+  var controlBar = document.getElementById('bulk-control-bar');
+  var applyBtn   = document.getElementById('bulk-apply-btn');
+  function updateUI() {
+    var checked = document.querySelectorAll('.app-checkbox:checked');
+    var n = checked.length;
+    countEl.textContent = n + ' selected';
+    if (n > 0) {
+      controlBar.style.display = '';
+      applyBtn.disabled = false;
+    } else {
+      controlBar.style.display = 'none';
+      applyBtn.disabled = true;
+    }
+  }
+  selectAll.addEventListener('change', function() {
+    checkboxes.forEach(function(cb) { cb.checked = selectAll.checked; });
+    updateUI();
+  });
+  checkboxes.forEach(function(cb) {
+    cb.addEventListener('change', function() {
+      if (!this.checked) { selectAll.checked = false; }
+      updateUI();
+    });
+  });
+})();
+</script>
+HTML;
+
+    $content = ['#markup' => $html, '#cache' => ['max-age' => 0]];
+    return $this->wrapWithNavigation($content);
+  }
+
+  /**
+   * Bulk update application status (POST, CSRF-protected).
+   *
+   * AC-5: Updates selected applications' status and redirects with confirmation.
+   * AC-6: Server-side uid ownership validation (silently skips non-owned IDs).
+   * AC-7: Empty selection → 400.
+   * AC-8: CSRF absent → 403 (handled by routing requirements).
+   *
+   * @return \Symfony\Component\HttpFoundation\RedirectResponse|\Symfony\Component\HttpFoundation\JsonResponse
+   */
+  public function bulkUpdateStatus(): \Symfony\Component\HttpFoundation\Response {
+    $request = $this->requestStack->getCurrentRequest();
+    assert($request !== NULL);
+
+    // AC-7: Validate that job_ids is present and non-empty.
+    $raw_ids = $request->request->all('job_ids');
+    if (empty($raw_ids)) {
+      return new \Symfony\Component\HttpFoundation\JsonResponse(
+        ['error' => 'No applications selected.'], 400
+      );
+    }
+
+    // Sanitize IDs to integers.
+    $ids = array_filter(array_map('intval', (array) $raw_ids), fn(int $id): bool => $id > 0);
+    if (empty($ids)) {
+      return new \Symfony\Component\HttpFoundation\JsonResponse(
+        ['error' => 'No valid application IDs provided.'], 400
+      );
+    }
+
+    // Validate status value against whitelist (AC-8 / input validation).
+    $new_status = (string) $request->request->get('new_status', '');
+    if (!in_array($new_status, self::WORKFLOW_STATUS_ENUM, TRUE)) {
+      return new \Symfony\Component\HttpFoundation\JsonResponse(
+        ['error' => 'Invalid status value.'], 400
+      );
+    }
+
+    $uid = (int) $this->currentUser()->id();
+
+    // AC-6: Only update applications belonging to the current user.
+    // The WHERE uid = :uid clause ensures cross-user manipulation is impossible.
+    $updated = \Drupal::database()->update('jobhunter_applications')
+      ->fields(['submission_status' => $new_status])
+      ->condition('id', $ids, 'IN')
+      ->condition('uid', $uid)
+      ->execute();
+
+    $updated_count = (int) ($updated ?? 0);
+    $status_label  = ucwords(str_replace('_', ' ', $new_status));
+
+    // Redirect back to the dashboard with a success message.
+    \Drupal::messenger()->addStatus(
+      $this->t('Updated @n application(s) to @status.', [
+        '@n'      => $updated_count,
+        '@status' => $status_label,
+      ])
+    );
+    return new \Symfony\Component\HttpFoundation\RedirectResponse(
+      \Drupal\Core\Url::fromRoute('job_hunter.applications_dashboard')->toString()
+    );
+  }
+
   public function interviewFollowup() {
     $content = [
       '#type' => 'container',

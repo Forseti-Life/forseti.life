@@ -954,16 +954,18 @@ def _dispatch_feature_gap_remediation() -> None:
         if not site_id or site_id not in site_agents:
             continue
 
-        dev_agent = site_agents[site_id]["dev"]
-        qa_agent  = site_agents[site_id]["qa"]
+        dev_owner_m = re.search(r"^-\s+Dev owner:\s*(.+)", text, re.MULTILINE | re.IGNORECASE)
+        qa_owner_m = re.search(r"^-\s+QA owner:\s*(.+)", text, re.MULTILINE | re.IGNORECASE)
+        dev_agent = (dev_owner_m.group(1).strip() if dev_owner_m else "") or site_agents[site_id]["dev"]
+        qa_agent  = (qa_owner_m.group(1).strip() if qa_owner_m else "") or site_agents[site_id]["qa"]
 
         dev_has_inbox   = _agent_inbox_has_feature(dev_agent, feat_name)
         dev_has_outbox  = _agent_outbox_has_feature(dev_agent, feat_name)
         qa_has_inbox    = _agent_inbox_has_feature(qa_agent,  feat_name)
         qa_has_outbox   = _agent_outbox_has_feature(qa_agent,  feat_name)
 
-        # GAP-A: no dev coverage at all (no inbox, no outbox)
-        if not dev_has_inbox and not dev_has_outbox and not qa_has_inbox and not qa_has_outbox:
+        # GAP-A: no dev coverage at all (no inbox, no outbox), regardless of QA state.
+        if not dev_has_inbox and not dev_has_outbox:
             state_key = state_dir / f"featgap_A_{feat_name}"
             last = _safe_int(state_key.read_text(encoding="utf-8").strip() if state_key.exists() else "0", 0)
             if (now - last) >= _FEATURE_GAP_COOLDOWN:
@@ -1102,19 +1104,9 @@ def _dispatch_scope_activate_nudge() -> None:
         if age_secs < grace_secs:
             continue  # still in grace period
 
-        # Count features tagged with this release.
-        # Handle both single-line ("- Release: <rid>") and multiline ("- Release:\n\n<rid>") formats.
-        _release_pat = re.compile(
-            rf"^-\s+Release:\s*(?:\n\s*)*{re.escape(rid)}\s*$",
-            re.MULTILINE,
-        )
-        feature_count = 0
-        for fm in (REPO_ROOT / "features").glob("*/feature.md"):
-            try:
-                if _release_pat.search(fm.read_text(encoding="utf-8", errors="ignore")):
-                    feature_count += 1
-            except Exception:
-                pass
+        # Only activated features count here. Release tags on ready-pool features must
+        # not suppress the PM Stage 0 activation nudge.
+        feature_count = _count_site_features_for_release(site, rid)
 
         if feature_count > 0:
             continue  # release has features — no nudge needed

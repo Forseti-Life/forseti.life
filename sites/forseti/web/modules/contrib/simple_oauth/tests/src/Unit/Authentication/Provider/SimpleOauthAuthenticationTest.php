@@ -8,6 +8,7 @@ use Drupal\Core\PageCache\RequestPolicyInterface;
 use Drupal\Core\Path\PathValidatorInterface;
 use Drupal\Core\Routing\RouteProviderInterface;
 use Drupal\Core\Url;
+use Drupal\Core\Session\PermissionCheckerInterface;
 use Drupal\TestTools\Random;
 use Drupal\Tests\UnitTestCase;
 use Drupal\simple_oauth\Authentication\Provider\SimpleOauthAuthenticationProvider;
@@ -20,6 +21,7 @@ use Symfony\Component\Routing\Route;
 use Symfony\Bridge\PsrHttpMessage\HttpFoundationFactoryInterface;
 use Symfony\Bridge\PsrHttpMessage\HttpMessageFactoryInterface;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\RequestStack;
 
 /**
  * @coversDefaultClass \Drupal\simple_oauth\Authentication\Provider\SimpleOauthAuthenticationProvider
@@ -86,9 +88,10 @@ class SimpleOauthAuthenticationTest extends UnitTestCase {
     // Store the Prophecy mock and reveal it for the strongly typed property.
     $this->pathValidatorMock = $this->prophesize(PathValidatorInterface::class);
     $this->pathValidator = $this->pathValidatorMock->reveal();
-
     $this->routeProviderMock = $this->prophesize(RouteProviderInterface::class);
     $this->routeProvider = $this->routeProviderMock->reveal();
+    $request_stack = $this->prophesize(RequestStack::class);
+    $permission_checker = $this->prophesize(PermissionCheckerInterface::class);
 
     $this->provider = new SimpleOauthAuthenticationProvider(
       $resource_server_factory->reveal(),
@@ -97,7 +100,9 @@ class SimpleOauthAuthenticationTest extends UnitTestCase {
       $http_message_factory->reveal(),
       $http_foundation_factory->reveal(),
       $this->pathValidator,
-      $this->routeProvider
+      $this->routeProvider,
+      $request_stack->reveal(),
+      $permission_checker->reveal()
     );
   }
 
