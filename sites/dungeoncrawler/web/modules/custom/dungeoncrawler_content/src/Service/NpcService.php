@@ -102,6 +102,7 @@ class NpcService {
    * @return array|null
    */
   public function getNpc(int $campaign_id, int $npc_id): ?array {
+    $this->validateCampaignAccess($campaign_id);
     $row = $this->database->select('dc_npc', 'n')
       ->fields('n')
       ->condition('id', $npc_id)
@@ -120,6 +121,7 @@ class NpcService {
    * @return array[]
    */
   public function getCampaignNpcs(int $campaign_id): array {
+    $this->validateCampaignAccess($campaign_id);
     return $this->database->select('dc_npc', 'n')
       ->fields('n')
       ->condition('campaign_id', $campaign_id)
