@@ -59,6 +59,11 @@ class AiGmService {
   protected NpcPsychologyService $npcPsychologyService;
 
   /**
+   * NPC service for canonical campaign NPC catalog (AC-003).
+   */
+  protected NpcService $npcService;
+
+  /**
    * Encounter balancer for GM-tools encounter generation.
    */
   protected EncounterBalancer $encounterBalancer;
@@ -79,7 +84,8 @@ class AiGmService {
     AiSessionManager $session_manager,
     NpcPsychologyService $npc_psychology_service,
     EncounterBalancer $encounter_balancer,
-    SessionService $session_service
+    SessionService $session_service,
+    NpcService $npc_service
   ) {
     $this->aiApiService = $ai_api_service;
     $this->configFactory = $config_factory;
@@ -89,6 +95,7 @@ class AiGmService {
     $this->npcPsychologyService = $npc_psychology_service;
     $this->encounterBalancer = $encounter_balancer;
     $this->sessionService = $session_service;
+    $this->npcService = $npc_service;
   }
 
   // =========================================================================
@@ -116,7 +123,7 @@ class AiGmService {
     $prior = $this->sessionService->buildAiGmContext($campaign_id);
     $prior_summary = $prior['prior_session_summary'] ?? '';
 
-    // Active NPC roster with attitudes.
+    // Active NPC roster with attitudes (from psychology profiles).
     $npc_profiles = $this->npcPsychologyService->getCampaignProfiles($campaign_id);
     $npc_roster = array_map(function (array $profile): array {
       return [
@@ -127,6 +134,9 @@ class AiGmService {
       ];
     }, $npc_profiles);
 
+    // AC-003: canonical named NPC catalog with lore/dialogue context.
+    $named_npcs = $this->npcService->buildAiPromptData($campaign_id);
+
     // Rolling GM session context (recent messages + compressed summary).
     $session_key = $this->sessionManager->gmSessionKey($campaign_id);
     $session_context = $this->sessionManager->buildSessionContext($session_key, $campaign_id, 10);
@@ -136,6 +146,7 @@ class AiGmService {
       'prior_session_summary' => $prior_summary,
       'session_context' => $session_context,
       'npc_roster' => array_values($npc_roster),
+      'named_npcs' => $named_npcs,
       'location' => $current_scene['location'] ?? '',
       'quest_hooks' => $current_scene['quest_hooks'] ?? [],
       'recent_events' => $current_scene['recent_events'] ?? [],

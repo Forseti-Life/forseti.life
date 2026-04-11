@@ -36,6 +36,12 @@ services:
   dungeoncrawler_content.multiclass_archetype_service:
     class: Drupal\dungeoncrawler_content\Service\MulticlassArchetypeService
 
+  dungeoncrawler_content.npc_service:
+    class: Drupal\dungeoncrawler_content\Service\NpcService
+    arguments:
+      - '@database'
+      - '@current_user'
+
   dungeoncrawler_content.character_leveling:
     class: Drupal\dungeoncrawler_content\Service\CharacterLevelingService
     arguments:
@@ -556,6 +562,7 @@ services:
       - '@dungeoncrawler_content.npc_psychology_service'
       - '@dungeoncrawler_content.encounter_balancer'
       - '@dungeoncrawler_content.session_service'
+      - '@dungeoncrawler_content.npc_service'
 
   dungeoncrawler_content.crit_specialization:
     class: Drupal\dungeoncrawler_content\Service\CritSpecializationService

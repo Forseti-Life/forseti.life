@@ -5298,3 +5298,208 @@ function dungeoncrawler_content_update_10041() {
 
   return 'Created dc_focus_spell_sources table (dc-apg-focus-spells).';
 }
+
+/**
+ * Implements hook_update_N().
+ *
+ * Create dc_npc and dc_npc_history tables for the NPC System (dc-cr-npc-system).
+ */
+function dungeoncrawler_content_update_10042() {
+  $schema = \Drupal::database()->schema();
+
+  if (!$schema->tableExists('dc_npc')) {
+    $schema->createTable('dc_npc', [
+      'description' => 'Campaign NPC catalog — named allies, contacts, merchants, villains, quest-givers.',
+      'fields' => [
+        'id' => [
+          'type' => 'serial',
+          'unsigned' => TRUE,
+          'not null' => TRUE,
+          'description' => 'Primary key.',
+        ],
+        'campaign_id' => [
+          'type' => 'int',
+          'unsigned' => TRUE,
+          'not null' => TRUE,
+          'description' => 'FK to dc_campaigns.id.',
+        ],
+        'name' => [
+          'type' => 'varchar',
+          'length' => 255,
+          'not null' => TRUE,
+          'description' => 'NPC display name.',
+        ],
+        'role' => [
+          'type' => 'varchar',
+          'length' => 32,
+          'not null' => TRUE,
+          'default' => 'neutral',
+          'description' => 'ally|contact|merchant|villain|neutral',
+        ],
+        'attitude' => [
+          'type' => 'varchar',
+          'length' => 32,
+          'not null' => TRUE,
+          'default' => 'indifferent',
+          'description' => 'friendly|indifferent|unfriendly|hostile',
+        ],
+        'level' => [
+          'type' => 'int',
+          'size' => 'tiny',
+          'not null' => TRUE,
+          'default' => 1,
+          'description' => 'NPC level for abbreviated stat block.',
+        ],
+        'perception' => [
+          'type' => 'int',
+          'size' => 'small',
+          'not null' => TRUE,
+          'default' => 0,
+          'description' => 'Perception modifier.',
+        ],
+        'armor_class' => [
+          'type' => 'int',
+          'size' => 'small',
+          'not null' => TRUE,
+          'default' => 10,
+          'description' => 'Armor Class.',
+        ],
+        'hit_points' => [
+          'type' => 'int',
+          'size' => 'small',
+          'not null' => TRUE,
+          'default' => 0,
+          'description' => 'Maximum hit points.',
+        ],
+        'fort_save' => [
+          'type' => 'int',
+          'size' => 'small',
+          'not null' => TRUE,
+          'default' => 0,
+          'description' => 'Fortitude save modifier.',
+        ],
+        'ref_save' => [
+          'type' => 'int',
+          'size' => 'small',
+          'not null' => TRUE,
+          'default' => 0,
+          'description' => 'Reflex save modifier.',
+        ],
+        'will_save' => [
+          'type' => 'int',
+          'size' => 'small',
+          'not null' => TRUE,
+          'default' => 0,
+          'description' => 'Will save modifier.',
+        ],
+        'lore_notes' => [
+          'type' => 'text',
+          'not null' => TRUE,
+          'description' => 'GM lore/backstory notes; surfaced to AI GM for quest hooks.',
+        ],
+        'dialogue_notes' => [
+          'type' => 'text',
+          'not null' => TRUE,
+          'description' => 'Dialogue style/hooks for AI GM portrayals.',
+        ],
+        'entity_ref' => [
+          'type' => 'varchar',
+          'length' => 255,
+          'not null' => TRUE,
+          'default' => '',
+          'description' => 'Links to dc_npc_psychology.entity_ref for in-session psychology profile.',
+        ],
+        'created' => [
+          'type' => 'int',
+          'unsigned' => TRUE,
+          'not null' => TRUE,
+          'default' => 0,
+          'description' => 'Unix timestamp of creation.',
+        ],
+        'updated' => [
+          'type' => 'int',
+          'unsigned' => TRUE,
+          'not null' => TRUE,
+          'default' => 0,
+          'description' => 'Unix timestamp of last update.',
+        ],
+      ],
+      'primary key' => ['id'],
+      'indexes' => [
+        'campaign_id' => ['campaign_id'],
+        'role' => ['role'],
+        'attitude' => ['attitude'],
+      ],
+    ]);
+  }
+
+  if (!$schema->tableExists('dc_npc_history')) {
+    $schema->createTable('dc_npc_history', [
+      'description' => 'Audit trail for NPC relationship and attitude changes (AC-005).',
+      'fields' => [
+        'id' => [
+          'type' => 'serial',
+          'unsigned' => TRUE,
+          'not null' => TRUE,
+        ],
+        'npc_id' => [
+          'type' => 'int',
+          'unsigned' => TRUE,
+          'not null' => TRUE,
+          'description' => 'FK to dc_npc.id.',
+        ],
+        'campaign_id' => [
+          'type' => 'int',
+          'unsigned' => TRUE,
+          'not null' => TRUE,
+          'description' => 'Denormalized for fast campaign-level queries.',
+        ],
+        'session_id' => [
+          'type' => 'int',
+          'unsigned' => TRUE,
+          'not null' => TRUE,
+          'default' => 0,
+          'description' => 'Session in which the change occurred (0 = outside session).',
+        ],
+        'change_type' => [
+          'type' => 'varchar',
+          'length' => 32,
+          'not null' => TRUE,
+          'description' => 'attitude|relationship|note',
+        ],
+        'old_value' => [
+          'type' => 'varchar',
+          'length' => 255,
+          'not null' => TRUE,
+          'default' => '',
+        ],
+        'new_value' => [
+          'type' => 'varchar',
+          'length' => 255,
+          'not null' => TRUE,
+          'default' => '',
+        ],
+        'trigger' => [
+          'type' => 'varchar',
+          'length' => 255,
+          'not null' => TRUE,
+          'default' => '',
+          'description' => 'Human-readable trigger (e.g., "Diplomacy DC 15 (rolled 18)").',
+        ],
+        'created' => [
+          'type' => 'int',
+          'unsigned' => TRUE,
+          'not null' => TRUE,
+          'default' => 0,
+        ],
+      ],
+      'primary key' => ['id'],
+      'indexes' => [
+        'npc_id' => ['npc_id'],
+        'campaign_id' => ['campaign_id'],
+      ],
+    ]);
+  }
+
+  return 'Created dc_npc and dc_npc_history tables (dc-cr-npc-system).';
+}
