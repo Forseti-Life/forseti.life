@@ -4,7 +4,7 @@
 
 **Maintained by:** `ba-dungeoncrawler` — update this file at the end of every scan chunk (same commit as new feature stubs). Include `Category` and `Depends on` for every new row (`Depends on` may be blank if no dependencies).
 
-**Last updated:** 2026-04-10 | Release: `20260410-dungeoncrawler-release-b` | Total: 71
+**Last updated:** 2026-04-11 | Release: `20260411-dungeoncrawler-release-b` | Total: 73
 
 ---
 
@@ -62,6 +62,8 @@
 | dc-cr-gnome-weapon-familiarity | game-mechanic | dc-cr-gnome-ancestry, dc-cr-ancestry-feat-schedule | Gnome Feat 1: trained in glaive + kukri; gnome martial weapons count as simple |
 | dc-cr-gnome-weapon-specialist | game-mechanic | dc-cr-gnome-ancestry, dc-cr-gnome-weapon-familiarity, dc-cr-ancestry-feat-schedule | Gnome Feat 5: critical specialization effects with glaive, kukri, and gnome weapons |
 | dc-cr-goblin-ancestry | game-mechanic |  | Goblin ancestry: 6 HP, Small, Speed 25, Dex+Cha+Free boosts, Wisdom flaw |
+| dc-cr-goblin-very-sneaky | game-mechanic | dc-cr-goblin-ancestry, dc-cr-ancestry-feat-schedule | Goblin Feat 1: Sneak +5 ft movement; don't become Observed if cover/concealment held at end of turn |
+| dc-cr-goblin-weapon-frenzy | game-mechanic | dc-cr-goblin-ancestry, dc-cr-goblin-weapon-familiarity, dc-cr-ancestry-feat-schedule | Goblin Feat 5: critical specialization effects with goblin weapons (prereq: Goblin Weapon Familiarity) |
 | dc-cr-gm-narrative-engine | rule-system | dc-cr-gm-tools, dc-cr-npc-system, dc-cr-session-structure | AI GM storytelling pipeline: scene framing, NPC dialogue, outcome narration |
 | dc-cr-gm-tools | rule-system |  | GM encounter budgeting, NPC stat blocks, loot-by-level tables for AI GM use |
 | dc-cr-heritage-system | game-mechanic | dc-cr-ancestry-system | Heritage selection: one heritage per ancestry at level 1, locked after creation |
