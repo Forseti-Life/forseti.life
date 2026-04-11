@@ -2274,6 +2274,102 @@
             ],
             "required_for_release": true,
             "notes": "Playwright: click select-all, verify all checkboxes checked + count indicator shows total; click again, verify all unchecked + count resets to 0."
+        },
+        {
+            "id": "forseti-langgraph-console-build-sections-anon-403-state-schema",
+            "label": "TC-1: Anonymous GET /langgraph-console/build/state-schema \u2192 403",
+            "type": "role-url-audit",
+            "feature_id": "forseti-langgraph-console-build-sections",
+            "command": "bash -c 'CODE=$(curl -o /dev/null -s -w \"%{http_code}\" https://forseti.life/admin/reports/copilot-agent-tracker/langgraph-console/build/state-schema); echo \"HTTP $CODE\"; [ \"$CODE\" -eq 403 ] && echo PASS || (echo FAIL; exit 1)'",
+            "artifacts": [
+                "/tmp/qa-forseti-langgraph-build-anon.log"
+            ],
+            "required_for_release": true,
+            "notes": "Route: /admin/reports/copilot-agent-tracker/langgraph-console/build/state-schema. Permission: administer copilot agent tracker. Note: AC-6 names 'access copilot agent tracker' but live routing.yml uses 'administer copilot agent tracker' \u2014 flag discrepancy to dev-forseti-agent-tracker."
+        },
+        {
+            "id": "forseti-langgraph-console-build-sections-anon-403-nodes-routing",
+            "label": "TC-2: Anonymous GET /langgraph-console/build/nodes-routing \u2192 403",
+            "type": "role-url-audit",
+            "feature_id": "forseti-langgraph-console-build-sections",
+            "command": "bash -c 'CODE=$(curl -o /dev/null -s -w \"%{http_code}\" https://forseti.life/admin/reports/copilot-agent-tracker/langgraph-console/build/nodes-routing); echo \"HTTP $CODE\"; [ \"$CODE\" -eq 403 ] && echo PASS || (echo FAIL; exit 1)'",
+            "artifacts": [
+                "/tmp/qa-forseti-langgraph-build-anon.log"
+            ],
+            "required_for_release": true,
+            "notes": "Route: /admin/reports/copilot-agent-tracker/langgraph-console/build/nodes-routing. Permission: administer copilot agent tracker."
+        },
+        {
+            "id": "forseti-langgraph-console-build-sections-admin-200-all-four",
+            "label": "TC-3: Admin GET all 4 build subsections \u2192 200",
+            "type": "role-url-audit",
+            "feature_id": "forseti-langgraph-console-build-sections",
+            "command": "bash -c 'FAIL=0; for SUB in state-schema nodes-routing subgraphs tool-calling; do CODE=$(curl -o /dev/null -s -w \"%{http_code}\" -b \"$FORSETI_COOKIE_ADMIN\" https://forseti.life/admin/reports/copilot-agent-tracker/langgraph-console/build/$SUB); echo \"$SUB: HTTP $CODE\"; [ \"$CODE\" -ne 200 ] && FAIL=1; done; [ $FAIL -eq 0 ] && echo PASS || (echo FAIL; exit 1)'",
+            "artifacts": [
+                "/tmp/qa-forseti-langgraph-build-admin.log"
+            ],
+            "required_for_release": true,
+            "notes": "Auth required (FORSETI_COOKIE_ADMIN). Verifies all 4 subsections return 200. Dev must implement the new controller methods for state-schema, nodes-routing, subgraphs, tool-calling."
+        },
+        {
+            "id": "forseti-langgraph-console-build-sections-state-schema-live",
+            "label": "TC-4: State schema page renders live content when telemetry available",
+            "type": "e2e",
+            "feature_id": "forseti-langgraph-console-build-sections",
+            "command": "npx playwright test --grep 'langgraph-console-build.*state-schema-live' tests/forseti/langgraph-console-build-sections.spec.js",
+            "artifacts": [
+                "/tmp/playwright-reports/forseti-langgraph-console-build/"
+            ],
+            "required_for_release": true,
+            "notes": "Playwright: log in as admin, visit state-schema page, assert schema key/type content is rendered + \ud83d\udfe2 Live indicator present."
+        },
+        {
+            "id": "forseti-langgraph-console-build-sections-state-schema-fallback",
+            "label": "TC-5: State schema page shows graceful fallback when no telemetry",
+            "type": "e2e",
+            "feature_id": "forseti-langgraph-console-build-sections",
+            "command": "npx playwright test --grep 'langgraph-console-build.*state-schema-fallback' tests/forseti/langgraph-console-build-sections.spec.js",
+            "artifacts": [
+                "/tmp/playwright-reports/forseti-langgraph-console-build/"
+            ],
+            "required_for_release": true,
+            "notes": "Playwright: visit state-schema page when telemetry absent; assert 'State schema not yet available' message shown, no PHP error markup, HTTP 200."
+        },
+        {
+            "id": "forseti-langgraph-console-build-sections-nodes-routing-live",
+            "label": "TC-6: Nodes/routing page renders node table when registry populated",
+            "type": "e2e",
+            "feature_id": "forseti-langgraph-console-build-sections",
+            "command": "npx playwright test --grep 'langgraph-console-build.*nodes-routing-live' tests/forseti/langgraph-console-build-sections.spec.js",
+            "artifacts": [
+                "/tmp/playwright-reports/forseti-langgraph-console-build/"
+            ],
+            "required_for_release": true,
+            "notes": "Playwright: visit nodes-routing page with active orchestrator; assert table with \u22651 node row + \ud83d\udfe2 Live indicator. Graceful fallback: 'Node registry not yet available.'"
+        },
+        {
+            "id": "forseti-langgraph-console-build-sections-tool-calling-live",
+            "label": "TC-7: Tool calling page renders tool manifest when available",
+            "type": "e2e",
+            "feature_id": "forseti-langgraph-console-build-sections",
+            "command": "npx playwright test --grep 'langgraph-console-build.*tool-calling-live' tests/forseti/langgraph-console-build-sections.spec.js",
+            "artifacts": [
+                "/tmp/playwright-reports/forseti-langgraph-console-build/"
+            ],
+            "required_for_release": true,
+            "notes": "Playwright: visit tool-calling page with manifest present; assert tool names/descriptions visible. Fallback: 'Tool manifest not yet available.'"
+        },
+        {
+            "id": "forseti-langgraph-console-build-sections-no-watchdog-errors",
+            "label": "TC-8: All 4 build subsection page loads produce zero watchdog PHP errors",
+            "type": "regression",
+            "feature_id": "forseti-langgraph-console-build-sections",
+            "command": "bash -c 'BEFORE=$(cd /var/www/html/forseti && vendor/bin/drush sql:query \"SELECT MAX(wid) FROM watchdog\" 2>/dev/null | tail -1); for SUB in state-schema nodes-routing subgraphs tool-calling; do curl -s -o /dev/null -b \"$FORSETI_COOKIE_ADMIN\" https://forseti.life/admin/reports/copilot-agent-tracker/langgraph-console/build/$SUB; done; AFTER=$(cd /var/www/html/forseti && vendor/bin/drush sql:query \"SELECT COUNT(*) FROM watchdog WHERE severity<=3 AND wid>$BEFORE AND type=\\'copilot_agent_tracker\\'\" 2>/dev/null | tail -1); echo \"New errors: $AFTER\"; [ \"$AFTER\" -eq 0 ] && echo PASS || (echo FAIL; exit 1)'",
+            "artifacts": [
+                "/tmp/qa-forseti-langgraph-build-watchdog.log"
+            ],
+            "required_for_release": true,
+            "notes": "Auth required (FORSETI_COOKIE_ADMIN). Checks watchdog for new severity<=3 entries for copilot_agent_tracker after loading all 4 build subsections."
         }
     ],
     "_schema_notes": [

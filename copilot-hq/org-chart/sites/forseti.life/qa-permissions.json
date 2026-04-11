@@ -780,6 +780,54 @@
                 "anon": 403,
                 "authenticated": 200
             }
+        },
+        {
+            "id": "forseti-langgraph-console-build-sections-state-schema",
+            "feature_id": "forseti-langgraph-console-build-sections",
+            "path_regex": "^/admin/reports/copilot-agent-tracker/langgraph-console/build/state-schema$",
+            "method": "GET",
+            "notes": "New build subsection route (dev to implement). Permission: administer copilot agent tracker. AC-6 references 'access copilot agent tracker' \u2014 discrepancy flagged; live routing uses 'administer copilot agent tracker'.",
+            "expect": {
+                "anon": 403,
+                "authenticated": 403,
+                "admin": 200
+            }
+        },
+        {
+            "id": "forseti-langgraph-console-build-sections-nodes-routing",
+            "feature_id": "forseti-langgraph-console-build-sections",
+            "path_regex": "^/admin/reports/copilot-agent-tracker/langgraph-console/build/nodes-routing$",
+            "method": "GET",
+            "notes": "New build subsection route (dev to implement). Permission: administer copilot agent tracker. Added for feature forseti-langgraph-console-build-sections.",
+            "expect": {
+                "anon": 403,
+                "authenticated": 403,
+                "admin": 200
+            }
+        },
+        {
+            "id": "forseti-langgraph-console-build-sections-subgraphs",
+            "feature_id": "forseti-langgraph-console-build-sections",
+            "path_regex": "^/admin/reports/copilot-agent-tracker/langgraph-console/build/subgraphs$",
+            "method": "GET",
+            "notes": "New build subsection route (dev to implement). Permission: administer copilot agent tracker. Added for feature forseti-langgraph-console-build-sections.",
+            "expect": {
+                "anon": 403,
+                "authenticated": 403,
+                "admin": 200
+            }
+        },
+        {
+            "id": "forseti-langgraph-console-build-sections-tool-calling",
+            "feature_id": "forseti-langgraph-console-build-sections",
+            "path_regex": "^/admin/reports/copilot-agent-tracker/langgraph-console/build/tool-calling$",
+            "method": "GET",
+            "notes": "New build subsection route (dev to implement). Permission: administer copilot agent tracker. Added for feature forseti-langgraph-console-build-sections.",
+            "expect": {
+                "anon": 403,
+                "authenticated": 403,
+                "admin": 200
+            }
         }
     ]
 }
