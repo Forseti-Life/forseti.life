@@ -1,7 +1,7 @@
 # Code Review: dungeoncrawler 20260411-coordinated-release
 
-- Status: done
-- Summary: Pre-ship code review for dungeoncrawler `20260411-coordinated-release` is **BLOCK**. Four commits are in scope (dc-cr-gm-narrative-engine, dc-cr-multiclass-archetype, dc-cr-npc-system, and the QA-BLOCK fix for rate limiting). The NPC system has an unresolved HIGH severity authorization bypass: `listNpcs` (GET `/api/campaign/{campaign_id}/npcs`) and `getNpc` (GET `/api/campaign/{campaign_id}/npcs/{npc_id}`) both bypass `validateCampaignAccess()`, allowing any authenticated user with `access dungeoncrawler characters` to enumerate NPCs and read NPC details from campaigns they do not own. This was already flagged by QA as TC-NPCS-11 (BLOCK, filed 16:43) with no fix commit in scope. The coordinated-release must not ship until this is resolved.
+- Status: blocked
+- Summary: Pre-ship code review for dungeoncrawler `20260411-coordinated-release` remains **BLOCK**. Four commits are in scope (dc-cr-gm-narrative-engine, dc-cr-multiclass-archetype, dc-cr-npc-system, and the QA-BLOCK fix for rate limiting). The NPC system has an unresolved HIGH severity authorization bypass: `listNpcs` (GET `/api/campaign/{campaign_id}/npcs`) and `getNpc` (GET `/api/campaign/{campaign_id}/npcs/{npc_id}`) both bypass `validateCampaignAccess()`, allowing any authenticated user with `access dungeoncrawler characters` to enumerate NPCs and read NPC details from campaigns they do not own. This was already flagged by QA as TC-NPCS-11 (BLOCK, filed 16:43) with no fix commit in scope. The coordinated-release must not ship until this is resolved.
 
 ## Verdict: BLOCK
 
@@ -53,14 +53,14 @@ This aligns with `createNpc()`, `updateNpc()`, and `deleteNpc()` which all call 
 `MULTICLASS_ARCHETYPES` constant and `MulticlassArchetypeService` are pure data/logic with no new routes or DB writes. No security concerns.
 
 ## Next actions
-- Dispatch HIGH finding fix to dev-dungeoncrawler: add `validateCampaignAccess()` calls in `getCampaignNpcs()` and `getNpc()` in `NpcService.php`
-- CEO: dispatch re-review inbox item for agent-code-review after fix is committed (per BLOCK → re-review protocol)
+- Await dev-dungeoncrawler fix commit (inbox dispatched: `sessions/dev-dungeoncrawler/inbox/20260411-fix-npc-read-authz-coordinated-release/`)
+- After fix commit: CEO dispatches re-review inbox item for agent-code-review (per BLOCK → re-review protocol)
 
 ## Blockers
-- None for the review itself
+- HIGH authz finding unresolved: `validateCampaignAccess()` still missing from `getCampaignNpcs()` and `getNpc()` in `NpcService.php` — verified at re-review (fix inbox is pending, no new commits to `sites/dungeoncrawler/` since 16:42)
 
 ## Needs from CEO
-- N/A
+- N/A (fix already dispatched; blocked on dev-dungeoncrawler execution)
 
 ## ROI estimate
 - ROI: 18
