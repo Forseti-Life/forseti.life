@@ -758,6 +758,28 @@
             "auth_expected": 200,
             "feature_id": "forseti-ai-conversation-job-suggestions",
             "notes": "CSRF-protected POST endpoint for AI chat. _csrf_token: TRUE and _user_is_logged_in: TRUE. Anon -> 403. Auth POST without ?token= -> 403. Added for feature forseti-ai-conversation-job-suggestions (job suggestions extension to ChatController)."
+        },
+        {
+            "id": "forseti-jobhunter-bulk-status-update-applications-dashboard",
+            "feature_id": "forseti-jobhunter-bulk-status-update",
+            "path_regex": "^/jobhunter/applications$",
+            "method": "GET",
+            "notes": "New Application Status Dashboard route (dev to implement). Requires 'access job hunter' permission. Added for feature forseti-jobhunter-bulk-status-update.",
+            "expect": {
+                "anon": 403,
+                "authenticated": 200
+            }
+        },
+        {
+            "id": "forseti-jobhunter-bulk-status-update-bulk-update-post",
+            "feature_id": "forseti-jobhunter-bulk-status-update",
+            "path_regex": "^/jobhunter/applications/bulk-update$",
+            "method": "POST",
+            "notes": "New bulk update POST endpoint. _csrf_token: TRUE, _user_is_logged_in: TRUE. Anon POST without token \u2192 403. Auth POST with valid token + owned job_ids + valid status \u2192 200. Added for feature forseti-jobhunter-bulk-status-update.",
+            "expect": {
+                "anon": 403,
+                "authenticated": 200
+            }
         }
     ]
 }

@@ -2178,6 +2178,102 @@
             ],
             "required_for_release": true,
             "notes": "Checks for new PHP errors/warnings in watchdog for ai_conversation module after a job-suggestion request. Run after TC-1."
+        },
+        {
+            "id": "forseti-jobhunter-bulk-status-update-anon-403",
+            "label": "TC-1: Anonymous GET /jobhunter/applications \u2192 403",
+            "type": "role-url-audit",
+            "feature_id": "forseti-jobhunter-bulk-status-update",
+            "command": "bash -c 'CODE=$(curl -o /dev/null -s -w \"%{http_code}\" https://forseti.life/jobhunter/applications); echo \"HTTP $CODE\"; [ \"$CODE\" -eq 403 ] && echo PASS || (echo FAIL; exit 1)'",
+            "artifacts": [
+                "/tmp/qa-forseti-bulk-status-anon.log"
+            ],
+            "required_for_release": true,
+            "notes": "New route (dev to implement). Anonymous GET \u2192 403 per access job hunter permission gate."
+        },
+        {
+            "id": "forseti-jobhunter-bulk-status-update-dashboard-checkboxes",
+            "label": "TC-2: Authenticated user sees checkbox column on /jobhunter/applications",
+            "type": "e2e",
+            "feature_id": "forseti-jobhunter-bulk-status-update",
+            "command": "npx playwright test --grep 'bulk-status-update.*checkboxes' tests/forseti/jobhunter-bulk-status-update.spec.js",
+            "artifacts": [
+                "/tmp/playwright-reports/forseti-bulk-status-update/"
+            ],
+            "required_for_release": true,
+            "notes": "Playwright: log in, visit /jobhunter/applications, assert checkbox column + select-all checkbox in header are present."
+        },
+        {
+            "id": "forseti-jobhunter-bulk-status-update-bulk-update-flow",
+            "label": "TC-3: Bulk update \u2014 select 2 apps, choose status, confirm updated",
+            "type": "e2e",
+            "feature_id": "forseti-jobhunter-bulk-status-update",
+            "command": "npx playwright test --grep 'bulk-status-update.*flow' tests/forseti/jobhunter-bulk-status-update.spec.js",
+            "artifacts": [
+                "/tmp/playwright-reports/forseti-bulk-status-update/"
+            ],
+            "required_for_release": true,
+            "notes": "Playwright: select 2 checkboxes, pick valid status, click Apply; assert 200/redirect + confirmation message 'Updated 2 applications to [status]'; reload and verify new status."
+        },
+        {
+            "id": "forseti-jobhunter-bulk-status-update-csrf-absent",
+            "label": "TC-4: POST /jobhunter/applications/bulk-update without CSRF token \u2192 403",
+            "type": "functional",
+            "feature_id": "forseti-jobhunter-bulk-status-update",
+            "command": "bash -c 'CODE=$(curl -s -o /dev/null -w \"%{http_code}\" -X POST https://forseti.life/jobhunter/applications/bulk-update -H \"Content-Type: application/json\" -d \\'{\\'\\''job_ids\\'\\'':[1],\\'\\''status\\'\\'':\\'\\''applied\\'\\''}\\''); echo \"HTTP $CODE\"; [ \"$CODE\" -eq 403 ] && echo PASS || (echo FAIL; exit 1)'",
+            "artifacts": [
+                "/tmp/qa-forseti-bulk-status-csrf.log"
+            ],
+            "required_for_release": true,
+            "notes": "New POST-only route (dev to implement). _csrf_token: TRUE on route. Anon POST without token \u2192 403."
+        },
+        {
+            "id": "forseti-jobhunter-bulk-status-update-empty-selection",
+            "label": "TC-5: POST bulk-update with empty job_ids array \u2192 400",
+            "type": "functional",
+            "feature_id": "forseti-jobhunter-bulk-status-update",
+            "command": "bash -c 'CSRF=$(curl -s https://forseti.life/session/token); CODE=$(curl -s -o /dev/null -w \"%{http_code}\" -b \"$FORSETI_COOKIE_AUTHENTICATED\" -X POST \"https://forseti.life/jobhunter/applications/bulk-update?token=$CSRF\" -H \"Content-Type: application/json\" -d \\'{\"job_ids\":[],\"status\":\"applied\"}\\'); echo \"HTTP $CODE\"; [ \"$CODE\" -eq 400 ] && echo PASS || (echo FAIL; exit 1)'",
+            "artifacts": [
+                "/tmp/qa-forseti-bulk-status-empty.log"
+            ],
+            "required_for_release": true,
+            "notes": "Auth required (FORSETI_COOKIE_AUTHENTICATED). Empty job_ids \u2192 400 + user-facing error; no DB write."
+        },
+        {
+            "id": "forseti-jobhunter-bulk-status-update-cross-user-ownership",
+            "label": "TC-6: Cross-user ownership \u2014 POST with other user's job IDs silently skipped",
+            "type": "functional",
+            "feature_id": "forseti-jobhunter-bulk-status-update",
+            "command": "bash -c 'echo \"MANUAL: Requires two test user cookies (FORSETI_COOKIE_USER_A, FORSETI_COOKIE_USER_B). POST job_ids belonging to user B using user A token; assert 200 but records unchanged. See TC-6 notes in 03-test-plan.md.\"; exit 0'",
+            "artifacts": [
+                "/tmp/qa-forseti-bulk-status-ownership.log"
+            ],
+            "required_for_release": true,
+            "notes": "Ownership guard: server silently skips job_ids not owned by current uid. Requires two test accounts. Playwright preferred for full e2e ownership coverage."
+        },
+        {
+            "id": "forseti-jobhunter-bulk-status-update-invalid-status",
+            "label": "TC-7: POST bulk-update with invalid status value \u2192 400",
+            "type": "functional",
+            "feature_id": "forseti-jobhunter-bulk-status-update",
+            "command": "bash -c 'CSRF=$(curl -s https://forseti.life/session/token); CODE=$(curl -s -o /dev/null -w \"%{http_code}\" -b \"$FORSETI_COOKIE_AUTHENTICATED\" -X POST \"https://forseti.life/jobhunter/applications/bulk-update?token=$CSRF\" -H \"Content-Type: application/json\" -d \\'{\"job_ids\":[1],\"status\":\"invalid_value\"}\\'); echo \"HTTP $CODE\"; [ \"$CODE\" -eq 400 ] && echo PASS || (echo FAIL; exit 1)'",
+            "artifacts": [
+                "/tmp/qa-forseti-bulk-status-invalid.log"
+            ],
+            "required_for_release": true,
+            "notes": "Status whitelist enforced server-side. invalid_value \u2192 400; no DB write. Auth required (FORSETI_COOKIE_AUTHENTICATED)."
+        },
+        {
+            "id": "forseti-jobhunter-bulk-status-update-select-all-toggle",
+            "label": "TC-8: Select all checkbox toggles all rows; count indicator updates",
+            "type": "e2e",
+            "feature_id": "forseti-jobhunter-bulk-status-update",
+            "command": "npx playwright test --grep 'bulk-status-update.*select-all' tests/forseti/jobhunter-bulk-status-update.spec.js",
+            "artifacts": [
+                "/tmp/playwright-reports/forseti-bulk-status-update/"
+            ],
+            "required_for_release": true,
+            "notes": "Playwright: click select-all, verify all checkboxes checked + count indicator shows total; click again, verify all unchecked + count resets to 0."
         }
     ],
     "_schema_notes": [
