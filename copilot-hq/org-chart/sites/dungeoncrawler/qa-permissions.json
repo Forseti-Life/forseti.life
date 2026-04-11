@@ -1363,6 +1363,20 @@
         "dc_playwright_player": "allow",
         "dc_playwright_admin": "allow"
       }
+    },
+    {
+      "id": "dc-cr-skills-diplomacy-actions-acl-regression",
+      "feature_id": "dc-cr-skills-diplomacy-actions",
+      "path_regex": "^/api/(game|character|encounter|downtime)/",
+      "notes": "ACL regression for dc-cr-skills-diplomacy-actions. No new routes introduced by Diplomacy or Intimidation actions. Existing encounter handler routes (request, demoralize) and downtime handler routes (gather_information, make_impression, coerce) retain ACL: anon denied (403), authenticated player allowed (200). TC-DIP-29.",
+      "expect": {
+        "anon": "deny",
+        "authenticated": "allow",
+        "content_editor": "allow",
+        "administrator": "allow",
+        "dc_playwright_player": "allow",
+        "dc_playwright_admin": "allow"
+      }
     }
   ]
 }

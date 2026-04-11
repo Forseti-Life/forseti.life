@@ -12547,6 +12547,250 @@
           "required_for_release": true
         }
       ]
+    },
+    {
+      "id": "dc-cr-skills-diplomacy-actions-phpunit",
+      "label": "Diplomacy and Intimidation skill actions \u2014 Gather Information, Make an Impression, Request, Coerce, Demoralize: activity types, DC tiers, NPC attitude shifts, degree outcomes, immunity timers, language barrier gate",
+      "type": "phpunit",
+      "feature_id": "dc-cr-skills-diplomacy-actions",
+      "command": "vendor/bin/phpunit --filter DiplomacyActionsTest web/modules/custom/dungeoncrawler_content/tests/",
+      "artifacts": [
+        "sessions/qa-dungeoncrawler/artifacts/dc-cr-skills-diplomacy-actions/phpunit-results.xml"
+      ],
+      "required_for_release": true,
+      "test_cases": [
+        {
+          "id": "TC-DIP-01",
+          "label": "Gather Information is a downtime activity \u2014 action_type=downtime, time_cost\u22482 hours",
+          "feature_id": "dc-cr-skills-diplomacy-actions",
+          "notes": "PM: AC says '~2 hrs' \u2014 confirm fixed 2-hour cost vs GM-variable window. Automation needs a deterministic scalar.",
+          "status": "immediately activatable",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-DIP-02",
+          "label": "Gather Information DC scales with topic secrecy tier (common < uncommon < secret)",
+          "feature_id": "dc-cr-skills-diplomacy-actions",
+          "notes": "PM: confirm numeric DC offsets per topic-tier (e.g. common=base, uncommon=base+2, secret=base+5). Automation needs exact mapping.",
+          "status": "immediately activatable",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-DIP-03",
+          "label": "Gather Information Success: information_payload non-empty; content pertains to topic",
+          "feature_id": "dc-cr-skills-diplomacy-actions",
+          "status": "immediately activatable",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-DIP-04",
+          "label": "Gather Information Critical Failure: community_awareness_flag=true for topic; distinct from plain Failure (no info only)",
+          "feature_id": "dc-cr-skills-diplomacy-actions",
+          "status": "immediately activatable",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-DIP-05",
+          "label": "Make an Impression is a downtime activity \u2014 action_type=downtime, time_cost\u224810 minutes",
+          "feature_id": "dc-cr-skills-diplomacy-actions",
+          "status": "immediately activatable",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-DIP-06",
+          "label": "Make an Impression: initial NPC attitude loaded from npc_data; attitude in [Hostile, Unfriendly, Indifferent, Friendly, Helpful]",
+          "feature_id": "dc-cr-skills-diplomacy-actions",
+          "notes": "PM: confirm dc-cr-npc-system is available or if a stub attitude field exists for Stage 0.",
+          "dependency": "dc-cr-npc-system",
+          "status": "deferred \u2014 pending dc-cr-npc-system",
+          "required_for_release": false
+        },
+        {
+          "id": "TC-DIP-07",
+          "label": "Make an Impression Critical Success: new_attitude = min(Helpful, current_attitude + 2)",
+          "feature_id": "dc-cr-skills-diplomacy-actions",
+          "dependency": "dc-cr-npc-system",
+          "status": "deferred \u2014 pending dc-cr-npc-system",
+          "required_for_release": false
+        },
+        {
+          "id": "TC-DIP-08",
+          "label": "Make an Impression Success: new_attitude = min(Helpful, current_attitude + 1)",
+          "feature_id": "dc-cr-skills-diplomacy-actions",
+          "dependency": "dc-cr-npc-system",
+          "status": "deferred \u2014 pending dc-cr-npc-system",
+          "required_for_release": false
+        },
+        {
+          "id": "TC-DIP-09",
+          "label": "Make an Impression Failure: new_attitude = current_attitude (no change)",
+          "feature_id": "dc-cr-skills-diplomacy-actions",
+          "dependency": "dc-cr-npc-system",
+          "status": "deferred \u2014 pending dc-cr-npc-system",
+          "required_for_release": false
+        },
+        {
+          "id": "TC-DIP-10",
+          "label": "Make an Impression Critical Failure: new_attitude = max(Hostile, current_attitude - 1)",
+          "feature_id": "dc-cr-skills-diplomacy-actions",
+          "dependency": "dc-cr-npc-system",
+          "status": "deferred \u2014 pending dc-cr-npc-system",
+          "required_for_release": false
+        },
+        {
+          "id": "TC-DIP-11",
+          "label": "Make an Impression attitude clamped at bounds \u2014 Crit Success on Helpful stays Helpful; Crit Fail on Hostile stays Hostile",
+          "feature_id": "dc-cr-skills-diplomacy-actions",
+          "dependency": "dc-cr-npc-system",
+          "status": "deferred \u2014 pending dc-cr-npc-system",
+          "required_for_release": false
+        },
+        {
+          "id": "TC-DIP-12",
+          "label": "Request requires Friendly or Helpful attitude (or leverage); Hostile/Unfriendly without leverage auto-fails or applies \u22124 penalty",
+          "feature_id": "dc-cr-skills-diplomacy-actions",
+          "notes": "PM: confirm system default \u2014 Hostile/Unfriendly without leverage = hard block (auto-fail) vs \u22124 penalty. Recommend auto-fail at Hostile/Unfriendly, \u22124 at Indifferent without leverage.",
+          "dependency": "dc-cr-npc-system",
+          "status": "deferred \u2014 pending dc-cr-npc-system",
+          "required_for_release": false
+        },
+        {
+          "id": "TC-DIP-13",
+          "label": "Request: unreasonable requests apply \u22122 to \u22124 circumstance penalty to Diplomacy check",
+          "feature_id": "dc-cr-skills-diplomacy-actions",
+          "notes": "PM: confirm whether 'unreasonable' is binary flag or tiered enum; confirm exact penalty per tier (\u22122 slightly unreasonable, \u22124 very unreasonable?).",
+          "status": "immediately activatable",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-DIP-14",
+          "label": "Request Critical Success: comply=true; npc_attitude = min(Helpful, current + 1)",
+          "feature_id": "dc-cr-skills-diplomacy-actions",
+          "dependency": "dc-cr-npc-system",
+          "status": "deferred \u2014 pending dc-cr-npc-system",
+          "required_for_release": false
+        },
+        {
+          "id": "TC-DIP-15",
+          "label": "Request Success: comply=true; npc_attitude unchanged",
+          "feature_id": "dc-cr-skills-diplomacy-actions",
+          "dependency": "dc-cr-npc-system",
+          "status": "deferred \u2014 pending dc-cr-npc-system",
+          "required_for_release": false
+        },
+        {
+          "id": "TC-DIP-16",
+          "label": "Request Failure: comply=false; npc_attitude unchanged",
+          "feature_id": "dc-cr-skills-diplomacy-actions",
+          "dependency": "dc-cr-npc-system",
+          "status": "deferred \u2014 pending dc-cr-npc-system",
+          "required_for_release": false
+        },
+        {
+          "id": "TC-DIP-17",
+          "label": "Request Critical Failure: comply=false; npc_attitude = max(Hostile, current - 1)",
+          "feature_id": "dc-cr-skills-diplomacy-actions",
+          "dependency": "dc-cr-npc-system",
+          "status": "deferred \u2014 pending dc-cr-npc-system",
+          "required_for_release": false
+        },
+        {
+          "id": "TC-DIP-18",
+          "label": "Coerce is a downtime activity \u2014 action_type=downtime, time_cost\u224810 minutes, requires single target",
+          "feature_id": "dc-cr-skills-diplomacy-actions",
+          "status": "immediately activatable",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-DIP-19",
+          "label": "Coerce Success: compliance_window\u22487 days; post_window_attitude=Unfriendly",
+          "feature_id": "dc-cr-skills-diplomacy-actions",
+          "notes": "PM: confirm time resolution for compliance windows (days, hours, real-time timestamps).",
+          "dependency": "dc-cr-npc-system",
+          "status": "deferred \u2014 pending dc-cr-npc-system",
+          "required_for_release": false
+        },
+        {
+          "id": "TC-DIP-20",
+          "label": "Coerce Critical Success: compliance_window\u224830 days; post_window_attitude=Unfriendly",
+          "feature_id": "dc-cr-skills-diplomacy-actions",
+          "dependency": "dc-cr-npc-system",
+          "status": "deferred \u2014 pending dc-cr-npc-system",
+          "required_for_release": false
+        },
+        {
+          "id": "TC-DIP-21",
+          "label": "Coerce immunity: coerce_immunity_flag=true after any attempt; duration\u22487 days; further Coerce blocked",
+          "feature_id": "dc-cr-skills-diplomacy-actions",
+          "notes": "PM: confirm whether immunity window starts at coerce attempt or at compliance window expiry.",
+          "dependency": "dc-cr-npc-system",
+          "status": "deferred \u2014 pending dc-cr-npc-system",
+          "required_for_release": false
+        },
+        {
+          "id": "TC-DIP-22",
+          "label": "Coerce immunity timer active: action blocked; no check rolled; no compliance change",
+          "feature_id": "dc-cr-skills-diplomacy-actions",
+          "dependency": "dc-cr-npc-system",
+          "status": "deferred \u2014 pending dc-cr-npc-system",
+          "required_for_release": false
+        },
+        {
+          "id": "TC-DIP-23",
+          "label": "Demoralize is a 1-action encounter action \u2014 action_cost=1, action_type=encounter, traits=[auditory, emotion, mental]",
+          "feature_id": "dc-cr-skills-diplomacy-actions",
+          "status": "immediately activatable",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-DIP-24",
+          "label": "Demoralize language barrier: shared_language=false \u2192 action blocked; no check rolled",
+          "feature_id": "dc-cr-skills-diplomacy-actions",
+          "notes": "PM: confirm which module owns language-barrier data (dc-cr-skill-system, dc-cr-npc-system, or separate language module).",
+          "status": "immediately activatable",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-DIP-25",
+          "label": "Demoralize Critical Success: target gains frightened 2 condition",
+          "feature_id": "dc-cr-skills-diplomacy-actions",
+          "dependency": "dc-cr-conditions",
+          "status": "deferred \u2014 pending dc-cr-conditions",
+          "required_for_release": false
+        },
+        {
+          "id": "TC-DIP-26",
+          "label": "Demoralize Success: target gains frightened 1 condition",
+          "feature_id": "dc-cr-skills-diplomacy-actions",
+          "dependency": "dc-cr-conditions",
+          "status": "deferred \u2014 pending dc-cr-conditions",
+          "required_for_release": false
+        },
+        {
+          "id": "TC-DIP-27",
+          "label": "Demoralize post-attempt immunity: demoralize_immunity_flag=true; duration=10 minutes; further Demoralize blocked within window",
+          "feature_id": "dc-cr-skills-diplomacy-actions",
+          "notes": "PM: confirm reading \u2014 no pre-existing permanent immunity, but 10-min post-attempt immunity always created (standard PF2e).",
+          "dependency": "dc-cr-conditions",
+          "status": "deferred \u2014 pending dc-cr-conditions",
+          "required_for_release": false
+        },
+        {
+          "id": "TC-DIP-28",
+          "label": "Demoralize vs immune target: demoralize_immunity_active=true \u2192 action blocked; no check; no condition applied",
+          "feature_id": "dc-cr-skills-diplomacy-actions",
+          "dependency": "dc-cr-conditions",
+          "status": "deferred \u2014 pending dc-cr-conditions",
+          "required_for_release": false
+        },
+        {
+          "id": "TC-DIP-29",
+          "label": "ACL regression: no new routes from Diplomacy/Intimidation actions; existing downtime/encounter handler routes retain ACL",
+          "feature_id": "dc-cr-skills-diplomacy-actions",
+          "status": "immediately activatable",
+          "required_for_release": true
+        }
+      ]
     }
   ],
   "_schema_notes": [
