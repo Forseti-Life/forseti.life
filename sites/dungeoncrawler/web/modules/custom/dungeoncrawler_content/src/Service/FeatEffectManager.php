@@ -1304,6 +1304,32 @@ class FeatEffectManager {
         );
         $effects['notes'][] = 'Sensate Gnome: imprecise scent (30 ft base; 60 ft downwind, 15 ft upwind). +2 circumstance to Perception to locate undetected creatures within scent range.';
         break;
+
+      case 'umbral':
+        // AC: Umbral Gnome — darkvision; supersedes Low-Light Vision; no duplicate.
+        $already_has_darkvision = FALSE;
+        foreach ($effects['senses'] as $sense) {
+          if (($sense['id'] ?? '') === 'darkvision') {
+            $already_has_darkvision = TRUE;
+            break;
+          }
+        }
+        if (!$already_has_darkvision) {
+          $this->addSense(
+            $effects,
+            'darkvision',
+            'Darkvision',
+            'See in complete darkness as well as bright light, in black and white. Supersedes Low-Light Vision.',
+            ['precision' => 'precise']
+          );
+        }
+        // Remove low-light-vision: darkvision is strictly superior.
+        $effects['senses'] = array_values(array_filter(
+          $effects['senses'],
+          static fn($s) => ($s['id'] ?? '') !== 'low-light-vision'
+        ));
+        $effects['notes'][] = 'Umbral Gnome: darkvision (supersedes Low-Light Vision; no duplicate if already possessed).';
+        break;
     }
 
     $computed_speed = $base_speed + (int) ($effects['derived_adjustments']['speed_bonus'] ?? 0);
