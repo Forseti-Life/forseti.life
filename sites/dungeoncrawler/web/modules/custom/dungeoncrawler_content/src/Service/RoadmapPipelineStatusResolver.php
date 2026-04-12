@@ -69,6 +69,11 @@ class RoadmapPipelineStatusResolver {
       return $this->statusCache[$feature_id];
     }
 
+    if ($feature_id === '' || str_contains($feature_id, '/') || str_contains($feature_id, '\\') || str_contains($feature_id, '..')) {
+      $this->statusCache[$feature_id] = NULL;
+      return NULL;
+    }
+
     $feature_path = $this->featuresPath . DIRECTORY_SEPARATOR . $feature_id . DIRECTORY_SEPARATOR . 'feature.md';
     if (!is_readable($feature_path)) {
       $this->statusCache[$feature_id] = NULL;

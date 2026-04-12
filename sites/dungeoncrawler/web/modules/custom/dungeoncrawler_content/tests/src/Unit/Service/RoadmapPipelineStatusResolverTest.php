@@ -69,6 +69,29 @@ class RoadmapPipelineStatusResolverTest extends UnitTestCase {
   }
 
   /**
+   * @covers ::getPipelineStatus
+   * @dataProvider pathTraversalProvider
+   */
+  public function testGetPipelineStatusRejectsPathTraversal(string $malicious_id): void {
+    $resolver = new RoadmapPipelineStatusResolver($this->featuresPath);
+    $this->assertNull($resolver->getPipelineStatus($malicious_id));
+  }
+
+  /**
+   * Data provider for path traversal test cases.
+   */
+  public static function pathTraversalProvider(): array {
+    return [
+      'double dot'           => ['..'],
+      'double dot slash'     => ['../etc/passwd'],
+      'nested traversal'     => ['foo/../bar'],
+      'forward slash'        => ['foo/bar'],
+      'backslash'            => ['foo\\bar'],
+      'empty string'         => [''],
+    ];
+  }
+
+  /**
    * Writes a minimal feature file for testing.
    */
   private function writeFeatureStatus(string $feature_id, string $status): void {
