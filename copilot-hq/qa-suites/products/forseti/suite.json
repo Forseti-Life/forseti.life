@@ -3030,6 +3030,126 @@
       ],
       "required_for_release": true,
       "notes": "After saving notes, grep count must be 0 \u2014 no PII/notes content in debug log output."
+    },
+    {
+      "id": "forseti-jobhunter-contact-tracker-tc1-create-contact-smoke",
+      "label": "TC-1: Create new contact (smoke) \u2014 row saved to jobhunter_contacts",
+      "type": "functional",
+      "feature_id": "forseti-jobhunter-contact-tracker",
+      "command": "drush sql:query \"SELECT name FROM jobhunter_contacts WHERE uid=<uid> ORDER BY created DESC LIMIT 1\" 2>/dev/null",
+      "artifacts": [
+        "/tmp/qa-forseti-contact-tracker-tc1.log"
+      ],
+      "required_for_release": true,
+      "notes": "Submit Add Contact form with name='Jane Doe', relationship_type='recruiter'. Expect row with name='Jane Doe'."
+    },
+    {
+      "id": "forseti-jobhunter-contact-tracker-tc2-contacts-list-renders",
+      "label": "TC-2: /jobhunter/contacts list page renders for authenticated user",
+      "type": "functional",
+      "feature_id": "forseti-jobhunter-contact-tracker",
+      "command": "curl -s -o /dev/null -w \"%{http_code}\" -b \"$FORSETI_COOKIE_AUTHENTICATED\" https://forseti.life/jobhunter/contacts",
+      "artifacts": [
+        "/tmp/qa-forseti-contact-tracker-tc2.log"
+      ],
+      "required_for_release": true,
+      "notes": "Expect HTTP 200; page contains contact name(s)."
+    },
+    {
+      "id": "forseti-jobhunter-contact-tracker-tc3-contact-surfaces-on-application-detail",
+      "label": "TC-3: Contact surfaces on application detail when company_id matches",
+      "type": "functional",
+      "feature_id": "forseti-jobhunter-contact-tracker",
+      "command": "curl -s -b \"$FORSETI_COOKIE_AUTHENTICATED\" https://forseti.life/jobhunter/application/<id> | grep -c 'Contacts at this company'",
+      "artifacts": [
+        "/tmp/qa-forseti-contact-tracker-tc3.log"
+      ],
+      "required_for_release": true,
+      "notes": "Contact with company_id=5 must appear on application detail page for company_id=5. Grep count >= 1."
+    },
+    {
+      "id": "forseti-jobhunter-contact-tracker-tc4-contact-absent-when-company-mismatch",
+      "label": "TC-4: Contact does NOT surface on application detail when company_id does not match",
+      "type": "functional",
+      "feature_id": "forseti-jobhunter-contact-tracker",
+      "command": "curl -s -b \"$FORSETI_COOKIE_AUTHENTICATED\" https://forseti.life/jobhunter/application/<id-company9> | grep -c 'Jane Doe'",
+      "artifacts": [
+        "/tmp/qa-forseti-contact-tracker-tc4.log"
+      ],
+      "required_for_release": true,
+      "notes": "Contact with company_id=5 must NOT appear on application with company_id=9. Grep count = 0."
+    },
+    {
+      "id": "forseti-jobhunter-contact-tracker-tc5-edit-contact-updates-in-place",
+      "label": "TC-5: Edit contact form updates existing row in place",
+      "type": "functional",
+      "feature_id": "forseti-jobhunter-contact-tracker",
+      "command": "drush sql:query \"SELECT title FROM jobhunter_contacts WHERE id=12 AND uid=<uid>\" 2>/dev/null",
+      "artifacts": [
+        "/tmp/qa-forseti-contact-tracker-tc5.log"
+      ],
+      "required_for_release": true,
+      "notes": "Submit edit form with title='VP Engineering'. DB must show 'VP Engineering'; list page reflects new title."
+    },
+    {
+      "id": "forseti-jobhunter-contact-tracker-tc6-delete-contact-removes-row",
+      "label": "TC-6: Delete contact removes row from jobhunter_contacts",
+      "type": "functional",
+      "feature_id": "forseti-jobhunter-contact-tracker",
+      "command": "drush sql:query \"SELECT COUNT(*) FROM jobhunter_contacts WHERE id=12\" 2>/dev/null",
+      "artifacts": [
+        "/tmp/qa-forseti-contact-tracker-tc6.log"
+      ],
+      "required_for_release": true,
+      "notes": "After POST delete for id=12, COUNT(*) must be 0."
+    },
+    {
+      "id": "forseti-jobhunter-contact-tracker-tc7-cross-user-isolation",
+      "label": "TC-7: Cross-user isolation \u2014 user B cannot edit or delete user A contact",
+      "type": "security",
+      "feature_id": "forseti-jobhunter-contact-tracker",
+      "command": "drush sql:query \"SELECT uid FROM jobhunter_contacts WHERE id=12\" 2>/dev/null",
+      "artifacts": [
+        "/tmp/qa-forseti-contact-tracker-tc7.log"
+      ],
+      "required_for_release": true,
+      "notes": "User B POST-edit/delete of contact id=12 must return 403 and leave uid=uid_A unchanged."
+    },
+    {
+      "id": "forseti-jobhunter-contact-tracker-tc8-anon-access-403",
+      "label": "TC-8: Unauthenticated GET /jobhunter/contacts returns 403 or redirect",
+      "type": "security",
+      "feature_id": "forseti-jobhunter-contact-tracker",
+      "command": "curl -s -o /dev/null -w \"%{http_code}\" https://forseti.life/jobhunter/contacts",
+      "artifacts": [
+        "/tmp/qa-forseti-contact-tracker-tc8.log"
+      ],
+      "required_for_release": true,
+      "notes": "Expect 403 or 302 redirect to login. Anonymous access to contact list must be blocked."
+    },
+    {
+      "id": "forseti-jobhunter-contact-tracker-tc9-csrf-required-on-post",
+      "label": "TC-9: Authenticated POST without CSRF token returns 403",
+      "type": "security",
+      "feature_id": "forseti-jobhunter-contact-tracker",
+      "command": "curl -s -o /dev/null -w \"%{http_code}\" -X POST -b \"$FORSETI_COOKIE_AUTHENTICATED\" https://forseti.life/jobhunter/contacts",
+      "artifacts": [
+        "/tmp/qa-forseti-contact-tracker-tc9.log"
+      ],
+      "required_for_release": true,
+      "notes": "POST without X-CSRF-Token header must return 403. Tests Drupal CSRF protection on create/edit/delete routes."
+    },
+    {
+      "id": "forseti-jobhunter-contact-tracker-tc10-linkedin-url-validation",
+      "label": "TC-10: Non-LinkedIn URL in linkedin_url field rejected \u2014 no DB write",
+      "type": "security",
+      "feature_id": "forseti-jobhunter-contact-tracker",
+      "command": "drush sql:query \"SELECT COUNT(*) FROM jobhunter_contacts WHERE linkedin_url='https://evil.example.com/fake'\" 2>/dev/null",
+      "artifacts": [
+        "/tmp/qa-forseti-contact-tracker-tc10.log"
+      ],
+      "required_for_release": true,
+      "notes": "Submit form with linkedin_url='https://evil.example.com/fake'. Expect form validation error; COUNT(*) = 0."
     }
   ],
   "_schema_notes": [

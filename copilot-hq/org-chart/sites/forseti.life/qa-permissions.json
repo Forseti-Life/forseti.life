@@ -960,6 +960,28 @@
         "authenticated": "200",
         "admin": "200"
       }
+    },
+    {
+      "id": "forseti-jobhunter-contact-tracker-contacts-list",
+      "feature_id": "forseti-jobhunter-contact-tracker",
+      "path_regex": "^/jobhunter/contacts$",
+      "notes": "Added for feature forseti-jobhunter-contact-tracker. Per-user contact list. Auth required.",
+      "expect": {
+        "anon": "403",
+        "authenticated": "200",
+        "admin": "200"
+      }
+    },
+    {
+      "id": "forseti-jobhunter-contact-tracker-contact-add-edit-delete",
+      "feature_id": "forseti-jobhunter-contact-tracker",
+      "path_regex": "^/jobhunter/contacts/(add|\\d+/(edit|delete))$",
+      "notes": "Added for feature forseti-jobhunter-contact-tracker. Contact create/edit/delete endpoints. Auth + CSRF required on POST.",
+      "expect": {
+        "anon": "403",
+        "authenticated": "200",
+        "admin": "200"
+      }
     }
   ]
 }
