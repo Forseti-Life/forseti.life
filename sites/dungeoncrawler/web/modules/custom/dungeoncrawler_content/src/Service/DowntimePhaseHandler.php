@@ -14,7 +14,7 @@ use Psr\Log\LoggerInterface;
  * recovering from conditions.
  *
  * Implemented actions: long_rest, downtime_rest, craft, earn_income, retrain,
- * advance_day, talk, return_to_exploration.
+ * advance_day, talk, return_to_exploration, assign_watch, advance_starvation.
  */
 class DowntimePhaseHandler implements PhaseHandlerInterface {
 
@@ -49,6 +49,11 @@ class DowntimePhaseHandler implements PhaseHandlerInterface {
   protected MagicItemService $magicItemService;
 
   /**
+   * @var \Drupal\dungeoncrawler_content\Service\NumberGenerationService
+   */
+  protected NumberGenerationService $numberGenerationService;
+
+  /**
    * Constructs a DowntimePhaseHandler.
    */
   public function __construct(
@@ -57,14 +62,16 @@ class DowntimePhaseHandler implements PhaseHandlerInterface {
     CharacterStateService $character_state_service,
     CraftingService $crafting_service,
     NpcPsychologyService $npc_psychology,
-    ?MagicItemService $magic_item_service = NULL
+    ?MagicItemService $magic_item_service = NULL,
+    ?NumberGenerationService $number_generation_service = NULL
   ) {
     $this->database = $database;
     $this->logger = $logger_factory->get('dungeoncrawler');
     $this->characterStateService = $character_state_service;
     $this->craftingService = $crafting_service;
     $this->npcPsychology = $npc_psychology;
-    $this->magicItemService = $magic_item_service ?? new MagicItemService(new NumberGenerationService());
+    $this->numberGenerationService = $number_generation_service ?? new NumberGenerationService();
+    $this->magicItemService = $magic_item_service ?? new MagicItemService($this->numberGenerationService);
   }
 
   /**
@@ -110,6 +117,10 @@ class DowntimePhaseHandler implements PhaseHandlerInterface {
       'craft_snare',
       // REQ 2397: Daily Preparations — reset magic item state.
       'daily_preparations',
+      // REQ 2346: Watch assignment during rest.
+      'assign_watch',
+      // REQ 2347–2349: Starvation and thirst advancement.
+      'advance_starvation',
     ];
   }
 
@@ -393,6 +404,26 @@ class DowntimePhaseHandler implements PhaseHandlerInterface {
         break;
       }
 
+      case 'assign_watch': {
+        // REQ 2346: Assign watch rotations; track minimum watch segments.
+        $result = $this->processAssignWatch($actor_id, $params, $game_state);
+        $events[] = GameEventLogger::buildEvent('assign_watch', 'downtime', $actor_id, [
+          'assignments' => $result['assignments'] ?? [],
+          'hours_per_watch' => $result['hours_per_watch'] ?? NULL,
+        ]);
+        break;
+      }
+
+      case 'advance_starvation': {
+        // REQ 2347–2349: Advance starvation/thirst tracking; apply conditions and damage.
+        $result = $this->processAdvanceStarvation($actor_id, $params, $game_state, $dungeon_data, $campaign_id);
+        $mutations = $result['mutations'] ?? [];
+        $events[] = GameEventLogger::buildEvent('advance_starvation', 'downtime', $actor_id, [
+          'results' => $result['results'] ?? [],
+        ]);
+        break;
+      }
+
       default:
         return [
           'success' => FALSE,
@@ -467,6 +498,178 @@ class DowntimePhaseHandler implements PhaseHandlerInterface {
   // =========================================================================
 
   /**
+   * Processes watch assignment for the rest phase.
+   *
+   * REQ 2346: Watch duration by party size; all party members share watch duty;
+   * minimum watch segments tracked.
+   *
+   * @param array $params
+   *   - party_ids: array of character IDs in the party.
+   *   - assignments: (optional) explicit array of {watcher_id, period, duration_hours}.
+   *
+   * @return array
+   *   Keys: assignments, hours_per_watch, watch_periods, error (on failure).
+   */
+  protected function processAssignWatch(?string $actor_id, array $params, array &$game_state): array {
+    $party_ids = $params['party_ids'] ?? [];
+    if (empty($party_ids)) {
+      return ['error' => 'No party members provided.', 'assignments' => []];
+    }
+
+    $party_size = count($party_ids);
+    // Divide 8-hour rest equally; enforce minimum 2-hour shift.
+    $hours_per_watcher = max(2, (int) floor(8 / $party_size));
+    $watch_periods = (int) ceil(8 / $hours_per_watcher);
+
+    if (!empty($params['assignments'])) {
+      // Use explicit caller-provided assignments; validate each watcher is in party.
+      $assignments = $params['assignments'];
+      foreach ($assignments as $a) {
+        if (!in_array($a['watcher_id'] ?? '', $party_ids, TRUE)) {
+          return ['error' => 'Invalid watcher: ' . ($a['watcher_id'] ?? 'unknown') . ' is not in the party.', 'assignments' => []];
+        }
+      }
+    }
+    else {
+      // Auto-assign round-robin.
+      $assignments = [];
+      for ($period = 0; $period < $watch_periods; $period++) {
+        $assignments[] = [
+          'period'         => $period + 1,
+          'watcher_id'     => $party_ids[$period % $party_size],
+          'duration_hours' => $hours_per_watcher,
+        ];
+      }
+    }
+
+    $game_state['rest']['watch_assignments'] = $assignments;
+    $game_state['rest']['hours_per_watch'] = $hours_per_watcher;
+    $game_state['rest']['party_size'] = $party_size;
+
+    return [
+      'assignments'    => $assignments,
+      'hours_per_watch' => $hours_per_watcher,
+      'watch_periods'  => $watch_periods,
+    ];
+  }
+
+  /**
+   * Advances starvation and thirst tracking by one day for the given characters.
+   *
+   * REQ 2347: Without water — immediate fatigue; 1d4 damage per day after threshold.
+   * REQ 2348: Without food — immediate fatigue; 1 damage per day after threshold.
+   * REQ 2349: Con mod ≤ 0 → minimum threshold of 1 day; both tracks are independent.
+   * Healing is blocked while in the damage phase (tracked via entity state flags).
+   *
+   * @param array $params
+   *   - char_ids: array of character entity IDs to advance.
+   *   - resource: 'food' | 'water' | 'both' (default 'both').
+   *
+   * @return array
+   *   Keys: results (per-char), mutations.
+   */
+  protected function processAdvanceStarvation(?string $actor_id, array $params, array &$game_state, array &$dungeon_data, int $campaign_id): array {
+    $char_ids = $params['char_ids'] ?? ($actor_id ? [$actor_id] : []);
+    $resource = $params['resource'] ?? 'both';
+
+    $results  = [];
+    $mutations = [];
+
+    foreach ($dungeon_data['entities'] ?? [] as &$entity) {
+      $eid = $entity['instance_id'] ?? ($entity['id'] ?? NULL);
+      if (!in_array($eid, $char_ids, TRUE)) {
+        continue;
+      }
+
+      $con_mod = (int) ($entity['stats']['con_modifier'] ?? 0);
+      // REQ 2349: Con modifier ≤ 0 means minimum of 1 day before damage onset.
+      $threshold = max(1, $con_mod + 1);
+
+      $char_result = [
+        'entity_id'          => $eid,
+        'damage_taken'       => 0,
+        'conditions_applied' => [],
+      ];
+
+      if (in_array($resource, ['water', 'both'], TRUE)) {
+        $days_without_water = (int) ($entity['state']['days_without_water'] ?? 0) + 1;
+        $entity['state']['days_without_water'] = $days_without_water;
+
+        // Immediate fatigue on first day without water.
+        if ($days_without_water === 1) {
+          $this->applyFatigued($entity, 'dehydration');
+          $char_result['conditions_applied'][] = 'fatigued';
+        }
+
+        // REQ 2348: After threshold days: 1d4 damage (abstracted to daily tick).
+        // REQ 2349: healing blocked tracked via entity state flag.
+        if ($days_without_water > $threshold) {
+          $entity['state']['thirst_damage_phase'] = TRUE;
+          $dmg = $this->numberGenerationService->rollPathfinderDie(4);
+          $current_hp = (int) ($entity['state']['hit_points']['current'] ?? 0);
+          $entity['state']['hit_points']['current'] = max(0, $current_hp - $dmg);
+          $char_result['damage_taken'] += $dmg;
+          $char_result['thirst_hp'] = $entity['state']['hit_points']['current'];
+        }
+      }
+
+      if (in_array($resource, ['food', 'both'], TRUE)) {
+        $days_without_food = (int) ($entity['state']['days_without_food'] ?? 0) + 1;
+        $entity['state']['days_without_food'] = $days_without_food;
+
+        // Immediate fatigue on first day without food.
+        if ($days_without_food === 1) {
+          $this->applyFatigued($entity, 'starvation');
+          if (!in_array('fatigued', $char_result['conditions_applied'], TRUE)) {
+            $char_result['conditions_applied'][] = 'fatigued';
+          }
+        }
+
+        // REQ 2348: After threshold days: 1 damage per day.
+        if ($days_without_food > $threshold) {
+          $entity['state']['starvation_damage_phase'] = TRUE;
+          $current_hp = (int) ($entity['state']['hit_points']['current'] ?? 0);
+          $entity['state']['hit_points']['current'] = max(0, $current_hp - 1);
+          $char_result['damage_taken'] += 1;
+          $char_result['starvation_hp'] = $entity['state']['hit_points']['current'];
+        }
+      }
+
+      $mutations[] = ['type' => 'entity_state', 'entity_id' => $eid, 'state' => $entity['state']];
+      $results[$eid] = $char_result;
+    }
+    unset($entity);
+
+    // Persist dungeon_data.
+    try {
+      $this->database->update('dc_campaign_dungeons')
+        ->fields(['dungeon_data' => json_encode($dungeon_data)])
+        ->condition('campaign_id', $campaign_id)
+        ->execute();
+    }
+    catch (\Exception $e) {
+      $this->logger->error('advance_starvation persist failed: @error', ['@error' => $e->getMessage()]);
+    }
+
+    return ['results' => $results, 'mutations' => $mutations];
+  }
+
+  /**
+   * Applies the fatigued condition to an entity if not already present.
+   */
+  protected function applyFatigued(array &$entity, string $source): void {
+    if (!isset($entity['state']['conditions'])) {
+      $entity['state']['conditions'] = [];
+    }
+    foreach ($entity['state']['conditions'] as $cond) {
+      if (($cond['name'] ?? ($cond['type'] ?? '')) === 'fatigued') {
+        return;
+      }
+    }
+    $entity['state']['conditions'][] = ['name' => 'fatigued', 'source' => $source];
+  }
+
+  /**
    * Processes a long rest: restore HP, spell slots, remove conditions.
    */
   protected function processLongRest(?string $actor_id, array $params, array &$game_state, array &$dungeon_data, int $campaign_id): array {
@@ -488,13 +691,22 @@ class DowntimePhaseHandler implements PhaseHandlerInterface {
           $current_hp = (int) ($entity['state']['hit_points']['current'] ?? 0);
           $max_hp = (int) ($entity['state']['hit_points']['max'] ?? 20);
 
+          // REQ 2348: Healing blocked while in starvation or thirst damage phase.
+          $healing_blocked = !empty($entity['state']['starvation_damage_phase']) || !empty($entity['state']['thirst_damage_phase']);
+
           // REQ 2301: HP regained = Con modifier × level (minimum 1).
           $con_mod = (int) ($entity['stats']['con_modifier'] ?? 0);
           $level = max(1, (int) ($entity['stats']['level'] ?? 1));
           $hp_per_rest = max(1, $con_mod) * $level;
-          $new_hp = min($max_hp, $current_hp + $hp_per_rest);
-          $entity['state']['hit_points']['current'] = $new_hp;
-          $hp_restored = $new_hp - $current_hp;
+          if (!$healing_blocked) {
+            $new_hp = min($max_hp, $current_hp + $hp_per_rest);
+            $entity['state']['hit_points']['current'] = $new_hp;
+            $hp_restored = $new_hp - $current_hp;
+          }
+          else {
+            $new_hp = $current_hp;
+            $hp_restored = 0;
+          }
 
           // Remove wounded condition.
           if (isset($entity['state']['conditions'])) {

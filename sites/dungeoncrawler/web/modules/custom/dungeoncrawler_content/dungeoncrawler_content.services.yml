@@ -524,6 +524,7 @@ services:
       - '@dungeoncrawler_content.crafting'
       - '@dungeoncrawler_content.npc_psychology_service'
       - '@dungeoncrawler_content.magic_item_service'
+      - '@dungeoncrawler_content.number_generation'
 
   dungeoncrawler_content.game_coordinator:
     class: Drupal\dungeoncrawler_content\Service\GameCoordinatorService

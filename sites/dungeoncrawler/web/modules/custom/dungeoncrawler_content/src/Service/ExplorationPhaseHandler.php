@@ -2354,6 +2354,19 @@ class ExplorationPhaseHandler implements PhaseHandlerInterface {
     }
     unset($entity);
 
+    // REQ 2348: Healing is blocked while target is in starvation or thirst damage phase.
+    foreach ($dungeon_data['entities'] ?? [] as $entity) {
+      if (($entity['entity_id'] ?? $entity['id'] ?? '') === $effective_target) {
+        if (!empty($entity['state']['thirst_damage_phase'])) {
+          return ['error' => 'Healing blocked: target must quench thirst before healing takes effect.', 'degree' => NULL, 'healed' => 0, 'mutations' => []];
+        }
+        if (!empty($entity['state']['starvation_damage_phase'])) {
+          return ['error' => 'Healing blocked: target must be fed before healing takes effect.', 'degree' => NULL, 'healed' => 0, 'mutations' => []];
+        }
+        break;
+      }
+    }
+
     // DC and healing table (rank: 1=Trained, 2=Expert, 3=Master, 4=Legendary).
     $dc_table   = [1 => 15, 2 => 20, 3 => 30, 4 => 40];
     $hp_bonus   = [1 => 0,  2 => 10, 3 => 30, 4 => 50];
