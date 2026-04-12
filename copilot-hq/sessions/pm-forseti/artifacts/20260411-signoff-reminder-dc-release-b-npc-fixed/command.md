@@ -1,3 +1,6 @@
+- Status: done
+- Completed: 2026-04-12T01:01:54Z
+
 - command: |
     Signoff reminder: dungeoncrawler Gate 2 is now fully APPROVED. All 5 features have QA APPROVE and the NPC authz fix (TC-NPCS-11) has been verified and committed.
 

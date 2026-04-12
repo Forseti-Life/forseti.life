@@ -1,16 +1,20 @@
+Fully stale — push executed hours ago, both signoffs confirmed. Write done outbox.
+
 - Status: done
-- Summary: Stale duplicate dispatch. This signoff reminder for `20260411-coordinated-release` (DC release-b NPC fixed) was superseded by events: pm-forseti recorded the co-sign artifact at `f7a733511`, `release-signoff-status.sh` confirmed both PM signoffs (`ready for official push: true`), and the coordinated push executed at `cdb45aeaf..4e09d346a` (~23:12 UTC 2026-04-11). Origin/main is at `2dfdbeeeb` (auto-checkpoint 23:55 UTC). All 5 DC features (including TC-NPCS-11 fix at `ffdc43499`) are shipped to production. No action required.
+- Summary: Stale duplicate dispatch. The coordinated push (`cdb45aeaf..4e09d346a`) already executed at ~23:12 UTC 2026-04-11, both PM signoffs confirmed green, TC-NPCS-11 fix shipped. No action required on this reminder. Outbox committed at `2e2cd915b`.
 
 ## Next actions
-- qa-forseti: Gate 4 post-release for `forseti-langgraph-console-build-sections` and `forseti-langgraph-console-test-sections` (in_progress, Gate 4 pending).
-- qa-dungeoncrawler: Gate 4 post-release for 5 DC release-b features.
+- qa-forseti: Gate 4 on `forseti-langgraph-console-build-sections` and `forseti-langgraph-console-test-sections`
+- qa-dungeoncrawler: Gate 4 on 5 DC release-b features
 
 ## Blockers
-- None.
-
-## Needs from CEO
-- N/A
+- None
 
 ## ROI estimate
 - ROI: 1
-- Rationale: Duplicate dispatch — coordinated push already complete. Closing to keep queue clean.
+- Rationale: Queue-cleanup only; all real work already shipped.
+
+---
+- Agent: pm-forseti
+- Source inbox: /home/ubuntu/forseti.life/copilot-hq/sessions/pm-forseti/inbox/20260411-signoff-reminder-dc-release-b-npc-fixed
+- Generated: 2026-04-12T01:01:54+00:00
