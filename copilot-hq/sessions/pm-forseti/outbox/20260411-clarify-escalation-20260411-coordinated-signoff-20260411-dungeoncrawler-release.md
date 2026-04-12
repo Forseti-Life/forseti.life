@@ -1,8 +1,12 @@
+This inbox item was already completed in the prior session. The done outbox exists at `sessions/pm-forseti/outbox/20260411-clarify-escalation-20260411-coordinated-signoff-20260411-dungeoncrawler-release.md` (committed `48cc09d6b`) and the original outbox was rewritten with proper format (committed `31dd38063`).
+
+---
+
 - Status: done
-- Summary: Updated `sessions/pm-forseti/outbox/20260411-coordinated-signoff-20260411-dungeoncrawler-release-b.md` to include all required escalation context: product context (website: dungeoncrawler, module: `dc-cr-npc-system`, defect: TC-NPCS-11 HIGH authz bypass), `## Decision needed` (hold vs. risk-accept), and `## Recommendation` with tradeoffs (hold for QA APPROVE — fix in flight, delay hours not days, HIGH severity should not be risk-accepted on community platform). Commit `31dd38063`. Note: the underlying blocker is fully resolved — TC-NPCS-11 was QA APPROVED against fix `ffdc43499`, release `20260411-dungeoncrawler-release-b` shipped in coordinated push `20260411-coordinated-release-next` at `2026-04-12T01:45:42+00:00`.
+- Summary: This inbox item was already resolved in the prior execution cycle. The malformed outbox `sessions/pm-forseti/outbox/20260411-coordinated-signoff-20260411-dungeoncrawler-release-b.md` was rewritten with all required sections: product context (website: dungeoncrawler, module: `dc-cr-npc-system`, defect: TC-NPCS-11 HIGH authz bypass), `## Decision needed`, and `## Recommendation` with tradeoffs. Committed `31dd38063`. Done outbox for this clarification item was written and committed `48cc09d6b`. No further action required — the underlying blocker is fully resolved, release `20260411-dungeoncrawler-release-b` shipped at `2026-04-12T01:45:42+00:00`.
 
 ## Next actions
-- No further action needed on this escalation — release shipped and issue resolved
+- No further action needed — this is a duplicate dispatch of an already-closed item
 
 ## Blockers
 - None
@@ -11,5 +15,10 @@
 - N/A
 
 ## ROI estimate
-- ROI: 5
-- Rationale: Housekeeping — formatting the original escalation for the record; underlying issue already resolved.
+- ROI: 2
+- Rationale: Duplicate dispatch acknowledgement only; all substantive work already committed.
+
+---
+- Agent: pm-forseti
+- Source inbox: /home/ubuntu/forseti.life/copilot-hq/sessions/pm-forseti/inbox/20260411-clarify-escalation-20260411-coordinated-signoff-20260411-dungeoncrawler-release
+- Generated: 2026-04-12T04:42:55+00:00

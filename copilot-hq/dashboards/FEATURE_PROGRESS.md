@@ -1,6 +1,6 @@
 # Feature Progress
 
-Generated: 2026-04-12T03:36:25Z
+Generated: 2026-04-12T05:38:35Z
 
 | Work item | Website | Module | Status | Priority | PM | Dev | QA |
 |-----------|---------|--------|--------|----------|----|-----|----|
@@ -72,7 +72,7 @@ Generated: 2026-04-12T03:36:25Z
 | dc-cr-equipment-system | dungeoncrawler | dungeoncrawler_content | done | P1 (combat and character creation dependency; InventoryManagementService partial impl exists) |  |  |  |
 | dc-cr-exploration-mode | dungeoncrawler | dungeoncrawler_content | done | P2 |  |  |  |
 | dc-cr-familiar | dungeoncrawler | dungeoncrawler_content | done | P2 |  |  |  |
-| dc-cr-feats-ch05 | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
+| dc-cr-feats-ch05 | dungeoncrawler | dungeoncrawler_content | ready |  |  |  |  |
 | dc-cr-fey-fellowship | dungeoncrawler | dungeoncrawler_content | done | P2 |  |  |  |
 | dc-cr-first-world-adept | dungeoncrawler | dungeoncrawler_content | pre-triage | unset (PM will set at triage) |  |  |  |
 | dc-cr-first-world-magic | dungeoncrawler | dungeoncrawler_content | ready | P3 |  |  |  |
@@ -102,7 +102,7 @@ Generated: 2026-04-12T03:36:25Z
 | dc-cr-human-ancestry | dungeoncrawler | dungeoncrawler_content | done |  |  |  |  |
 | dc-cr-languages | dungeoncrawler | dungeoncrawler_content | done | P2 (blocks dc-cr-elf-ancestry and dc-cr-elf-heritage-cavern; accepted for 20260407-dungeoncrawler-release-b) |  |  |  |
 | dc-cr-low-light-vision | dungeoncrawler | dungeoncrawler_content | done | P2 |  |  |  |
-| dc-cr-magic-ch11 | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
+| dc-cr-magic-ch11 | dungeoncrawler | dungeoncrawler_content | ready |  |  |  |  |
 | dc-cr-magic-items | dungeoncrawler | dungeoncrawler_content | done | unset (PM will set at triage) |  |  |  |
 | dc-cr-mountains-stoutness | dungeoncrawler | dungeoncrawler_content | done | unset (PM will set at triage) |  |  |  |
 | dc-cr-multiclass-archetype | dungeoncrawler | dungeoncrawler_content | done | P2 |  |  |  |
@@ -126,13 +126,13 @@ Generated: 2026-04-12T03:36:25Z
 | dc-cr-skills-nature-command-animal | dungeoncrawler | dungeoncrawler_content | done | P2 |  |  |  |
 | dc-cr-skills-performance-perform | dungeoncrawler | dungeoncrawler_content | done | P3 |  |  |  |
 | dc-cr-skills-recall-knowledge | dungeoncrawler | dungeoncrawler_content | done | P1 |  |  |  |
-| dc-cr-skills-society-create-forgery | dungeoncrawler | dungeoncrawler_content | ready | P3 |  |  |  |
+| dc-cr-skills-society-create-forgery | dungeoncrawler | dungeoncrawler_content | ready |  |  |  |  |
 | dc-cr-skills-stealth-hide-sneak | dungeoncrawler | dungeoncrawler_content | shipped | P1 |  |  |  |
-| dc-cr-skills-survival-track-direction | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
+| dc-cr-skills-survival-track-direction | dungeoncrawler | dungeoncrawler_content | ready |  |  |  |  |
 | dc-cr-skills-thievery-disable-pick-lock | dungeoncrawler | dungeoncrawler_content | shipped | P1 |  |  |  |
 | dc-cr-snares | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
 | dc-cr-spellcasting | dungeoncrawler | dungeoncrawler_content | shipped |  |  |  |  |
-| dc-cr-spells-ch07 | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
+| dc-cr-spells-ch07 | dungeoncrawler | dungeoncrawler_content | ready |  |  |  |  |
 | dc-cr-tactical-grid | dungeoncrawler | dungeoncrawler_content | done |  |  |  |  |
 | dc-cr-treasure-by-level | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
 | dc-cr-unburdened-iron | dungeoncrawler | dungeoncrawler_content | done | unset (PM will set at triage) |  |  |  |

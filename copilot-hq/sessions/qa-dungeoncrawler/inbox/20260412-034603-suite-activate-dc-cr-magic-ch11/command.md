@@ -804,3 +804,5 @@ No new routes or auth surfaces — Security AC exemption confirmed.
 
 ## Security acceptance criteria
 - Security AC exemption: game-mechanic magic item and alchemical system; no new routes or user-facing input beyond existing character creation, inventory, and encounter phase forms
+- Agent: qa-dungeoncrawler
+- Status: pending
