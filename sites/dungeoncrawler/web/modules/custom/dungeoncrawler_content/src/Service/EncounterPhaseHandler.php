@@ -114,6 +114,11 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
    */
   protected MagicItemService $magicItemService;
 
+  /**
+   * @var \Drupal\dungeoncrawler_content\Service\SpellCatalogService
+   */
+  protected SpellCatalogService $spellCatalog;
+
   public function __construct(
     Connection $database,
     LoggerChannelFactoryInterface $logger_factory,
@@ -133,7 +138,8 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
     ?NarrationEngine $narration_engine = NULL,
     ?MovementResolverService $movement_resolver = NULL,
     ?HazardService $hazard_service = NULL,
-    ?MagicItemService $magic_item_service = NULL
+    ?MagicItemService $magic_item_service = NULL,
+    ?SpellCatalogService $spell_catalog = NULL
   ) {
     $this->database = $database;
     $this->logger = $logger_factory->get('dungeoncrawler');
@@ -154,6 +160,7 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
     $this->movementResolver = $movement_resolver;
     $this->hazardService = $hazard_service ?? new HazardService($number_generation_service);
     $this->magicItemService = $magic_item_service ?? new MagicItemService($number_generation_service);
+    $this->spellCatalog = $spell_catalog ?? new SpellCatalogService();
   }
 
   /**

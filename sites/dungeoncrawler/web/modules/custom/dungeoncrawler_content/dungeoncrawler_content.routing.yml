@@ -2317,3 +2317,24 @@ dungeoncrawler_content.api.focus_spell_catalog:
     _access: 'TRUE'
   options:
     _format: json
+
+# Spell catalog (dc-cr-spells-ch07)
+dungeoncrawler_content.api.spell_catalog.list:
+  path: '/api/spells'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\SpellCatalogController::list'
+  methods: [GET]
+  requirements:
+    _access: 'TRUE'
+  options:
+    _format: json
+
+dungeoncrawler_content.api.spell_catalog.get:
+  path: '/api/spells/{spell_id}'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\SpellCatalogController::get'
+  methods: [GET]
+  requirements:
+    _access: 'TRUE'
+  options:
+    _format: json

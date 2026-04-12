@@ -506,6 +506,7 @@ services:
       - '@dungeoncrawler_content.movement_resolver'
       - '@dungeoncrawler_content.hazard_service'
       - '@dungeoncrawler_content.magic_item_service'
+      - '@dungeoncrawler_content.spell_catalog'
 
   dungeoncrawler_content.crafting:
     class: Drupal\dungeoncrawler_content\Service\CraftingService
@@ -633,6 +634,9 @@ services:
     class: Drupal\dungeoncrawler_content\Service\IdentifyMagicService
     arguments:
       - '@dungeoncrawler_content.dc_adjustment'
+
+  dungeoncrawler_content.spell_catalog:
+    class: Drupal\dungeoncrawler_content\Service\SpellCatalogService
 
   dungeoncrawler_content.learn_a_spell:
     class: Drupal\dungeoncrawler_content\Service\LearnASpellService
