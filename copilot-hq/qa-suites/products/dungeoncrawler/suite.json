@@ -14787,6 +14787,159 @@
           "status": "pending_implementation"
         }
       ]
+    },
+    {
+      "id": "dc-cr-snares-playwright-crafting",
+      "label": "Snares crafting: Snare Crafting feat gate, snare kit requirement, quick-craft (1 min/full price), downtime Craft (reduced cost), placement model (square not inventory)",
+      "type": "playwright",
+      "feature_id": "dc-cr-snares",
+      "command": "npx playwright test --grep snares-crafting tests/dungeoncrawler/",
+      "artifacts": [
+        "sessions/qa-dungeoncrawler/artifacts/dc-cr-snares/playwright-crafting-results.xml"
+      ],
+      "required_for_release": true,
+      "test_cases": [
+        {
+          "id": "TC-SNR-01",
+          "label": "Snare Crafting feat gate: attempt without feat \u2192 blocked (not penalized)",
+          "feature_id": "dc-cr-snares",
+          "suite_context": "playwright/crafting",
+          "status": "pending_implementation",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-SNR-02",
+          "label": "Snare kit requirement: attempt without snare_kit in inventory \u2192 blocked",
+          "feature_id": "dc-cr-snares",
+          "suite_context": "playwright/crafting",
+          "status": "pending_implementation",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-SNR-05",
+          "label": "Discounted crafting: downtime Craft activity produces snare at reduced cost per Craft rules",
+          "feature_id": "dc-cr-snares",
+          "suite_context": "playwright/crafting",
+          "status": "pending_implementation",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-SNR-06",
+          "label": "Crafted snare placed in square as placed_object; character.inventory unchanged",
+          "feature_id": "dc-cr-snares",
+          "suite_context": "playwright/crafting",
+          "status": "pending_implementation",
+          "required_for_release": true
+        }
+      ]
+    },
+    {
+      "id": "dc-cr-snares-playwright-exploration",
+      "label": "Snares exploration: placement (5-ft square, no relocation), quick-craft placement, detection DC=Crafting DC, expert crafter passive-fail, proficiency gates, creator self-disarm (1 Interact, no check)",
+      "type": "playwright",
+      "feature_id": "dc-cr-snares",
+      "command": "npx playwright test --grep snares-exploration tests/dungeoncrawler/",
+      "artifacts": [
+        "sessions/qa-dungeoncrawler/artifacts/dc-cr-snares/playwright-exploration-results.xml"
+      ],
+      "required_for_release": true,
+      "notes": "TC-SNR-08: Expert+ crafter snares require explicit passive-fail code path, not just high DC. Dev must implement separate logic branch for passive vs active perception.",
+      "test_cases": [
+        {
+          "id": "TC-SNR-03",
+          "label": "Placed snare occupies exactly one 5-ft square; relocation after placement \u2192 blocked",
+          "feature_id": "dc-cr-snares",
+          "suite_context": "playwright/exploration",
+          "status": "pending_implementation",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-SNR-04",
+          "label": "Quick crafting: duration=1 min; cost=snare.full_price; snare placed immediately",
+          "feature_id": "dc-cr-snares",
+          "suite_context": "playwright/exploration",
+          "status": "pending_implementation",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-SNR-07",
+          "label": "Detection DC = creator.crafting_dc; Disable DC (Thievery) = creator.crafting_dc",
+          "feature_id": "dc-cr-snares",
+          "suite_context": "playwright/exploration",
+          "status": "pending_implementation",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-SNR-08",
+          "label": "Expert+ Crafter snares: passive_perception fails automatically; only Search action detects",
+          "feature_id": "dc-cr-snares",
+          "suite_context": "playwright/exploration",
+          "status": "pending_implementation",
+          "required_for_release": true,
+          "notes": "Dev must implement explicit passive-observer-fails code path, not just high DC."
+        },
+        {
+          "id": "TC-SNR-09",
+          "label": "Detection proficiency gates: Trained/Expert/Master thresholds based on creator Crafting proficiency",
+          "feature_id": "dc-cr-snares",
+          "suite_context": "playwright/exploration",
+          "status": "pending_implementation",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-SNR-10",
+          "label": "Creator self-disarm: 1 Interact action while adjacent; no Thievery check required; snare removed",
+          "feature_id": "dc-cr-snares",
+          "suite_context": "playwright/exploration",
+          "status": "pending_implementation",
+          "required_for_release": true
+        }
+      ]
+    },
+    {
+      "id": "dc-cr-snares-playwright-encounter",
+      "label": "Snares encounter: Alarm Snare (300-ft noise), Hampering Snare (difficult terrain), Marking Snare (visual marker condition), Striking Snare (damage vs level table)",
+      "type": "playwright",
+      "feature_id": "dc-cr-snares",
+      "command": "npx playwright test --grep snares-encounter tests/dungeoncrawler/",
+      "artifacts": [
+        "sessions/qa-dungeoncrawler/artifacts/dc-cr-snares/playwright-encounter-results.xml"
+      ],
+      "required_for_release": true,
+      "test_cases": [
+        {
+          "id": "TC-SNR-11",
+          "label": "Alarm Snare triggered \u2192 noise event fires; radius=300 ft",
+          "feature_id": "dc-cr-snares",
+          "suite_context": "playwright/encounter",
+          "status": "pending_implementation",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-SNR-12",
+          "label": "Hampering Snare triggered \u2192 triggering_creature terrain_effect=difficult_terrain; duration per snare spec",
+          "feature_id": "dc-cr-snares",
+          "suite_context": "playwright/encounter",
+          "status": "pending_implementation",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-SNR-13",
+          "label": "Marking Snare triggered \u2192 triggering_creature.condition includes visual_marker",
+          "feature_id": "dc-cr-snares",
+          "suite_context": "playwright/encounter",
+          "status": "pending_implementation",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-SNR-14",
+          "label": "Striking Snare triggered \u2192 triggering_creature takes physical damage per snare level table",
+          "feature_id": "dc-cr-snares",
+          "suite_context": "playwright/encounter",
+          "status": "pending_implementation",
+          "required_for_release": true
+        }
+      ]
     }
   ],
   "_schema_notes": [
