@@ -53,6 +53,17 @@ class SpellCatalogService {
   /** Hard cap for Focus Pool (PF2e Core p. 300). */
   const FOCUS_POOL_MAX = 3;
 
+  /**
+   * Essence classification types (PF2e Core ch07).
+   * Used for resistances, immunities, and lore classification.
+   */
+  const ESSENCE_TYPES = ['mental', 'vital', 'material', 'spiritual'];
+
+  /**
+   * Cast-time values that require the Exploration trait (cannot be used in encounters).
+   */
+  const EXPLORATION_CAST_TIMES = ['one_minute', 'ten_minutes', 'one_hour'];
+
   // -----------------------------------------------------------------------
   // Spell registry
   // -----------------------------------------------------------------------
@@ -172,6 +183,38 @@ class SpellCatalogService {
   public function computeCantripEffectiveRank(int $character_level): int {
     $level = max(1, min(20, $character_level));
     return (int) ceil($level / 2);
+  }
+
+  /**
+   * Compute a focus spell's effective rank.
+   *
+   * Same formula as cantrips: effective_rank = ceil(character_level / 2).
+   *
+   * @param int $character_level  1–20.
+   *
+   * @return int  Effective focus spell rank (1–10).
+   */
+  public function computeFocusSpellEffectiveRank(int $character_level): int {
+    $level = max(1, min(20, $character_level));
+    return (int) ceil($level / 2);
+  }
+
+  /**
+   * Validate that a spell's cast time is legal in the current phase.
+   *
+   * Spells with Exploration-trait cast times (1 minute, 10 minutes, 1 hour)
+   * cannot be cast during encounters (PF2e Core ch07).
+   *
+   * @param string $cast_time  One of self::CAST_ACTION_TYPES.
+   * @param string $phase      Current game phase: 'encounter', 'exploration', 'downtime'.
+   *
+   * @return array{valid: bool, error: string|null}
+   */
+  public function validateCastTimeForPhase(string $cast_time, string $phase): array {
+    if ($phase === 'encounter' && in_array($cast_time, self::EXPLORATION_CAST_TIMES, TRUE)) {
+      return ['valid' => FALSE, 'error' => "Cast time '{$cast_time}' has the Exploration trait and cannot be used in encounters."];
+    }
+    return ['valid' => TRUE, 'error' => NULL];
   }
 
   // -----------------------------------------------------------------------

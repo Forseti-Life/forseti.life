@@ -1814,6 +1814,30 @@ class MagicItemService {
 
     // Orichalcum self-repair for owned item instances (REQ 2447).
     // Caller passes item_instances as arrays with stats; mutate them externally.
+
+    // Reset spell slots to full (all used counts → 0) for this character.
+    if (isset($game_state['spells'][$char_id]['spell_slots'])) {
+      foreach ($game_state['spells'][$char_id]['spell_slots'] as $level_key => &$slot) {
+        $slot['used'] = 0;
+      }
+      unset($slot);
+    }
+
+    // Restore Focus Points to pool max.
+    if (isset($game_state['spells'][$char_id]['focus_points'])) {
+      $fp_max = (int) ($game_state['spells'][$char_id]['focus_points']['max'] ?? 0);
+      $game_state['spells'][$char_id]['focus_points']['current'] = $fp_max;
+    }
+
+    // Reset innate spell used_today flags.
+    if (isset($game_state['spells'][$char_id]['innate_spells'])) {
+      foreach ($game_state['spells'][$char_id]['innate_spells'] as $spell_id => &$innate_def) {
+        if (empty($innate_def['is_cantrip'])) {
+          $innate_def['used_today'] = FALSE;
+        }
+      }
+      unset($innate_def);
+    }
   }
 
   // ---------------------------------------------------------------------------

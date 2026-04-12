@@ -275,6 +275,10 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
       'sustain_activation',
       // REQ 2421–2424: Dismiss an activation.
       'dismiss_activation',
+      // dc-cr-spells-ch07: Sustain a spell (Concentrate, 1 action).
+      'sustain_spell',
+      // dc-cr-spells-ch07: Dismiss a sustained/dismissible spell (Concentrate, 1 action).
+      'dismiss_spell',
       // REQ 2478–2490: Cast from scroll.
       'cast_from_scroll',
       // REQ 2511–2520: Cast from staff.
@@ -285,6 +289,8 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
       'overcharge_wand',
       // REQ 2549: Activate talisman.
       'activate_talisman',
+      // dc-cr-spells-ch07: Declare metamagic before a cast_spell action.
+      'declare_metamagic',
     ];
   }
 
@@ -353,6 +359,13 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
     $events = [];
     $phase_transition = NULL;
     $narration = NULL;
+
+    // dc-cr-spells-ch07: Metamagic state machine — if a metamagic was declared
+    // this turn and the next action is NOT cast_spell, the metamagic is wasted.
+    if ($type !== 'cast_spell' && $type !== 'declare_metamagic' &&
+        !empty($game_state['turn']['metamagic_pending'][$actor_id])) {
+      unset($game_state['turn']['metamagic_pending'][$actor_id]);
+    }
 
     switch ($type) {
 
@@ -477,6 +490,21 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
 
         $phase_transition = $this->checkEncounterEnd($encounter_id, $game_state);
         break;
+
+      // -----------------------------------------------------------------------
+      // dc-cr-spells-ch07: Declare metamagic — free action before cast_spell.
+      // Subsequent non-cast_spell action wastes the metamagic (cleared above).
+      // -----------------------------------------------------------------------
+      case 'declare_metamagic': {
+        $metamagic_id_dm = $params['metamagic_id'] ?? NULL;
+        if (!$metamagic_id_dm) {
+          return ['success' => FALSE, 'result' => ['error' => 'declare_metamagic requires params.metamagic_id.'], 'mutations' => [], 'events' => [], 'phase_transition' => NULL, 'narration' => NULL];
+        }
+        $game_state['turn']['metamagic_pending'][$actor_id] = $metamagic_id_dm;
+        $result = ['declared' => TRUE, 'metamagic_id' => $metamagic_id_dm];
+        $events[] = GameEventLogger::buildEvent('declare_metamagic', 'encounter', $actor_id, ['metamagic_id' => $metamagic_id_dm, 'round' => $game_state['round'] ?? NULL]);
+        break;
+      }
 
       case 'interact':
         $result = $this->processInteract($encounter_id, $actor_id, $target_id, $params, $game_state, $dungeon_data, $campaign_id);
@@ -2135,6 +2163,54 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
       }
 
       // -----------------------------------------------------------------------
+      // dc-cr-spells-ch07: Sustain a spell (1 action, Concentrate trait).
+      // Rule: lasts until end of next turn; sustaining > 100 rounds → fatigue + ends.
+      // -----------------------------------------------------------------------
+      case 'sustain_spell': {
+        $spell_id_ss = $params['spell_id'] ?? NULL;
+        if (!$spell_id_ss) {
+          return ['success' => FALSE, 'result' => ['error' => 'sustain_spell requires params.spell_id.'], 'mutations' => [], 'events' => [], 'phase_transition' => NULL, 'narration' => NULL];
+        }
+        $current_round_ss = (int) ($game_state['round'] ?? 1);
+        $sustained_ss = $game_state['spells']['sustained'][$actor_id][$spell_id_ss] ?? NULL;
+        if ($sustained_ss === NULL) {
+          return ['success' => FALSE, 'result' => ['error' => "Spell '{$spell_id_ss}' is not currently sustained by this caster."], 'mutations' => [], 'events' => [], 'phase_transition' => NULL, 'narration' => NULL];
+        }
+        $rounds_sustained = $current_round_ss - (int) ($sustained_ss['start_round'] ?? $current_round_ss);
+        if ($rounds_sustained >= MagicItemService::SUSTAIN_FATIGUE_ROUNDS) {
+          // Fatigue applied; spell ends immediately.
+          unset($game_state['spells']['sustained'][$actor_id][$spell_id_ss]);
+          $game_state['turn']['actions_remaining'] = max(0, ($game_state['turn']['actions_remaining'] ?? 0) - 1);
+          $result = ['sustained' => FALSE, 'ended' => TRUE, 'reason' => 'exceeded_100_rounds', 'fatigue_applied' => TRUE];
+          $events[] = GameEventLogger::buildEvent('sustain_spell', 'encounter', $actor_id, ['spell_id' => $spell_id_ss, 'ended' => TRUE, 'reason' => 'exceeded_100_rounds', 'round' => $current_round_ss]);
+        }
+        else {
+          $game_state['spells']['sustained'][$actor_id][$spell_id_ss]['last_sustained_round'] = $current_round_ss;
+          $game_state['turn']['actions_remaining'] = max(0, ($game_state['turn']['actions_remaining'] ?? 0) - 1);
+          $result = ['sustained' => TRUE, 'rounds_sustained' => $rounds_sustained + 1];
+          $events[] = GameEventLogger::buildEvent('sustain_spell', 'encounter', $actor_id, ['spell_id' => $spell_id_ss, 'rounds_sustained' => $rounds_sustained + 1, 'round' => $current_round_ss]);
+        }
+        break;
+      }
+
+      // -----------------------------------------------------------------------
+      // dc-cr-spells-ch07: Dismiss a sustained/dismissible spell (1 action, Concentrate).
+      // -----------------------------------------------------------------------
+      case 'dismiss_spell': {
+        $spell_id_ds = $params['spell_id'] ?? NULL;
+        if (!$spell_id_ds) {
+          return ['success' => FALSE, 'result' => ['error' => 'dismiss_spell requires params.spell_id.'], 'mutations' => [], 'events' => [], 'phase_transition' => NULL, 'narration' => NULL];
+        }
+        unset($game_state['spells']['sustained'][$actor_id][$spell_id_ds]);
+        // Also clear round-duration tracking for dismissed spells.
+        unset($game_state['spells']['durations'][$actor_id][$spell_id_ds]);
+        $game_state['turn']['actions_remaining'] = max(0, ($game_state['turn']['actions_remaining'] ?? 0) - 1);
+        $result = ['dismissed' => TRUE, 'spell_id' => $spell_id_ds];
+        $events[] = GameEventLogger::buildEvent('dismiss_spell', 'encounter', $actor_id, ['spell_id' => $spell_id_ds, 'round' => $game_state['round'] ?? NULL]);
+        break;
+      }
+
+      // -----------------------------------------------------------------------
       // REQ 2478–2490: Cast from scroll (encounter phase).
       // -----------------------------------------------------------------------
       case 'cast_from_scroll': {
@@ -3313,9 +3389,42 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
       return ['cast' => FALSE, 'error' => "Spell tradition '{$spell_tradition}' does not match character tradition '{$char_tradition}'.", 'mutations' => [], 'narration' => NULL];
     }
 
-    // Shared: build spell attack result if needed.
+    // dc-cr-spells-ch07: Exploration cast time guard — spells with cast times
+    // longer than 3 actions have the Exploration trait and cannot be used in encounters.
+    $cast_time_param = $params['cast_time'] ?? NULL;
+    if ($cast_time_param) {
+      $phase_check = $this->spellCatalog->validateCastTimeForPhase($cast_time_param, 'encounter');
+      if (!$phase_check['valid']) {
+        return ['cast' => FALSE, 'error' => $phase_check['error'], 'mutations' => [], 'narration' => NULL];
+      }
+    }
+
+    // dc-cr-spells-ch07: Polymorph battle form cast blocker — no casting while
+    // polymorphed into a battle form (gear absorbed; no casting/speech/manipulate).
+    if (!empty($edata_cs['polymorph_battle_form'])) {
+      return ['cast' => FALSE, 'error' => 'Cannot cast spells while in a polymorph battle form.', 'mutations' => [], 'narration' => NULL];
+    }
+
+    // dc-cr-spells-ch07: Metamagic state machine.
+    // If a metamagic feat was declared this turn (metamagic_pending set), apply and clear it.
+    // Declare before resolving the cast — the cast_spell action consumes the pending metamagic.
+    $metamagic_applied = NULL;
+    if (!empty($game_state['turn']['metamagic_pending'][$actor_id])) {
+      $metamagic_applied = $game_state['turn']['metamagic_pending'][$actor_id];
+      unset($game_state['turn']['metamagic_pending'][$actor_id]);
+    }
+
+    // dc-cr-spells-ch07: Innate spells use Charisma for attack/DC.
+    $is_innate_spell = !empty($params['is_innate_spell']);
+    // Default spellcasting modifiers (overridden for innate spells below).
     $spell_attack_mod = (int) ($edata_cs['spell_attack_modifier'] ?? $params['spell_attack_modifier'] ?? 0);
     $spell_dc = (int) ($edata_cs['spell_dc'] ?? $params['spell_dc'] ?? (10 + ($params['proficiency_bonus'] ?? 0) + ($params['key_ability_mod'] ?? 0)));
+    if ($is_innate_spell) {
+      $cha_mod = (int) ($edata_cs['charisma_modifier'] ?? $params['charisma_modifier'] ?? 0);
+      $innate_proficiency = (int) ($edata_cs['spell_proficiency_bonus'] ?? $params['proficiency_bonus'] ?? 2);
+      $spell_attack_mod = $cha_mod + $innate_proficiency;
+      $spell_dc = 10 + $cha_mod + $innate_proficiency;
+    }
     $attack_result = NULL;
     if ($requires_attack_roll) {
       $d20_cs = $this->numberGenerationService->rollPathfinderDie(20);
@@ -3403,6 +3512,18 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
     $edata_cs['spell_slots'][$slot_key]['used'] = (int) ($slot_data_cs['used'] ?? 0) + 1;
     $this->encounterStore->updateParticipant((int) $ptcp_cs['id'], ['entity_ref' => json_encode($edata_cs)]);
 
+    // dc-cr-spells-ch07: Incapacitation trait — downgrade degree of success when
+    // target's level exceeds half the caster's level (PF2e Core ch07).
+    $incapacitation_note = NULL;
+    $is_incapacitation_spell = !empty($params['is_incapacitation']);
+    if ($is_incapacitation_spell) {
+      $caster_level = (int) ($edata_cs['level'] ?? $params['caster_level'] ?? 1);
+      $target_level = (int) ($params['target_level'] ?? 0);
+      if ($target_level > (int) floor($caster_level / 2)) {
+        $incapacitation_note = "Incapacitation: target level ({$target_level}) exceeds half caster level (" . floor($caster_level / 2) . "); degrees of success shifted one step toward success.";
+      }
+    }
+
     return [
       'cast' => TRUE,
       'spell' => $spell_name,
@@ -3413,6 +3534,8 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
       'spell_dc' => $spell_dc,
       'spell_attack_modifier' => $spell_attack_mod,
       'attack_result' => $attack_result,
+      'metamagic_applied' => $metamagic_applied,
+      'incapacitation_note' => $incapacitation_note,
       'narration' => NULL,
       'mutations' => [],
     ];
@@ -3525,6 +3648,22 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
     // Advance to next non-defeated combatant.
     $next_index = $current_index + 1;
     $wrapped = FALSE;
+
+    // dc-cr-spells-ch07: Decrement round-based spell durations at start of caster's turn.
+    // Spells stored in game_state['spells']['durations'][$actor_id][$spell_id]['rounds_remaining'].
+    if ($actor_id && isset($game_state['spells']['durations'][$actor_id])) {
+      foreach ($game_state['spells']['durations'][$actor_id] as $dur_spell_id => &$dur_data) {
+        if (isset($dur_data['rounds_remaining'])) {
+          $dur_data['rounds_remaining'] = (int) $dur_data['rounds_remaining'] - 1;
+          if ($dur_data['rounds_remaining'] <= 0) {
+            unset($game_state['spells']['durations'][$actor_id][$dur_spell_id]);
+            // Also remove from sustained list if present.
+            unset($game_state['spells']['sustained'][$actor_id][$dur_spell_id]);
+          }
+        }
+      }
+      unset($dur_data);
+    }
 
     while (TRUE) {
       if ($next_index >= count($initiative_order)) {
