@@ -14400,7 +14400,9 @@
         "sessions/qa-dungeoncrawler/artifacts/dc-cr-rest-watch-starvation/phpunit-report.xml"
       ],
       "required_for_release": true,
-      "notes": "Security AC exemption confirmed: no new routes. Dependencies: dc-cr-conditions, dc-cr-skill-system. TC-RWS-01 watch duration table values need BA confirmation (PF2E CRB ch10 Watches). TC-RWS-04/08 damage onset formula con_modifier+1; no cap confirmed in AC. 15 TCs active.",
+      "activated_release": "20260412-dungeoncrawler-release-b",
+      "activated_date": "2026-04-12",
+      "notes": "Security AC exemption confirmed: no new routes. Dependencies: dc-cr-conditions, dc-cr-skill-system. TC-RWS-01 watch duration table values need BA confirmation (PF2E CRB ch10 Watches). TC-RWS-04/08 damage onset formula con_modifier+1; no cap confirmed in AC. 15 TCs pending_implementation — awaiting Dev implementation this release.",
       "test_cases": [
         {
           "id": "TC-RWS-01",
