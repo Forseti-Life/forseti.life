@@ -3380,6 +3380,56 @@
       "notes": "Submit version_notes='<script>alert(\"xss\")</script>'. DB must not store raw <script> tag; rendered page must not execute JS."
     },
     {
+      "id": "forseti-jobhunter-resume-version-tracker-tc1-submitted-resume-section-smoke",
+      "label": "TC-1: Application detail renders 'Resume submitted' section for linked application",
+      "type": "functional",
+      "feature_id": "forseti-jobhunter-resume-version-tracker",
+      "command": "curl -s -b \"$FORSETI_COOKIE_AUTHENTICATED\" https://forseti.life/jobhunter/application/<id> | grep -q 'Resume submitted'",
+      "artifacts": ["/tmp/qa-forseti-resume-tracker-tc1.log"],
+      "required_for_release": true,
+      "notes": "Open an application detail page for an application with a linked resume. Page must contain 'Resume submitted' section with resume name and type."
+    },
+    {
+      "id": "forseti-jobhunter-resume-version-tracker-tc2-update-submitted-resume-persists",
+      "label": "TC-2: Selecting and saving a different resume updates submitted_resume_id and submitted_resume_type in DB",
+      "type": "functional",
+      "feature_id": "forseti-jobhunter-resume-version-tracker",
+      "command": "drush sql:query \"SELECT submitted_resume_id, submitted_resume_type FROM jobhunter_applications WHERE id=<app_id> AND uid=<uid>\" 2>/dev/null",
+      "artifacts": ["/tmp/qa-forseti-resume-tracker-tc2.log"],
+      "required_for_release": true,
+      "notes": "Choose a different owned resume from the application detail form and save. DB row must reflect new submitted_resume_id and submitted_resume_type."
+    },
+    {
+      "id": "forseti-jobhunter-resume-version-tracker-tc3-resume-where-used-list",
+      "label": "TC-3: Resume detail page shows 'Used in applications' list for matching applications",
+      "type": "functional",
+      "feature_id": "forseti-jobhunter-resume-version-tracker",
+      "command": "curl -s -b \"$FORSETI_COOKIE_AUTHENTICATED\" https://forseti.life/jobhunter/resume/<id> | grep -q 'Used in'",
+      "artifacts": ["/tmp/qa-forseti-resume-tracker-tc3.log"],
+      "required_for_release": true,
+      "notes": "Open a resume detail page for a resume linked to at least one application. Page must render 'Used in applications' section listing those jobs. Count must match DB: SELECT COUNT(*) FROM jobhunter_applications WHERE submitted_resume_id=<id> AND uid=<uid>."
+    },
+    {
+      "id": "forseti-jobhunter-resume-version-tracker-tc4-cross-user-ownership-403",
+      "label": "TC-4: Linking another user's resume to an application returns 403",
+      "type": "security",
+      "feature_id": "forseti-jobhunter-resume-version-tracker",
+      "command": "curl -s -o /dev/null -w \"%{http_code}\" -X POST -b \"$FORSETI_COOKIE_AUTHENTICATED\" -d \"resume_id=<other_uid_resume_id>&_token=$(drush p:token)\" https://forseti.life/jobhunter/application/<app_id>/resume",
+      "artifacts": ["/tmp/qa-forseti-resume-tracker-tc4.log"],
+      "required_for_release": true,
+      "notes": "POST a resume_id owned by a different user. Expected: 403. DB must remain unchanged: SELECT submitted_resume_id FROM jobhunter_applications WHERE id=<app_id>."
+    },
+    {
+      "id": "forseti-jobhunter-resume-version-tracker-tc5-auth-and-csrf-blocked",
+      "label": "TC-5: Unauthenticated GET and CSRF-missing POST both blocked",
+      "type": "security",
+      "feature_id": "forseti-jobhunter-resume-version-tracker",
+      "command": "curl -s -o /dev/null -w \"%{http_code}\" https://forseti.life/jobhunter/application/1/resume",
+      "artifacts": ["/tmp/qa-forseti-resume-tracker-tc5.log"],
+      "required_for_release": true,
+      "notes": "Part 1: GET without cookie → 403. Part 2: POST with auth cookie but no CSRF token → 403. Both verify auth gate and CSRF split-route requirement."
+    },
+    {
       "id": "forseti-jobhunter-contact-referral-tracker-tc1-contacts-page-smoke",
       "label": "TC-1: Contacts page renders HTTP 200 for authenticated user",
       "type": "functional",

@@ -1059,6 +1059,17 @@
         "authenticated": "200",
         "admin": "200"
       }
+    },
+    {
+      "id": "forseti-jobhunter-resume-version-tracker-application-resume-link",
+      "feature_id": "forseti-jobhunter-resume-version-tracker",
+      "path_regex": "^/jobhunter/application/\\d+/resume$",
+      "notes": "Added for feature forseti-jobhunter-resume-version-tracker. POST route to link a resume to an application (CSRF required). Auth required.",
+      "expect": {
+        "anon": "403",
+        "authenticated": "200",
+        "admin": "200"
+      }
     }
   ]
 }
