@@ -907,6 +907,28 @@
       }
     },
     {
+      "id": "forseti-jobhunter-company-interest-tracker-save-endpoint",
+      "feature_id": "forseti-jobhunter-company-interest-tracker",
+      "path_regex": "^/jobhunter/company-interest$",
+      "notes": "Added for feature forseti-jobhunter-company-interest-tracker. POST save endpoint for company interest. Auth required; CSRF required.",
+      "expect": {
+        "anon": "403",
+        "authenticated": "200",
+        "admin": "200"
+      }
+    },
+    {
+      "id": "forseti-jobhunter-company-interest-tracker-watchlist-page",
+      "feature_id": "forseti-jobhunter-company-interest-tracker",
+      "path_regex": "^/jobhunter/companies/my-list$",
+      "notes": "Added for feature forseti-jobhunter-company-interest-tracker. Per-user watchlist page. Auth required.",
+      "expect": {
+        "anon": "403",
+        "authenticated": "200",
+        "admin": "200"
+      }
+    },
+    {
       "id": "forseti-langgraph-console-release-panel-route",
       "feature_id": "forseti-langgraph-console-release-panel",
       "path_regex": "^/admin/reports/copilot-agent-tracker/langgraph-console/release$",
