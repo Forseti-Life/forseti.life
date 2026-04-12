@@ -3137,3 +3137,29 @@ function job_hunter_update_9050() {
   ]);
   return t('Created jobhunter_contacts table for per-user contact/referral tracking.');
 }
+
+/**
+ * Create jobhunter_source_preferences table for per-user job-board preferences.
+ */
+function job_hunter_update_9051() {
+  $schema = \Drupal::database()->schema();
+  if ($schema->tableExists('jobhunter_source_preferences')) {
+    return t('jobhunter_source_preferences already exists.');
+  }
+  $schema->createTable('jobhunter_source_preferences', [
+    'description' => 'Per-user job-board source preferences.',
+    'fields' => [
+      'id'                 => ['type' => 'serial', 'unsigned' => TRUE, 'not null' => TRUE],
+      'uid'                => ['type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0],
+      'sources_enabled'    => ['type' => 'text', 'size' => 'medium', 'not null' => FALSE],
+      'min_salary'         => ['type' => 'int', 'unsigned' => TRUE, 'not null' => FALSE, 'default' => NULL],
+      'remote_preference'  => ['type' => 'varchar', 'length' => 16, 'not null' => TRUE, 'default' => 'any'],
+      'location_radius_km' => ['type' => 'int', 'size' => 'small', 'not null' => FALSE, 'default' => NULL],
+      'created'            => ['type' => 'int', 'not null' => TRUE, 'default' => 0],
+      'changed'            => ['type' => 'int', 'not null' => TRUE, 'default' => 0],
+    ],
+    'primary key' => ['id'],
+    'unique keys' => ['uid' => ['uid']],
+  ]);
+  return t('Created jobhunter_source_preferences table for per-user job-board source preferences.');
+}

@@ -1573,3 +1573,26 @@ job_hunter.contacts_delete:
     _user_is_logged_in: 'TRUE'
     _csrf_token: 'TRUE'
     contact_id: \d+
+
+# Job-board Source Preferences — form (GET)
+job_hunter.source_preferences:
+  path: '/jobhunter/preferences/sources'
+  defaults:
+    _controller: '\Drupal\job_hunter\Controller\CompanyController::sourcePreferencesForm'
+    _title: 'Job Board Preferences'
+  methods: [GET]
+  requirements:
+    _permission: 'access job hunter'
+    _user_is_logged_in: 'TRUE'
+
+# Job-board Source Preferences — save (POST, CSRF split-route)
+job_hunter.source_preferences_save:
+  path: '/jobhunter/preferences/sources/save'
+  defaults:
+    _controller: '\Drupal\job_hunter\Controller\CompanyController::sourcePreferencesSave'
+    _title: 'Save Source Preferences'
+  methods: [POST]
+  requirements:
+    _permission: 'access job hunter'
+    _user_is_logged_in: 'TRUE'
+    _csrf_token: 'TRUE'

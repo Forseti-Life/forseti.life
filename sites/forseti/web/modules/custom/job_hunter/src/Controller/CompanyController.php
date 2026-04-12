@@ -3433,4 +3433,239 @@ HTML;
     );
   }
 
+  /**
+   * Valid job-board source keys for SEC-4 allowlist.
+   */
+  const VALID_SOURCE_KEYS = ['linkedin', 'indeed', 'glassdoor', 'ziprecruiter'];
+
+  /**
+   * Valid remote preference values.
+   */
+  const VALID_REMOTE_PREFS = ['any', 'remote_only', 'hybrid', 'onsite'];
+
+  /**
+   * Renders the job-board source preferences form at /jobhunter/preferences/sources.
+   */
+  public function sourcePreferencesForm(): array {
+    $uid = (int) $this->currentUser->id();
+    try {
+      $prefs = $this->database->select('jobhunter_source_preferences', 'sp')
+        ->fields('sp', ['sources_enabled', 'min_salary', 'remote_preference', 'location_radius_km'])
+        ->condition('uid', $uid)
+        ->execute()
+        ->fetchObject();
+    }
+    catch (\Exception $e) {
+      $this->getLogger('job_hunter')->error('sourcePreferencesForm load failed: uid=@uid error=@error', [
+        '@uid' => $uid,
+        '@error' => $e->getMessage(),
+      ]);
+      $prefs = NULL;
+    }
+
+    $enabled_sources = [];
+    if ($prefs && !empty($prefs->sources_enabled)) {
+      $decoded = json_decode($prefs->sources_enabled, TRUE);
+      if (is_array($decoded)) {
+        $enabled_sources = $decoded;
+      }
+    }
+    $f_min_salary = $prefs ? (int) ($prefs->min_salary ?? 0) : 0;
+    $f_remote     = $prefs ? htmlspecialchars((string) ($prefs->remote_preference ?? 'any')) : 'any';
+    $f_radius     = $prefs ? (int) ($prefs->location_radius_km ?? 0) : 0;
+
+    $save_url  = Url::fromRoute('job_hunter.source_preferences_save')->toString();
+    $csrf_token = \Drupal::csrfToken()->get('jobhunter/preferences/sources/save');
+
+    $source_checkboxes = '';
+    foreach (self::VALID_SOURCE_KEYS as $key) {
+      $checked = in_array($key, $enabled_sources, TRUE) ? ' checked' : '';
+      $label = ucfirst($key);
+      $source_checkboxes .= '<label class="source-checkbox-label">'
+        . '<input type="checkbox" name="sources_enabled[]" value="' . htmlspecialchars($key) . '"' . $checked . '> '
+        . $label . '</label> ';
+    }
+
+    $remote_options = '';
+    $remote_labels = ['any' => 'Any', 'remote_only' => 'Remote Only', 'hybrid' => 'Hybrid', 'onsite' => 'On-site'];
+    foreach ($remote_labels as $val => $lbl) {
+      $sel = ($f_remote === $val) ? ' selected' : '';
+      $remote_options .= '<option value="' . htmlspecialchars($val) . '"' . $sel . '>' . $lbl . '</option>';
+    }
+
+    $content = [
+      '#type' => 'container',
+      '#attributes' => ['class' => ['source-preferences-form']],
+      '#markup' => '
+<h2>Job Board Preferences</h2>
+<form id="source-prefs-form" method="post">
+  <input type="hidden" name="token" value="' . htmlspecialchars($csrf_token) . '">
+  <div class="prefs-field-row">
+    <label><strong>Job Boards (sources enabled)</strong></label>
+    <div class="source-checkboxes">' . $source_checkboxes . '</div>
+    <p class="prefs-hint">Uncheck boards to exclude them from job discovery.</p>
+  </div>
+  <div class="prefs-field-row">
+    <label for="pref-min-salary">Minimum Salary ($)</label>
+    <input type="number" id="pref-min-salary" name="min_salary" value="' . $f_min_salary . '" min="0" max="999999999" step="1000" />
+  </div>
+  <div class="prefs-field-row">
+    <label for="pref-remote">Remote Preference</label>
+    <select id="pref-remote" name="remote_preference">' . $remote_options . '</select>
+  </div>
+  <div class="prefs-field-row">
+    <label for="pref-radius">Location Radius (km)</label>
+    <input type="number" id="pref-radius" name="location_radius_km" value="' . $f_radius . '" min="1" max="500" />
+    <p class="prefs-hint">Leave 0 to use no radius constraint.</p>
+  </div>
+  <button type="button" id="pref-save-btn" data-save-url="' . htmlspecialchars($save_url) . '" data-token="' . htmlspecialchars($csrf_token) . '">Save Preferences</button>
+  <div id="pref-status-msg"></div>
+</form>
+<style>
+  .source-preferences-form { max-width: 640px; margin: 20px auto; padding: 24px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #667eea; }
+  .source-preferences-form h2 { margin: 0 0 20px 0; }
+  .prefs-field-row { margin-bottom: 18px; }
+  .prefs-field-row label { display: block; font-weight: 600; color: #444; margin-bottom: 6px; }
+  .prefs-field-row input[type="number"], .prefs-field-row select { padding: 7px 10px; border: 1px solid #d1d5db; border-radius: 4px; font-size: 0.95em; width: 200px; }
+  .source-checkboxes { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 6px; }
+  .source-checkbox-label { font-weight: normal; cursor: pointer; }
+  .prefs-hint { font-size: 0.82em; color: #9ca3af; margin: 4px 0 0 0; }
+  #pref-save-btn { background: #667eea; color: #fff; border: none; padding: 9px 22px; border-radius: 4px; cursor: pointer; font-size: 0.95em; margin-top: 8px; }
+  #pref-save-btn:hover { background: #5563d0; }
+  #pref-save-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+  #pref-status-msg { margin-top: 10px; font-size: 0.9em; padding: 8px 12px; border-radius: 4px; display: none; }
+  #pref-status-msg.success { background: #d1fae5; color: #065f46; display: block; }
+  #pref-status-msg.error { background: #fee2e2; color: #991b1b; display: block; }
+</style>
+<script>
+(function() {
+  var btn = document.getElementById("pref-save-btn");
+  if (!btn) return;
+  btn.addEventListener("click", function() {
+    var form = document.getElementById("source-prefs-form");
+    var statusEl = document.getElementById("pref-status-msg");
+    var sources = Array.from(form.querySelectorAll("input[name=\'sources_enabled[]\']:checked")).map(function(el) { return el.value; });
+    var payload = {
+      sources_enabled: sources,
+      min_salary: parseInt(document.getElementById("pref-min-salary").value) || 0,
+      remote_preference: document.getElementById("pref-remote").value,
+      location_radius_km: parseInt(document.getElementById("pref-radius").value) || 0
+    };
+    btn.disabled = true;
+    btn.textContent = "Saving\u2026";
+    fetch(btn.dataset.saveUrl + "?token=" + encodeURIComponent(btn.dataset.token), {
+      method: "POST",
+      headers: {"Content-Type": "application/json", "X-Requested-With": "XMLHttpRequest"},
+      body: JSON.stringify(payload)
+    })
+    .then(function(r) { return r.json().then(function(d) { return {status: r.status, data: d}; }); })
+    .then(function(res) {
+      btn.disabled = false;
+      btn.textContent = "Save Preferences";
+      statusEl.className = res.status === 200 ? "success" : "error";
+      statusEl.textContent = res.status === 200 ? (res.data.message || "Saved.") : (res.data.error || "Save failed.");
+      setTimeout(function() { statusEl.className = ""; statusEl.textContent = ""; }, 4000);
+    })
+    .catch(function() {
+      btn.disabled = false;
+      btn.textContent = "Save Preferences";
+      if (statusEl) { statusEl.className = "error"; statusEl.textContent = "Network error. Please try again."; }
+    });
+  });
+})();
+</script>
+',
+    ];
+
+    return $this->wrapWithNavigation($content);
+  }
+
+  /**
+   * Saves job-board source preferences (POST, CSRF protected).
+   */
+  public function sourcePreferencesSave(): \Symfony\Component\HttpFoundation\Response {
+    $uid = (int) $this->currentUser->id();
+    $body = json_decode($this->requestStack->getCurrentRequest()->getContent(), TRUE) ?? [];
+
+    // SEC-4: validate sources_enabled against allowlist.
+    $raw_sources = is_array($body['sources_enabled'] ?? NULL) ? $body['sources_enabled'] : [];
+    $sources_enabled = [];
+    foreach ($raw_sources as $s) {
+      if (in_array($s, self::VALID_SOURCE_KEYS, TRUE)) {
+        $sources_enabled[] = $s;
+      }
+      else {
+        return new \Symfony\Component\HttpFoundation\JsonResponse(
+          ['error' => 'Invalid source key: ' . htmlspecialchars((string) $s)],
+          400
+        );
+      }
+    }
+
+    // SEC-5: validate min_salary.
+    $min_salary = isset($body['min_salary']) ? (int) $body['min_salary'] : 0;
+    if ($min_salary < 0 || $min_salary > 999999999) {
+      return new \Symfony\Component\HttpFoundation\JsonResponse(['error' => 'min_salary out of range.'], 400);
+    }
+
+    // Validate remote_preference.
+    $remote_pref = (string) ($body['remote_preference'] ?? 'any');
+    if (!in_array($remote_pref, self::VALID_REMOTE_PREFS, TRUE)) {
+      return new \Symfony\Component\HttpFoundation\JsonResponse(['error' => 'Invalid remote_preference.'], 400);
+    }
+
+    // SEC-5: validate location_radius_km.
+    $radius = isset($body['location_radius_km']) ? (int) $body['location_radius_km'] : 0;
+    if ($radius !== 0 && ($radius < 1 || $radius > 500)) {
+      return new \Symfony\Component\HttpFoundation\JsonResponse(['error' => 'location_radius_km must be 1–500 or 0 (no constraint).'], 400);
+    }
+
+    $now = \Drupal::time()->getRequestTime();
+    $sources_json = json_encode(array_values($sources_enabled));
+
+    try {
+      $existing = $this->database->select('jobhunter_source_preferences', 'sp')
+        ->fields('sp', ['id'])
+        ->condition('uid', $uid)
+        ->execute()
+        ->fetchField();
+
+      if ($existing) {
+        $this->database->update('jobhunter_source_preferences')
+          ->fields([
+            'sources_enabled'    => $sources_json,
+            'min_salary'         => $min_salary ?: NULL,
+            'remote_preference'  => $remote_pref,
+            'location_radius_km' => $radius ?: NULL,
+            'changed'            => $now,
+          ])
+          ->condition('uid', $uid)
+          ->execute();
+      }
+      else {
+        $this->database->insert('jobhunter_source_preferences')
+          ->fields([
+            'uid'                => $uid,
+            'sources_enabled'    => $sources_json,
+            'min_salary'         => $min_salary ?: NULL,
+            'remote_preference'  => $remote_pref,
+            'location_radius_km' => $radius ?: NULL,
+            'created'            => $now,
+            'changed'            => $now,
+          ])
+          ->execute();
+      }
+
+      $this->getLogger('job_hunter')->info('sourcePreferencesSave: uid=@uid', ['@uid' => $uid]);
+      return new \Symfony\Component\HttpFoundation\JsonResponse(['message' => 'Preferences saved.'], 200);
+    }
+    catch (\Exception $e) {
+      $this->getLogger('job_hunter')->error('sourcePreferencesSave failed: uid=@uid error=@error', [
+        '@uid' => $uid,
+        '@error' => $e->getMessage(),
+      ]);
+      return new \Symfony\Component\HttpFoundation\JsonResponse(['error' => 'Save failed. Please try again.'], 500);
+    }
+  }
+
 }

@@ -566,4 +566,63 @@ class JobDiscoveryService {
     return $this->loggerFactory->get(self::LOGGER_CHANNEL);
   }
 
+  /**
+   * Returns the source preferences for a given user.
+   *
+   * AC-3: callers (job discovery dispatchers) should call this before invoking
+   * source-specific adapters and skip any adapter whose key is not in
+   * `sources_enabled`. When no preferences row exists all sources are enabled.
+   *
+   * @param int $uid
+   *   The user ID.
+   *
+   * @return array{
+   *   sources_enabled: string[],
+   *   min_salary: int|null,
+   *   remote_preference: string,
+   *   location_radius_km: int|null
+   * }
+   */
+  public function getSourcePreferences(int $uid): array {
+    try {
+      $row = $this->database->select('jobhunter_source_preferences', 'sp')
+        ->fields('sp', ['sources_enabled', 'min_salary', 'remote_preference', 'location_radius_km'])
+        ->condition('uid', $uid)
+        ->execute()
+        ->fetchObject();
+    }
+    catch (\Exception $e) {
+      $this->getLogger()->error('getSourcePreferences failed: uid=@uid error=@error', [
+        '@uid' => $uid,
+        '@error' => $e->getMessage(),
+      ]);
+      $row = NULL;
+    }
+
+    if (!$row) {
+      // No preferences saved — default: all sources enabled.
+      return [
+        'sources_enabled'    => ['linkedin', 'indeed', 'glassdoor', 'ziprecruiter'],
+        'min_salary'         => NULL,
+        'remote_preference'  => 'any',
+        'location_radius_km' => NULL,
+      ];
+    }
+
+    $sources = [];
+    if (!empty($row->sources_enabled)) {
+      $decoded = json_decode($row->sources_enabled, TRUE);
+      if (is_array($decoded)) {
+        $sources = $decoded;
+      }
+    }
+
+    return [
+      'sources_enabled'    => $sources,
+      'min_salary'         => $row->min_salary !== NULL ? (int) $row->min_salary : NULL,
+      'remote_preference'  => (string) ($row->remote_preference ?? 'any'),
+      'location_radius_km' => $row->location_radius_km !== NULL ? (int) $row->location_radius_km : NULL,
+    ];
+  }
+
 }
