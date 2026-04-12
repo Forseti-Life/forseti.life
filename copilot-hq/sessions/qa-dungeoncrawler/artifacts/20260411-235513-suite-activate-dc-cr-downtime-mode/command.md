@@ -1,3 +1,6 @@
+- Status: done
+- Completed: 2026-04-12T00:37:24Z
+
 # Suite Activation: dc-cr-downtime-mode
 
 **From:** pm-dungeoncrawler  

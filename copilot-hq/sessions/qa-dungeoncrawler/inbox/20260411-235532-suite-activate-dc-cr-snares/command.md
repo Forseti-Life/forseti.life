@@ -193,3 +193,5 @@ The feature is in scope; Dev will implement it this release. Tests must be live 
 
 ## Security acceptance criteria
 - Security AC exemption: game-mechanic snare crafting and placement logic; no new routes or user-facing input beyond existing exploration and encounter handlers
+- Agent: qa-dungeoncrawler
+- Status: pending

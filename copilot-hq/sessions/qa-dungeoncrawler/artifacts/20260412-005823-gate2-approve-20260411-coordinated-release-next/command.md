@@ -1,3 +1,6 @@
+- Status: done
+- Completed: 2026-04-12T01:03:20Z
+
 # Gate 2 APPROVE — 20260411-coordinated-release-next
 
 ## Task

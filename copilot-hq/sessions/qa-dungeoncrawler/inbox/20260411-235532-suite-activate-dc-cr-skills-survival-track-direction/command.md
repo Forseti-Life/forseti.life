@@ -266,3 +266,5 @@ The only data model requirement beyond dc-cr-skill-system is a trail record enti
 
 ## Security acceptance criteria
 - Security AC exemption: skill action logic; no new routes beyond existing exploration handlers
+- Agent: qa-dungeoncrawler
+- Status: pending

@@ -1,3 +1,6 @@
+- Status: done
+- Completed: 2026-04-12T01:23:10Z
+
 # Suite Activation: dc-cr-feats-ch05
 
 **From:** pm-dungeoncrawler  
@@ -447,3 +450,5 @@ The feature is in scope; Dev will implement it this release. Tests must be live 
 
 ## Security acceptance criteria
 - Security AC exemption: game-mechanic feat system logic; no new routes or user-facing input beyond existing character creation and leveling forms
+- Agent: qa-dungeoncrawler
+- Status: pending

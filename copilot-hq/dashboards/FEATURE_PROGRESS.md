@@ -1,6 +1,6 @@
 # Feature Progress
 
-Generated: 2026-04-11T23:53:37Z
+Generated: 2026-04-12T01:24:21Z
 
 | Work item | Website | Module | Status | Priority | PM | Dev | QA |
 |-----------|---------|--------|--------|----------|----|-----|----|
@@ -52,7 +52,7 @@ Generated: 2026-04-11T23:53:37Z
 | dc-cr-decipher-identify-learn | dungeoncrawler | dungeoncrawler_content | done | P2 |  |  |  |
 | dc-cr-dice-system | dungeoncrawler | dungeoncrawler_content | done | P0 (foundational — every resolution system depends on this) |  |  |  |
 | dc-cr-difficulty-class | dungeoncrawler | dungeoncrawler_content | done | P0 (core check resolution mechanic — encounter and skill systems depend on this) |  |  |  |
-| dc-cr-downtime-mode | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
+| dc-cr-downtime-mode | dungeoncrawler | dungeoncrawler_content | ready |  |  |  |  |
 | dc-cr-dwarf-ancestry | dungeoncrawler | dungeoncrawler_content | done | P2 (extends ancestry-system with specific stat block; all deps now satisfied — ancestry-system ✓, clan-dagger shipped ✓, heritage-system ✓) |  |  |  |
 | dc-cr-dwarf-heritage-ancient-blooded | dungeoncrawler | dungeoncrawler_content | done | P3 (depends on dc-cr-heritage-system and dc-cr-dwarf-ancestry, neither yet shipped; deferred to next cycle) |  |  |  |
 | dc-cr-dwarf-heritage-death-warden | dungeoncrawler | dungeoncrawler_content | done | unset (PM will set at triage) |  |  |  |
@@ -81,7 +81,7 @@ Generated: 2026-04-11T23:53:37Z
 | dc-cr-gm-narrative-engine | dungeoncrawler | dungeoncrawler_content | done | P3 |  |  |  |
 | dc-cr-gm-tools | dungeoncrawler | dungeoncrawler_content | done | unset (PM will set at triage) |  |  |  |
 | dc-cr-gnome-ancestry | dungeoncrawler | dungeoncrawler_content | done | P2 |  |  |  |
-| dc-cr-gnome-heritage-chameleon | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
+| dc-cr-gnome-heritage-chameleon | dungeoncrawler | dungeoncrawler_content | in_progress | P2 |  |  |  |
 | dc-cr-gnome-heritage-fey-touched | dungeoncrawler | dungeoncrawler_content | ready | P3 |  |  |  |
 | dc-cr-gnome-heritage-sensate | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
 | dc-cr-gnome-heritage-umbral | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
@@ -186,9 +186,9 @@ Generated: 2026-04-11T23:53:37Z
 | forseti-jobhunter-schema-fix | forseti.life | job_hunter | shipped | P2 |  |  |  |
 | forseti-jobhunter-tailoring-feedback | forseti.life | job_hunter | shipped | medium |  |  |  |
 | forseti-jobhunter-twig-csrf-cleanup | forseti.life | job_hunter | shipped | P2 |  |  |  |
-| forseti-langgraph-console-build-sections | forseti.life | copilot_agent_tracker | in_progress | high |  |  |  |
+| forseti-langgraph-console-build-sections | forseti.life | copilot_agent_tracker | done | high |  |  |  |
 | forseti-langgraph-console-release-panel | forseti.life | copilot_agent_tracker | done | high |  |  |  |
-| forseti-langgraph-console-test-sections | forseti.life | copilot_agent_tracker | in_progress | high |  |  |  |
+| forseti-langgraph-console-test-sections | forseti.life | copilot_agent_tracker | done | high |  |  |  |
 | forseti-langgraph-ui | forseti.life | copilot_agent_tracker | shipped | P1 |  |  |  |
 | forseti-open-source-initiative |  |  |  |  |  |  |  |
 | forseti-qa-e2e-auth-pipeline | forseti.life | qa_suites | shipped | low |  |  |  |
