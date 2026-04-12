@@ -1183,7 +1183,7 @@ class FeatEffectManager {
         case 'assurance': {
           // AC-003: Fixed result = 10 + proficiency bonus; no other modifiers.
           $assurance_skill = strtolower(trim(
-            (string) ($this->resolveFeatSelectionValue('assurance', 'skill', $character_data) ?? 'unknown')
+            (string) ($this->resolveFeatSelectionValue($character_data, 'assurance', ['skill']) ?? 'unknown')
           ));
           $effects['feat_overrides']['assurance'][] = [
             'type'    => 'fixed_result',
