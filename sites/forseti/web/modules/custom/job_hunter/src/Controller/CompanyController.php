@@ -1846,11 +1846,11 @@ class CompanyController extends ControllerBase {
       ]);
     }
 
-    // AC-3 + AC-5: Resume used on application — show linked resume label and selector.
+    // AC-1 + AC-2 + AC-5: Resume submitted on application — show and allow updating.
     try {
       $uid_for_resume = (int) $current_user->id();
       $app_resume_row = $this->database->select('jobhunter_applications', 'a')
-        ->fields('a', ['id', 'source_resume_id'])
+        ->fields('a', ['id', 'source_resume_id', 'submitted_resume_id', 'submitted_resume_type'])
         ->condition('a.uid', $uid_for_resume)
         ->condition('a.job_id', (int) $job_id)
         ->orderBy('a.created', 'DESC')
@@ -1858,16 +1858,21 @@ class CompanyController extends ControllerBase {
         ->execute()
         ->fetchAssoc();
 
-      // Load user's resumes for the dropdown (AC-5).
+      // Resolve current submitted resume — prefer new columns, fall back to source_resume_id (migration compat).
+      $current_submitted_id   = $app_resume_row ? (int) ($app_resume_row['submitted_resume_id'] ?? $app_resume_row['source_resume_id'] ?? 0) : 0;
+      $current_submitted_type = $app_resume_row ? ($app_resume_row['submitted_resume_type'] ?: ($app_resume_row['source_resume_id'] ? 'base' : '')) : '';
+
+      // Load user's job seeker record for ownership checks.
       $job_seeker_for_resume = $this->database->select('jobhunter_job_seeker', 'js')
         ->fields('js', ['id'])
         ->condition('uid', $uid_for_resume)
         ->execute()
         ->fetchField();
 
-      $user_resumes = [];
+      // Load base resumes.
+      $base_resumes = [];
       if ($job_seeker_for_resume) {
-        $user_resumes = $this->database->select('jobhunter_job_seeker_resumes', 'jsr')
+        $base_resumes = $this->database->select('jobhunter_job_seeker_resumes', 'jsr')
           ->fields('jsr', ['id', 'resume_name', 'version_label'])
           ->condition('job_seeker_id', (int) $job_seeker_for_resume)
           ->orderBy('changed', 'DESC')
@@ -1875,30 +1880,55 @@ class CompanyController extends ControllerBase {
           ->fetchAll();
       }
 
-      if ($app_resume_row || !empty($user_resumes)) {
-        $current_source_id = $app_resume_row ? (int) ($app_resume_row['source_resume_id'] ?? 0) : 0;
+      // Load tailored resumes for this user.
+      $tailored_resumes = $this->database->select('jobhunter_tailored_resumes', 'tr')
+        ->fields('tr', ['id', 'job_id'])
+        ->condition('uid', $uid_for_resume)
+        ->orderBy('updated', 'DESC')
+        ->execute()
+        ->fetchAll();
 
-        // Build "Resume used" display (AC-3).
+      if ($app_resume_row || !empty($base_resumes) || !empty($tailored_resumes)) {
+        // Build "Resume submitted" display (AC-1).
         $resume_used_html = '';
-        if ($current_source_id) {
-          $linked = $this->database->select('jobhunter_job_seeker_resumes', 'jsr')
-            ->fields('jsr', ['resume_name', 'version_label'])
-            ->condition('id', $current_source_id)
-            ->execute()
-            ->fetchAssoc();
-          if ($linked) {
-            $label_display = !empty($linked['version_label']) ? htmlspecialchars($linked['version_label']) : htmlspecialchars($linked['resume_name']);
-            $edit_url = Url::fromRoute('job_hunter.resume_version_edit', ['resume_id' => $current_source_id])->toString();
-            $resume_used_html = '<p><strong>Resume used:</strong> ' . $label_display . ' <a href="' . htmlspecialchars($edit_url) . '">(view)</a></p>';
+        if ($current_submitted_id && $current_submitted_type) {
+          $type_badge = '<span style="background:#e2e8f0;padding:2px 7px;border-radius:10px;font-size:0.85em;margin-left:6px;">' . htmlspecialchars($current_submitted_type) . '</span>';
+          if ($current_submitted_type === 'base') {
+            $linked = $this->database->select('jobhunter_job_seeker_resumes', 'jsr')
+              ->fields('jsr', ['resume_name', 'version_label'])
+              ->condition('id', $current_submitted_id)
+              ->execute()
+              ->fetchAssoc();
+            if ($linked) {
+              $label_display = !empty($linked['version_label']) ? htmlspecialchars($linked['version_label']) : htmlspecialchars($linked['resume_name']);
+              $edit_url = Url::fromRoute('job_hunter.resume_version_edit', ['resume_id' => $current_submitted_id])->toString();
+              $resume_used_html = '<p><strong>Resume submitted:</strong> ' . $label_display . $type_badge . ' <a href="' . htmlspecialchars($edit_url) . '">(view)</a></p>';
+            }
+          }
+          elseif ($current_submitted_type === 'tailored') {
+            $resume_used_html = '<p><strong>Resume submitted:</strong> Tailored resume #' . $current_submitted_id . $type_badge . '</p>';
           }
         }
 
-        // Build dropdown + save (AC-5).
+        // Build grouped dropdown (AC-2, AC-5).
         $options_html = '<option value="">-- Select a resume --</option>';
-        foreach ($user_resumes as $r) {
-          $label = !empty($r->version_label) ? htmlspecialchars($r->version_label) : htmlspecialchars($r->resume_name);
-          $selected = ($current_source_id === (int) $r->id) ? ' selected' : '';
-          $options_html .= '<option value="' . (int) $r->id . '"' . $selected . '>' . $label . '</option>';
+        if (!empty($base_resumes)) {
+          $options_html .= '<optgroup label="Base Resumes">';
+          foreach ($base_resumes as $r) {
+            $label = !empty($r->version_label) ? htmlspecialchars($r->version_label) : htmlspecialchars($r->resume_name);
+            $selected = ($current_submitted_type === 'base' && $current_submitted_id === (int) $r->id) ? ' selected' : '';
+            $options_html .= '<option value="base:' . (int) $r->id . '"' . $selected . '>' . $label . '</option>';
+          }
+          $options_html .= '</optgroup>';
+        }
+        if (!empty($tailored_resumes)) {
+          $options_html .= '<optgroup label="Tailored Resumes">';
+          foreach ($tailored_resumes as $tr) {
+            $tr_label = 'Tailored #' . (int) $tr->id . ' (job ' . (int) $tr->job_id . ')';
+            $selected = ($current_submitted_type === 'tailored' && $current_submitted_id === (int) $tr->id) ? ' selected' : '';
+            $options_html .= '<option value="tailored:' . (int) $tr->id . '"' . $selected . '>' . htmlspecialchars($tr_label) . '</option>';
+          }
+          $options_html .= '</optgroup>';
         }
 
         $save_url = Url::fromRoute('job_hunter.resume_source_save', ['job_id' => (int) $job_id])->toString();
@@ -1909,7 +1939,7 @@ class CompanyController extends ControllerBase {
           '#attributes' => ['class' => ['resume-source-section']],
           '#markup' => '
 <div class="resume-source-section-inner">
-  <h3>📄 Resume Used</h3>
+  <h3>📄 Resume Submitted</h3>
   ' . $resume_used_html . '
   <div class="resume-source-field-row">
     <label for="rs-resume-select">Link a resume to this application:</label>
@@ -1921,12 +1951,15 @@ class CompanyController extends ControllerBase {
 <script>
 (function() {
   document.getElementById("rs-save-btn").addEventListener("click", function() {
-    var rid = parseInt(document.getElementById("rs-resume-select").value, 10);
-    if (!rid) { document.getElementById("rs-status").textContent = "Please select a resume."; return; }
+    var val = document.getElementById("rs-resume-select").value;
+    if (!val) { document.getElementById("rs-status").textContent = "Please select a resume."; return; }
+    var parts = val.split(":");
+    var rtype = parts[0];
+    var rid = parseInt(parts[1], 10);
     fetch(' . json_encode($save_url) . ', {
       method: "POST",
       headers: {"Content-Type": "application/json", "X-CSRF-Token": ' . json_encode($csrf_token) . '},
-      body: JSON.stringify({source_resume_id: rid})
+      body: JSON.stringify({submitted_resume_id: rid, submitted_resume_type: rtype})
     }).then(function(r) { return r.json(); }).then(function(d) {
       var el = document.getElementById("rs-status");
       if (d.message) { el.textContent = "✅ " + d.message; el.style.color = "green"; }
@@ -4496,6 +4529,59 @@ HTML;
 </script>',
     ];
 
+    // AC-3: "Used in applications" section — show jobs where this base resume was submitted (SEC-4: name + job metadata only).
+    try {
+      $used_apps = $this->database->select('jobhunter_applications', 'a')
+        ->fields('a', ['id', 'submission_status', 'submission_date'])
+        ->condition('a.submitted_resume_id', $resume_id)
+        ->condition('a.submitted_resume_type', 'base')
+        ->condition('a.uid', $uid)
+        ->orderBy('a.created', 'DESC')
+        ->execute()
+        ->fetchAllAssoc('id', \PDO::FETCH_ASSOC);
+
+      if (!empty($used_apps)) {
+        $rows_html = '';
+        foreach ($used_apps as $app) {
+          $job_row2 = $this->database->query(
+            "SELECT j.job_title, c.name AS company_name FROM {jobhunter_job_requirements} j LEFT JOIN {jobhunter_companies} c ON j.company_id = c.id WHERE j.id = (SELECT job_id FROM {jobhunter_applications} WHERE id = :appid LIMIT 1)",
+            [':appid' => (int) $app['id']]
+          )->fetchAssoc();
+
+          $title   = $job_row2 ? htmlspecialchars($job_row2['job_title'] ?? '') : '—';
+          $company = $job_row2 ? htmlspecialchars($job_row2['company_name'] ?? '') : '—';
+          $status  = htmlspecialchars($app['submission_status'] ?? '');
+          $date    = htmlspecialchars($app['submission_date'] ?? '');
+          $rows_html .= '<tr><td>' . $title . '</td><td>' . $company . '</td><td>' . $status . '</td><td>' . $date . '</td></tr>';
+        }
+
+        $content['resume_where_used'] = [
+          '#type' => 'container',
+          '#attributes' => ['class' => ['resume-where-used-section']],
+          '#markup' => '
+<div class="resume-where-used" style="margin-top:28px;padding:18px;background:#f7fafc;border-radius:8px;border-left:4px solid #3182ce;">
+  <h3 style="margin:0 0 12px 0;color:#333;">📋 Used in applications</h3>
+  <table style="width:100%;border-collapse:collapse;">
+    <thead><tr>
+      <th style="text-align:left;padding:6px 8px;border-bottom:1px solid #e2e8f0;">Job Title</th>
+      <th style="text-align:left;padding:6px 8px;border-bottom:1px solid #e2e8f0;">Company</th>
+      <th style="text-align:left;padding:6px 8px;border-bottom:1px solid #e2e8f0;">Status</th>
+      <th style="text-align:left;padding:6px 8px;border-bottom:1px solid #e2e8f0;">Submitted</th>
+    </tr></thead>
+    <tbody>' . $rows_html . '</tbody>
+  </table>
+</div>',
+        ];
+      }
+    }
+    catch (\Exception $e) {
+      $this->getLogger('job_hunter')->error('resumeVersionForm where-used failed: uid=@uid rid=@rid error=@error', [
+        '@uid' => $uid,
+        '@rid' => $resume_id,
+        '@error' => $e->getMessage(),
+      ]);
+    }
+
     return $this->wrapWithNavigation($content);
   }
 
@@ -4565,7 +4651,10 @@ HTML;
   }
 
   /**
-   * Resume Source Link — save source_resume_id on application (POST, CSRF, AC-5).
+   * Resume Source Link — save submitted_resume_id + submitted_resume_type on application (POST, CSRF, AC-2, AC-5).
+   *
+   * Accepts JSON body: {"submitted_resume_id": <int>, "submitted_resume_type": "base"|"tailored"}
+   * Also accepts legacy {"source_resume_id": <int>} (treated as type=base for backward compat).
    *
    * @param int $job_id
    *   The job_requirements ID.
@@ -4575,38 +4664,79 @@ HTML;
     $job_id = (int) $job_id;
 
     $body = json_decode($this->requestStack->getCurrentRequest()->getContent(), TRUE) ?? [];
-    $source_resume_id = isset($body['source_resume_id']) ? (int) $body['source_resume_id'] : 0;
 
-    if ($source_resume_id <= 0) {
-      return new \Symfony\Component\HttpFoundation\JsonResponse(['error' => 'Invalid source_resume_id.'], 400);
+    // Support both new and legacy field names.
+    if (isset($body['submitted_resume_id'])) {
+      $resume_id   = (int) $body['submitted_resume_id'];
+      $resume_type = in_array($body['submitted_resume_type'] ?? '', ['base', 'tailored'], TRUE) ? $body['submitted_resume_type'] : 'base';
+    }
+    elseif (isset($body['source_resume_id'])) {
+      $resume_id   = (int) $body['source_resume_id'];
+      $resume_type = 'base';
+    }
+    else {
+      return new \Symfony\Component\HttpFoundation\JsonResponse(['error' => 'Invalid resume selection.'], 400);
     }
 
-    // SEC-3: verify the resume belongs to the current user via job_seeker_id.
-    $job_seeker = $this->database->select('jobhunter_job_seeker', 'js')
-      ->fields('js', ['id'])
+    if ($resume_id <= 0) {
+      return new \Symfony\Component\HttpFoundation\JsonResponse(['error' => 'Invalid resume id.'], 400);
+    }
+
+    // SEC-3: ownership check — verify resume belongs to current user.
+    if ($resume_type === 'base') {
+      $job_seeker = $this->database->select('jobhunter_job_seeker', 'js')
+        ->fields('js', ['id'])
+        ->condition('uid', $uid)
+        ->execute()
+        ->fetchField();
+
+      if (!$job_seeker) {
+        return new \Symfony\Component\HttpFoundation\JsonResponse(['error' => 'Access denied.'], 403);
+      }
+
+      $owns = (bool) $this->database->select('jobhunter_job_seeker_resumes', 'jsr')
+        ->fields('jsr', ['id'])
+        ->condition('id', $resume_id)
+        ->condition('job_seeker_id', (int) $job_seeker)
+        ->execute()
+        ->fetchField();
+
+      if (!$owns) {
+        return new \Symfony\Component\HttpFoundation\JsonResponse(['error' => 'Access denied.'], 403);
+      }
+    }
+    else {
+      // Tailored resume ownership check via uid column.
+      $owns = (bool) $this->database->select('jobhunter_tailored_resumes', 'tr')
+        ->fields('tr', ['id'])
+        ->condition('id', $resume_id)
+        ->condition('uid', $uid)
+        ->execute()
+        ->fetchField();
+
+      if (!$owns) {
+        return new \Symfony\Component\HttpFoundation\JsonResponse(['error' => 'Access denied.'], 403);
+      }
+    }
+
+    // SEC-3: verify the application row belongs to this user.
+    $owns_app = (bool) $this->database->select('jobhunter_applications', 'a')
+      ->fields('a', ['id'])
       ->condition('uid', $uid)
+      ->condition('job_id', $job_id)
       ->execute()
       ->fetchField();
 
-    if (!$job_seeker) {
-      return new \Symfony\Component\HttpFoundation\JsonResponse(['error' => 'Access denied.'], 403);
-    }
-
-    $owns_resume = (bool) $this->database->select('jobhunter_job_seeker_resumes', 'jsr')
-      ->fields('jsr', ['id'])
-      ->condition('id', $source_resume_id)
-      ->condition('job_seeker_id', (int) $job_seeker)
-      ->execute()
-      ->fetchField();
-
-    if (!$owns_resume) {
-      return new \Symfony\Component\HttpFoundation\JsonResponse(['error' => 'Access denied.'], 403);
+    if (!$owns_app) {
+      return new \Symfony\Component\HttpFoundation\JsonResponse(['error' => 'No application found for this job.'], 404);
     }
 
     try {
       $updated = $this->database->update('jobhunter_applications')
         ->fields([
-          'source_resume_id' => $source_resume_id,
+          'submitted_resume_id'   => $resume_id,
+          'submitted_resume_type' => $resume_type,
+          'source_resume_id'      => $resume_type === 'base' ? $resume_id : NULL,
           'changed' => date('Y-m-d H:i:s'),
         ])
         ->condition('uid', $uid)
@@ -4617,10 +4747,12 @@ HTML;
         return new \Symfony\Component\HttpFoundation\JsonResponse(['error' => 'No application found for this job.'], 404);
       }
 
-      $this->getLogger('job_hunter')->info('resumeSourceSave: uid=@uid job_id=@jid resume_id=@rid', [
+      // SEC-5: log only ids, no content.
+      $this->getLogger('job_hunter')->info('resumeSourceSave: uid=@uid job_id=@jid resume_id=@rid type=@type', [
         '@uid' => $uid,
         '@jid' => $job_id,
-        '@rid' => $source_resume_id,
+        '@rid' => $resume_id,
+        '@type' => $resume_type,
       ]);
       return new \Symfony\Component\HttpFoundation\JsonResponse(['message' => 'Resume source saved.'], 200);
     }

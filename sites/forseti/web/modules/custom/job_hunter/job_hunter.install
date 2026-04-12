@@ -3394,3 +3394,38 @@ function job_hunter_update_9056() {
   ]);
   return t('Created jobhunter_contact_job_links table for referral tracking.');
 }
+
+/**
+ * Add submitted_resume_id and submitted_resume_type to jobhunter_applications.
+ *
+ * Migrates existing source_resume_id data (base resumes) into the new columns.
+ */
+function job_hunter_update_9057() {
+  $schema = \Drupal::database()->schema();
+  $db = \Drupal::database();
+
+  if (!$schema->fieldExists('jobhunter_applications', 'submitted_resume_id')) {
+    $schema->addField('jobhunter_applications', 'submitted_resume_id', [
+      'type' => 'int',
+      'unsigned' => TRUE,
+      'not null' => FALSE,
+      'default' => NULL,
+      'description' => 'FK to base or tailored resume used for this application.',
+    ]);
+  }
+
+  if (!$schema->fieldExists('jobhunter_applications', 'submitted_resume_type')) {
+    $schema->addField('jobhunter_applications', 'submitted_resume_type', [
+      'type' => 'varchar',
+      'length' => 16,
+      'not null' => FALSE,
+      'default' => NULL,
+      'description' => 'Resume type: base or tailored.',
+    ]);
+  }
+
+  // Migrate existing source_resume_id values to the new columns.
+  $db->query("UPDATE {jobhunter_applications} SET submitted_resume_id = source_resume_id, submitted_resume_type = 'base' WHERE source_resume_id IS NOT NULL AND submitted_resume_id IS NULL");
+
+  return t('Added submitted_resume_id and submitted_resume_type to jobhunter_applications; migrated existing source_resume_id data.');
+}
