@@ -4172,9 +4172,9 @@
           "id": "TC-HAZ-20",
           "description": "Magical hazard record has spell_level and counteract_dc both non-null; counteract follows ch09 rules",
           "suite_type": "data-validation",
-          "status": "pending-dev-confirmation",
+          "status": "active",
           "ac_tag": "NEW",
-          "notes": "Conditional on dc-cr-spells-ch07 (counteract rules) \u2014 status=ready, not done. Activate once dc-cr-spells-ch07 ships."
+          "notes": "Activated 2026-04-12: dc-cr-spells-ch07 shipped (commit c720c1a34, release 20260412-dungeoncrawler-release-b)."
         },
         {
           "id": "TC-HAZ-21",
@@ -4230,9 +4230,9 @@
           "id": "TC-HAZ-28",
           "description": "Critical failure on counteract attempt against magical hazard: hazard_triggered=true",
           "suite_type": "data-validation",
-          "status": "pending-dev-confirmation",
+          "status": "active",
           "ac_tag": "TEST-ONLY",
-          "notes": "Conditional on dc-cr-spells-ch07 (counteract rules) \u2014 status=ready, not done. Activate once dc-cr-spells-ch07 ships."
+          "notes": "Activated 2026-04-12: dc-cr-spells-ch07 shipped (commit c720c1a34, release 20260412-dungeoncrawler-release-b)."
         },
         {
           "id": "TC-HAZ-29",
