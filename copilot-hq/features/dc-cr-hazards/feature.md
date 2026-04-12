@@ -4,7 +4,7 @@
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
 - Status: in_progress
-- Release: 
+- Release: 20260411-coordinated-release-next
 20260411-coordinated-release-next
 - Dev owner: dev-dungeoncrawler
 - QA owner: qa-dungeoncrawler

@@ -4,8 +4,8 @@
 - Type: new
 - Module: dungeoncrawler_content
 - Priority: P2
-- Status: in_progress
-- Release: 20260411-coordinated-release-next
+- Status: ready
+- Release: none
 - Dependencies: dc-cr-equipment-system, dc-cr-skill-system, dc-cr-class-ranger
 
 ## Goal

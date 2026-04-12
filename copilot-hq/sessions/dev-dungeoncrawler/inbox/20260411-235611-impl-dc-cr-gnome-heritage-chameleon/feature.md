@@ -3,16 +3,16 @@
 - Work item id: dc-cr-gnome-heritage-chameleon
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: in_progress
+- Status: ready
 - Priority: P2
 - PM owner: pm-dungeoncrawler
 - Dev owner: dev-dungeoncrawler
 - QA owner: qa-dungeoncrawler
 - Source: PF2E Core Rulebook (Fourth Printing), lines 6484–6783
 - Category: game-mechanic
-- Release: 20260411-coordinated-release-next
+- Release:
 
-20260411-coordinated-release-next
+## Goal
 
 Add the Chameleon Gnome heritage, granting mutable coloration and a +2 circumstance bonus to Stealth checks when the gnome is in terrain that roughly matches their current coloration. A single action allows minor color shifts; dramatic full-body shifts take up to an hour. This feeds the combat/exploration stealth system.
 
