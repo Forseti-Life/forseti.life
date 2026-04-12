@@ -28,7 +28,7 @@ Notes:
 - Dev consumes failing suite evidence and fixes product code; QA adjusts suites only when the test itself is flawed.
 - Escalate to PM only for scope/intent decisions (e.g., whether an ACL outcome is intended).
 
-## Known route namespaces (as of 2026-04-09 preflight — 20260409-dungeoncrawler-release-b)
+## Known route namespaces (as of 2026-04-12 preflight — 20260412-dungeoncrawler-release-e)
 All custom route namespaces discovered from routing YAML files. Keep `qa-permissions.json` rules and `product-teams.json route_regex` aligned with these:
 - `/admin/*` — admin backend (administer site configuration / is_admin)
 - `/admin/reports/copilot-agent-tracker/langgraph-console/*` — copilot_agent_tracker module (administer copilot agent tracker)
@@ -55,6 +55,10 @@ All custom route namespaces discovered from routing YAML files. Keep `qa-permiss
 - `/api/campaign/{id}/quest*` — quest journal/tracker APIs (access dungeoncrawler characters; deny anon)
 - `/api/game/{id}/action|state|transition|events` — game coordinator APIs (access dungeoncrawler characters; deny anon)
 - `/api/image/*`, `/api/images/*`, `/api/sprite/*` — generated image/sprite APIs (access dungeoncrawler characters; deny anon)
+- `/api/spells`, `/api/spells/{spell_id}` — spell catalog API (_access: TRUE; GET public catalog, parameterized detail)
+- `/api/sessions/{session_id}/end` — session end POST-only (_access: TRUE; ignore in probes)
+- `/roadmap` — roadmap public page (_access: TRUE; allow all)
+- `/roadmap/requirement/{req_id}/status` — roadmap requirement status GET (parameterized; ignore in probes)
 - `/ancestries`, `/ancestries/{id}` — ancestry catalog (_access: TRUE / parameterized; see qa-permissions.json)
 - `/backgrounds`, `/backgrounds/{id}` — backgrounds catalog (_access: TRUE; list=allow all, detail=ignore)
 - `/classes`, `/classes/{id}`, `/classes/{id}/starting-equipment` — class catalog (_access: TRUE; all public)
