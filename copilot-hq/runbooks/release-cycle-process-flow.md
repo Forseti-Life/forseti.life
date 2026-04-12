@@ -27,9 +27,33 @@ When the current release ships (Stage 7 complete), next becomes current, and a n
 `release-cycle-start.sh` requires both IDs: `<site> <current-release-id> <next-release-id>`.
 Both are tracked in `tmp/release-cycle-active/`.
 
-**The orchestrator manages this automatically.** The `release_cycle` step (runs every 5 min) detects
-when a cycle is missing or signed off and calls `release-cycle-start.sh` without human intervention.
+**The orchestrator manages this automatically.** The `release_cycle` step (runs every 5 min) starts
+missing cycles and keeps `next_release_id` aligned with the active release. **It does not advance
+`current release_id` on PM signoff alone.** Runtime advancement happens only after the coordinated push
+handoff completes via `scripts/post-coordinated-push.sh`.
 See `runbooks/orchestration.md` for the full trigger path.
+
+## Release handoff diagram (authoritative)
+
+```mermaid
+flowchart TD
+  A[release-cycle-start.sh writes current + next] --> B[Dev / QA execute CURRENT release]
+  A --> C[PM / QA groom NEXT release in parallel]
+  B --> D[QA APPROVE evidence exists]
+  D --> E[PM runs release-signoff.sh for current release]
+  E --> F[current release stays active<br/>status: signed_off_waiting_push]
+  F --> G[pm-forseti verifies release-signoff-status.sh]
+  G --> H[Coordinated deploy / Gate 4 push]
+  H --> I[post-coordinated-push.sh advances current -> next]
+  I --> J[new next_release_id generated]
+  J --> K[Next cycle continues with new current + next]
+
+  E -. forbidden .-> X[Do not advance current on signoff alone]
+  X -. prevents .-> Y[Pre-push race / wrong active release pointer]
+```
+
+**Rule:** PM signoff means **ready to push**. Only `post-coordinated-push.sh` may move the runtime
+pointer to the next release.
 
 ## Release cycle principles (policy)
 
@@ -369,6 +393,9 @@ Dev↔QA repair loop (State 2 cycle: until all tests PASS):
 
 **Handoff:** one signoff artifact exists per required PM seat for the same release id. Release operator proceeds only when all required signoffs exist.
 
+**Important:** Stage 6 does **not** advance `tmp/release-cycle-active/<team>.release_id`. The signed
+release remains the active runtime release until Stage 7 push/post-push completes.
+
 **SoT locations:**
 - Signoff creation:
   - `scripts/release-signoff.sh <site-or-team-alias> <release-id>`
@@ -382,6 +409,11 @@ Dev↔QA repair loop (State 2 cycle: until all tests PASS):
 **Owner:** Release operator (default `pm-forseti`)
 
 **Handoff:** the coordinated push happens only after gates are satisfied and signoffs exist.
+
+**Runtime advancement point:** after the coordinated deploy succeeds, run
+`scripts/post-coordinated-push.sh`. That is the only step that promotes:
+- `current release_id -> previous next_release_id`
+- `next_release_id -> newly generated successor`
 
 **SoT locations:**
 - Release coordinator runbook: `runbooks/coordinated-release.md`
@@ -427,6 +459,32 @@ Policy (release-cycle discipline):
 - Production gating env var: `ALLOW_PROD_QA=1`
 - Artifacts: `sessions/qa-*/artifacts/auto-site-audit/<ts>/...`
 - Rolling release health SoT (per product/site): `knowledgebase/scoreboards/<site>.md` (tracks escaped defects + consecutive unclean releases)
+
+#### CEO quality check — project progression audit (required)
+
+After post-release QA is recorded, the CEO must confirm the active portfolio is still progressing, not just that the release shipped cleanly.
+
+**Command:**
+```bash
+python3 scripts/project-progress-audit.py
+```
+
+**Policy:**
+- Every active `PROJ-*` entry in `dashboards/PROJECTS.md` must record:
+  - `Last scoped release`
+  - `Progress SLA`
+  - `Next step`
+  - `Queue status`
+- Default progression SLA: **7 days**
+- A project is in breach when more than 7 days pass without either:
+  - a release containing project-scoped work, or
+  - a PM-owned re-baseline/grooming update that is reflected in the roadmap and queue
+- PMs are responsible for grooming the next slice and keeping `Next step` / `Queue status` current even when a project is between scoped releases.
+
+**CEO action on breach:**
+1. Dispatch a PM inbox item the same session.
+2. Update `dashboards/PROJECTS.md` so the roadmap shows the real state.
+3. Do not close the release-management loop while active projects have silent drift.
 
 ### Stage 9 — Continuous improvement (carry lessons forward)
 

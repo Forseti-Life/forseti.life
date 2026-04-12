@@ -1,16 +1,17 @@
 # Architect Session State — architect-copilot
 
 > **Rolling file. Overwrite this at the end of each working session (and briefly before starting each task).**
-> Last updated: 2026-04-12 after Job Hunter CIO application sprint
+> Last updated: 2026-04-12 after agent capacity alignment
 
 ---
 
 ## Currently Working On
 
-Completed a live Job Hunter CIO application sprint:
-- repaired profile/application blockers for user `1`,
-- queued three CIO-track applications using the stored executive resume,
-- and verified the resulting application rows in production.
+Completed the Forseti roadmap subpage launch:
+- kept the synced `/roadmap` index backed by `dashboards/PROJECTS.md`,
+- added individual public roadmap subpages for the Forseti project-registry
+  entries,
+- and preserved the Dungeoncrawler roadmap as an external redirect target.
 
 ---
 
@@ -24,6 +25,113 @@ Completed a live Job Hunter CIO application sprint:
 ---
 
 ## What Was Last Worked On
+
+**2026-04-12 — HQ active-agent capacity alignment**
+
+- Audited live host headroom for the previous 24 hours using current process state,
+  tick logs, and live VM activity sampling.
+- Confirmed the scheduler had already been running at `--agent-cap 6` via the
+  orchestrator reboot cron, while the executor-side global concurrency guard still
+  defaulted to `5`.
+- Observed that:
+  - CPU pressure remained low relative to the 8-core host
+  - available memory remained high despite ~3.3 GiB of swap in use
+  - live `vmstat` sampling showed no active swap-in / swap-out churn during the
+    check
+  - tick logs over the last 24 hours already included multiple full `6`-agent
+    selections
+- Raised the durable default active-agent cap to `6` end-to-end by aligning:
+  - `scripts/orchestrator-loop.sh`
+  - `scripts/agent-exec-next.sh`
+  - `scripts/install-crons.sh`
+  - `scripts/systemd/copilot-sessions-hq-orchestrator.service`
+- Restarted the live orchestrator loop and confirmed it resumed on
+  `orchestrator/run.py --once --agent-cap 6`.
+- Decision: keep the cap at `6` for now; do **not** raise beyond that until we
+  have stronger 24-hour historical memory / IO telemetry, because swap occupancy
+  is already high even though active churn was not observed.
+
+**2026-04-12 — Forseti roadmap subpages**
+
+- Added a synced detail route at `/roadmap/{project_id}` for HQ registry-backed
+  Forseti projects.
+- Added a dedicated template for individual project roadmap pages.
+- Updated the main roadmap page cards so Forseti projects now link to their own
+  subpages:
+  - `/roadmap/PROJ-001`
+  - `/roadmap/PROJ-002`
+- Kept Dungeoncrawler as an external roadmap link to
+  `https://dungeoncrawler.forseti.life/roadmap`.
+- Rebuilt live Drupal caches from `/var/www/html/forseti` and confirmed the
+  index page plus both new project pages render in production.
+
+**2026-04-12 — Forseti project roadmap page**
+
+- Added a new public route at `/roadmap` via `forseti_content`.
+- Added a main-menu Roadmap link under `How It Works`.
+- Added a themed Forseti roadmap page template and controller method using the
+  existing `forseti_content` page pattern.
+- Published roadmap sections for:
+  - Job Hunter
+  - AI Conversation
+  - Community Safety
+  - Dungeoncrawler (external roadmap link only)
+- Rebuilt live Drupal caches from `/var/www/html/forseti` and confirmed the page
+  renders in production with the expected project cards and Dungeoncrawler link.
+
+**2026-04-12 — Job Hunter release-artifact backfill**
+
+- Backfilled missing release-gate docs for current Job Hunter `ready` features:
+  - `application-analytics`
+  - `contact-referral-tracker`
+  - `follow-up-reminders`
+  - `interview-outcome-tracker`
+  - `offer-tracker`
+  - `resume-version-tracker`
+- Added `02-implementation-notes.md` for current `in_progress` Job Hunter
+  features:
+  - `company-interest-tracker`
+  - `company-research-tracker`
+  - `contact-tracker`
+  - `job-board-preferences`
+  - `resume-version-labeling`
+- Verified the active Job Hunter queue now has `01-acceptance-criteria.md`,
+  `02-implementation-notes.md`, and `03-test-plan.md` present for the audited
+  feature set.
+- Preserved the explicit note that
+  `forseti-jobhunter-interview-outcome-tracker` appears live already and likely
+  needs PM metadata reconciliation instead of duplicate dev work.
+
+**2026-04-12 — Job Hunter flow + release pipeline audit**
+
+- Loaded the architect instruction stack and current architect session state.
+- Confirmed the latest completed architect work was the live Job Hunter CIO
+  application sprint.
+- Flagged interrupted improvement-round artifacts as known architect-scope
+  misroutes rather than active implementation work.
+- Mapped Job Hunter product state from module docs:
+  - Step 1 (resume upload/profile cleanup) is implemented.
+  - Step 2 (target companies) is partial.
+  - Steps 3-6 (AI discovery, submission, interview/follow-up, analytics) are
+    still documented as planned.
+- Confirmed `PROCESS_FLOW.md` still marks company management, error queue
+  management, user profile review, job discovery/scraping, and async processing
+  as planned/future work.
+- Audited current Job Hunter feature briefs for release readiness:
+  - `ready` features missing full release artifacts:
+    `application-analytics`, `contact-referral-tracker`,
+    `follow-up-reminders`, `interview-outcome-tracker`, `offer-tracker`,
+    `resume-version-tracker`
+  - `in_progress` features missing implementation notes:
+    `company-interest-tracker`, `company-research-tracker`,
+    `contact-tracker`, `job-board-preferences`,
+    `resume-version-labeling`
+- Found backlog metadata drift: `forseti-jobhunter-interview-outcome-tracker`
+  remains `ready` in HQ even though the architect session already records the
+  feature as implemented live on 2026-04-12.
+- Produced an implementation sequence for the Forseti PM/Dev release process:
+  finish Step-2 company/research/preferences work, then Step-5 interview /
+  follow-up / offer tracking, then Step-6 analytics.
 
 **2026-04-12 — Job Hunter CIO application sprint**
 
@@ -88,9 +196,21 @@ Completed a live Job Hunter CIO application sprint:
 ## Open Threads / Pending Decisions
 
 No blocking implementation bug remains for the initial CIO application flow.
+
+Release-process follow-through is now the main open thread:
+- PM should correct stale feature status for
+  `forseti-jobhunter-interview-outcome-tracker`
+- PM can now use the backfilled release-gate artifacts for current `ready` /
+  `in_progress` Job Hunter features
+- Dev should sequence remaining work as: Step 2 company/research/preferences →
+  Step 5 tracking → Step 6 analytics
+- Forseti public project navigation now includes a synced roadmap landing page
+  plus project detail subpages
+
 Operational follow-through is still useful:
-- watch downstream submission processing for applications `1`, `2`, and `3`;
-- consider importing additional staged CIO roles if the user wants a broader batch.
+- watch downstream submission processing for applications `1`, `2`, and `3`
+- consider importing additional staged CIO roles if the user wants a broader batch
+- monitor HQ host swap / IO behavior before considering any agent cap above `6`
 
 ---
 
@@ -114,13 +234,20 @@ Operational follow-through is still useful:
 
 ## Next Priority Actions (pick up here next session)
 
-1. If the user wants more live Job Hunter ops, import and queue additional staged
+1. If the user wants release-pipeline execution, hand PM the artifact-backed
+   queue from this audit and start with the now-backfilled Job Hunter feature
+   docs plus the single stale-status correction.
+2. If the user wants roadmap refinement, expand the synced project subpages with
+   more detailed HQ section parsing or richer milestone presentation.
+3. If the user wants direct implementation, finish the active Step-2 company /
+   research / contact / preferences work before starting more reporting views.
+4. After Step-2 tracking data is stable, build `forseti-jobhunter-offer-tracker`
+   and `forseti-jobhunter-follow-up-reminders`, then land
+   `forseti-jobhunter-application-analytics`.
+5. If HQ throughput is still constrained, add real 24-hour host telemetry capture
+   before considering any active-agent cap above `6`.
+5. If the user wants more live Job Hunter ops, import and queue additional staged
    CIO roles already cached in `jobhunter_job_search_results`.
-2. If the user wants the next product increment, build
-   `forseti-jobhunter-application-analytics` on top of the new
-   `jobhunter_interview_rounds` data.
-3. If the user wants repository commits, isolate these Job Hunter changes from
-   unrelated org activity and commit only the touched module/test files.
 
 ---
 

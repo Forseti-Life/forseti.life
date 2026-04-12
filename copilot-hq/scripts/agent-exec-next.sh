@@ -284,7 +284,7 @@ fi
 
 # Global concurrency guard: limit total concurrent Copilot executions across ALL
 # loops/processes on this host.
-MAX_CONCURRENT_EXECUTIONS="${AGENT_EXEC_MAX_CONCURRENT:-5}"
+MAX_CONCURRENT_EXECUTIONS="${AGENT_EXEC_MAX_CONCURRENT:-6}"
 SEMAPHORE_DIR="tmp/.agent-exec-semaphore"
 SLOT_FD=""
 SLOT_FILE=""

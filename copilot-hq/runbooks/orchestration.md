@@ -73,7 +73,16 @@ QA → Dev → QA repair loop (Stages 3-4)
        └─ scripts/release-signoff.sh <team> <release-id>
             → sessions/pm-<team>/artifacts/release-signoffs/<id>.md
 
-orchestrator release_cycle step detects signoff → advances cycle automatically
+PM signoff marks the release ready, but runtime stays on that release until:
+  └─ pm-forseti completes coordinated push
+        └─ scripts/post-coordinated-push.sh
+             → advances release_id to next_release_id
+
+After post-push + post-release QA, CEO runs:
+  └─ python3 scripts/project-progress-audit.py
+       └─ verifies every active `PROJ-*` on `dashboards/PROJECTS.md` has
+          last scoped release, next step, queue status, and is within the
+          7-day progression SLA
 ```
 
 ## Scheduling rules

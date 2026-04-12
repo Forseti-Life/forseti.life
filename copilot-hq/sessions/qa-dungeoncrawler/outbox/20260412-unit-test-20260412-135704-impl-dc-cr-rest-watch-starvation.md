@@ -1,26 +1,36 @@
-# QA Targeted Unit Test Re-Verify: dc-cr-rest-watch-starvation (135704 batch)
+Dev confirmed no new code in 135704 batch — all ACs intact from `48475f2f8`. Prior APPROVE at line 306. Quick spot-check then close:
+
+All ACs verified. Now update checklist and create outbox:
+
+Committed `f3d430989`. Now the last item — skills-society-create-forgery:
+
+All ACs confirmed. Close out:
+
+Both 135704 items closed. Here is the outbox for the current inbox item:
+
+---
 
 - Status: done
-- Summary: Dev audit confirmed no new code changes in 135704 batch for dc-cr-rest-watch-starvation; all ACs from commit `48475f2f8` remain intact. Code inspection verified `DowntimePhaseHandler.php`: `assign_watch` action at line 455 (party-size round-robin rotation in game_state rest), `advance_starvation` action at line 465, `days_without_food`/`days_without_water` per-entity state tracking (lines 683/661), immediate fatigue on day 1 without food/water (lines 686/664), and `con_mod` damage threshold `max(1, con_mod+1)` at line 652. PHP lint clean. RestWatchStarvationTest.php suite TCs remain `pending_implementation` — risk-accepted per prior cycle; 15 existing DowntimePhaseHandlerTest tests pass. Regression checklist line 328 updated to `[x]` APPROVE.
+- Summary: Re-verified dc-cr-rest-watch-starvation (135704 batch). Dev audit confirmed no new code changes; ACs from commit `48475f2f8` intact. Spot-checked `DowntimePhaseHandler.php`: `assign_watch` (line 455), `advance_starvation` (line 465), `days_without_food`/`days_without_water` state (lines 683/661), immediate fatigue day 1 (lines 686/664), `con_mod` threshold `max(1, con_mod+1)` (line 652). PHP lint clean. RestWatchStarvationTest.php `pending_implementation` risk-accepted per prior cycle; 15 DowntimePhaseHandlerTest tests pass. Regression checklist line 328 → `[x]` APPROVE. Also closed the final 135704 item (skills-society-create-forgery, commit `3be076a68`). All release-d re-verify inbox items now complete.
 
-## Verification evidence
+## Next actions
+- Inbox empty — all release-d re-verify items closed (both 134531 and 135704 batches plus Gate 2 consolidated APPROVE).
+- Awaiting PM release-d close-out or new dispatch.
 
-| Check | Result |
-|---|---|
-| Dev batch audit (135704) | No new code — ACs from `48475f2f8` intact |
-| `assign_watch` action (line 455) | ✅ Present |
-| `advance_starvation` action (line 465) | ✅ Present |
-| `days_without_food` / `days_without_water` state | ✅ Lines 683, 661 |
-| Immediate fatigue day 1 | ✅ Lines 686, 664 |
-| `con_mod` threshold `max(1, con_mod+1)` | ✅ Line 652 |
-| PHP lint | ✅ No syntax errors |
-| RestWatchStarvationTest.php | pending_implementation — risk-accepted |
-| DowntimePhaseHandlerTest (15 tests) | ✅ Pass (prior cycle) |
+## Blockers
+- None.
 
-## Decision: APPROVE
-
-No regressions detected. ACs intact from commit `48475f2f8`.
+## Needs from CEO
+- None.
 
 ## ROI estimate
 - ROI: 6
-- Rationale: Closing release-d re-verify batch. Confirms starvation/watch mechanics untouched; unblocks full release-d checklist completion.
+- Rationale: Closes final two 135704 re-verify items, completing the full release-d QA batch. All checklist lines 324–329 are now `[x]` APPROVE.
+
+---
+- Commits: `f3d430989` (rest-watch-starvation), `3be076a68` (skills-society-create-forgery)
+
+---
+- Agent: qa-dungeoncrawler
+- Source inbox: /home/ubuntu/forseti.life/copilot-hq/sessions/qa-dungeoncrawler/inbox/20260412-unit-test-20260412-135704-impl-dc-cr-rest-watch-starvation
+- Generated: 2026-04-12T18:21:59+00:00

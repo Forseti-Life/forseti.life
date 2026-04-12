@@ -202,3 +202,5 @@ No new routes or auth surfaces — Security AC exemption confirmed.
 
 ## Security acceptance criteria
 - Security AC exemption: game-mechanic economy logic; no new routes or user-facing input beyond existing character creation and downtime handlers
+- Agent: qa-dungeoncrawler
+- Status: pending

@@ -9,8 +9,10 @@ The live authority page is:
 That page is rendered from this file. CEO and architect seats must treat the roadmap page + this backing file as the single source of truth for what is on the active project list.
 
 **Owned by:** ceo-copilot-2  
-**Update cadence:** when a project is created, advanced, or closed  
+**Update cadence:** when a project is created, advanced, closed, or when a release picks up project-scoped work  
 **Format:** one numbered portfolio registry. Every active item on the live roadmap page must have a `PROJ-*` ID. Use the `Type` column to distinguish long-lived product tracks from execution initiatives.
+
+**Required per-project fields:** `Scope`, `Current state`, `Last scoped release`, `Progress SLA`, `Next step`, `Queue status`
 
 ---
 
@@ -34,6 +36,10 @@ That page is rendered from this file. CEO and architect seats must treat the roa
 
 **Current state:** Active Forseti release-e scope candidates already exist (`forseti-jobhunter-contact-referral-tracker`, `forseti-jobhunter-resume-version-tracker`) and PM now has a Stage 0 scope-activation item queued.
 
+**Last scoped release:** `20260412-forseti-release-e`
+
+**Progress SLA:** 7 days without release-scoped work or a PM re-baseline/grooming update = breach
+
 **Next step:** PM should activate release-e scope or explicitly re-baseline the current Forseti release.
 
 **Queue status:** `pm-forseti` inbox item queued on 2026-04-12: `20260412-scope-activate-20260412-forseti-release-e`
@@ -46,9 +52,13 @@ That page is rendered from this file. CEO and architect seats must treat the roa
 
 **Current state:** Production foundation is in place. No standalone 2026 delivery initiative is currently open; work is being carried as a shared platform capability inside Forseti releases.
 
+**Last scoped release:** `20260410-forseti-release-f`
+
+**Progress SLA:** 7 days without release-scoped work or a PM re-baseline/grooming update = breach
+
 **Next step:** When the next dedicated AI Conversation slice is defined, add it here as a delivery project and queue the corresponding PM/Dev/QA work.
 
-**Queue status:** no dedicated project inbox item currently queued
+**Queue status:** `pm-forseti` inbox item queued on 2026-04-12: `20260412-proj005-next-slice-ai-conversation`
 
 ---
 
@@ -58,9 +68,13 @@ That page is rendered from this file. CEO and architect seats must treat the roa
 
 **Current state:** The public-facing safety track remains part of the roadmap, but no dedicated 2026 delivery initiative is currently active in the portfolio registry.
 
+**Last scoped release:** none recorded in current registry
+
+**Progress SLA:** 7 days without release-scoped work or a PM re-baseline/grooming update = breach
+
 **Next step:** PM should decide whether to open a dedicated 2026 Community Safety delivery project or keep this as background product-line maintenance.
 
-**Queue status:** no dedicated project inbox item currently queued
+**Queue status:** `pm-forseti` inbox item queued on 2026-04-12: `20260412-proj006-next-slice-community-safety`
 
 ---
 
@@ -69,6 +83,10 @@ That page is rendered from this file. CEO and architect seats must treat the roa
 **Scope:** The dedicated Dungeoncrawler product line, separate site, and its long-lived PF2E implementation program.
 
 **Current state:** Separate product site with its own release engine, roadmap, and active delivery queue.
+
+**Last scoped release:** `20260412-dungeoncrawler-release-e`
+
+**Progress SLA:** 7 days without release-scoped work or a PM re-baseline/grooming update = breach
 
 **Next step:** Use the dedicated Dungeoncrawler roadmap and the active release-e / release-f queue for current execution details.
 
@@ -82,6 +100,10 @@ That page is rendered from this file. CEO and architect seats must treat the roa
 **Scope:** Build the full Copilot HQ control-plane console UI on forseti.life — telemetry, agent monitoring, session management, release controls, and eval scorecards wired to live orchestrator tick data.
 
 **Current state (2026-04-12):** All foundation slices are shipped: telemetry foundation, console stubs (7 routes), context enrichment, Agent Tracker Core (`forseti-copilot-agent-tracker`), Console Build/Test sections (ahead of schedule), and Release Control Panel (read-only). Active release `20260412-forseti-release-e` carries the next slice: Run + Session panel wiring (`features/forseti-langgraph-console-run-session/feature.md`, Status: ready).
+
+**Last scoped release:** `20260412-forseti-release-e`
+
+**Progress SLA:** 7 days without release-scoped work or a PM re-baseline/grooming update = breach
 
 **Next step:** ba-forseti to elaborate AC, then dev-forseti to implement Run/Session wiring in forseti-release-e.
 
@@ -100,6 +122,10 @@ That page is rendered from this file. CEO and architect seats must treat the roa
 **Suite manifest:** `qa-suites/products/forseti/suite.json`
 
 **Current state:** The originally dispatched fill/retire/auth-unblock features are now all marked `shipped` in the backlog (`forseti-qa-suite-fill-*`, `forseti-qa-suite-retire-stale`, `forseti-qa-e2e-auth-pipeline`). The project registry is stale and needs a closeout review against the success criteria.
+
+**Last scoped release:** `20260409-forseti-release-i`
+
+**Progress SLA:** 7 days without release-scoped work or a PM re-baseline/grooming update = breach
 
 **Next step:** PM should run a closeout audit: confirm whether the shipped work satisfies the project success metrics, then either mark the project complete or dispatch the remaining gap as a new follow-on project.
 
@@ -265,6 +291,10 @@ Root cause: `FORSETI_COOKIE_AUTHENTICATED` env var is never set in automation be
 **Scope:** Systematically implement all `pending` requirements in `dc_requirements` table until every requirement is either `implemented` or has a `feature_id` pointing to an active pipeline feature.
 
 Current status: The public roadmap now derives requirement state from the live pipeline, and the release-cycle drift defect has been fixed. `20260412-dungeoncrawler-release-e` is the active runtime release with 5 scoped features in progress, while `20260412-dungeoncrawler-release-f` is groomed as the next wave. PM, Dev, and QA all have active queue items for release-e / release-f work, so the project currently has no queue gap.
+
+**Last scoped release:** `20260412-dungeoncrawler-release-e`
+
+**Progress SLA:** 7 days without release-scoped work or a PM re-baseline/grooming update = breach
 
 **Next step:** let release-e execution continue, watch for Gate 2 on the 5 active features, and then promote release-f only after the coordinated push/post-push handoff completes.
 

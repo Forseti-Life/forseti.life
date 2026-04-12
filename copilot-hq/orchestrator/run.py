@@ -1733,8 +1733,10 @@ def _release_cycle_step(log: List[Any]) -> None:
           <day>-<team>-release-c
           ...
 
-        If the incoming ID is malformed or from an older day, fall back to the
-        current day and start at the beginning of the sequence.
+        If the incoming ID is malformed, fall back to the current day and start
+        at the beginning of the sequence. Preserve the parsed release date when
+        the input already has a valid team-scoped release ID so the cycle does
+        not rewrite dates across midnight while a release is still active.
         """
         suffixes = ["release", "release-next"] + [f"release-{chr(c)}" for c in range(ord("b"), ord("z") + 1)]
         date_part = current_day
@@ -1742,7 +1744,7 @@ def _release_cycle_step(log: List[Any]) -> None:
 
         match = re.match(rf"^(\d{{8}})-{re.escape(team_id)}-(.+)$", release_id or "")
         if match:
-            date_part = max(current_day, match.group(1))
+            date_part = match.group(1)
             suffix = match.group(2)
 
         try:
@@ -1774,17 +1776,10 @@ def _release_cycle_step(log: List[Any]) -> None:
             signoff_file = REPO_ROOT / "sessions" / pm_agent / "artifacts" / "release-signoffs" / f"{slug}.md"
             cycle_signed_off = signoff_file.exists()
 
-        if not current_release or cycle_signed_off:
-            # Start or advance the release cycle
-            if cycle_signed_off and next_release:
-                expected_next = _next_release_id_after(current_release, team_id, today)
-                new_current = next_release if next_release == expected_next else expected_next
-                new_next = _next_release_id_after(new_current, team_id, today)
-                action = "advance"
-            else:
-                new_current = f"{today}-{team_id}-release"
-                new_next = f"{today}-{team_id}-release-next"
-                action = "start"
+        if not current_release:
+            new_current = f"{today}-{team_id}-release"
+            new_next = f"{today}-{team_id}-release-next"
+            action = "start"
 
             rc, out = _run(
                 ["bash", "scripts/release-cycle-start.sh", team_id, new_current, new_next],
@@ -1793,20 +1788,22 @@ def _release_cycle_step(log: List[Any]) -> None:
             results.append({"team": team_id, "action": action, "current": new_current, "next": new_next, "rc": rc})
             if rc == 0:
                 print(f"RELEASE-CYCLE: {action} {team_id} current={new_current} next={new_next}")
-                # Post-release process review: when a cycle advances after signoff,
-                # dispatch PM+CEO review items to close process gaps from the
-                # just-finished release.
-                if action == "advance":
-                    _run(
-                        ["bash", "scripts/improvement-round.sh", today, f"improvement-round-{new_current}"],
-                        timeout=60,
-                    )
+        elif cycle_signed_off:
+            expected_next = _next_release_id_after(current_release, team_id, today)
+            if next_release != expected_next:
+                next_release_id_file.write_text(expected_next + "\n")
+                next_release = expected_next
+                action = "signed_off_next_fixed"
+            else:
+                action = "signed_off_waiting_push"
+            results.append({"team": team_id, "action": action, "current": current_release, "next": next_release})
         else:
             # Cycle running — ensure next_release_id is persisted for future advance
-            if not next_release:
-                new_next = f"{today}-{team_id}-release-next"
-                next_release_id_file.write_text(new_next + "\n")
-                results.append({"team": team_id, "action": "next_set", "current": current_release, "next": new_next})
+            expected_next = _next_release_id_after(current_release, team_id, today)
+            if next_release != expected_next:
+                next_release_id_file.write_text(expected_next + "\n")
+                action = "next_set" if not next_release else "next_fixed"
+                results.append({"team": team_id, "action": action, "current": current_release, "next": expected_next})
             else:
                 results.append({"team": team_id, "action": "active", "current": current_release, "next": next_release})
 

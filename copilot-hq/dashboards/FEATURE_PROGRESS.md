@@ -1,6 +1,6 @@
 # Feature Progress
 
-Generated: 2026-04-12T17:34:32Z
+Generated: 2026-04-12T19:51:22Z
 
 | Work item | Website | Module | Status | Priority | PM | Dev | QA |
 |-----------|---------|--------|--------|----------|----|-----|----|
@@ -75,29 +75,29 @@ Generated: 2026-04-12T17:34:32Z
 | dc-cr-feats-ch05 | dungeoncrawler | dungeoncrawler_content | in_progress |  |  |  |  |
 | dc-cr-fey-fellowship | dungeoncrawler | dungeoncrawler_content | done | P2 |  |  |  |
 | dc-cr-first-world-adept | dungeoncrawler | dungeoncrawler_content | ready | P3 |  |  |  |
-| dc-cr-first-world-magic | dungeoncrawler | dungeoncrawler_content | ready | P3 |  |  |  |
+| dc-cr-first-world-magic | dungeoncrawler | dungeoncrawler_content | in_progress | P3 |  |  |  |
 | dc-cr-focus-spells | dungeoncrawler | dungeoncrawler_content | done | unset (PM will set at triage) |  |  |  |
 | dc-cr-general-feats | dungeoncrawler | dungeoncrawler_content | done | unset (PM will set at triage) |  |  |  |
 | dc-cr-gm-narrative-engine | dungeoncrawler | dungeoncrawler_content | done | P3 |  |  |  |
 | dc-cr-gm-tools | dungeoncrawler | dungeoncrawler_content | done | unset (PM will set at triage) |  |  |  |
 | dc-cr-gnome-ancestry | dungeoncrawler | dungeoncrawler_content | done | P2 |  |  |  |
 | dc-cr-gnome-heritage-chameleon | dungeoncrawler | dungeoncrawler_content | in_progress | P2 |  |  |  |
-| dc-cr-gnome-heritage-fey-touched | dungeoncrawler | dungeoncrawler_content | ready | P3 |  |  |  |
+| dc-cr-gnome-heritage-fey-touched | dungeoncrawler | dungeoncrawler_content | in_progress | P3 |  |  |  |
 | dc-cr-gnome-heritage-sensate | dungeoncrawler | dungeoncrawler_content | in_progress | P2 |  |  |  |
 | dc-cr-gnome-heritage-umbral | dungeoncrawler | dungeoncrawler_content | in_progress | P2 |  |  |  |
-| dc-cr-gnome-heritage-wellspring | dungeoncrawler | dungeoncrawler_content | ready | P3 |  |  |  |
-| dc-cr-gnome-obsession | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
-| dc-cr-gnome-weapon-expertise | dungeoncrawler | dungeoncrawler_content | ready | P3 |  |  |  |
-| dc-cr-gnome-weapon-familiarity | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
-| dc-cr-gnome-weapon-specialist | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
-| dc-cr-goblin-ancestry | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
-| dc-cr-goblin-very-sneaky | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
-| dc-cr-goblin-weapon-familiarity | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
-| dc-cr-goblin-weapon-frenzy | dungeoncrawler | dungeoncrawler_content | ready | P3 |  |  |  |
-| dc-cr-halfling-ancestry | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
-| dc-cr-halfling-heritage-gutsy | dungeoncrawler | dungeoncrawler_content | ready | P3 |  |  |  |
-| dc-cr-halfling-heritage-hillock | dungeoncrawler | dungeoncrawler_content | ready | P3 |  |  |  |
-| dc-cr-halfling-keen-eyes | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
+| dc-cr-gnome-heritage-wellspring | dungeoncrawler | dungeoncrawler_content | in_progress | P3 |  |  |  |
+| dc-cr-gnome-obsession | dungeoncrawler | dungeoncrawler_content | in_progress | P2 |  |  |  |
+| dc-cr-gnome-weapon-expertise | dungeoncrawler | dungeoncrawler_content | in_progress | P3 |  |  |  |
+| dc-cr-gnome-weapon-familiarity | dungeoncrawler | dungeoncrawler_content | in_progress | P2 |  |  |  |
+| dc-cr-gnome-weapon-specialist | dungeoncrawler | dungeoncrawler_content | in_progress | P2 |  |  |  |
+| dc-cr-goblin-ancestry | dungeoncrawler | dungeoncrawler_content | in_progress | P2 |  |  |  |
+| dc-cr-goblin-very-sneaky | dungeoncrawler | dungeoncrawler_content | in_progress | P2 |  |  |  |
+| dc-cr-goblin-weapon-familiarity | dungeoncrawler | dungeoncrawler_content | in_progress | P2 |  |  |  |
+| dc-cr-goblin-weapon-frenzy | dungeoncrawler | dungeoncrawler_content | in_progress | P3 |  |  |  |
+| dc-cr-halfling-ancestry | dungeoncrawler | dungeoncrawler_content | in_progress | P2 |  |  |  |
+| dc-cr-halfling-heritage-gutsy | dungeoncrawler | dungeoncrawler_content | in_progress | P3 |  |  |  |
+| dc-cr-halfling-heritage-hillock | dungeoncrawler | dungeoncrawler_content | in_progress | P3 |  |  |  |
+| dc-cr-halfling-keen-eyes | dungeoncrawler | dungeoncrawler_content | in_progress | P2 |  |  |  |
 | dc-cr-hazards | dungeoncrawler | dungeoncrawler_content | in_progress | P2 |  |  |  |
 | dc-cr-heritage-system | dungeoncrawler | dungeoncrawler_content | done | P1 (character creation dependency; heritage selection step immediately follows ancestry in creation wizard) |  |  |  |
 | dc-cr-human-ancestry | dungeoncrawler | dungeoncrawler_content | done |  |  |  |  |
@@ -129,20 +129,20 @@ Generated: 2026-04-12T17:34:32Z
 | dc-cr-skills-recall-knowledge | dungeoncrawler | dungeoncrawler_content | done | P1 |  |  |  |
 | dc-cr-skills-society-create-forgery | dungeoncrawler | dungeoncrawler_content | in_progress |  |  |  |  |
 | dc-cr-skills-stealth-hide-sneak | dungeoncrawler | dungeoncrawler_content | shipped | P1 |  |  |  |
-| dc-cr-skills-survival-track-direction | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
+| dc-cr-skills-survival-track-direction | dungeoncrawler | dungeoncrawler_content | in_progress | P2 |  |  |  |
 | dc-cr-skills-thievery-disable-pick-lock | dungeoncrawler | dungeoncrawler_content | shipped | P1 |  |  |  |
-| dc-cr-snares | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
+| dc-cr-snares | dungeoncrawler | dungeoncrawler_content | in_progress | P2 |  |  |  |
 | dc-cr-spellcasting | dungeoncrawler | dungeoncrawler_content | shipped |  |  |  |  |
-| dc-cr-spells-ch07 | dungeoncrawler | dungeoncrawler_content | ready | P1 |  |  |  |
+| dc-cr-spells-ch07 | dungeoncrawler | dungeoncrawler_content | in_progress | P1 |  |  |  |
 | dc-cr-tactical-grid | dungeoncrawler | dungeoncrawler_content | done |  |  |  |  |
-| dc-cr-treasure-by-level | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
+| dc-cr-treasure-by-level | dungeoncrawler | dungeoncrawler_content | in_progress |  |  |  |  |
 | dc-cr-unburdened-iron | dungeoncrawler | dungeoncrawler_content | done | unset (PM will set at triage) |  |  |  |
 | dc-cr-vengeful-hatred | dungeoncrawler | dungeoncrawler_content | done | unset (PM will set at triage) |  |  |  |
-| dc-cr-vivacious-conduit | dungeoncrawler | dungeoncrawler_content | ready | P3 |  |  |  |
+| dc-cr-vivacious-conduit | dungeoncrawler | dungeoncrawler_content | in_progress | P3 |  |  |  |
 | dc-cr-xp-award-system | dungeoncrawler | dungeoncrawler_content | done | P3 |  |  |  |
 | dc-cr-xp-rewards | dungeoncrawler | dungeoncrawler_content | done | unset (PM will set at triage) |  |  |  |
 | dc-gam-gods-magic | dungeoncrawler | dungeoncrawler_content | ready | P3 |  |  |  |
-| dc-gmg-hazards | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
+| dc-gmg-hazards | dungeoncrawler | dungeoncrawler_content | in_progress | P2 |  |  |  |
 | dc-gmg-npc-gallery | dungeoncrawler | dungeoncrawler_content | ready | P3 |  |  |  |
 | dc-gmg-running-guide | dungeoncrawler | dungeoncrawler_content | ready | P3 |  |  |  |
 | dc-gmg-subsystems | dungeoncrawler | dungeoncrawler_content | ready | P3 |  |  |  |
@@ -172,7 +172,7 @@ Generated: 2026-04-12T17:34:32Z
 | forseti-jobhunter-bulk-status-update | forseti.life | job_hunter | done | medium |  |  |  |
 | forseti-jobhunter-company-interest-tracker | forseti.life | job_hunter | in_progress | high |  |  |  |
 | forseti-jobhunter-company-research-tracker | forseti.life | job_hunter | in_progress | medium |  |  |  |
-| forseti-jobhunter-contact-referral-tracker | forseti.life | job_hunter | ready | medium |  |  |  |
+| forseti-jobhunter-contact-referral-tracker | forseti.life | job_hunter | in_progress | medium |  |  |  |
 | forseti-jobhunter-contact-tracker | forseti.life | job_hunter | in_progress | high |  |  |  |
 | forseti-jobhunter-controller-extraction-phase1 | forseti.life | job_hunter | shipped | P2 |  |  |  |
 | forseti-jobhunter-controller-refactor | forseti.life | job_hunter | shipped | P2 |  |  |  |
@@ -195,7 +195,7 @@ Generated: 2026-04-12T17:34:32Z
 | forseti-jobhunter-resume-tailoring-display | forseti.life | job_hunter | shipped | high |  |  |  |
 | forseti-jobhunter-resume-tailoring-queue-hardening | forseti.life | job_hunter | shipped | P3 |  |  |  |
 | forseti-jobhunter-resume-version-labeling | forseti.life | job_hunter | in_progress | medium |  |  |  |
-| forseti-jobhunter-resume-version-tracker | forseti.life | job_hunter | ready | medium |  |  |  |
+| forseti-jobhunter-resume-version-tracker | forseti.life | job_hunter | in_progress | medium |  |  |  |
 | forseti-jobhunter-return-to-open-redirect | forseti.life | job_hunter | shipped | P2 |  |  |  |
 | forseti-jobhunter-saved-search | forseti.life | job_hunter | shipped | medium |  |  |  |
 | forseti-jobhunter-schema-fix | forseti.life | job_hunter | shipped | P2 |  |  |  |
@@ -203,6 +203,7 @@ Generated: 2026-04-12T17:34:32Z
 | forseti-jobhunter-twig-csrf-cleanup | forseti.life | job_hunter | shipped | P2 |  |  |  |
 | forseti-langgraph-console-build-sections | forseti.life | copilot_agent_tracker | done | high |  |  |  |
 | forseti-langgraph-console-release-panel | forseti.life | copilot_agent_tracker | done | high |  |  |  |
+| forseti-langgraph-console-run-session | forseti.life | copilot_agent_tracker | ready | P1 |  |  |  |
 | forseti-langgraph-console-test-sections | forseti.life | copilot_agent_tracker | done | high |  |  |  |
 | forseti-langgraph-ui | forseti.life | copilot_agent_tracker | shipped | P1 |  |  |  |
 | forseti-open-source-initiative |  |  |  |  |  |  |  |

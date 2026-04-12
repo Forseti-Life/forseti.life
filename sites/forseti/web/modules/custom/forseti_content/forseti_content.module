@@ -50,6 +50,29 @@ function forseti_content_theme($existing, $type, $theme, $path) {
       ],
       'template' => 'forseti-page-how-it-works',
     ],
+    'forseti_page_roadmap' => [
+      'variables' => [
+        'title' => NULL,
+        'intro' => NULL,
+        'projects' => [],
+      ],
+      'template' => 'forseti-page-roadmap',
+    ],
+    'forseti_page_roadmap_project' => [
+      'variables' => [
+        'title' => NULL,
+        'project_id' => NULL,
+        'summary' => NULL,
+        'meta' => [],
+        'roadmap_reference' => NULL,
+        'current_state' => NULL,
+        'next_step' => NULL,
+        'queue_status' => NULL,
+        'goals' => [],
+        'back_url' => NULL,
+      ],
+      'template' => 'forseti-page-roadmap-project',
+    ],
     'forseti_page_community' => [
       'variables' => [
         'title' => NULL,

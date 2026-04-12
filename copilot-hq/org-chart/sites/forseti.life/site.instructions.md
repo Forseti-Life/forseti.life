@@ -14,7 +14,7 @@ This is the core product mission. All features, priorities, and trade-offs must 
 - Features that lower barriers, increase transparency, improve access, or add community ownership **align with the mission** — CEO can approve and execute without Board consult.
 - When in doubt about mission alignment: ask "does this give power to the community or take it away?"
 
-**Current product focus** (as of 2026): Job Hunter, Dungeon Crawler, AI Conversation (Forseti assistant), Community Safety module.
+**Current product/project authority** (as of 2026): `https://forseti.life/roadmap` is the authoritative list for active portfolio items on Forseti. Its backing source is `copilot-hq/dashboards/PROJECTS.md`, and every active item should be represented there as a numbered `PROJ-*` entry. Do not maintain a separate competing list in seat memory.
 
 ## Applies to
 All seats with `website_scope: ["forseti.life"]`.

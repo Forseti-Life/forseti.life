@@ -19,6 +19,13 @@ forseti_content.how_it_works:
   weight: -30
   expanded: true
 
+forseti_content.roadmap:
+  title: 'Roadmap'
+  route_name: forseti_content.roadmap
+  menu_name: main
+  parent: forseti_content.how_it_works
+  weight: -29
+
 forseti_content.talk_with_forseti:
   title: 'Talk with Forseti'
   route_name: forseti_content.talk_with_forseti

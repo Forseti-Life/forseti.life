@@ -54,6 +54,8 @@ Any `INTERRUPTED:` output means a task was started but never completed. Surface 
 | Resource | Path |
 |---|---|
 | HQ repo | `/home/ubuntu/forseti.life/copilot-hq` |
+| Authoritative roadmap/project list | `https://forseti.life/roadmap` |
+| Roadmap backing file | `copilot-hq/dashboards/PROJECTS.md` |
 | forseti.life site root | `/home/ubuntu/forseti.life/sites/forseti/` |
 | forseti.life web root | `/home/ubuntu/forseti.life/sites/forseti/web/` |
 | Custom modules (forseti) | `/home/ubuntu/forseti.life/sites/forseti/web/modules/custom/` |
@@ -66,6 +68,8 @@ Any `INTERRUPTED:` output means a task was started but never completed. Surface 
 | Site instructions (forseti) | `org-chart/sites/forseti.life/site.instructions.md` |
 | KB lessons | `knowledgebase/lessons/` |
 | Feature definitions | `features/` |
+
+**Project list authority:** Do not rely on stale session memory or ad hoc product lists. The authoritative list is `https://forseti.life/roadmap`, backed by `dashboards/PROJECTS.md`. Every active portfolio item should appear there as a numbered `PROJ-*` entry; if it does not, reconcile the registry first.
 
 ---
 

@@ -16,7 +16,7 @@ def _next_release_id_after(release_id: str, team_id: str, current_day: str) -> s
 
     match = re.match(rf"^(\d{{8}})-{re.escape(team_id)}-(.+)$", release_id or "")
     if match:
-        date_part = max(current_day, match.group(1))
+        date_part = match.group(1)
         suffix = match.group(2)
 
     try:
@@ -54,6 +54,12 @@ class TestReleaseCycleSequence(unittest.TestCase):
         expected_next = _next_release_id_after(current, "dungeoncrawler", "20260412")
         self.assertNotEqual(stale_next, expected_next)
         self.assertEqual(expected_next, "20260412-dungeoncrawler-release-d")
+
+    def test_date_rollover_preserves_release_date(self):
+        self.assertEqual(
+            _next_release_id_after("20260412-dungeoncrawler-release-e", "dungeoncrawler", "20260413"),
+            "20260412-dungeoncrawler-release-f",
+        )
 
 
 if __name__ == "__main__":

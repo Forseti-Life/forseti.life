@@ -77,6 +77,22 @@ if team_release_ids:
     else:
         print(f"MARKER already exists: {marker.name}")
 
+    def next_release_id_after(release_id: str, team_id: str, current_day: str) -> str:
+        suffixes = ["release", "release-next"] + [f"release-{chr(c)}" for c in range(ord("b"), ord("z") + 1)]
+        prefix = f"{current_day}-{team_id}-"
+        date_part = current_day
+        suffix = "release"
+        m = re.match(rf"^(\d{{8}})-{re.escape(team_id)}-(.+)$", release_id or "")
+        if m:
+            date_part = m.group(1)
+            suffix = m.group(2)
+        try:
+            idx = suffixes.index(suffix)
+        except ValueError:
+            idx = 0
+        next_idx = min(idx + 1, len(suffixes) - 1)
+        return f"{date_part}-{team_id}-{suffixes[next_idx]}"
+
     # Step 3 — advance each team's release_id to next_release_id.
     # Runs unconditionally (not tied to marker creation) so a re-run of this
     # script after a pre-existing signoff doesn't skip the advance.
@@ -103,17 +119,7 @@ if team_release_ids:
                 if current_rid == sentinel_val:
                     print(f"SKIP {team_id}: release_id already advanced to {sentinel_val}")
                     continue
-            # Generate a collision-free next_release_id: pick the suffix
-            # immediately after new_current's suffix in the cycle order.
-            # (previously used "first suffix != new_current" which always returned release-b)
-            cur_suffix = new_current.split('-')[-1] if '-' in new_current else ''
-            cur_label  = new_current[len(f"{today}-{team_id}-release-"):] if new_current.startswith(f"{today}-{team_id}-release-") else ''
-            alpha = 'bcdefghijklmnopqrstuvwxyz'  # skip 'a' — release-a reserved
-            if cur_label and cur_label in alpha:
-                next_label = alpha[(alpha.index(cur_label) + 1) % len(alpha)]
-            else:
-                next_label = 'b'
-            new_next = f"{today}-{team_id}-release-{next_label}"
+            new_next = next_release_id_after(new_current, team_id, today)
             (runtime_dir / f"{team_id}.release_id").write_text(new_current + "\n", encoding='utf-8')
             (runtime_dir / f"{team_id}.next_release_id").write_text(new_next + "\n", encoding='utf-8')
             (runtime_dir / f"{team_id}.started_at").write_text(

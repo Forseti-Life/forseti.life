@@ -62,7 +62,7 @@ bash scripts/hq-status.sh
 |---|---|---|
 | forseti.life (Job Hunter) | pm-forseti, ba-forseti, dev-forseti, qa-forseti | forseti.life |
 | DungeonCrawler | pm-dungeoncrawler, ba-dungeoncrawler, dev-dungeoncrawler, qa-dungeoncrawler | forseti.life |
-| Forseti Agent Tracker | pm-forseti-agent-tracker, dev-forseti-agent-tracker | forseti.life |
+| Forseti Agent Tracker | pm-forseti-agent-tracker, ba-forseti-agent-tracker, dev-forseti-agent-tracker, qa-forseti-agent-tracker | forseti.life |
 | Infrastructure | pm-infra, ba-infra, dev-infra, qa-infra | forseti.life |
 
 ## Escalation Policy

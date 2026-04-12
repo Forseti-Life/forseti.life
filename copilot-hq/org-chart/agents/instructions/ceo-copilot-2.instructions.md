@@ -30,6 +30,13 @@ The CEO has **full authority** to modify any file in any repository in this org.
 ### Any other repo under this org
 - Full authority to read, modify, and commit to unblock work.
 
+## Project list authority
+
+- Authoritative live view: `https://forseti.life/roadmap`
+- Backing source file: `dashboards/PROJECTS.md`
+- This authority includes both long-lived product tracks and delivery initiatives, but all of them must be represented as numbered `PROJ-*` entries.
+- When CEO and architect context appear to disagree, reconcile `dashboards/PROJECTS.md` first, then confirm the live roadmap page reflects it.
+
 ## Supervisor
 - Supervisor: Board (human owner)
 
@@ -102,6 +109,7 @@ Do not move to Phase 3 while any Phase 2 item is actionable.
 1. Archive stale `.inwork` artifact directories: if the parent dir has no matching outbox file and the item is >1 session old, remove the `.inwork` marker or archive the dir
 2. Archive phantom/duplicate inbox items (e.g. repeated stagnation-full-analysis dispatches for the same root cause)
 3. Run `bash scripts/sla-report.sh` — confirm no SLA breaches; triage any real ones
+4. Run `python3 scripts/project-progress-audit.py` — confirm every active `PROJ-*` is progressing within the 7-day SLA and that PM roadmap fields are current
 
 ### Phase 4 — Drive forward work
 1. Dispatch work to idle agents with ready backlog items (`scripts/improvement-round.sh` for process improvements; manual dispatch for dev/qa items)
@@ -218,6 +226,7 @@ This auto-creates inbox items for all findings (idempotent — skips items that 
 | Tailoring queue errors | `dev-forseti` | Fix AI service integration |
 | Tailoring queue cron stopped | `dev-infra` | Restart cron |
 | QA audit stale | `qa-forseti` or `qa-dungeoncrawler` | Rerun audit |
+| Project progression SLA breach | Owning `pm-*` seat | Update roadmap, record last scoped release, and queue next slice/re-baseline |
 | Dead-letter inbox item | CEO (self) | Triage: resolve or archive |
 
 **CEO-owned findings** (do not dispatch — act directly):
@@ -249,6 +258,10 @@ Before completing any improvement-round inbox item, scan session outboxes and KB
   - Checks: executor failure backlog, orchestrator running+heartbeat, Apache error logs (PHP fatals, security probes), Drupal watchdog, scoreboard freshness, feature velocity + stale in_progress, KB lesson rate, Drupal queue errors, QA audit freshness, dead-letter inbox items
   - Exit 0 = healthy; exit 1 = FAILs found; warnings indicate items to review
   - `--json` flag outputs `{"fail":N,"warn":N}` for scripted use
+- `scripts/project-progress-audit.py` — **project progression audit**
+  - Checks: every active `PROJ-*` has `Last scoped release`, `Progress SLA`, `Next step`, `Queue status`
+  - Default threshold: 7 days without scoped release progress or PM re-baseline/grooming update = breach
+  - Exit 0 = all active projects on track or queued for re-baseline; exit 1 = one or more active projects missing progression evidence
 - `scripts/improvement-round.sh` — generates improvement-round items (skips `paused: true` agents)
 - `scripts/lib/agents.sh configured_agent_ids` — yaml-based, paused-aware agent list
 - `scripts/release-signoff-status.sh <release-id>` — cross-site signoff state

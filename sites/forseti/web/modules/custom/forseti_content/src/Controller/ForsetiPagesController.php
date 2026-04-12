@@ -3,6 +3,7 @@
 namespace Drupal\forseti_content\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
+use Drupal\Component\Utility\Html;
 use Drupal\node\Entity\Node;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Drupal\Core\Url;
@@ -183,6 +184,367 @@ class ForsetiPagesController extends ControllerBase {
         'contexts' => ['url'],
       ],
     ];
+  }
+
+  /**
+   * Project roadmap page.
+   */
+  public function roadmap() {
+    return [
+      '#theme' => 'forseti_page_roadmap',
+      '#title' => $this->t('Project Roadmaps'),
+      '#intro' => $this->t('Forseti is building multiple community-managed products in parallel. This page is the authoritative roadmap for all numbered portfolio items, synced from the HQ project registry so product tracks and delivery initiatives stay aligned with execution.'),
+      '#projects' => $this->loadRoadmapProjects(),
+      '#cache' => [
+        'max-age' => 300,
+        'contexts' => ['url'],
+      ],
+    ];
+  }
+
+  /**
+   * Individual roadmap detail page.
+   */
+  public function roadmapProject(string $project_id) {
+    $project = $this->loadRoadmapProjectDetail($project_id);
+    if ($project === NULL) {
+      throw new \Symfony\Component\HttpKernel\Exception\NotFoundHttpException();
+    }
+
+    if (($project['product'] ?? '') === 'dungeoncrawler') {
+      return new RedirectResponse('https://dungeoncrawler.forseti.life/roadmap');
+    }
+
+    return [
+      '#theme' => 'forseti_page_roadmap_project',
+      '#title' => $project['title'],
+      '#project_id' => $project['project_id'],
+      '#summary' => $project['summary'],
+      '#meta' => $project['meta'],
+      '#roadmap_reference' => $project['roadmap_reference'],
+      '#current_state' => $project['current_state'],
+      '#next_step' => $project['next_step'],
+      '#queue_status' => $project['queue_status'],
+      '#goals' => $project['goals'],
+      '#back_url' => '/roadmap',
+      '#cache' => [
+        'max-age' => 300,
+        'contexts' => ['url'],
+      ],
+    ];
+  }
+
+  /**
+   * Resolve a path under COPILOT_HQ_ROOT.
+   */
+  protected function resolveHqPath(string $relative_path): string {
+    $root = rtrim((string) (getenv('COPILOT_HQ_ROOT') ?: '/home/ubuntu/forseti.life/copilot-hq'), '/');
+    return $root . '/' . ltrim($relative_path, '/');
+  }
+
+  /**
+   * Load roadmap cards from dashboards/PROJECTS.md.
+   *
+   * @return array<int, array<string, mixed>>
+   *   Render-ready project cards.
+   */
+  protected function loadRoadmapProjects(): array {
+    $projects_path = $this->resolveHqPath('dashboards/PROJECTS.md');
+    if (!is_readable($projects_path)) {
+      \Drupal::logger('forseti_content')->warning('Roadmap project registry unreadable: @path', ['@path' => $projects_path]);
+      return [[
+        'title' => $this->t('Project registry unavailable'),
+        'status' => $this->t('sync warning'),
+        'summary' => $this->t('The Forseti roadmap could not read dashboards/PROJECTS.md, so the synced project list is temporarily unavailable.'),
+        'meta' => $this->t('Source: dashboards/PROJECTS.md'),
+        'roadmap' => [
+          $this->t('Confirm COPILOT_HQ_ROOT is set correctly for the web runtime.'),
+          $this->t('Restore access to the HQ project registry so this roadmap can stay synchronized automatically.'),
+        ],
+        'link_url' => '',
+        'link_text' => '',
+      ]];
+    }
+
+    $markdown = file_get_contents($projects_path);
+    if ($markdown === FALSE || trim($markdown) === '') {
+      \Drupal::logger('forseti_content')->warning('Roadmap project registry empty: @path', ['@path' => $projects_path]);
+      return [];
+    }
+
+    $registry = $this->parseProjectsRegistry($markdown);
+    $details = $this->parseProjectSections($markdown);
+    $projects = [];
+
+    foreach ($registry as $row) {
+      $project_id = $row['id'];
+      $detail = $details[$project_id] ?? [];
+      $project_manager = $this->resolveRoadmapProjectManager($row);
+      $summary = !empty($detail['scope']) ? $detail['scope'] : (!empty($detail['problem']) ? $detail['problem'] : (string) $this->t('Portfolio initiative tracked in the HQ project registry.'));
+      $roadmap = [];
+      foreach (['current_state' => 'Current state', 'next_step' => 'Next step', 'queue_status' => 'Queue status'] as $key => $label) {
+        if (!empty($detail[$key])) {
+          $roadmap[] = $label . ': ' . $detail[$key];
+        }
+      }
+      if (!empty($detail['last_scoped_release'])) {
+        array_splice($roadmap, 1, 0, ['Last scoped release: ' . $detail['last_scoped_release']]);
+      }
+      if (empty($roadmap) && !empty($detail['goals'])) {
+        $roadmap = $detail['goals'];
+      }
+      if (empty($roadmap)) {
+        $roadmap[] = (string) $this->t('See dashboards/PROJECTS.md for the current execution notes.');
+      }
+
+      $link_url = '';
+      $link_text = '';
+      if (($row['product'] ?? '') === 'dungeoncrawler') {
+        $link_url = 'https://dungeoncrawler.forseti.life/roadmap';
+        $link_text = (string) $this->t('Open Dungeoncrawler roadmap');
+      }
+      elseif (($row['product'] ?? '') === 'forseti.life') {
+        $link_url = Url::fromRoute('forseti_content.roadmap_project', ['project_id' => $project_id])->toString();
+        $link_text = (string) $this->t('Open project roadmap');
+      }
+
+      $projects[] = [
+        'title' => $project_id . ' - ' . ($row['name'] ?? $project_id),
+        'status' => $this->formatRoadmapStatus((string) ($row['status'] ?? 'unknown'), (string) ($row['priority'] ?? '')),
+        'summary' => $summary,
+        'meta' => implode(' • ', array_filter([
+          'Type: ' . ($row['type'] ?? ''),
+          'Product: ' . ($row['product'] ?? ''),
+          'PM: ' . $project_manager,
+          'Lead: ' . ($row['lead'] ?? ''),
+          'Started: ' . ($row['started'] ?? ''),
+          !empty($detail['last_scoped_release']) ? 'Last release: ' . $detail['last_scoped_release'] : '',
+          !empty($detail['progress_sla']) ? 'Progress: ' . $this->summarizeProgressStatus($detail['last_scoped_release'] ?? '', $detail['progress_sla'], $detail['queue_status'] ?? '') : '',
+        ])),
+        'roadmap' => $roadmap,
+        'link_url' => $link_url,
+        'link_text' => $link_text,
+      ];
+    }
+
+    return $projects;
+  }
+
+  /**
+   * Load a single project detail from dashboards/PROJECTS.md.
+   */
+  protected function loadRoadmapProjectDetail(string $project_id): ?array {
+    $projects_path = $this->resolveHqPath('dashboards/PROJECTS.md');
+    if (!is_readable($projects_path)) {
+      return NULL;
+    }
+
+    $markdown = file_get_contents($projects_path);
+    if ($markdown === FALSE || trim($markdown) === '') {
+      return NULL;
+    }
+
+    $project_id = strtoupper($project_id);
+    $registry = $this->parseProjectsRegistry($markdown);
+    $details = $this->parseProjectSections($markdown);
+
+    foreach ($registry as $row) {
+      if (($row['id'] ?? '') !== $project_id) {
+        continue;
+      }
+
+      $detail = $details[$project_id] ?? [];
+      $project_manager = $this->resolveRoadmapProjectManager($row);
+      return [
+        'project_id' => $project_id,
+        'title' => $project_id . ' - ' . ($row['name'] ?? $project_id),
+        'product' => $row['product'] ?? '',
+        'summary' => !empty($detail['scope']) ? $detail['scope'] : (!empty($detail['problem']) ? $detail['problem'] : (string) $this->t('Portfolio initiative tracked in the HQ project registry.')),
+        'meta' => [
+          'Type' => $row['type'] ?? '',
+          'Status' => $row['status'] ?? 'unknown',
+          'Priority' => $row['priority'] ?? '',
+          'PM' => $project_manager,
+          'Lead' => $row['lead'] ?? '',
+          'Started' => $row['started'] ?? '',
+          'Product' => $row['product'] ?? '',
+          'Last scoped release' => $detail['last_scoped_release'] ?? '',
+          'Progress SLA' => $detail['progress_sla'] ?? '',
+          'Progress status' => $this->summarizeProgressStatus($detail['last_scoped_release'] ?? '', $detail['progress_sla'] ?? '', $detail['queue_status'] ?? ''),
+        ],
+        'roadmap_reference' => $detail['roadmap_reference'] ?? '',
+        'current_state' => $detail['current_state'] ?? '',
+        'next_step' => $detail['next_step'] ?? '',
+        'queue_status' => $detail['queue_status'] ?? '',
+        'goals' => $detail['goals'] ?? [],
+      ];
+    }
+
+    return NULL;
+  }
+
+  /**
+   * Parse the project registry table from PROJECTS.md.
+   */
+  protected function parseProjectsRegistry(string $markdown): array {
+    if (!preg_match('/^## Registry\s*$([\s\S]*?)(?:^---\s*$)/m', $markdown, $matches)) {
+      return [];
+    }
+
+    $rows = [];
+    foreach (preg_split('/\R/', trim($matches[1])) as $line) {
+      $trimmed = trim($line);
+      if ($trimmed === '' || $trimmed[0] !== '|' || str_contains($trimmed, '|---')) {
+        continue;
+      }
+      $parts = array_map('trim', explode('|', trim($trimmed, '|')));
+      if (count($parts) !== 8 || $parts[0] === 'ID') {
+        continue;
+      }
+      $rows[] = [
+        'id' => $parts[0],
+        'name' => $parts[1],
+        'type' => $parts[2],
+        'product' => $parts[3],
+        'status' => $parts[4],
+        'priority' => $parts[5],
+        'lead' => $parts[6],
+        'started' => $parts[7],
+      ];
+    }
+    return $rows;
+  }
+
+  /**
+   * Parse project detail sections from PROJECTS.md.
+   */
+  protected function parseProjectSections(string $markdown): array {
+    $matches = [];
+    preg_match_all('/^## (PROJ-\d+) — (.+)$/m', $markdown, $matches, PREG_OFFSET_CAPTURE);
+    if (empty($matches[0])) {
+      return [];
+    }
+
+    $sections = [];
+    $count = count($matches[0]);
+    for ($i = 0; $i < $count; $i++) {
+      $project_id = $matches[1][$i][0];
+      $start = $matches[0][$i][1] + strlen($matches[0][$i][0]);
+      $end = $i + 1 < $count ? $matches[0][$i + 1][1] : strlen($markdown);
+      $body = trim(substr($markdown, $start, $end - $start));
+      $sections[$project_id] = [
+        'roadmap_reference' => $this->extractLabeledValue($body, 'Roadmap') ?: $this->extractLabeledValue($body, 'Roadmap audit runbook'),
+        'scope' => $this->extractLabeledValue($body, 'Scope'),
+        'problem' => $this->extractParagraphAfterHeading($body, '### Problem'),
+        'current_state' => $this->extractLabeledValue($body, 'Current state') ?: $this->extractLabeledValue($body, 'Current status'),
+        'last_scoped_release' => $this->extractLabeledValue($body, 'Last scoped release'),
+        'progress_sla' => $this->extractLabeledValue($body, 'Progress SLA'),
+        'next_step' => $this->extractLabeledValue($body, 'Next step'),
+        'queue_status' => $this->extractLabeledValue($body, 'Queue status'),
+        'goals' => $this->extractBulletsAfterHeading($body, '### Goals'),
+      ];
+    }
+
+    return $sections;
+  }
+
+  /**
+   * Extract a single-line labeled markdown value.
+   */
+  protected function extractLabeledValue(string $text, string $label): string {
+    $label_pattern = preg_quote($label, '/') . '(?:\s*\([^)]+\))?';
+    if (preg_match('/^\*\*' . $label_pattern . ':\*\*\s*(.+)$/m', $text, $matches)) {
+      return Html::decodeEntities(trim(strip_tags($matches[1])));
+    }
+    if (preg_match('/^' . $label_pattern . ':\s*(.+)$/m', $text, $matches)) {
+      return Html::decodeEntities(trim(strip_tags($matches[1])));
+    }
+    return '';
+  }
+
+  /**
+   * Extract the first paragraph after a markdown heading.
+   */
+  protected function extractParagraphAfterHeading(string $text, string $heading): string {
+    if (!preg_match('/^' . preg_quote($heading, '/') . '\s*$([\s\S]*?)(?:^\s*$|^### |\z)/m', $text, $matches)) {
+      return '';
+    }
+    $paragraph = trim(preg_replace('/\s+/', ' ', $matches[1]));
+    return Html::decodeEntities(trim(strip_tags($paragraph)));
+  }
+
+  /**
+   * Extract bullet list items after a markdown heading.
+   */
+  protected function extractBulletsAfterHeading(string $text, string $heading): array {
+    if (!preg_match('/^' . preg_quote($heading, '/') . '\s*$([\s\S]*?)(?:^### |\z)/m', $text, $matches)) {
+      return [];
+    }
+    $items = [];
+    foreach (preg_split('/\R/', trim($matches[1])) as $line) {
+      if (preg_match('/^\d+\.\s+(.+)$/', trim($line), $bullet) || preg_match('/^-\s+(.+)$/', trim($line), $bullet)) {
+        $items[] = Html::decodeEntities(trim(strip_tags($bullet[1])));
+      }
+    }
+    return $items;
+  }
+
+  /**
+   * Resolve the PM seat for a roadmap row.
+   */
+  protected function resolveRoadmapProjectManager(array $row): string {
+    $lead = (string) ($row['lead'] ?? '');
+    if (preg_match('/\b(pm-[a-z0-9-]+)\b/i', $lead, $matches)) {
+      return strtolower($matches[1]);
+    }
+
+    $product = strtolower(trim((string) ($row['product'] ?? '')));
+    return match ($product) {
+      'dungeoncrawler' => 'pm-dungeoncrawler',
+      'forseti.life' => 'pm-forseti',
+      'infrastructure' => 'pm-infra',
+      default => '',
+    };
+  }
+
+  /**
+   * Format a human-readable roadmap status badge.
+   */
+  protected function formatRoadmapStatus(string $status, string $priority = ''): string {
+    $label = ucwords(str_replace('_', ' ', trim($status)));
+    return trim($label . ($priority !== '' ? ' - ' . trim($priority) : ''));
+  }
+
+  /**
+   * Summarize project progression against the stated SLA.
+   */
+  protected function summarizeProgressStatus(string $last_scoped_release, string $progress_sla, string $queue_status = ''): string {
+    if ($progress_sla === '') {
+      return '';
+    }
+
+    if (!preg_match('/(\d+)\s*days?/i', $progress_sla, $sla_matches)) {
+      return 'SLA defined';
+    }
+
+    $sla_days = (int) $sla_matches[1];
+    if ($sla_days <= 0) {
+      return 'SLA defined';
+    }
+
+    if (preg_match('/(20\d{6})-/', $last_scoped_release, $release_matches)) {
+      $release_date = \DateTimeImmutable::createFromFormat('!Ymd', $release_matches[1], new \DateTimeZone('UTC'));
+      if ($release_date instanceof \DateTimeImmutable) {
+        $age_days = (int) $release_date->diff(new \DateTimeImmutable('now', new \DateTimeZone('UTC')))->days;
+        return $age_days > $sla_days ? 'SLA breach' : 'On track';
+      }
+    }
+
+    if (str_contains(mb_strtolower($queue_status), 'queued')) {
+      return 'Needs scoped release';
+    }
+
+    return 'Missing progression evidence';
   }
 
   /**

@@ -204,3 +204,5 @@ resume text.
 ### SEC-5: No sensitive debug logging
 
 Do not log resume content or job titles at debug severity for this feature.
+- Agent: qa-forseti
+- Status: pending

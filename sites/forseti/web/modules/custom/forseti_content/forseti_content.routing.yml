@@ -54,6 +54,22 @@ forseti_content.how_it_works:
   requirements:
     _permission: 'access content'
 
+forseti_content.roadmap:
+  path: '/roadmap'
+  defaults:
+    _controller: '\Drupal\forseti_content\Controller\ForsetiPagesController::roadmap'
+    _title: 'Project Roadmaps'
+  requirements:
+    _permission: 'access content'
+
+forseti_content.roadmap_project:
+  path: '/roadmap/{project_id}'
+  defaults:
+    _controller: '\Drupal\forseti_content\Controller\ForsetiPagesController::roadmapProject'
+    _title: 'Project Roadmap'
+  requirements:
+    _permission: 'access content'
+
 forseti_content.community:
   path: '/community'
   defaults:
