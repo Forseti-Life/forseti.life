@@ -29,3 +29,10 @@ Heritage node in `dungeoncrawler_content`. Requires a `wellspring_tradition` fie
 
 - [ ] Aligns with democratized community game experience
 - [ ] Does not add surveillance or restrict community access
+
+## Security acceptance criteria
+
+- Authentication/permission surface: character-scoped write at heritage selection; Gnome ancestry prerequisite enforced server-side; wellspring_tradition field (arcane/divine/occult) validated as enum.
+- CSRF expectations: all POST/PATCH routes in character creation flow require `_csrf_request_header_mode: TRUE`.
+- Input validation: tradition must be one of {arcane, divine, occult}; cantrip ID must exist in the chosen tradition's cantrip list; tradition override at feat-acquisition time validated server-side.
+- PII/logging constraints: no PII logged; log character_id, heritage_id, tradition_selected, cantrip_selected only.

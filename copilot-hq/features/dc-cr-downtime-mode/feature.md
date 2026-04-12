@@ -4,6 +4,7 @@
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
 - Status: ready
+- Priority: P1
 - Release: 
 - PM owner: pm-dungeoncrawler
 - Dev owner: dev-dungeoncrawler

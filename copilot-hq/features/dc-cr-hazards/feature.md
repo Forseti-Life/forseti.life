@@ -4,7 +4,9 @@
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
 - Status: ready
+- Priority: P2
 - Release: 
+- PM owner: pm-dungeoncrawler
 - Dev owner: dev-dungeoncrawler
 - QA owner: qa-dungeoncrawler
 - Source: PF2E Core Rulebook (Fourth Printing), lines 1–300

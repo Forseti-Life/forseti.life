@@ -29,3 +29,10 @@ Heritage node in `dungeoncrawler_content`. Adds `fey` trait to character traits 
 
 - [ ] Aligns with democratized community game experience
 - [ ] Does not add surveillance or restrict community access
+
+## Security acceptance criteria
+
+- Authentication/permission surface: character-scoped write at heritage selection; Gnome ancestry prerequisite enforced server-side.
+- CSRF expectations: all POST/PATCH routes in character creation flow require `_csrf_request_header_mode: TRUE`.
+- Input validation: cantrip ID must exist in the primal cantrip list; daily cantrip-swap action validates new cantrip against same list; duration/concentrate tag enforced server-side.
+- PII/logging constraints: no PII logged; log character_id, heritage_id, cantrip_selected only.

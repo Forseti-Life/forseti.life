@@ -29,3 +29,10 @@ Ancestry feat node in `dungeoncrawler_content` (Gnome, level 1). Player selects 
 
 - [ ] Aligns with democratized community game experience
 - [ ] Does not add surveillance or restrict community access
+
+## Security acceptance criteria
+
+- Authentication/permission surface: character-scoped write at feat-acquisition time; Gnome ancestry prerequisite enforced server-side before feat selection is accepted.
+- CSRF expectations: all POST/PATCH routes in character creation/feat flow require `_csrf_request_header_mode: TRUE`.
+- Input validation: selected cantrip ID must exist in the primal cantrip list; Wellspring tradition override only applied when character has Wellspring Gnome heritage (validated server-side at acquisition); no free-form input accepted.
+- PII/logging constraints: no PII logged; log character_id, feat_id, cantrip_selected only.
