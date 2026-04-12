@@ -161,6 +161,15 @@ Required contents (at minimum):
 - A table or list of features with their suite-activate outbox references
 - Any non-blocking caveats (pending-dev-confirmation items, prior-cycle evidence references)
 
+## AC cross-check before BLOCK (required — lesson 2026-04-12)
+Before issuing a BLOCK for schema/column deviations, always read the **current file on disk**:
+```bash
+cat features/<feature-id>/01-acceptance-criteria.md
+```
+Do NOT use memory, prior-read values, or cached content. The file on disk is authoritative.
+Verify each claimed deviation against the live AC before writing a BLOCK verdict.
+Phantom BLOCKs waste 2+ escalation cycles and are flagged as false positives by the CEO.
+
 ## Escalation
 - Follow org-wide escalation rules in `org-chart/org-wide.instructions.md`.
 - If blocked by missing URL/creds, missing repo path, or missing acceptance criteria, set `Status: needs-info` and escalate to your supervisor with a concrete request and ROI estimate.
