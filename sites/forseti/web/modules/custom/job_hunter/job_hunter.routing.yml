@@ -1442,3 +1442,39 @@ job_hunter.applications_bulk_update:
     _permission: 'access job hunter'
     _user_is_logged_in: 'TRUE'
     _csrf_token: 'TRUE'
+
+# Company Interest Tracker — Watchlist
+job_hunter.company_watchlist:
+  path: '/jobhunter/companies/my-list'
+  defaults:
+    _controller: '\Drupal\job_hunter\Controller\CompanyController::companyWatchlist'
+    _title: 'My Company Watchlist'
+  methods: [GET]
+  requirements:
+    _permission: 'access job hunter'
+    _user_is_logged_in: 'TRUE'
+
+# Company Interest Tracker — Interest Form (GET)
+job_hunter.company_interest_form:
+  path: '/jobhunter/companies/{company_id}/interest'
+  defaults:
+    _controller: '\Drupal\job_hunter\Controller\CompanyController::companyInterestForm'
+    _title: 'Track Company'
+  methods: [GET]
+  requirements:
+    _permission: 'access job hunter'
+    _user_is_logged_in: 'TRUE'
+    company_id: \d+
+
+# Company Interest Tracker — Save (POST, CSRF-protected, split-route)
+job_hunter.company_interest_save:
+  path: '/jobhunter/companies/{company_id}/interest/save'
+  defaults:
+    _controller: '\Drupal\job_hunter\Controller\CompanyController::companyInterestSave'
+    _title: 'Save Company Interest'
+  methods: [POST]
+  requirements:
+    _permission: 'access job hunter'
+    _user_is_logged_in: 'TRUE'
+    _csrf_token: 'TRUE'
+    company_id: \d+

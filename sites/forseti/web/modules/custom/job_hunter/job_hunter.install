@@ -3029,3 +3029,42 @@ function job_hunter_update_9047() {
 
   return t('Added deadline_date and follow_up_date to jobhunter_saved_jobs.');
 }
+
+/**
+ * Helper: creates jobhunter_company_interest table.
+ */
+function _job_hunter_create_company_interest_table(): void {
+  $schema = \Drupal::database()->schema();
+  if ($schema->tableExists('jobhunter_company_interest')) {
+    return;
+  }
+  $schema->createTable('jobhunter_company_interest', [
+    'description' => 'Per-user company interest tracking keyed by (uid, company_id).',
+    'fields' => [
+      'id'               => ['type' => 'serial', 'unsigned' => TRUE, 'not null' => TRUE],
+      'uid'              => ['type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0],
+      'company_id'       => ['type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE],
+      'interest_level'   => ['type' => 'int', 'size' => 'tiny', 'not null' => TRUE, 'default' => 1],
+      'culture_fit_score'=> ['type' => 'int', 'size' => 'tiny', 'not null' => FALSE, 'default' => NULL],
+      'status'           => ['type' => 'varchar', 'length' => 16, 'not null' => TRUE, 'default' => 'researching'],
+      'research_links'   => ['type' => 'text', 'size' => 'medium', 'not null' => FALSE],
+      'notes'            => ['type' => 'text', 'size' => 'medium', 'not null' => FALSE],
+      'created'          => ['type' => 'int', 'not null' => TRUE, 'default' => 0],
+      'changed'          => ['type' => 'int', 'not null' => TRUE, 'default' => 0],
+    ],
+    'primary key' => ['id'],
+    'unique keys' => ['uid_company' => ['uid', 'company_id']],
+    'indexes' => [
+      'uid'        => ['uid'],
+      'company_id' => ['company_id'],
+    ],
+  ]);
+}
+
+/**
+ * Create jobhunter_company_interest table for per-user company interest tracking.
+ */
+function job_hunter_update_9048() {
+  _job_hunter_create_company_interest_table();
+  return t('Created jobhunter_company_interest table for per-user company interest tracking.');
+}

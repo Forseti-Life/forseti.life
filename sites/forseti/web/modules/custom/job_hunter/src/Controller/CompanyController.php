@@ -2552,4 +2552,273 @@ class CompanyController extends ControllerBase {
     return $this->wrapWithNavigation($content);
   }
 
+  /**
+   * Valid company interest status values.
+   */
+  const COMPANY_INTEREST_STATUSES = ['researching', 'interviewing', 'rejected', 'accepted'];
+
+  /**
+   * Renders the current user's company watchlist at /jobhunter/companies/my-list.
+   */
+  public function companyWatchlist(): array {
+    $uid = (int) $this->currentUser()->id();
+
+    try {
+      $query = $this->database->select('jobhunter_company_interest', 'ci');
+      $query->fields('ci', ['id', 'company_id', 'interest_level', 'culture_fit_score', 'status', 'changed']);
+      $query->join('jobhunter_companies', 'c', 'ci.company_id = c.id');
+      $query->addField('c', 'name', 'company_name');
+      $query->condition('ci.uid', $uid);
+      $query->orderBy('ci.interest_level', 'DESC');
+      $query->orderBy('c.name', 'ASC');
+      $rows_data = $query->execute()->fetchAll();
+    }
+    catch (\Exception $e) {
+      $this->getLogger('job_hunter')->error('companyWatchlist failed: @error', ['@error' => $e->getMessage()]);
+      $rows_data = [];
+    }
+
+    $status_badges = [
+      'researching' => '#2196F3',
+      'interviewing' => '#FF9800',
+      'rejected' => '#F44336',
+      'accepted' => '#4CAF50',
+    ];
+
+    $rows = [];
+    foreach ($rows_data as $row) {
+      $stars = str_repeat('★', (int) $row->interest_level) . str_repeat('☆', 5 - (int) $row->interest_level);
+      $fit = $row->culture_fit_score !== NULL ? str_repeat('★', (int) $row->culture_fit_score) . str_repeat('☆', 5 - (int) $row->culture_fit_score) : $this->t('—');
+      $color = $status_badges[$row->status] ?? '#999';
+      $status_html = '<span style="background:' . $color . ';color:#fff;padding:2px 8px;border-radius:3px;font-size:0.85em;">'
+        . htmlspecialchars(ucfirst((string) $row->status)) . '</span>';
+      $rows[] = [
+        'data' => [
+          ['data' => Link::fromTextAndUrl($row->company_name, Url::fromRoute('job_hunter.company_interest_form', ['company_id' => $row->company_id]))->toRenderable()],
+          ['data' => ['#markup' => $stars]],
+          ['data' => is_string($fit) ? ['#markup' => $fit] : $fit],
+          ['data' => ['#markup' => $status_html]],
+          ['data' => Link::fromTextAndUrl($this->t('Edit'), Url::fromRoute('job_hunter.company_interest_form', ['company_id' => $row->company_id]))->toRenderable()],
+        ],
+      ];
+    }
+
+    $content = [
+      'header' => [
+        '#type' => 'html_tag',
+        '#tag' => 'h2',
+        '#value' => $this->t('My Company Watchlist'),
+      ],
+      'table' => [
+        '#type' => 'table',
+        '#header' => [
+          $this->t('Company'),
+          $this->t('Interest'),
+          $this->t('Culture Fit'),
+          $this->t('Status'),
+          $this->t('Actions'),
+        ],
+        '#rows' => $rows,
+        '#empty' => $this->t('No companies tracked yet. Visit a company page to start tracking.'),
+        '#attributes' => ['class' => ['company-watchlist']],
+      ],
+    ];
+
+    return $this->wrapWithNavigation($content);
+  }
+
+  /**
+   * Renders the company interest tracking form (GET).
+   */
+  public function companyInterestForm($company_id): array {
+    $uid = (int) $this->currentUser()->id();
+    $company_id = (int) $company_id;
+
+    // Load company name.
+    $company = $this->database->select('jobhunter_companies', 'c')
+      ->fields('c', ['id', 'name'])
+      ->condition('c.id', $company_id)
+      ->execute()
+      ->fetchObject();
+
+    if (!$company) {
+      return $this->wrapWithNavigation([
+        '#markup' => $this->t('Company not found.'),
+      ]);
+    }
+
+    // Load existing interest row for pre-population.
+    $existing = $this->database->select('jobhunter_company_interest', 'ci')
+      ->fields('ci', ['interest_level', 'culture_fit_score', 'status', 'research_links', 'notes'])
+      ->condition('ci.uid', $uid)
+      ->condition('ci.company_id', $company_id)
+      ->execute()
+      ->fetchAssoc();
+
+    // Generate CSRF token for the POST save route.
+    $csrf_token = \Drupal::csrfToken()->get('job_hunter.company_interest_save');
+    $form_action = Url::fromRoute('job_hunter.company_interest_save', ['company_id' => $company_id])->toString()
+      . '?token=' . rawurlencode($csrf_token);
+
+    $interest_val  = (int) ($existing['interest_level'] ?? 3);
+    $culture_val   = $existing['culture_fit_score'] !== NULL ? (int) $existing['culture_fit_score'] : '';
+    $status_val    = htmlspecialchars((string) ($existing['status'] ?? 'researching'));
+    $links_val     = htmlspecialchars((string) ($existing['research_links'] ?? ''));
+    $notes_val     = htmlspecialchars((string) ($existing['notes'] ?? ''));
+    $company_name  = htmlspecialchars((string) $company->name);
+
+    $status_options = '';
+    foreach (self::COMPANY_INTEREST_STATUSES as $s) {
+      $sel = $status_val === $s ? ' selected' : '';
+      $status_options .= '<option value="' . $s . '"' . $sel . '>' . ucfirst($s) . '</option>';
+    }
+
+    $interest_options = '';
+    for ($i = 1; $i <= 5; $i++) {
+      $sel = $interest_val === $i ? ' selected' : '';
+      $interest_options .= '<option value="' . $i . '"' . $sel . '>' . $i . ' ' . str_repeat('★', $i) . '</option>';
+    }
+
+    $culture_options = '<option value="">— not rated —</option>';
+    for ($i = 1; $i <= 5; $i++) {
+      $sel = ((string) $culture_val === (string) $i) ? ' selected' : '';
+      $culture_options .= '<option value="' . $i . '"' . $sel . '>' . $i . ' ' . str_repeat('★', $i) . '</option>';
+    }
+
+    $html = <<<HTML
+<div class="company-interest-form">
+  <h2>Track: {$company_name}</h2>
+  <form method="post" action="{$form_action}">
+    <div style="margin-bottom:1em;">
+      <label for="ci-interest"><strong>Interest Level</strong></label><br>
+      <select name="interest_level" id="ci-interest">{$interest_options}</select>
+    </div>
+    <div style="margin-bottom:1em;">
+      <label for="ci-culture"><strong>Culture Fit Score</strong> (optional)</label><br>
+      <select name="culture_fit_score" id="ci-culture">{$culture_options}</select>
+    </div>
+    <div style="margin-bottom:1em;">
+      <label for="ci-status"><strong>Status</strong></label><br>
+      <select name="status" id="ci-status">{$status_options}</select>
+    </div>
+    <div style="margin-bottom:1em;">
+      <label for="ci-links"><strong>Research Links</strong> (optional, comma-separated)</label><br>
+      <input type="text" name="research_links" id="ci-links" value="{$links_val}" style="width:100%;max-width:500px;">
+    </div>
+    <div style="margin-bottom:1em;">
+      <label for="ci-notes"><strong>Notes</strong> (optional)</label><br>
+      <textarea name="notes" id="ci-notes" rows="5" style="width:100%;max-width:500px;">{$notes_val}</textarea>
+    </div>
+    <button type="submit" class="button button--primary">Save</button>
+    &nbsp;
+    <a href="/jobhunter/companies/my-list" class="button">Back to Watchlist</a>
+  </form>
+</div>
+HTML;
+
+    $content = ['#markup' => $html];
+    return $this->wrapWithNavigation($content);
+  }
+
+  /**
+   * Saves company interest data (POST, CSRF-protected via routing.yml split-route).
+   */
+  public function companyInterestSave($company_id): \Symfony\Component\HttpFoundation\Response {
+    $uid = (int) $this->currentUser()->id();
+    $company_id = (int) $company_id;
+
+    $request = $this->requestStack->getCurrentRequest();
+
+    // Validate company exists.
+    $company_exists = $this->database->select('jobhunter_companies', 'c')
+      ->fields('c', ['id'])
+      ->condition('c.id', $company_id)
+      ->execute()
+      ->fetchField();
+
+    if (!$company_exists) {
+      return new \Symfony\Component\HttpFoundation\Response('Company not found.', 404);
+    }
+
+    // Sanitize inputs — uid always from session (SEC-3).
+    $interest_level   = (int) $request->request->get('interest_level', 3);
+    $culture_fit_raw  = $request->request->get('culture_fit_score', '');
+    $status           = (string) $request->request->get('status', 'researching');
+    $research_links   = strip_tags((string) $request->request->get('research_links', ''));
+    $notes            = strip_tags((string) $request->request->get('notes', ''));
+
+    // Validate ranges.
+    if ($interest_level < 1 || $interest_level > 5) {
+      $interest_level = 3;
+    }
+    $culture_fit = ($culture_fit_raw !== '' && $culture_fit_raw !== NULL)
+      ? max(1, min(5, (int) $culture_fit_raw))
+      : NULL;
+    if (!in_array($status, self::COMPANY_INTEREST_STATUSES, TRUE)) {
+      $status = 'researching';
+    }
+
+    $now = \Drupal::time()->getRequestTime();
+
+    try {
+      // UPSERT: check existing row then insert or update.
+      $existing_id = $this->database->select('jobhunter_company_interest', 'ci')
+        ->fields('ci', ['id'])
+        ->condition('ci.uid', $uid)
+        ->condition('ci.company_id', $company_id)
+        ->execute()
+        ->fetchField();
+
+      if ($existing_id) {
+        $this->database->update('jobhunter_company_interest')
+          ->fields([
+            'interest_level'    => $interest_level,
+            'culture_fit_score' => $culture_fit,
+            'status'            => $status,
+            'research_links'    => $research_links,
+            'notes'             => $notes,
+            'changed'           => $now,
+          ])
+          ->condition('id', $existing_id)
+          ->execute();
+      }
+      else {
+        $this->database->insert('jobhunter_company_interest')
+          ->fields([
+            'uid'               => $uid,
+            'company_id'        => $company_id,
+            'interest_level'    => $interest_level,
+            'culture_fit_score' => $culture_fit,
+            'status'            => $status,
+            'research_links'    => $research_links,
+            'notes'             => $notes,
+            'created'           => $now,
+            'changed'           => $now,
+          ])
+          ->execute();
+      }
+
+      // Log uid + company_id only — never notes content (SEC-5).
+      $this->getLogger('job_hunter')->info(
+        'Company interest saved: uid=@uid company_id=@cid',
+        ['@uid' => $uid, '@cid' => $company_id]
+      );
+    }
+    catch (\Exception $e) {
+      $this->getLogger('job_hunter')->error(
+        'companyInterestSave failed: uid=@uid company_id=@cid error=@error',
+        ['@uid' => $uid, '@cid' => $company_id, '@error' => $e->getMessage()]
+      );
+      $this->messenger()->addError($this->t('Failed to save. Please try again.'));
+      return new \Symfony\Component\HttpFoundation\RedirectResponse(
+        Url::fromRoute('job_hunter.company_interest_form', ['company_id' => $company_id])->toString()
+      );
+    }
+
+    $this->messenger()->addStatus($this->t('Company interest saved.'));
+    return new \Symfony\Component\HttpFoundation\RedirectResponse(
+      Url::fromRoute('job_hunter.company_watchlist')->toString()
+    );
+  }
+
 }
