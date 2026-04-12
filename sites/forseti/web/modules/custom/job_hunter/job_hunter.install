@@ -3163,3 +3163,34 @@ function job_hunter_update_9051() {
   ]);
   return t('Created jobhunter_source_preferences table for per-user job-board source preferences.');
 }
+
+/**
+ * Add version_label, version_notes to jobhunter_job_seeker_resumes; add source_resume_id to jobhunter_applications.
+ */
+function job_hunter_update_9052() {
+  $schema = \Drupal::database()->schema();
+  if (!$schema->fieldExists('jobhunter_job_seeker_resumes', 'version_label')) {
+    $schema->addField('jobhunter_job_seeker_resumes', 'version_label', [
+      'type' => 'varchar',
+      'length' => 128,
+      'not null' => FALSE,
+      'default' => NULL,
+    ]);
+  }
+  if (!$schema->fieldExists('jobhunter_job_seeker_resumes', 'version_notes')) {
+    $schema->addField('jobhunter_job_seeker_resumes', 'version_notes', [
+      'type' => 'text',
+      'size' => 'medium',
+      'not null' => FALSE,
+    ]);
+  }
+  if (!$schema->fieldExists('jobhunter_applications', 'source_resume_id')) {
+    $schema->addField('jobhunter_applications', 'source_resume_id', [
+      'type' => 'int',
+      'unsigned' => TRUE,
+      'not null' => FALSE,
+      'default' => NULL,
+    ]);
+  }
+  return t('Added version_label, version_notes to jobhunter_job_seeker_resumes; added source_resume_id to jobhunter_applications.');
+}

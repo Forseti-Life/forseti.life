@@ -165,16 +165,20 @@ class ResumeUploadSubform {
           $job_seeker_id = (int) $job_seeker_profile->id;
 
           $resume_record = $database->select('jobhunter_job_seeker_resumes', 'jsr')
-            ->fields('jsr', ['id', 'extracted_text'])
+            ->fields('jsr', ['id', 'extracted_text', 'version_label', 'version_notes'])
             ->condition('job_seeker_id', $job_seeker_id)
             ->condition('file_id', $file_id)
             ->execute()
             ->fetchAssoc();
 
+          $version_label = NULL;
+          $version_notes = NULL;
           if ($resume_record) {
             $is_registered = true;
             $resume_record_id = $resume_record['id'];
             $extracted_text = $resume_record['extracted_text'];
+            $version_label = $resume_record['version_label'] ?? NULL;
+            $version_notes = $resume_record['version_notes'] ?? NULL;
           }
           else {
             // Auto-register.
@@ -210,6 +214,13 @@ class ResumeUploadSubform {
           $resume_table .= '<div>';
           $resume_table .= '<strong class="jh-profile__resume-card-name">' . htmlspecialchars($filename) . '</strong>';
           $resume_table .= '<span class="jh-profile__resume-card-size">(' . $size_display . ')</span>';
+          if (!empty($version_label)) {
+            $resume_table .= ' <span class="jh-profile__resume-version-label">🏷 ' . htmlspecialchars($version_label) . '</span>';
+          }
+          if ($resume_record_id) {
+            $edit_url = \Drupal\Core\Url::fromRoute('job_hunter.resume_version_edit', ['resume_id' => $resume_record_id])->toString();
+            $resume_table .= ' <a class="jh-profile__resume-edit-link" href="' . htmlspecialchars($edit_url) . '">Edit label</a>';
+          }
           $resume_table .= '</div>';
           $resume_table .= '<div id="delete-btn-' . $index . '"></div>';
           $resume_table .= '</div>';

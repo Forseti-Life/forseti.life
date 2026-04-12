@@ -1470,6 +1470,121 @@ class CompanyController extends ControllerBase {
       }
     }
 
+    // AC-3 + AC-5: Resume used on application — show linked resume label and selector.
+    try {
+      $uid_for_resume = (int) $current_user->id();
+      $app_resume_row = $this->database->select('jobhunter_applications', 'a')
+        ->fields('a', ['id', 'source_resume_id'])
+        ->condition('a.uid', $uid_for_resume)
+        ->condition('a.job_id', (int) $job_id)
+        ->orderBy('a.created', 'DESC')
+        ->range(0, 1)
+        ->execute()
+        ->fetchAssoc();
+
+      // Load user's resumes for the dropdown (AC-5).
+      $job_seeker_for_resume = $this->database->select('jobhunter_job_seekers', 'js')
+        ->fields('js', ['id'])
+        ->condition('uid', $uid_for_resume)
+        ->execute()
+        ->fetchField();
+
+      $user_resumes = [];
+      if ($job_seeker_for_resume) {
+        $user_resumes = $this->database->select('jobhunter_job_seeker_resumes', 'jsr')
+          ->fields('jsr', ['id', 'resume_name', 'version_label'])
+          ->condition('job_seeker_id', (int) $job_seeker_for_resume)
+          ->orderBy('changed', 'DESC')
+          ->execute()
+          ->fetchAll();
+      }
+
+      if ($app_resume_row || !empty($user_resumes)) {
+        $current_source_id = $app_resume_row ? (int) ($app_resume_row['source_resume_id'] ?? 0) : 0;
+
+        // Build "Resume used" display (AC-3).
+        $resume_used_html = '';
+        if ($current_source_id) {
+          $linked = $this->database->select('jobhunter_job_seeker_resumes', 'jsr')
+            ->fields('jsr', ['resume_name', 'version_label'])
+            ->condition('id', $current_source_id)
+            ->execute()
+            ->fetchAssoc();
+          if ($linked) {
+            $label_display = !empty($linked['version_label']) ? htmlspecialchars($linked['version_label']) : htmlspecialchars($linked['resume_name']);
+            $edit_url = Url::fromRoute('job_hunter.resume_version_edit', ['resume_id' => $current_source_id])->toString();
+            $resume_used_html = '<p><strong>Resume used:</strong> ' . $label_display . ' <a href="' . htmlspecialchars($edit_url) . '">(view)</a></p>';
+          }
+        }
+
+        // Build dropdown + save (AC-5).
+        $options_html = '<option value="">-- Select a resume --</option>';
+        foreach ($user_resumes as $r) {
+          $label = !empty($r->version_label) ? htmlspecialchars($r->version_label) : htmlspecialchars($r->resume_name);
+          $selected = ($current_source_id === (int) $r->id) ? ' selected' : '';
+          $options_html .= '<option value="' . (int) $r->id . '"' . $selected . '>' . $label . '</option>';
+        }
+
+        $save_url = Url::fromRoute('job_hunter.resume_source_save', ['job_id' => (int) $job_id])->toString();
+        $csrf_token = \Drupal::csrfToken()->get('jobhunter/jobs/' . (int) $job_id . '/resume-source/save');
+
+        $content['resume_source_section'] = [
+          '#type' => 'container',
+          '#attributes' => ['class' => ['resume-source-section']],
+          '#markup' => '
+<div class="resume-source-section-inner">
+  <h3>📄 Resume Used</h3>
+  ' . $resume_used_html . '
+  <div class="resume-source-field-row">
+    <label for="rs-resume-select">Link a resume to this application:</label>
+    <select id="rs-resume-select" style="margin-left:8px;">' . $options_html . '</select>
+    <button id="rs-save-btn" type="button" class="button button--primary" style="margin-left:8px;">Save</button>
+  </div>
+  <div id="rs-status" style="margin-top:8px;"></div>
+</div>
+<script>
+(function() {
+  document.getElementById("rs-save-btn").addEventListener("click", function() {
+    var rid = parseInt(document.getElementById("rs-resume-select").value, 10);
+    if (!rid) { document.getElementById("rs-status").textContent = "Please select a resume."; return; }
+    fetch(' . json_encode($save_url) . ', {
+      method: "POST",
+      headers: {"Content-Type": "application/json", "X-CSRF-Token": ' . json_encode($csrf_token) . '},
+      body: JSON.stringify({source_resume_id: rid})
+    }).then(function(r) { return r.json(); }).then(function(d) {
+      var el = document.getElementById("rs-status");
+      if (d.message) { el.textContent = "✅ " + d.message; el.style.color = "green"; }
+      else { el.textContent = "❌ " + (d.error || "Error saving."); el.style.color = "red"; }
+    }).catch(function() {
+      document.getElementById("rs-status").textContent = "❌ Request failed.";
+    });
+  });
+})();
+</script>',
+        ];
+
+        $content['#attached']['html_head'][] = [
+          [
+            '#type' => 'html_tag',
+            '#tag' => 'style',
+            '#value' => '
+              .resume-source-section { margin-top: 30px; padding: 20px; background: #f0fff4; border-radius: 8px; border-left: 4px solid #38a169; }
+              .resume-source-section-inner h3 { margin: 0 0 12px 0; color: #333; }
+              .resume-source-field-row { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+            ',
+          ],
+          'resume_source_styles',
+        ];
+      }
+    }
+    catch (\Exception $e) {
+      $this->getLogger('job_hunter')->error('resume_source_section failed: uid=@uid job_id=@jid error=@error', [
+        '@uid' => (int) $current_user->id(),
+        '@jid' => $job_id,
+        '@error' => $e->getMessage(),
+      ]);
+    }
+
     return $this->wrapWithNavigation($content);
   }
 
@@ -3665,6 +3780,227 @@ HTML;
         '@error' => $e->getMessage(),
       ]);
       return new \Symfony\Component\HttpFoundation\JsonResponse(['error' => 'Save failed. Please try again.'], 500);
+    }
+  }
+
+  /**
+   * Resume Version Labeling — edit form (GET, AC-2).
+   *
+   * @param int $resume_id
+   *   The resume record ID.
+   */
+  public function resumeVersionForm($resume_id): array|\Symfony\Component\HttpFoundation\Response {
+    $uid = (int) $this->currentUser->id();
+    $resume_id = (int) $resume_id;
+
+    // SEC-3: ownership — verify via job_seeker_id.
+    $job_seeker = $this->database->select('jobhunter_job_seekers', 'js')
+      ->fields('js', ['id'])
+      ->condition('uid', $uid)
+      ->execute()
+      ->fetchField();
+
+    if (!$job_seeker) {
+      $this->messenger()->addError($this->t('Resume not found.'));
+      return new \Symfony\Component\HttpFoundation\RedirectResponse(Url::fromRoute('job_hunter.profile')->toString());
+    }
+
+    $resume = $this->database->select('jobhunter_job_seeker_resumes', 'jsr')
+      ->fields('jsr', ['id', 'resume_name', 'version_label', 'version_notes'])
+      ->condition('id', $resume_id)
+      ->condition('job_seeker_id', (int) $job_seeker)
+      ->execute()
+      ->fetchAssoc();
+
+    if (!$resume) {
+      $this->messenger()->addError($this->t('Resume not found or access denied.'));
+      return new \Symfony\Component\HttpFoundation\RedirectResponse(Url::fromRoute('job_hunter.profile')->toString());
+    }
+
+    $save_url = Url::fromRoute('job_hunter.resume_version_save', ['resume_id' => $resume_id])->toString();
+    $csrf_token = \Drupal::csrfToken()->get('jobhunter/resume/' . $resume_id . '/edit/save');
+    $back_url = Url::fromRoute('job_hunter.profile')->toString();
+
+    $f_label = htmlspecialchars((string) ($resume['version_label'] ?? ''));
+    $f_notes = htmlspecialchars((string) ($resume['version_notes'] ?? ''));
+    $f_name  = htmlspecialchars((string) ($resume['resume_name'] ?? ''));
+
+    $content['resume_version_form'] = [
+      '#type' => 'container',
+      '#attributes' => ['class' => ['resume-version-form-section']],
+      '#markup' => '
+<div class="resume-version-form">
+  <p><strong>Resume:</strong> ' . $f_name . '</p>
+  <div class="form-field-row">
+    <label for="rv-version-label">Version Label <span style="color:#888;font-size:0.9em;">(max 128 chars)</span></label>
+    <input type="text" id="rv-version-label" name="version_label" value="' . $f_label . '" maxlength="128" placeholder="e.g. Software Engineer v3" style="width:100%;max-width:480px;" />
+  </div>
+  <div class="form-field-row" style="margin-top:12px;">
+    <label for="rv-version-notes">Notes <span style="color:#888;font-size:0.9em;">(optional)</span></label>
+    <textarea id="rv-version-notes" name="version_notes" rows="4" placeholder="e.g. Emphasizes Go/Python; minimal frontend" style="width:100%;max-width:480px;">' . $f_notes . '</textarea>
+  </div>
+  <div style="margin-top:16px;">
+    <button id="rv-save-btn" type="button" class="button button--primary">Save</button>
+    <a href="' . htmlspecialchars($back_url) . '" class="button" style="margin-left:8px;">Cancel</a>
+  </div>
+  <div id="rv-status" style="margin-top:10px;"></div>
+</div>
+<script>
+(function() {
+  document.getElementById("rv-save-btn").addEventListener("click", function() {
+    var label = document.getElementById("rv-version-label").value;
+    var notes = document.getElementById("rv-version-notes").value;
+    fetch(' . json_encode($save_url) . ', {
+      method: "POST",
+      headers: {"Content-Type": "application/json", "X-CSRF-Token": ' . json_encode($csrf_token) . '},
+      body: JSON.stringify({version_label: label, version_notes: notes})
+    }).then(function(r) { return r.json(); }).then(function(d) {
+      var el = document.getElementById("rv-status");
+      if (d.message) { el.textContent = "✅ " + d.message; el.style.color = "green"; }
+      else { el.textContent = "❌ " + (d.error || "Error saving."); el.style.color = "red"; }
+    }).catch(function() {
+      document.getElementById("rv-status").textContent = "❌ Request failed.";
+    });
+  });
+})();
+</script>',
+    ];
+
+    return $this->wrapWithNavigation($content);
+  }
+
+  /**
+   * Resume Version Labeling — save (POST, CSRF, AC-2).
+   *
+   * @param int $resume_id
+   *   The resume record ID.
+   */
+  public function resumeVersionSave($resume_id): \Symfony\Component\HttpFoundation\JsonResponse {
+    $uid = (int) $this->currentUser->id();
+    $resume_id = (int) $resume_id;
+
+    // SEC-3: ownership check via job_seeker_id.
+    $job_seeker = $this->database->select('jobhunter_job_seekers', 'js')
+      ->fields('js', ['id'])
+      ->condition('uid', $uid)
+      ->execute()
+      ->fetchField();
+
+    if (!$job_seeker) {
+      return new \Symfony\Component\HttpFoundation\JsonResponse(['error' => 'Access denied.'], 403);
+    }
+
+    $owns = (bool) $this->database->select('jobhunter_job_seeker_resumes', 'jsr')
+      ->fields('jsr', ['id'])
+      ->condition('id', $resume_id)
+      ->condition('job_seeker_id', (int) $job_seeker)
+      ->execute()
+      ->fetchField();
+
+    if (!$owns) {
+      return new \Symfony\Component\HttpFoundation\JsonResponse(['error' => 'Access denied.'], 403);
+    }
+
+    $body = json_decode($this->requestStack->getCurrentRequest()->getContent(), TRUE) ?? [];
+
+    // SEC-4: plain text only, max 128 chars for label.
+    $version_label = isset($body['version_label']) ? substr(strip_tags((string) $body['version_label']), 0, 128) : NULL;
+    $version_notes = isset($body['version_notes']) ? strip_tags((string) $body['version_notes']) : NULL;
+
+    try {
+      $this->database->update('jobhunter_job_seeker_resumes')
+        ->fields([
+          'version_label' => $version_label ?: NULL,
+          'version_notes' => $version_notes ?: NULL,
+          'changed' => \Drupal::time()->getRequestTime(),
+        ])
+        ->condition('id', $resume_id)
+        ->execute();
+
+      // SEC-5: log only uid and resume_id, never version_notes content.
+      $this->getLogger('job_hunter')->info('resumeVersionSave: uid=@uid resume_id=@rid', [
+        '@uid' => $uid,
+        '@rid' => $resume_id,
+      ]);
+      return new \Symfony\Component\HttpFoundation\JsonResponse(['message' => 'Version label saved.'], 200);
+    }
+    catch (\Exception $e) {
+      $this->getLogger('job_hunter')->error('resumeVersionSave failed: uid=@uid resume_id=@rid error=@error', [
+        '@uid' => $uid,
+        '@rid' => $resume_id,
+        '@error' => $e->getMessage(),
+      ]);
+      return new \Symfony\Component\HttpFoundation\JsonResponse(['error' => 'Save failed.'], 500);
+    }
+  }
+
+  /**
+   * Resume Source Link — save source_resume_id on application (POST, CSRF, AC-5).
+   *
+   * @param int $job_id
+   *   The job_requirements ID.
+   */
+  public function resumeSourceSave($job_id): \Symfony\Component\HttpFoundation\JsonResponse {
+    $uid = (int) $this->currentUser->id();
+    $job_id = (int) $job_id;
+
+    $body = json_decode($this->requestStack->getCurrentRequest()->getContent(), TRUE) ?? [];
+    $source_resume_id = isset($body['source_resume_id']) ? (int) $body['source_resume_id'] : 0;
+
+    if ($source_resume_id <= 0) {
+      return new \Symfony\Component\HttpFoundation\JsonResponse(['error' => 'Invalid source_resume_id.'], 400);
+    }
+
+    // SEC-3: verify the resume belongs to the current user via job_seeker_id.
+    $job_seeker = $this->database->select('jobhunter_job_seekers', 'js')
+      ->fields('js', ['id'])
+      ->condition('uid', $uid)
+      ->execute()
+      ->fetchField();
+
+    if (!$job_seeker) {
+      return new \Symfony\Component\HttpFoundation\JsonResponse(['error' => 'Access denied.'], 403);
+    }
+
+    $owns_resume = (bool) $this->database->select('jobhunter_job_seeker_resumes', 'jsr')
+      ->fields('jsr', ['id'])
+      ->condition('id', $source_resume_id)
+      ->condition('job_seeker_id', (int) $job_seeker)
+      ->execute()
+      ->fetchField();
+
+    if (!$owns_resume) {
+      return new \Symfony\Component\HttpFoundation\JsonResponse(['error' => 'Access denied.'], 403);
+    }
+
+    try {
+      $updated = $this->database->update('jobhunter_applications')
+        ->fields([
+          'source_resume_id' => $source_resume_id,
+          'changed' => date('Y-m-d H:i:s'),
+        ])
+        ->condition('uid', $uid)
+        ->condition('job_id', $job_id)
+        ->execute();
+
+      if (!$updated) {
+        return new \Symfony\Component\HttpFoundation\JsonResponse(['error' => 'No application found for this job.'], 404);
+      }
+
+      $this->getLogger('job_hunter')->info('resumeSourceSave: uid=@uid job_id=@jid resume_id=@rid', [
+        '@uid' => $uid,
+        '@jid' => $job_id,
+        '@rid' => $source_resume_id,
+      ]);
+      return new \Symfony\Component\HttpFoundation\JsonResponse(['message' => 'Resume source saved.'], 200);
+    }
+    catch (\Exception $e) {
+      $this->getLogger('job_hunter')->error('resumeSourceSave failed: uid=@uid job_id=@jid error=@error', [
+        '@uid' => $uid,
+        '@jid' => $job_id,
+        '@error' => $e->getMessage(),
+      ]);
+      return new \Symfony\Component\HttpFoundation\JsonResponse(['error' => 'Save failed.'], 500);
     }
   }
 

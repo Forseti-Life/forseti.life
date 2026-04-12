@@ -1596,3 +1596,41 @@ job_hunter.source_preferences_save:
     _permission: 'access job hunter'
     _user_is_logged_in: 'TRUE'
     _csrf_token: 'TRUE'
+
+# Resume Version Labeling — edit form (GET)
+job_hunter.resume_version_edit:
+  path: '/jobhunter/resume/{resume_id}/edit'
+  defaults:
+    _controller: '\Drupal\job_hunter\Controller\CompanyController::resumeVersionForm'
+    _title: 'Edit Resume Version'
+  methods: [GET]
+  requirements:
+    _permission: 'access job hunter'
+    _user_is_logged_in: 'TRUE'
+    resume_id: \d+
+
+# Resume Version Labeling — save (POST, CSRF split-route)
+job_hunter.resume_version_save:
+  path: '/jobhunter/resume/{resume_id}/edit/save'
+  defaults:
+    _controller: '\Drupal\job_hunter\Controller\CompanyController::resumeVersionSave'
+    _title: 'Save Resume Version'
+  methods: [POST]
+  requirements:
+    _permission: 'access job hunter'
+    _user_is_logged_in: 'TRUE'
+    _csrf_token: 'TRUE'
+    resume_id: \d+
+
+# Resume Source Link — save source_resume_id on application (POST, CSRF split-route)
+job_hunter.resume_source_save:
+  path: '/jobhunter/jobs/{job_id}/resume-source/save'
+  defaults:
+    _controller: '\Drupal\job_hunter\Controller\CompanyController::resumeSourceSave'
+    _title: 'Save Resume Source'
+  methods: [POST]
+  requirements:
+    _permission: 'access job hunter'
+    _user_is_logged_in: 'TRUE'
+    _csrf_token: 'TRUE'
+    job_id: \d+
