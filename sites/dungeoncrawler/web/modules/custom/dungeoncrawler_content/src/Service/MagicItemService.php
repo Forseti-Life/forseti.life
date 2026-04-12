@@ -1428,6 +1428,159 @@ class MagicItemService {
   }
 
   /**
+   * Attempt to detect a snare at a hex (REQ 2517–2518).
+   *
+   * REQ 2517: Detection DC = creator's Crafting DC (stored on snare as detection_dc).
+   * REQ 2518: Expert+ crafter snares require active searching; passive observers auto-fail.
+   * REQ 2518: Minimum proficiency gate: detector must meet min_prof_detect rank.
+   *
+   * @param string $actor_id         Detecting entity.
+   * @param string $location_id      Room/area ID.
+   * @param array  $to_hex           Hex {q, r} being examined.
+   * @param int    $perception_bonus  Actor's total Perception modifier.
+   * @param int    $perception_rank   Actor's Perception proficiency rank (0=U,1=T,2=E,3=M,4=L).
+   * @param bool   $is_searching      TRUE if the actor is actively Searching (not passive movement).
+   * @param array  $game_state        Modified by reference to mark detected snares.
+   *
+   * @return array  List of detection result arrays, one per snare at the hex.
+   *                Each: {snare_id, detected, reason, degree, roll, dc}
+   */
+  public function detectSnareAtHex(
+    string $actor_id,
+    string $location_id,
+    array $to_hex,
+    int $perception_bonus,
+    int $perception_rank,
+    bool $is_searching,
+    array &$game_state
+  ): array {
+    $results = [];
+    foreach ($game_state['snares'][$location_id] ?? [] as $idx => &$snare) {
+      if ($snare['triggered'] || $snare['disarmed'] || !empty($snare['detected'][$actor_id])) {
+        continue;
+      }
+      $ps = $snare['placed_square'] ?? NULL;
+      if ($ps === NULL) {
+        continue;
+      }
+      if ((int) $ps['q'] !== (int) $to_hex['q'] || (int) $ps['r'] !== (int) $to_hex['r']) {
+        continue;
+      }
+
+      // REQ 2518: Expert+ crafter snares require active searching to find.
+      if (!empty($snare['requires_search']) && !$is_searching) {
+        $results[] = [
+          'snare_id'   => $snare['snare_id'],
+          'detected'   => FALSE,
+          'reason'     => 'requires_active_search',
+          'degree'     => NULL,
+          'roll'       => NULL,
+          'dc'         => $snare['detection_dc'] ?? 0,
+        ];
+        continue;
+      }
+
+      // Minimum proficiency gate.
+      $min_rank = (int) ($snare['min_prof_detect'] ?? 1);
+      if ($perception_rank < $min_rank) {
+        $results[] = [
+          'snare_id'   => $snare['snare_id'],
+          'detected'   => FALSE,
+          'reason'     => 'insufficient_proficiency',
+          'degree'     => NULL,
+          'roll'       => NULL,
+          'dc'         => $snare['detection_dc'] ?? 0,
+        ];
+        continue;
+      }
+
+      $dc  = (int) ($snare['detection_dc'] ?? 15);
+      $d20 = $this->numberGenerationService->rollPathfinderDie(20);
+      $total = $d20 + $perception_bonus;
+      $degree = $this->degreeOfSuccess($total, $dc, $d20);
+      $detected = in_array($degree, ['success', 'critical_success'], TRUE);
+
+      if ($detected) {
+        $game_state['snares'][$location_id][$idx]['detected'][$actor_id] = TRUE;
+      }
+
+      $results[] = [
+        'snare_id' => $snare['snare_id'],
+        'detected' => $detected,
+        'reason'   => $detected ? 'detected' : 'undetected',
+        'degree'   => $degree,
+        'roll'     => $total,
+        'dc'       => $dc,
+      ];
+    }
+    unset($snare);
+
+    return $results;
+  }
+
+  /**
+   * Disable a detected snare via Thievery check (REQ 2517).
+   *
+   * REQ 2517: Disable DC = creator's Crafting DC (stored on snare as disable_dc).
+   * Minimum proficiency gate: same as detection (min_prof_detect).
+   * Creator instant-disarm is handled by creatorDisarmsSnare() (no check needed).
+   *
+   * @param string $char_id         Character attempting to disable.
+   * @param string $location_id     Room/area ID.
+   * @param int    $snare_index     Index of snare in $game_state['snares'][$location_id].
+   * @param int    $thievery_bonus  Character's total Thievery modifier.
+   * @param int    $thievery_rank   Character's Thievery proficiency rank.
+   * @param array  $game_state      Modified by reference on successful disable.
+   *
+   * @return array  {success, degree, roll, dc, reason}
+   */
+  public function disableSnare(
+    string $char_id,
+    string $location_id,
+    int $snare_index,
+    int $thievery_bonus,
+    int $thievery_rank,
+    array &$game_state
+  ): array {
+    $snare = $game_state['snares'][$location_id][$snare_index] ?? NULL;
+    if (!$snare) {
+      return ['success' => FALSE, 'reason' => 'Snare not found.'];
+    }
+    if ($snare['triggered'] || $snare['disarmed']) {
+      return ['success' => FALSE, 'reason' => 'Snare already triggered or disarmed.'];
+    }
+
+    // Minimum proficiency gate.
+    $min_rank = (int) ($snare['min_prof_detect'] ?? 1);
+    if ($thievery_rank < $min_rank) {
+      return [
+        'success' => FALSE,
+        'reason'  => 'insufficient_proficiency',
+        'degree'  => NULL,
+        'roll'    => NULL,
+        'dc'      => $snare['disable_dc'] ?? 0,
+      ];
+    }
+
+    $dc  = (int) ($snare['disable_dc'] ?? 15);
+    $d20 = $this->numberGenerationService->rollPathfinderDie(20);
+    $total = $d20 + $thievery_bonus;
+    $degree = $this->degreeOfSuccess($total, $dc, $d20);
+
+    if (in_array($degree, ['success', 'critical_success'], TRUE)) {
+      $game_state['snares'][$location_id][$snare_index]['disarmed'] = TRUE;
+    }
+
+    return [
+      'success' => in_array($degree, ['success', 'critical_success'], TRUE),
+      'degree'  => $degree,
+      'roll'    => $total,
+      'dc'      => $dc,
+      'reason'  => in_array($degree, ['success', 'critical_success'], TRUE) ? 'disabled' : 'failed',
+    ];
+  }
+
+  /**
    * Find and trigger any active snare at a given hex in the given location.
    *
    * Called by EncounterPhaseHandler::processStride() after position update.

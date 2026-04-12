@@ -210,6 +210,8 @@ class ExplorationPhaseHandler implements PhaseHandlerInterface {
       'overcharge_wand',
       // REQ 2536–2545: Craft and place snare.
       'craft_snare',
+      // REQ 2517: Disable a detected snare (Thievery check).
+      'disable_snare',
       // REQ 2546–2548: Affix talisman to item.
       'affix_talisman',
       // REQ 2549: Activate talisman.
@@ -1194,6 +1196,26 @@ class ExplorationPhaseHandler implements PhaseHandlerInterface {
       }
 
       // -----------------------------------------------------------------------
+      // REQ 2517: Disable a detected snare (Thievery check vs disable_dc).
+      // -----------------------------------------------------------------------
+      case 'disable_snare': {
+        $snare_location_ds = $params['location_id'] ?? ($game_state['active_room_id'] ?? 'unknown');
+        $snare_index_ds    = (int) ($params['snare_index'] ?? -1);
+        $thievery_bonus_ds = (int) ($params['thievery_bonus'] ?? $params['skill_bonus'] ?? 0);
+        $thievery_rank_ds  = (int) ($params['thievery_rank'] ?? $params['proficiency_rank'] ?? 0);
+        $result = $this->magicItemService->disableSnare(
+          $actor_id,
+          $snare_location_ds,
+          $snare_index_ds,
+          $thievery_bonus_ds,
+          $thievery_rank_ds,
+          $game_state
+        );
+        $events[] = GameEventLogger::buildEvent('disable_snare', 'exploration', $actor_id, ['location_id' => $snare_location_ds, 'snare_index' => $snare_index_ds, 'success' => $result['success']]);
+        break;
+      }
+
+      // -----------------------------------------------------------------------
       // REQ 2546–2548: Affix talisman to item.
       // -----------------------------------------------------------------------
       case 'affix_talisman': {
@@ -1720,6 +1742,27 @@ class ExplorationPhaseHandler implements PhaseHandlerInterface {
       }
       if (!empty($hazard_events)) {
         $result['hazard_events'] = $hazard_events;
+      }
+    }
+
+    // REQ 2517–2518: Snare detection on movement (per hex).
+    // Active search → rolls Perception vs detection_dc; passive → auto-fails expert+ snares.
+    $snare_location = $params['location_id'] ?? ($game_state['current_location_id'] ?? NULL);
+    if ($snare_location !== NULL && !empty($game_state['snares'][$snare_location])) {
+      $perception_bonus_sn = (int) ($entity['stats']['perception'] ?? ($entity['state']['skills']['perception'] ?? 0));
+      $perception_rank_sn  = (int) ($params['perception_proficiency_rank'] ?? 1);
+      $is_searching_sn     = ($activity === 'search');
+      $snare_detections    = $this->magicItemService->detectSnareAtHex(
+        $actor_id,
+        $snare_location,
+        $to_hex,
+        $perception_bonus_sn,
+        $perception_rank_sn,
+        $is_searching_sn,
+        $game_state
+      );
+      if (!empty($snare_detections)) {
+        $result['snare_detections'] = $snare_detections;
       }
     }
 
