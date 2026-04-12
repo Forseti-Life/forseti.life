@@ -13559,6 +13559,272 @@
           "suite_context": "playwright/downtime"
         }
       ]
+    },
+    {
+      "id": "dc-cr-feats-ch05-phpunit",
+      "label": "Chapter 5 feat system: slot grants, Assurance, Recognize Spell, Trick Magic Item, Battle Medicine, Specialty Crafting, Virtuosic Performer",
+      "type": "phpunit",
+      "feature_id": "dc-cr-feats-ch05",
+      "command": "cd /home/ubuntu/forseti.life/sites/dungeoncrawler && vendor/bin/phpunit web/modules/custom/dungeoncrawler_content/tests/src/Functional/FeatSystemTest.php",
+      "artifacts": [
+        "sessions/qa-dungeoncrawler/artifacts/dc-cr-feats-ch05/phpunit-report.xml"
+      ],
+      "required_for_release": true,
+      "test_cases": [
+        {
+          "id": "TC-FEAT-01",
+          "label": "General feat category: accessible to all characters regardless of class or ancestry",
+          "feature_id": "dc-cr-feats-ch05",
+          "required_for_release": true,
+          "status": "pending_implementation",
+          "suite_context": "conditional:dc-cr-general-feats"
+        },
+        {
+          "id": "TC-FEAT-02",
+          "label": "General feat slots granted at levels 3, 7, 11, 15, 19",
+          "feature_id": "dc-cr-feats-ch05",
+          "required_for_release": true,
+          "status": "pending_implementation",
+          "suite_context": "conditional:dc-cr-character-leveling"
+        },
+        {
+          "id": "TC-FEAT-03",
+          "label": "Skill feat slots granted at level 2 and every 2 levels thereafter",
+          "feature_id": "dc-cr-feats-ch05",
+          "required_for_release": true,
+          "status": "pending_implementation",
+          "suite_context": "conditional:dc-cr-character-leveling+dc-cr-skill-feats"
+        },
+        {
+          "id": "TC-FEAT-04",
+          "label": "Skill feat slot requires skill trait: non-skill general feats blocked",
+          "feature_id": "dc-cr-feats-ch05",
+          "required_for_release": true,
+          "status": "pending_implementation",
+          "suite_context": "conditional:dc-cr-skill-feats+dc-cr-general-feats"
+        },
+        {
+          "id": "TC-FEAT-05",
+          "label": "Feat level = minimum level to meet proficiency prerequisite",
+          "feature_id": "dc-cr-feats-ch05",
+          "required_for_release": true,
+          "status": "pending_implementation",
+          "suite_context": "conditional:dc-cr-general-feats+dc-cr-character-leveling"
+        },
+        {
+          "id": "TC-FEAT-06",
+          "label": "Repeatable feat: subsequent selections respect prior grants (Armor/Weapon Proficiency)",
+          "feature_id": "dc-cr-feats-ch05",
+          "required_for_release": true,
+          "status": "pending_implementation",
+          "suite_context": "conditional:dc-cr-general-feats"
+        },
+        {
+          "id": "TC-FEAT-07",
+          "label": "Assurance: fixed result = 10 + proficiency bonus, no other modifiers applied",
+          "feature_id": "dc-cr-feats-ch05",
+          "required_for_release": true,
+          "status": "pending_implementation",
+          "suite_context": "immediately_activatable"
+        },
+        {
+          "id": "TC-FEAT-08",
+          "label": "Assurance: modifiers and penalties silently ignored (not added, not error)",
+          "feature_id": "dc-cr-feats-ch05",
+          "required_for_release": true,
+          "status": "pending_implementation",
+          "suite_context": "immediately_activatable"
+        },
+        {
+          "id": "TC-FEAT-09",
+          "label": "Assurance: one selection per skill, second selection for same skill blocked",
+          "feature_id": "dc-cr-feats-ch05",
+          "required_for_release": true,
+          "status": "pending_implementation",
+          "suite_context": "conditional:dc-cr-skill-feats-or-dc-cr-general-feats"
+        },
+        {
+          "id": "TC-FEAT-10",
+          "label": "Recognize Spell: reaction, no action cost, requires awareness of casting",
+          "feature_id": "dc-cr-feats-ch05",
+          "required_for_release": true,
+          "status": "pending_implementation",
+          "suite_context": "immediately_activatable"
+        },
+        {
+          "id": "TC-FEAT-11",
+          "label": "Recognize Spell: auto-identify thresholds for common spells by proficiency rank",
+          "feature_id": "dc-cr-feats-ch05",
+          "required_for_release": true,
+          "status": "pending_implementation",
+          "suite_context": "immediately_activatable"
+        },
+        {
+          "id": "TC-FEAT-12",
+          "label": "Recognize Spell Critical Success: +1 circumstance bonus to save or AC vs that spell",
+          "feature_id": "dc-cr-feats-ch05",
+          "required_for_release": true,
+          "status": "pending_implementation",
+          "suite_context": "immediately_activatable"
+        },
+        {
+          "id": "TC-FEAT-13",
+          "label": "Recognize Spell Critical Failure: false identification returned, not an error",
+          "feature_id": "dc-cr-feats-ch05",
+          "required_for_release": true,
+          "status": "pending_implementation",
+          "suite_context": "immediately_activatable"
+        },
+        {
+          "id": "TC-FEAT-14",
+          "label": "Trick Magic Item: Trained gate in appropriate tradition skill",
+          "feature_id": "dc-cr-feats-ch05",
+          "required_for_release": true,
+          "status": "pending_implementation",
+          "suite_context": "immediately_activatable"
+        },
+        {
+          "id": "TC-FEAT-15",
+          "label": "Trick Magic Item: spell attack/DC uses level-based proficiency + highest mental ability score",
+          "feature_id": "dc-cr-feats-ch05",
+          "required_for_release": true,
+          "status": "pending_implementation",
+          "suite_context": "immediately_activatable"
+        },
+        {
+          "id": "TC-FEAT-16",
+          "label": "Trick Magic Item Critical Failure: locked out of item until next daily preparations",
+          "feature_id": "dc-cr-feats-ch05",
+          "required_for_release": true,
+          "status": "pending_implementation",
+          "suite_context": "immediately_activatable"
+        },
+        {
+          "id": "TC-FEAT-17",
+          "label": "Battle Medicine: healer's tools required + Trained Medicine",
+          "feature_id": "dc-cr-feats-ch05",
+          "required_for_release": true,
+          "status": "pending_implementation",
+          "suite_context": "conditional:dc-cr-equipment-system"
+        },
+        {
+          "id": "TC-FEAT-18",
+          "label": "Battle Medicine: uses same DC/HP table as Treat Wounds",
+          "feature_id": "dc-cr-feats-ch05",
+          "required_for_release": true,
+          "status": "pending_implementation",
+          "suite_context": "immediately_activatable"
+        },
+        {
+          "id": "TC-FEAT-19",
+          "label": "Battle Medicine: does NOT remove wounded condition",
+          "feature_id": "dc-cr-feats-ch05",
+          "required_for_release": true,
+          "status": "pending_implementation",
+          "suite_context": "immediately_activatable"
+        },
+        {
+          "id": "TC-FEAT-20",
+          "label": "Battle Medicine: per-character 1-day immunity for the target",
+          "feature_id": "dc-cr-feats-ch05",
+          "required_for_release": true,
+          "status": "pending_implementation",
+          "suite_context": "immediately_activatable"
+        },
+        {
+          "id": "TC-FEAT-21",
+          "label": "Battle Medicine immunity does NOT block other healers' Treat Wounds on same target",
+          "feature_id": "dc-cr-feats-ch05",
+          "required_for_release": true,
+          "status": "pending_implementation",
+          "suite_context": "immediately_activatable"
+        },
+        {
+          "id": "TC-FEAT-22",
+          "label": "Battle Medicine on target already treated today by same healer: blocked",
+          "feature_id": "dc-cr-feats-ch05",
+          "required_for_release": true,
+          "status": "pending_implementation",
+          "suite_context": "immediately_activatable"
+        },
+        {
+          "id": "TC-FEAT-23",
+          "label": "Specialty Crafting: +1 circumstance bonus to relevant Craft checks",
+          "feature_id": "dc-cr-feats-ch05",
+          "required_for_release": true,
+          "status": "pending_implementation",
+          "suite_context": "conditional:dc-cr-general-feats"
+        },
+        {
+          "id": "TC-FEAT-24",
+          "label": "Specialty Crafting: +2 at Master proficiency",
+          "feature_id": "dc-cr-feats-ch05",
+          "required_for_release": true,
+          "status": "pending_implementation",
+          "suite_context": "conditional:dc-cr-general-feats+dc-cr-character-leveling"
+        },
+        {
+          "id": "TC-FEAT-25",
+          "label": "Specialty Crafting: partial applicability flagged for GM review",
+          "feature_id": "dc-cr-feats-ch05",
+          "required_for_release": true,
+          "status": "pending_implementation",
+          "suite_context": "conditional:dc-cr-general-feats"
+        },
+        {
+          "id": "TC-FEAT-26",
+          "label": "Virtuosic Performer: +1 circumstance bonus to chosen performance type",
+          "feature_id": "dc-cr-feats-ch05",
+          "required_for_release": true,
+          "status": "pending_implementation",
+          "suite_context": "conditional:dc-cr-general-feats"
+        },
+        {
+          "id": "TC-FEAT-27",
+          "label": "Virtuosic Performer: +2 at Master proficiency",
+          "feature_id": "dc-cr-feats-ch05",
+          "required_for_release": true,
+          "status": "pending_implementation",
+          "suite_context": "conditional:dc-cr-general-feats+dc-cr-character-leveling"
+        },
+        {
+          "id": "TC-FEAT-28",
+          "label": "Skill feat slot: non-skill feat assignment blocked",
+          "feature_id": "dc-cr-feats-ch05",
+          "required_for_release": true,
+          "status": "pending_implementation",
+          "suite_context": "conditional:dc-cr-skill-feats"
+        },
+        {
+          "id": "TC-FEAT-29",
+          "label": "Assurance: second selection for same skill blocked",
+          "feature_id": "dc-cr-feats-ch05",
+          "required_for_release": true,
+          "status": "pending_implementation",
+          "suite_context": "conditional:dc-cr-skill-feats-or-dc-cr-general-feats"
+        }
+      ]
+    },
+    {
+      "id": "dc-cr-feats-ch05-role-url-audit",
+      "label": "Chapter 5 feat system: ACL regression \u2014 existing character creation/leveling form routes",
+      "type": "role-url-audit",
+      "feature_id": "dc-cr-feats-ch05",
+      "command": "ALLOW_PROD_QA=1 bash /home/ubuntu/forseti.life/copilot-hq/scripts/site-audit-run.sh dungeoncrawler",
+      "artifacts": [
+        "sessions/qa-dungeoncrawler/artifacts/dc-cr-feats-ch05/role-url-audit.json"
+      ],
+      "required_for_release": true,
+      "test_cases": [
+        {
+          "id": "TC-FEAT-30",
+          "label": "ACL regression: no new routes; existing character creation/leveling forms retain ACL",
+          "feature_id": "dc-cr-feats-ch05",
+          "required_for_release": true,
+          "status": "pending_implementation",
+          "suite_context": "immediately_activatable"
+        }
+      ]
     }
   ],
   "_schema_notes": [

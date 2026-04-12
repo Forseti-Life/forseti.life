@@ -1517,6 +1517,26 @@
         "dc_playwright_player": "allow",
         "dc_playwright_admin": "allow"
       }
+    },
+    {
+      "id": "dc-cr-feats-ch05-char-creation-acl",
+      "feature_id": "dc-cr-feats-ch05",
+      "path_regex": "^/character/create",
+      "notes": "Regression guard: feat system adds no new routes; existing character creation form must retain ACL",
+      "expect": {
+        "anon": "403",
+        "authenticated": "200"
+      }
+    },
+    {
+      "id": "dc-cr-feats-ch05-char-leveling-acl",
+      "feature_id": "dc-cr-feats-ch05",
+      "path_regex": "^/character/[0-9]+/level",
+      "notes": "Regression guard: feat system adds no new routes; existing leveling form must retain ACL",
+      "expect": {
+        "anon": "403",
+        "authenticated": "200"
+      }
     }
   ]
 }
