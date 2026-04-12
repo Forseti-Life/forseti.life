@@ -3209,10 +3209,12 @@ function job_hunter_update_9050() {
       'company_id'        => ['type' => 'int', 'unsigned' => TRUE, 'not null' => FALSE, 'default' => NULL],
       'linkedin_url'      => ['type' => 'varchar', 'length' => 512, 'not null' => FALSE, 'default' => NULL],
       'email'             => ['type' => 'varchar', 'length' => 255, 'not null' => FALSE, 'default' => NULL],
-      'relationship_type' => ['type' => 'varchar', 'length' => 32, 'not null' => TRUE, 'default' => 'connection'],
-      'notes'             => ['type' => 'text', 'size' => 'medium', 'not null' => FALSE],
-      'created'           => ['type' => 'int', 'not null' => TRUE, 'default' => 0],
-      'changed'           => ['type' => 'int', 'not null' => TRUE, 'default' => 0],
+      'relationship_type'  => ['type' => 'varchar', 'length' => 32, 'not null' => TRUE, 'default' => 'connection'],
+      'notes'              => ['type' => 'text', 'size' => 'medium', 'not null' => FALSE],
+      'last_contact_date'  => ['type' => 'varchar', 'length' => 10, 'not null' => FALSE, 'default' => NULL],
+      'referral_status'    => ['type' => 'varchar', 'length' => 16, 'not null' => TRUE, 'default' => 'none'],
+      'created'            => ['type' => 'int', 'not null' => TRUE, 'default' => 0],
+      'changed'            => ['type' => 'int', 'not null' => TRUE, 'default' => 0],
     ],
     'primary key' => ['id'],
     'indexes' => [
@@ -3286,4 +3288,28 @@ function job_hunter_update_9052() {
 function job_hunter_update_9053() {
   _job_hunter_create_interview_rounds_table();
   return t('Created jobhunter_interview_rounds table for per-user saved-job interview logs.');
+}
+
+/**
+ * Add last_contact_date and referral_status to jobhunter_contacts.
+ */
+function job_hunter_update_9054() {
+  $schema = \Drupal::database()->schema();
+  if (!$schema->fieldExists('jobhunter_contacts', 'last_contact_date')) {
+    $schema->addField('jobhunter_contacts', 'last_contact_date', [
+      'type' => 'varchar',
+      'length' => 10,
+      'not null' => FALSE,
+      'default' => NULL,
+    ]);
+  }
+  if (!$schema->fieldExists('jobhunter_contacts', 'referral_status')) {
+    $schema->addField('jobhunter_contacts', 'referral_status', [
+      'type' => 'varchar',
+      'length' => 16,
+      'not null' => TRUE,
+      'default' => 'none',
+    ]);
+  }
+  return t('Added last_contact_date and referral_status to jobhunter_contacts.');
 }

@@ -1801,7 +1801,7 @@ class CompanyController extends ControllerBase {
         ->fetchAssoc();
 
       // Load user's resumes for the dropdown (AC-5).
-      $job_seeker_for_resume = $this->database->select('jobhunter_job_seekers', 'js')
+      $job_seeker_for_resume = $this->database->select('jobhunter_job_seeker', 'js')
         ->fields('js', ['id'])
         ->condition('uid', $uid_for_resume)
         ->execute()
@@ -3654,6 +3654,11 @@ HTML;
   const CONTACT_RELATIONSHIP_TYPES = ['recruiter', 'referral', 'hiring_manager', 'connection'];
 
   /**
+   * Valid contact referral status values.
+   */
+  const CONTACT_REFERRAL_STATUSES = ['none', 'requested', 'pending', 'provided'];
+
+  /**
    * Renders the contacts list at /jobhunter/contacts.
    */
   public function contactsList(): array {
@@ -3749,6 +3754,8 @@ HTML;
     $rel_val      = (string) ($existing['relationship_type'] ?? 'connection');
     $cid_val      = $existing ? (int) ($existing['company_id'] ?? 0) : 0;
     $id_field     = $contact_id !== NULL ? '<input type="hidden" name="contact_id" value="' . $contact_id . '">' : '';
+    $lcd_val      = htmlspecialchars((string) ($existing['last_contact_date'] ?? ''));
+    $ref_val      = (string) ($existing['referral_status'] ?? 'none');
 
     $company_options = '<option value="">— None —</option>';
     foreach ($companies as $cid => $cname) {
@@ -3760,6 +3767,12 @@ HTML;
     foreach (self::CONTACT_RELATIONSHIP_TYPES as $r) {
       $sel = ($rel_val === $r) ? ' selected' : '';
       $rel_options .= '<option value="' . $r . '"' . $sel . '>' . htmlspecialchars(ucwords(str_replace('_', ' ', $r))) . '</option>';
+    }
+
+    $ref_options = '';
+    foreach (self::CONTACT_REFERRAL_STATUSES as $s) {
+      $sel = ($ref_val === $s) ? ' selected' : '';
+      $ref_options .= '<option value="' . $s . '"' . $sel . '>' . htmlspecialchars(ucfirst($s)) . '</option>';
     }
 
     $heading = $contact_id !== NULL ? 'Edit Contact' : 'Add Contact';
@@ -3797,6 +3810,14 @@ HTML;
       <label><strong>Notes</strong> (optional)</label><br>
       <textarea name="notes" rows="4" style="width:100%;max-width:400px;">{$notes_val}</textarea>
     </div>
+    <div style="margin-bottom:1em;">
+      <label><strong>Last Contact Date</strong> (optional)</label><br>
+      <input type="date" name="last_contact_date" value="{$lcd_val}" style="width:100%;max-width:400px;">
+    </div>
+    <div style="margin-bottom:1em;">
+      <label><strong>Referral Status</strong></label><br>
+      <select name="referral_status" style="width:100%;max-width:400px;">{$ref_options}</select>
+    </div>
     <button type="submit" class="button button--primary">Save</button>
     &nbsp;<a href="/jobhunter/contacts" class="button">Cancel</a>
   </form>
@@ -3823,6 +3844,11 @@ HTML;
     $email_raw    = strip_tags((string) $request->request->get('email', ''));
     $linkedin_raw = strip_tags((string) $request->request->get('linkedin_url', ''));
     $notes        = strip_tags((string) $request->request->get('notes', ''));
+    $last_contact_date = preg_replace('/[^0-9\-]/', '', (string) $request->request->get('last_contact_date', ''));
+    $referral_status   = (string) $request->request->get('referral_status', 'none');
+    if (!in_array($referral_status, self::CONTACT_REFERRAL_STATUSES, TRUE)) {
+      $referral_status = 'none';
+    }
 
     if ($name === '') {
       $this->messenger()->addError($this->t('Contact name is required.'));
@@ -3885,6 +3911,8 @@ HTML;
             'email'             => $email ?: NULL,
             'linkedin_url'      => $linkedin_url ?: NULL,
             'notes'             => $notes ?: NULL,
+            'last_contact_date' => $last_contact_date ?: NULL,
+            'referral_status'   => $referral_status,
             'changed'           => $now,
           ])
           ->condition('id', $contact_id)
@@ -3904,6 +3932,8 @@ HTML;
             'email'             => $email ?: NULL,
             'linkedin_url'      => $linkedin_url ?: NULL,
             'notes'             => $notes ?: NULL,
+            'last_contact_date' => $last_contact_date ?: NULL,
+            'referral_status'   => $referral_status,
             'created'           => $now,
             'changed'           => $now,
           ])
@@ -4214,7 +4244,7 @@ HTML;
     $resume_id = (int) $resume_id;
 
     // SEC-3: ownership — verify via job_seeker_id.
-    $job_seeker = $this->database->select('jobhunter_job_seekers', 'js')
+    $job_seeker = $this->database->select('jobhunter_job_seeker', 'js')
       ->fields('js', ['id'])
       ->condition('uid', $uid)
       ->execute()
@@ -4300,7 +4330,7 @@ HTML;
     $resume_id = (int) $resume_id;
 
     // SEC-3: ownership check via job_seeker_id.
-    $job_seeker = $this->database->select('jobhunter_job_seekers', 'js')
+    $job_seeker = $this->database->select('jobhunter_job_seeker', 'js')
       ->fields('js', ['id'])
       ->condition('uid', $uid)
       ->execute()
@@ -4372,7 +4402,7 @@ HTML;
     }
 
     // SEC-3: verify the resume belongs to the current user via job_seeker_id.
-    $job_seeker = $this->database->select('jobhunter_job_seekers', 'js')
+    $job_seeker = $this->database->select('jobhunter_job_seeker', 'js')
       ->fields('js', ['id'])
       ->condition('uid', $uid)
       ->execute()
