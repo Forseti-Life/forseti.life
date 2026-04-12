@@ -104,8 +104,17 @@ After a coordinated push succeeds (commit lands on main), in the same outbox cyc
 1. **Set all shipped features to `- Status: done`** in feature.md AND **clear the `- Release:` line** (set to `- Release: ` with no value). Use `done` — not `shipped`. Clearing the Release field prevents the orchestrator from counting shipped features against the new release's scope cap.
 2. **Write or verify release notes** at `sessions/pm-forseti/artifacts/release-notes/<release-id>.md`.
 3. **Run `release-signoff.sh forseti <your-forseti-release-id>`** to advance your own release cycle.
-4. **Run `bash scripts/post-coordinated-push.sh`** to advance all partner teams' release cycles and write the orchestrator push marker. This prevents the orchestrator from attempting a duplicate auto-deploy and unblocks each team's next release cycle. This is idempotent — safe to re-run.
-5. **Verify cycle state after `post-coordinated-push.sh`** — the script has a known sentinel bug: if `tmp/auto-push-dispatched/<team>.advanced` contains the same value as `tmp/release-cycle-active/<team>.release_id`, the ADVANCE step is skipped silently. After each run, verify:
+4. **Pre-push: validate `forseti.next_release_id` BEFORE running `post-coordinated-push.sh`** (lesson 2026-04-12 forseti-release-c):
+   ```bash
+   cat tmp/release-cycle-active/forseti.next_release_id
+   ```
+   It MUST be the next expected release letter (e.g., if current is `release-c`, next must be `release-d`). If it is stale (e.g., `release-b` when current is `release-c`), **STOP — do NOT run post-coordinated-push.sh**. Escalate to CEO immediately with:
+   - current: `forseti.release_id` value
+   - stale: `forseti.next_release_id` value
+   - expected: what the next_release_id should be
+   Running post-coordinated-push.sh with a stale next_release_id will advance the release counter to the wrong letter and corrupt the orchestrator's cycle state.
+5. **Run `bash scripts/post-coordinated-push.sh`** to advance all partner teams' release cycles and write the orchestrator push marker. This prevents the orchestrator from attempting a duplicate auto-deploy and unblocks each team's next release cycle. This is idempotent — safe to re-run.
+6. **Verify cycle state after `post-coordinated-push.sh`** — the script has a known sentinel bug: if `tmp/auto-push-dispatched/<team>.advanced` contains the same value as `tmp/release-cycle-active/<team>.release_id`, the ADVANCE step is skipped silently. After each run, verify:
    ```bash
    cat tmp/release-cycle-active/forseti.release_id      # must be the NEW release (e.g. release-d)
    cat tmp/release-cycle-active/dungeoncrawler.release_id  # must be a valid dungeoncrawler-release-X
