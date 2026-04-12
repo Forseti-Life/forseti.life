@@ -3,7 +3,7 @@
 - Work item id: forseti-langgraph-console-build-sections
 - Website: forseti.life
 - Module: copilot_agent_tracker
-- Status: in_progress
+- Status: done
 - Release: 20260411-coordinated-release
 - Feature type: enhancement
 - PM owner: pm-forseti
