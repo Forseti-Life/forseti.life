@@ -2803,16 +2803,17 @@
       "required_for_release": true,
       "notes": "Static code review. No literal /home/ubuntu/ or /var/www/ in release panel controller logic. Dev to confirm use of COPILOT_HQ_ROOT in implementation notes. If hardcoded paths found at Stage 4, flag as BLOCK."
     },
-
-  {
+    {
       "id": "forseti-jobhunter-company-interest-tracker-tc1-save-new-row",
-      "label": "TC-1: Save new company interest row (smoke) — POST saves row to jobhunter_company_interest",
+      "label": "TC-1: Save new company interest row (smoke) \u2014 POST saves row to jobhunter_company_interest",
       "type": "functional",
       "feature_id": "forseti-jobhunter-company-interest-tracker",
       "command": "curl -s -o /dev/null -w \"%{http_code}\" -X POST -b \"$FORSETI_COOKIE_AUTHENTICATED\" https://forseti.life/jobhunter/company-interest",
-      "artifacts": ["/tmp/qa-forseti-company-interest-tc1.log"],
+      "artifacts": [
+        "/tmp/qa-forseti-company-interest-tc1.log"
+      ],
       "required_for_release": true,
-      "notes": "Verify HTTP 200 on submit and row created. DB verify: SELECT interest_level, status FROM jobhunter_company_interest WHERE uid=<uid> AND company_id=1 → 3 | researching."
+      "notes": "Verify HTTP 200 on submit and row created. DB verify: SELECT interest_level, status FROM jobhunter_company_interest WHERE uid=<uid> AND company_id=1 \u2192 3 | researching."
     },
     {
       "id": "forseti-jobhunter-company-interest-tracker-tc2-watchlist-page",
@@ -2820,7 +2821,9 @@
       "type": "functional",
       "feature_id": "forseti-jobhunter-company-interest-tracker",
       "command": "curl -s -o /dev/null -w \"%{http_code}\" -b \"$FORSETI_COOKIE_AUTHENTICATED\" https://forseti.life/jobhunter/companies/my-list",
-      "artifacts": ["/tmp/qa-forseti-company-interest-tc2.log"],
+      "artifacts": [
+        "/tmp/qa-forseti-company-interest-tc2.log"
+      ],
       "required_for_release": true,
       "notes": "Expect HTTP 200; body contains 'company-watchlist' markup and tracked company names."
     },
@@ -2830,7 +2833,9 @@
       "type": "functional",
       "feature_id": "forseti-jobhunter-company-interest-tracker",
       "command": "curl -s -b \"$FORSETI_COOKIE_AUTHENTICATED\" https://forseti.life/jobhunter/company/1 | grep -c 'interest_level'",
-      "artifacts": ["/tmp/qa-forseti-company-interest-tc3.log"],
+      "artifacts": [
+        "/tmp/qa-forseti-company-interest-tc3.log"
+      ],
       "required_for_release": true,
       "notes": "Expect form field interest_level pre-selected to match DB row value."
     },
@@ -2840,17 +2845,21 @@
       "type": "functional",
       "feature_id": "forseti-jobhunter-company-interest-tracker",
       "command": "drush sql:query \"SELECT COUNT(*) FROM jobhunter_company_interest WHERE company_id=1\" 2>/dev/null",
-      "artifacts": ["/tmp/qa-forseti-company-interest-tc4.log"],
+      "artifacts": [
+        "/tmp/qa-forseti-company-interest-tc4.log"
+      ],
       "required_for_release": true,
       "notes": "After second submit, COUNT(*) must remain 1 (upsert, not insert). Verify status updated to new value."
     },
     {
       "id": "forseti-jobhunter-company-interest-tracker-tc5-cross-user-isolation",
-      "label": "TC-5: Cross-user data isolation — user B cannot see user A interest row",
+      "label": "TC-5: Cross-user data isolation \u2014 user B cannot see user A interest row",
       "type": "security",
       "feature_id": "forseti-jobhunter-company-interest-tracker",
       "command": "drush sql:query \"SELECT COUNT(*) FROM jobhunter_company_interest WHERE uid=<uid_B> AND company_id=1\" 2>/dev/null",
-      "artifacts": ["/tmp/qa-forseti-company-interest-tc5.log"],
+      "artifacts": [
+        "/tmp/qa-forseti-company-interest-tc5.log"
+      ],
       "required_for_release": true,
       "notes": "User B's form must be empty and watchlist must not show user A's tracked companies. DB count = 0."
     },
@@ -2860,7 +2869,9 @@
       "type": "security",
       "feature_id": "forseti-jobhunter-company-interest-tracker",
       "command": "curl -s -o /dev/null -w \"%{http_code}\" -X POST https://forseti.life/jobhunter/company-interest",
-      "artifacts": ["/tmp/qa-forseti-company-interest-tc6.log"],
+      "artifacts": [
+        "/tmp/qa-forseti-company-interest-tc6.log"
+      ],
       "required_for_release": true,
       "notes": "Expect 403. No session cookie. This is the auth gate for the write endpoint."
     },
@@ -2870,17 +2881,21 @@
       "type": "security",
       "feature_id": "forseti-jobhunter-company-interest-tracker",
       "command": "curl -s -o /dev/null -w \"%{http_code}\" -X POST -b \"$FORSETI_COOKIE_AUTHENTICATED\" https://forseti.life/jobhunter/company-interest",
-      "artifacts": ["/tmp/qa-forseti-company-interest-tc7.log"],
+      "artifacts": [
+        "/tmp/qa-forseti-company-interest-tc7.log"
+      ],
       "required_for_release": true,
       "notes": "POST without X-CSRF-Token header must return 403. Tests Drupal CSRF protection on the save route."
     },
     {
       "id": "forseti-jobhunter-company-interest-tracker-tc8-xss-notes",
-      "label": "TC-8: XSS in notes field is stripped — rendered page does not execute script",
+      "label": "TC-8: XSS in notes field is stripped \u2014 rendered page does not execute script",
       "type": "security",
       "feature_id": "forseti-jobhunter-company-interest-tracker",
       "command": "drush sql:query \"SELECT notes FROM jobhunter_company_interest WHERE uid=<uid> ORDER BY id DESC LIMIT 1\" 2>/dev/null",
-      "artifacts": ["/tmp/qa-forseti-company-interest-tc8.log"],
+      "artifacts": [
+        "/tmp/qa-forseti-company-interest-tc8.log"
+      ],
       "required_for_release": true,
       "notes": "Submit notes='<script>alert(1)</script>'. DB row must not contain raw <script> tag. Rendered page must not execute JS."
     },
@@ -2890,9 +2905,131 @@
       "type": "security",
       "feature_id": "forseti-jobhunter-company-interest-tracker",
       "command": "curl -s -o /dev/null -w \"%{http_code}\" https://forseti.life/jobhunter/companies/my-list",
-      "artifacts": ["/tmp/qa-forseti-company-interest-tc9.log"],
+      "artifacts": [
+        "/tmp/qa-forseti-company-interest-tc9.log"
+      ],
       "required_for_release": true,
       "notes": "Expect 403 or 302 redirect to login. Anonymous access to personal watchlist must be blocked."
+    },
+    {
+      "id": "forseti-jobhunter-company-research-tracker-tc1-company-list-smoke",
+      "label": "TC-1: /jobhunter/companies renders with tracked companies (smoke)",
+      "type": "functional",
+      "feature_id": "forseti-jobhunter-company-research-tracker",
+      "command": "curl -s -b \"$FORSETI_COOKIE_AUTHENTICATED\" https://forseti.life/jobhunter/companies | grep -c 'company-research'",
+      "artifacts": [
+        "/tmp/qa-forseti-company-research-tc1.log"
+      ],
+      "required_for_release": true,
+      "notes": "Expect HTTP 200; body contains 'company-research' markup; grep count >= 1."
+    },
+    {
+      "id": "forseti-jobhunter-company-research-tracker-tc2-save-all-fields",
+      "label": "TC-2: Submit research form \u2014 all fields (score, notes, link) saved to DB",
+      "type": "functional",
+      "feature_id": "forseti-jobhunter-company-research-tracker",
+      "command": "drush sql:query \"SELECT culture_fit_score, notes FROM jobhunter_company_research WHERE uid=<uid> AND company_id=7\" 2>/dev/null",
+      "artifacts": [
+        "/tmp/qa-forseti-company-research-tc2.log"
+      ],
+      "required_for_release": true,
+      "notes": "Expect row with score=8 and notes='Good WLB' after form submit."
+    },
+    {
+      "id": "forseti-jobhunter-company-research-tracker-tc3-form-prepopulates",
+      "label": "TC-3: Research form pre-populates on revisit with saved values",
+      "type": "functional",
+      "feature_id": "forseti-jobhunter-company-research-tracker",
+      "command": "curl -s -b \"$FORSETI_COOKIE_AUTHENTICATED\" https://forseti.life/jobhunter/companies/<id> | grep 'Good WLB'",
+      "artifacts": [
+        "/tmp/qa-forseti-company-research-tc3.log"
+      ],
+      "required_for_release": true,
+      "notes": "Page HTML must contain the saved notes text. Score field must show saved value."
+    },
+    {
+      "id": "forseti-jobhunter-company-research-tracker-tc4-update-idempotency",
+      "label": "TC-4: Re-submit research form updates existing row, no duplicate created",
+      "type": "functional",
+      "feature_id": "forseti-jobhunter-company-research-tracker",
+      "command": "drush sql:query \"SELECT COUNT(*) FROM jobhunter_company_research WHERE uid=<uid> AND company_id=7\" 2>/dev/null",
+      "artifacts": [
+        "/tmp/qa-forseti-company-research-tc4.log"
+      ],
+      "required_for_release": true,
+      "notes": "After second submit with score=9, COUNT(*) must remain 1 (upsert). Verify score updated."
+    },
+    {
+      "id": "forseti-jobhunter-company-research-tracker-tc5-score-boundary-validation",
+      "label": "TC-5: culture_fit_score=11 rejected \u2014 HTTP 422 and no DB write",
+      "type": "validation",
+      "feature_id": "forseti-jobhunter-company-research-tracker",
+      "command": "curl -s -o /dev/null -w \"%{http_code}\" -X POST -b \"$FORSETI_COOKIE_AUTHENTICATED\" -d 'culture_fit_score=11' https://forseti.life/jobhunter/company-research",
+      "artifacts": [
+        "/tmp/qa-forseti-company-research-tc5.log"
+      ],
+      "required_for_release": true,
+      "notes": "Score must be 0-10 range only. Expect 422 response; no row created/updated with score=11."
+    },
+    {
+      "id": "forseti-jobhunter-company-research-tracker-tc6-javascript-link-rejected",
+      "label": "TC-6: javascript: URI in research_links_json rejected \u2014 HTTP 422",
+      "type": "security",
+      "feature_id": "forseti-jobhunter-company-research-tracker",
+      "command": "curl -s -o /dev/null -w \"%{http_code}\" -X POST -b \"$FORSETI_COOKIE_AUTHENTICATED\" -d 'research_links_json=[\"javascript:alert(1)\"]' https://forseti.life/jobhunter/company-research",
+      "artifacts": [
+        "/tmp/qa-forseti-company-research-tc6.log"
+      ],
+      "required_for_release": true,
+      "notes": "Expect 422; DB must not contain javascript: URI. Verify with: SELECT research_links_json ... WHERE company_id=7 \u2014 no javascript: content."
+    },
+    {
+      "id": "forseti-jobhunter-company-research-tracker-tc7-anon-get-403",
+      "label": "TC-7: Unauthenticated GET /jobhunter/companies returns 403 or redirect",
+      "type": "security",
+      "feature_id": "forseti-jobhunter-company-research-tracker",
+      "command": "curl -s -o /dev/null -w \"%{http_code}\" https://forseti.life/jobhunter/companies",
+      "artifacts": [
+        "/tmp/qa-forseti-company-research-tc7.log"
+      ],
+      "required_for_release": true,
+      "notes": "Expect 403 or 302. Anonymous access to user research list must be blocked."
+    },
+    {
+      "id": "forseti-jobhunter-company-research-tracker-tc8-cross-user-isolation",
+      "label": "TC-8: Cross-user isolation \u2014 user B sees no research data from user A",
+      "type": "security",
+      "feature_id": "forseti-jobhunter-company-research-tracker",
+      "command": "drush sql:query \"SELECT COUNT(*) FROM jobhunter_company_research WHERE uid=<uid_B>\" 2>/dev/null",
+      "artifacts": [
+        "/tmp/qa-forseti-company-research-tc8.log"
+      ],
+      "required_for_release": true,
+      "notes": "User B list must be empty. COUNT(*) for uid_B = 0. No cross-tenant data leak."
+    },
+    {
+      "id": "forseti-jobhunter-company-research-tracker-tc9-csrf-required-on-post",
+      "label": "TC-9: Authenticated POST without CSRF token returns 403",
+      "type": "security",
+      "feature_id": "forseti-jobhunter-company-research-tracker",
+      "command": "curl -s -o /dev/null -w \"%{http_code}\" -X POST -b \"$FORSETI_COOKIE_AUTHENTICATED\" https://forseti.life/jobhunter/company-research",
+      "artifacts": [
+        "/tmp/qa-forseti-company-research-tc9.log"
+      ],
+      "required_for_release": true,
+      "notes": "POST without X-CSRF-Token header must return 403. Tests Drupal CSRF protection on save route."
+    },
+    {
+      "id": "forseti-jobhunter-company-research-tracker-tc10-no-notes-in-watchdog",
+      "label": "TC-10: Research notes not logged in watchdog debug output (privacy)",
+      "type": "observability",
+      "feature_id": "forseti-jobhunter-company-research-tracker",
+      "command": "drush watchdog:show --count=10 --severity=debug 2>/dev/null | grep -c 'Good WLB'",
+      "artifacts": [
+        "/tmp/qa-forseti-company-research-tc10.log"
+      ],
+      "required_for_release": true,
+      "notes": "After saving notes, grep count must be 0 \u2014 no PII/notes content in debug log output."
     }
   ],
   "_schema_notes": [

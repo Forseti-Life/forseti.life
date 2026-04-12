@@ -938,6 +938,28 @@
         "authenticated": "403",
         "admin": "200"
       }
+    },
+    {
+      "id": "forseti-jobhunter-company-research-tracker-companies-list",
+      "feature_id": "forseti-jobhunter-company-research-tracker",
+      "path_regex": "^/jobhunter/companies$",
+      "notes": "Added for feature forseti-jobhunter-company-research-tracker. Per-user company research list. Auth required.",
+      "expect": {
+        "anon": "403",
+        "authenticated": "200",
+        "admin": "200"
+      }
+    },
+    {
+      "id": "forseti-jobhunter-company-research-tracker-research-save",
+      "feature_id": "forseti-jobhunter-company-research-tracker",
+      "path_regex": "^/jobhunter/company-research$",
+      "notes": "Added for feature forseti-jobhunter-company-research-tracker. POST save endpoint for company research overlay. Auth + CSRF required.",
+      "expect": {
+        "anon": "403",
+        "authenticated": "200",
+        "admin": "200"
+      }
     }
   ]
 }
