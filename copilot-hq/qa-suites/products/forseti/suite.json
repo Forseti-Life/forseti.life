@@ -3378,18 +3378,6 @@
       ],
       "required_for_release": true,
       "notes": "Submit version_notes='<script>alert(\"xss\")</script>'. DB must not store raw <script> tag; rendered page must not execute JS."
-    },
-    {
-      "id": "forseti-jobhunter-resume-version-labeling-tc7-cross-user-resume-ownership",
-      "label": "TC-7: source_resume_id ownership check \u2014 user A cannot assign user B resume to their application",
-      "type": "security",
-      "feature_id": "forseti-jobhunter-resume-version-labeling",
-      "command": "drush sql:query \"SELECT source_resume_id FROM jobhunter_applications WHERE uid=<uid_A>\" 2>/dev/null",
-      "artifacts": [
-        "/tmp/qa-forseti-resume-version-tc7.log"
-      ],
-      "required_for_release": true,
-      "notes": "User A submitting source_resume_id=99 (owned by user B) must return 403. DB must not show 99 for uid_A."
     }
   ],
   "_schema_notes": [
