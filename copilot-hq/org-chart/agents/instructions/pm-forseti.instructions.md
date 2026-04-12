@@ -199,6 +199,15 @@ Even without a `release-close-now` trigger, you MUST sign off as soon as ALL in-
 Start-of-cycle (recommended for coordinated releases):
 - `./scripts/coordinated-release-cycle-start.sh <release-id>`
 
+### BA brief pipeline policy (required)
+Before closing any release cycle, pm-forseti MUST verify that the backlog contains at least 3 features with `Status: ready` for the next cycle.
+
+- **Check command:** `grep -rl "^- Status: ready" features/forseti-*/feature.md | wc -l`
+- If the count is **< 3** at release close time, immediately dispatch a ba-forseti inbox item (`sessions/ba-forseti/inbox/<date>-feature-briefs-<release>/`) requesting new feature briefs BEFORE closing the release.
+- Do NOT open the next release cycle until either: (a) 3+ ready features exist, OR (b) CEO explicitly authorizes an empty release.
+
+Context: this policy was added 2026-04-12 after 3+ consecutive release cycles (release-b, release-c, release-d) had dry backlogs because ba-forseti was only dispatched reactively after empty releases closed (GAP-FORSETI-BA-BRIEF-PIPELINE-MISSING-01).
+
 ## Gate 2 with no in-scope features — empty release pattern (required)
 When a `gate2-ready` inbox item arrives and `features/*/feature.md` shows NO forseti features in `in_progress` status:
 1. This is a site-health baseline audit (triggered post-release or start-of-cycle) — NOT a pre-ship Gate 2
