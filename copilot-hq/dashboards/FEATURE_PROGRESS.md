@@ -1,6 +1,6 @@
 # Feature Progress
 
-Generated: 2026-04-12T21:53:58Z
+Generated: 2026-04-12T23:35:15Z
 
 | Work item | Website | Module | Status | Priority | PM | Dev | QA |
 |-----------|---------|--------|--------|----------|----|-----|----|
@@ -90,14 +90,14 @@ Generated: 2026-04-12T21:53:58Z
 | dc-cr-gnome-weapon-expertise | dungeoncrawler | dungeoncrawler_content | ready | P3 |  |  |  |
 | dc-cr-gnome-weapon-familiarity | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
 | dc-cr-gnome-weapon-specialist | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
-| dc-cr-goblin-ancestry | dungeoncrawler | dungeoncrawler_content | in_progress | P2 |  |  |  |
-| dc-cr-goblin-very-sneaky | dungeoncrawler | dungeoncrawler_content | in_progress | P2 |  |  |  |
-| dc-cr-goblin-weapon-familiarity | dungeoncrawler | dungeoncrawler_content | in_progress | P2 |  |  |  |
-| dc-cr-goblin-weapon-frenzy | dungeoncrawler | dungeoncrawler_content | in_progress | P3 |  |  |  |
-| dc-cr-halfling-ancestry | dungeoncrawler | dungeoncrawler_content | in_progress | P2 |  |  |  |
-| dc-cr-halfling-heritage-gutsy | dungeoncrawler | dungeoncrawler_content | in_progress | P3 |  |  |  |
-| dc-cr-halfling-heritage-hillock | dungeoncrawler | dungeoncrawler_content | in_progress | P3 |  |  |  |
-| dc-cr-halfling-keen-eyes | dungeoncrawler | dungeoncrawler_content | in_progress | P2 |  |  |  |
+| dc-cr-goblin-ancestry | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
+| dc-cr-goblin-very-sneaky | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
+| dc-cr-goblin-weapon-familiarity | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
+| dc-cr-goblin-weapon-frenzy | dungeoncrawler | dungeoncrawler_content | ready | P3 |  |  |  |
+| dc-cr-halfling-ancestry | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
+| dc-cr-halfling-heritage-gutsy | dungeoncrawler | dungeoncrawler_content | ready | P3 |  |  |  |
+| dc-cr-halfling-heritage-hillock | dungeoncrawler | dungeoncrawler_content | ready | P3 |  |  |  |
+| dc-cr-halfling-keen-eyes | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
 | dc-cr-hazards | dungeoncrawler | dungeoncrawler_content | in_progress | P2 |  |  |  |
 | dc-cr-heritage-system | dungeoncrawler | dungeoncrawler_content | done | P1 (character creation dependency; heritage selection step immediately follows ancestry in creation wizard) |  |  |  |
 | dc-cr-human-ancestry | dungeoncrawler | dungeoncrawler_content | done |  |  |  |  |
@@ -138,7 +138,7 @@ Generated: 2026-04-12T21:53:58Z
 | dc-cr-treasure-by-level | dungeoncrawler | dungeoncrawler_content | in_progress |  |  |  |  |
 | dc-cr-unburdened-iron | dungeoncrawler | dungeoncrawler_content | done | unset (PM will set at triage) |  |  |  |
 | dc-cr-vengeful-hatred | dungeoncrawler | dungeoncrawler_content | done | unset (PM will set at triage) |  |  |  |
-| dc-cr-vivacious-conduit | dungeoncrawler | dungeoncrawler_content | in_progress | P3 |  |  |  |
+| dc-cr-vivacious-conduit | dungeoncrawler | dungeoncrawler_content | ready | P3 |  |  |  |
 | dc-cr-xp-award-system | dungeoncrawler | dungeoncrawler_content | done | P3 |  |  |  |
 | dc-cr-xp-rewards | dungeoncrawler | dungeoncrawler_content | done | unset (PM will set at triage) |  |  |  |
 | dc-gam-gods-magic | dungeoncrawler | dungeoncrawler_content | ready | P3 |  |  |  |
