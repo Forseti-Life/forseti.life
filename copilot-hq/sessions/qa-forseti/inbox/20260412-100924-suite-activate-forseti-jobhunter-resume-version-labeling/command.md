@@ -249,3 +249,5 @@ When saving `source_resume_id`, the server verifies the referenced resume belong
 
 ### SEC-5: No resume content in logs
 `version_notes` and extracted resume text must NOT appear in watchdog logs. Log only `uid` and `resume_id`.
+- Agent: qa-forseti
+- Status: pending

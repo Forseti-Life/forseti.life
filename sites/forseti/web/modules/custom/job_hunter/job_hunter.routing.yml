@@ -1478,3 +1478,39 @@ job_hunter.company_interest_save:
     _user_is_logged_in: 'TRUE'
     _csrf_token: 'TRUE'
     company_id: \d+
+
+# Company Research Tracker — user list
+job_hunter.company_research_list:
+  path: '/jobhunter/companies'
+  defaults:
+    _controller: '\Drupal\job_hunter\Controller\CompanyController::companyResearchList'
+    _title: 'My Company Research'
+  methods: [GET]
+  requirements:
+    _permission: 'access job hunter'
+    _user_is_logged_in: 'TRUE'
+
+# Company Research Tracker — research form (GET)
+job_hunter.company_research_form:
+  path: '/jobhunter/companies/{company_id}/research'
+  defaults:
+    _controller: '\Drupal\job_hunter\Controller\CompanyController::companyResearchForm'
+    _title: 'Company Research'
+  methods: [GET]
+  requirements:
+    _permission: 'access job hunter'
+    _user_is_logged_in: 'TRUE'
+    company_id: \d+
+
+# Company Research Tracker — save (POST, CSRF split-route)
+job_hunter.company_research_save:
+  path: '/jobhunter/companies/{company_id}/research/save'
+  defaults:
+    _controller: '\Drupal\job_hunter\Controller\CompanyController::companyResearchSave'
+    _title: 'Save Company Research'
+  methods: [POST]
+  requirements:
+    _permission: 'access job hunter'
+    _user_is_logged_in: 'TRUE'
+    _csrf_token: 'TRUE'
+    company_id: \d+

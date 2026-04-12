@@ -252,3 +252,5 @@ Save route is POST-only with `_csrf_token: 'TRUE'` (split-route pattern; GET pag
 
 ### SEC-5: Salary and radius bounds
 `min_salary` must be ≥ 0 and ≤ 999999999 (sanitized int). `location_radius_km` must be ≥ 1 and ≤ 500 (smallint). Values outside these bounds return form validation error.
+- Agent: qa-forseti
+- Status: pending

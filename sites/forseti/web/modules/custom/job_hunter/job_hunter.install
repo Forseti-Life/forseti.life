@@ -3068,3 +3068,40 @@ function job_hunter_update_9048() {
   _job_hunter_create_company_interest_table();
   return t('Created jobhunter_company_interest table for per-user company interest tracking.');
 }
+
+/**
+ * Helper: creates jobhunter_company_research table.
+ */
+function _job_hunter_create_company_research_table(): void {
+  $schema = \Drupal::database()->schema();
+  if ($schema->tableExists('jobhunter_company_research')) {
+    return;
+  }
+  $schema->createTable('jobhunter_company_research', [
+    'description' => 'Per-user company research tracking keyed by (uid, company_id).',
+    'fields' => [
+      'id'                 => ['type' => 'serial', 'unsigned' => TRUE, 'not null' => TRUE],
+      'uid'                => ['type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0],
+      'company_id'         => ['type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE],
+      'culture_fit_score'  => ['type' => 'int', 'size' => 'tiny', 'not null' => FALSE, 'default' => NULL],
+      'notes'              => ['type' => 'text', 'size' => 'medium', 'not null' => FALSE],
+      'research_links_json'=> ['type' => 'text', 'size' => 'medium', 'not null' => FALSE],
+      'created'            => ['type' => 'int', 'not null' => TRUE, 'default' => 0],
+      'changed'            => ['type' => 'int', 'not null' => TRUE, 'default' => 0],
+    ],
+    'primary key' => ['id'],
+    'unique keys' => ['uid_company' => ['uid', 'company_id']],
+    'indexes' => [
+      'uid'        => ['uid'],
+      'company_id' => ['company_id'],
+    ],
+  ]);
+}
+
+/**
+ * Create jobhunter_company_research table for per-user company research tracking.
+ */
+function job_hunter_update_9049() {
+  _job_hunter_create_company_research_table();
+  return t('Created jobhunter_company_research table for per-user company research tracking.');
+}

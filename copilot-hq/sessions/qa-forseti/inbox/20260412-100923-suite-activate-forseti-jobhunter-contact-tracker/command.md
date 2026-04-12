@@ -255,3 +255,5 @@ All text fields (name, title, notes, email, LinkedIn URL) stored as plain text. 
 
 ### SEC-5: No PII in logs
 Contact name, email, and LinkedIn URL must NOT appear in watchdog logs at any severity. Log only `uid` and contact `id` for mutations.
+- Agent: qa-forseti
+- Status: pending

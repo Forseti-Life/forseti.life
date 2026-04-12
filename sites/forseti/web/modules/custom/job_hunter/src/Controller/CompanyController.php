@@ -2821,4 +2821,240 @@ HTML;
     );
   }
 
+  /**
+   * Lists all companies the current user has researched.
+   */
+  public function companyResearchList(): array {
+    $uid = (int) $this->currentUser()->id();
+
+    $rows = $this->database->select('jobhunter_company_research', 'cr')
+      ->fields('cr', ['id', 'company_id', 'culture_fit_score', 'changed'])
+      ->fields('c', ['name', 'industry'])
+      ->condition('cr.uid', $uid)
+      ->orderBy('cr.changed', 'DESC')
+      ->execute()
+      ->fetchAll();
+
+    // We need a join — redo with proper join syntax.
+    $query = $this->database->select('jobhunter_company_research', 'cr');
+    $query->join('jobhunter_companies', 'c', 'cr.company_id = c.id');
+    $query->fields('cr', ['id', 'company_id', 'culture_fit_score', 'changed']);
+    $query->fields('c', ['name', 'industry']);
+    $query->condition('cr.uid', $uid);
+    $query->orderBy('cr.changed', 'DESC');
+    $rows = $query->execute()->fetchAll();
+
+    if (empty($rows)) {
+      $content = ['#markup' => '<p>No companies tracked yet.</p>'];
+      return $this->wrapWithNavigation($content);
+    }
+
+    $header = ['Company', 'Industry', 'Culture Fit Score', 'Last Updated', 'Actions'];
+    $table_rows = [];
+    foreach ($rows as $row) {
+      $company_name = htmlspecialchars($row->name ?? '', ENT_QUOTES, 'UTF-8');
+      $industry     = htmlspecialchars($row->industry ?? '', ENT_QUOTES, 'UTF-8');
+      $score        = ($row->culture_fit_score !== NULL) ? (int) $row->culture_fit_score : '—';
+      $date         = $row->changed ? date('Y-m-d', (int) $row->changed) : '—';
+      $cid          = (int) $row->company_id;
+      $table_rows[] = [
+        '<a href="/jobhunter/companies/' . $cid . '/research">' . $company_name . '</a>',
+        $industry,
+        $score,
+        $date,
+        '<a href="/jobhunter/companies/' . $cid . '/research">Edit</a>',
+      ];
+    }
+
+    $header_html = '<tr><th>' . implode('</th><th>', $header) . '</th></tr>';
+    $body_html = '';
+    foreach ($table_rows as $tr) {
+      $body_html .= '<tr><td>' . implode('</td><td>', $tr) . '</td></tr>';
+    }
+
+    $html = '<table class="company-research"><thead>' . $header_html . '</thead><tbody>' . $body_html . '</tbody></table>';
+    $content = ['#markup' => $html];
+    return $this->wrapWithNavigation($content);
+  }
+
+  /**
+   * Renders the company research form (GET).
+   */
+  public function companyResearchForm($company_id): array|\Symfony\Component\HttpFoundation\Response {
+    $uid        = (int) $this->currentUser()->id();
+    $company_id = (int) $company_id;
+
+    $company = $this->database->select('jobhunter_companies', 'c')
+      ->fields('c', ['id', 'name', 'industry'])
+      ->condition('c.id', $company_id)
+      ->execute()
+      ->fetchObject();
+
+    if (!$company) {
+      return new \Symfony\Component\HttpFoundation\Response('Company not found.', 404);
+    }
+
+    $existing = $this->database->select('jobhunter_company_research', 'cr')
+      ->fields('cr', ['culture_fit_score', 'notes', 'research_links_json'])
+      ->condition('cr.uid', $uid)
+      ->condition('cr.company_id', $company_id)
+      ->execute()
+      ->fetchObject();
+
+    $score_val = ($existing && $existing->culture_fit_score !== NULL) ? (int) $existing->culture_fit_score : '';
+    $notes_val = $existing ? htmlspecialchars($existing->notes ?? '', ENT_QUOTES, 'UTF-8') : '';
+    $links_val = '';
+    if ($existing && !empty($existing->research_links_json)) {
+      $links_arr = json_decode($existing->research_links_json, TRUE);
+      if (is_array($links_arr)) {
+        $links_val = htmlspecialchars(implode("\n", $links_arr), ENT_QUOTES, 'UTF-8');
+      }
+    }
+
+    $company_name = htmlspecialchars($company->name, ENT_QUOTES, 'UTF-8');
+    $token        = \Drupal::csrfToken()->get('session');
+    $form_action  = '/jobhunter/companies/' . $company_id . '/research/save?token=' . urlencode($token);
+
+    $html = <<<HTML
+<div class="company-research-form">
+  <h2>Research: {$company_name}</h2>
+  <form method="post" action="{$form_action}">
+    <div style="margin-bottom:1em;">
+      <label for="cr-score"><strong>Culture Fit Score</strong> (0–10)</label><br>
+      <input type="number" name="culture_fit_score" id="cr-score" min="0" max="10" value="{$score_val}" style="width:80px;">
+    </div>
+    <div style="margin-bottom:1em;">
+      <label for="cr-links"><strong>Research links (one URL per line)</strong></label><br>
+      <textarea name="research_links" id="cr-links" rows="4" style="width:100%;max-width:600px;">{$links_val}</textarea>
+    </div>
+    <div style="margin-bottom:1em;">
+      <label for="cr-notes"><strong>Notes</strong> (optional)</label><br>
+      <textarea name="notes" id="cr-notes" rows="6" style="width:100%;max-width:600px;">{$notes_val}</textarea>
+    </div>
+    <button type="submit" class="button button--primary">Save</button>
+    &nbsp;
+    <a href="/jobhunter/companies" class="button">Back to My Research</a>
+  </form>
+</div>
+HTML;
+
+    $content = ['#markup' => $html];
+    return $this->wrapWithNavigation($content);
+  }
+
+  /**
+   * Saves company research data (POST, CSRF-protected via routing.yml split-route).
+   */
+  public function companyResearchSave($company_id): \Symfony\Component\HttpFoundation\Response {
+    $uid        = (int) $this->currentUser()->id();
+    $company_id = (int) $company_id;
+
+    $request = $this->requestStack->getCurrentRequest();
+
+    $company_exists = $this->database->select('jobhunter_companies', 'c')
+      ->fields('c', ['id'])
+      ->condition('c.id', $company_id)
+      ->execute()
+      ->fetchField();
+
+    if (!$company_exists) {
+      return new \Symfony\Component\HttpFoundation\Response('Company not found.', 404);
+    }
+
+    // Validate culture_fit_score (SEC-4 range check).
+    $score_raw = $request->request->get('culture_fit_score', '');
+    if ($score_raw !== '' && $score_raw !== NULL) {
+      $score = (int) $score_raw;
+      if ($score < 0 || $score > 10) {
+        return new \Symfony\Component\HttpFoundation\JsonResponse(
+          ['error' => 'culture_fit_score must be 0–10'],
+          422
+        );
+      }
+      $culture_fit = $score;
+    }
+    else {
+      $culture_fit = NULL;
+    }
+
+    // Validate research_links: http/https only (SEC-4).
+    $links_raw  = (string) $request->request->get('research_links', '');
+    $link_lines = array_filter(array_map('trim', explode("\n", $links_raw)));
+    $clean_links = [];
+    foreach ($link_lines as $url) {
+      $scheme = strtolower(parse_url($url, PHP_URL_SCHEME) ?? '');
+      if (!in_array($scheme, ['http', 'https'], TRUE)) {
+        return new \Symfony\Component\HttpFoundation\JsonResponse(
+          ['error' => 'research_links must be http or https URLs'],
+          422
+        );
+      }
+      $clean_links[] = $url;
+    }
+    $links_json = !empty($clean_links) ? json_encode(array_values($clean_links)) : NULL;
+
+    // Strip HTML from notes (SEC-5).
+    $notes = strip_tags((string) $request->request->get('notes', ''));
+    if ($notes === '') {
+      $notes = NULL;
+    }
+
+    $now = \Drupal::time()->getRequestTime();
+
+    try {
+      $existing_id = $this->database->select('jobhunter_company_research', 'cr')
+        ->fields('cr', ['id'])
+        ->condition('cr.uid', $uid)
+        ->condition('cr.company_id', $company_id)
+        ->execute()
+        ->fetchField();
+
+      if ($existing_id) {
+        $this->database->update('jobhunter_company_research')
+          ->fields([
+            'culture_fit_score'   => $culture_fit,
+            'notes'               => $notes,
+            'research_links_json' => $links_json,
+            'changed'             => $now,
+          ])
+          ->condition('id', $existing_id)
+          ->execute();
+      }
+      else {
+        $this->database->insert('jobhunter_company_research')
+          ->fields([
+            'uid'                 => $uid,
+            'company_id'          => $company_id,
+            'culture_fit_score'   => $culture_fit,
+            'notes'               => $notes,
+            'research_links_json' => $links_json,
+            'created'             => $now,
+            'changed'             => $now,
+          ])
+          ->execute();
+      }
+
+      // Log uid + company_id only — never notes content (SEC-6).
+      $this->getLogger('job_hunter')->info(
+        'Company research saved: uid=@uid company_id=@cid',
+        ['@uid' => $uid, '@cid' => $company_id]
+      );
+    }
+    catch (\Exception $e) {
+      $this->getLogger('job_hunter')->error(
+        'companyResearchSave failed: uid=@uid company_id=@cid error=@error',
+        ['@uid' => $uid, '@cid' => $company_id, '@error' => $e->getMessage()]
+      );
+      $this->messenger()->addError($this->t('Failed to save. Please try again.'));
+      return new \Symfony\Component\HttpFoundation\RedirectResponse(
+        Url::fromRoute('job_hunter.company_research_form', ['company_id' => $company_id])->toString()
+      );
+    }
+
+    $this->messenger()->addStatus($this->t('Company research saved.'));
+    return new \Symfony\Component\HttpFoundation\RedirectResponse(
+      Url::fromRoute('job_hunter.company_research_list')->toString()
+    );
+  }
+
 }
