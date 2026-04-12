@@ -40,3 +40,5 @@ Should return "OK" (not a rejection).
 ## ROI
 
 ROI: 25. Proactive pipeline fill — unblocks forseti-release-e from opening with an empty backlog. Do NOT wait for empty scope-activates to fire before creating these briefs.
+- Agent: ba-forseti
+- Status: pending

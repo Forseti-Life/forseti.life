@@ -5,3 +5,5 @@
     3) Queue required follow-through inbox item(s) for the owning seat in the same cycle where feasible.
 
     Output must follow the required outbox template and include SMART outcomes for proposed process fixes.
+- Agent: agent-task-runner
+- Status: pending
