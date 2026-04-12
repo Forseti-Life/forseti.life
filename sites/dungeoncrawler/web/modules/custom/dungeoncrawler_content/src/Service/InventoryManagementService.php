@@ -24,6 +24,11 @@ class InventoryManagementService {
   protected CharacterStateService $characterStateService;
 
   /**
+   * Item subtypes that sell at full price (CRB Ch10: gems, art objects, raw materials).
+   */
+  public const FULL_PRICE_SUBTYPES = ['gem', 'art_object', 'raw_material'];
+
+  /**
    * Bulk weight mappings per PF2e spec.
    */
   private const BULK_MAP = [
@@ -438,14 +443,82 @@ class InventoryManagementService {
       ];
     }
 
-    // Taboo waived (no taboo, or GM override) — proceed with removal.
-    return $this->removeItemFromInventory(
-      $owner_id,
-      $owner_type,
-      $item_instance_id,
-      1,
-      $campaign_id
-    );
+    // Taboo waived (no taboo, or GM override) — compute sell value and credit currency.
+    // CRB Ch10: gems, art objects, and raw materials sell at full Price;
+    // all standard items sell at half Price.
+    $item_subtype = $state['subtype'] ?? ($state['item_subtype'] ?? '');
+    $price_gp = isset($state['price_gp']) ? (float) $state['price_gp'] : 0.0;
+    $is_full_price = in_array($item_subtype, self::FULL_PRICE_SUBTYPES, TRUE);
+    $sell_value_gp = $is_full_price ? $price_gp : $price_gp / 2.0;
+    $sell_value_cp = (int) round($sell_value_gp * 100);
+
+    // Remove item first (within a transaction so currency credit is atomic).
+    $transaction = $this->database->startTransaction();
+    try {
+      $remove_result = $this->removeItemFromInventory(
+        $owner_id,
+        $owner_type,
+        $item_instance_id,
+        1,
+        $campaign_id
+      );
+
+      // Credit currency to seller (characters only; containers have no currency).
+      if ($owner_type === 'character' && $sell_value_cp > 0) {
+        $char_record = $this->database->select('dc_campaign_characters', 'c')
+          ->fields('c', ['character_data'])
+          ->condition('id', $owner_id)
+          ->execute()
+          ->fetchAssoc();
+
+        if ($char_record) {
+          $char_data = json_decode($char_record['character_data'] ?? '{}', TRUE) ?: [];
+          $currency = $char_data['character']['equipment']['currency']
+            ?? $char_data['equipment']['currency']
+            ?? $char_data['currency']
+            ?? ['cp' => 0, 'sp' => 0, 'gp' => 0, 'pp' => 0];
+          if (!isset($currency['gp']) && isset($currency['gold'])) {
+            $currency = [
+              'pp' => (int) ($currency['pp'] ?? 0),
+              'gp' => (int) $currency['gold'],
+              'sp' => (int) ($currency['silver'] ?? 0),
+              'cp' => (int) ($currency['copper'] ?? 0),
+            ];
+          }
+          $rates = ['cp' => 1, 'sp' => 10, 'gp' => 100, 'pp' => 1000];
+          $total_cp = $sell_value_cp;
+          foreach ($rates as $denom => $rate) {
+            $total_cp += ((int) ($currency[$denom] ?? 0)) * $rate;
+          }
+          $new_currency = ['cp' => 0, 'sp' => 0, 'gp' => 0, 'pp' => 0];
+          foreach (['pp', 'gp', 'sp', 'cp'] as $denom) {
+            $new_currency[$denom] = intdiv($total_cp, $rates[$denom]);
+            $total_cp %= $rates[$denom];
+          }
+          if (isset($char_data['character']['equipment']['currency'])) {
+            $char_data['character']['equipment']['currency'] = $new_currency;
+          }
+          elseif (isset($char_data['equipment']['currency'])) {
+            $char_data['equipment']['currency'] = $new_currency;
+          }
+          else {
+            $char_data['currency'] = $new_currency;
+          }
+          $this->database->update('dc_campaign_characters')
+            ->fields(['character_data' => json_encode($char_data)])
+            ->condition('id', $owner_id)
+            ->execute();
+          $remove_result['currency_credited_cp'] = $sell_value_cp;
+          $remove_result['sell_price_type'] = $is_full_price ? 'full' : 'half';
+        }
+      }
+    }
+    catch (\Exception $e) {
+      $transaction->rollBack();
+      throw $e;
+    }
+    unset($transaction);
+    return $remove_result;
   }
 
   /**

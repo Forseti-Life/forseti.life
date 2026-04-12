@@ -55,6 +55,9 @@ services:
       - '@current_user'
       - '@dungeoncrawler_content.character_state'
 
+  dungeoncrawler_content.treasure_by_level:
+    class: Drupal\dungeoncrawler_content\Service\TreasureByLevelService
+
   dungeoncrawler_content.container_management:
     class: Drupal\dungeoncrawler_content\Service\ContainerManagementService
     arguments: ['@database']
