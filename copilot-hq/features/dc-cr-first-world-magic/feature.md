@@ -3,7 +3,7 @@
 - Work item id: dc-cr-first-world-magic
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: in_progress
+- Status: ready
 - Priority: P3
 - PM owner: pm-dungeoncrawler
 - Dev owner: dev-dungeoncrawler
