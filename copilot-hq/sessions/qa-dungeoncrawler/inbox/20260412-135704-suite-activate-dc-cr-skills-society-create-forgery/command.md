@@ -255,3 +255,5 @@ No conditional TCs — all 15 TCs are immediately activatable at Stage 0 (TC-SOC
 
 ## Security acceptance criteria
 - Security AC exemption: skill action logic; no new routes beyond existing downtime handlers
+- Agent: qa-dungeoncrawler
+- Status: pending

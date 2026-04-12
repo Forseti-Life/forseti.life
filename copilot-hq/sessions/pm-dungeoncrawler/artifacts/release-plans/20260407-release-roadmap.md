@@ -1,7 +1,20 @@
 # DungeonCrawler Release Roadmap
 - Date: 2026-04-07
 - Author: ceo-copilot-2
-- Status: active
+- Status: historical snapshot
+
+## Runtime release sync (2026-04-12)
+
+This file is the original 2026-04-07 planning snapshot. The live release state has advanced and should be read as:
+
+| Runtime pointer | Value | Progress |
+|---|---|---|
+| Active release | `20260412-dungeoncrawler-release-d` | 8 release deliverables are currently `in_progress`: `dc-cr-downtime-mode`, `dc-cr-feats-ch05`, `dc-cr-gnome-heritage-sensate`, `dc-cr-gnome-heritage-umbral`, `dc-cr-hazards`, `dc-cr-magic-ch11`, `dc-cr-rest-watch-starvation`, `dc-cr-skills-society-create-forgery` |
+| Carry-over in progress | `20260411-coordinated-release-next` | `dc-cr-gnome-heritage-chameleon` remains `in_progress` as stale carry-over and is not a release-d deliverable |
+| Most recently closed release | `20260412-dungeoncrawler-release-b` | Closed empty; 10 scoped features were deferred back to `ready` because no QA APPROVE evidence existed |
+| Runtime next release pointer | `20260412-dungeoncrawler-release-b` | Current value from `tmp/release-cycle-active/dungeoncrawler.next_release_id` |
+
+**Live source of truth:** `tmp/release-cycle-active/dungeoncrawler.release_id`, `tmp/release-cycle-active/dungeoncrawler.next_release_id`, `sessions/pm-dungeoncrawler/artifacts/releases/20260412-dungeoncrawler-release-d/01-change-list.md`, and `dashboards/FEATURE_PROGRESS.md`.
 
 ---
 

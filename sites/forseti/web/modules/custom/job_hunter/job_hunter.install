@@ -64,10 +64,11 @@ function job_hunter_install() {
     _job_hunter_create_search_history_table();
     _job_hunter_create_saved_jobs_table();
     _job_hunter_create_applications_table();
-    _job_hunter_create_employer_credentials_table();
-    _job_hunter_create_interview_notes_table();
-    _job_hunter_create_saved_searches_table();
-    _job_hunter_create_application_notes_table();
+     _job_hunter_create_employer_credentials_table();
+     _job_hunter_create_interview_notes_table();
+     _job_hunter_create_interview_rounds_table();
+     _job_hunter_create_saved_searches_table();
+     _job_hunter_create_application_notes_table();
     
     // Create content types and fields
     _job_hunter_create_error_queue_content_type();
@@ -2843,6 +2844,90 @@ function _job_hunter_create_interview_notes_table() {
 }
 
 /**
+ * Creates the jobhunter_interview_rounds table during module install.
+ */
+function _job_hunter_create_interview_rounds_table() {
+  $schema = \Drupal::database()->schema();
+
+  if ($schema->tableExists('jobhunter_interview_rounds')) {
+    return;
+  }
+
+  $table_schema = [
+    'description' => 'Stores per-user interview outcome rounds per saved job.',
+    'fields' => [
+      'id' => [
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'description' => 'Primary key.',
+      ],
+      'uid' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'User ID.',
+      ],
+      'saved_job_id' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Saved job row ID from jobhunter_saved_jobs.',
+      ],
+      'round_type' => [
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+        'default' => 'phone-screen',
+        'description' => 'Interview round type.',
+      ],
+      'outcome' => [
+        'type' => 'varchar',
+        'length' => 16,
+        'not null' => TRUE,
+        'default' => 'pending',
+        'description' => 'Outcome for the interview round.',
+      ],
+      'conducted_date' => [
+        'type' => 'varchar',
+        'length' => 10,
+        'not null' => TRUE,
+        'default' => '',
+        'description' => 'Interview round date in YYYY-MM-DD format.',
+      ],
+      'notes' => [
+        'type' => 'text',
+        'size' => 'medium',
+        'not null' => FALSE,
+        'description' => 'Optional interview round notes.',
+      ],
+      'created' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Unix timestamp when the round was created.',
+      ],
+      'changed' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Unix timestamp when the round was last updated.',
+      ],
+    ],
+    'primary key' => ['id'],
+    'indexes' => [
+      'uid_saved_job_id' => ['uid', 'saved_job_id'],
+      'saved_job_id' => ['saved_job_id'],
+      'conducted_date' => ['conducted_date'],
+    ],
+  ];
+
+  $schema->createTable('jobhunter_interview_rounds', $table_schema);
+}
+
+/**
  * Creates the jobhunter_saved_searches table during module install.
  */
 function _job_hunter_create_saved_searches_table() {
@@ -3193,4 +3278,12 @@ function job_hunter_update_9052() {
     ]);
   }
   return t('Added version_label, version_notes to jobhunter_job_seeker_resumes; added source_resume_id to jobhunter_applications.');
+}
+
+/**
+ * Create jobhunter_interview_rounds table for per-user saved-job interview logs.
+ */
+function job_hunter_update_9053() {
+  _job_hunter_create_interview_rounds_table();
+  return t('Created jobhunter_interview_rounds table for per-user saved-job interview logs.');
 }

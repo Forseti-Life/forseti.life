@@ -194,10 +194,10 @@ Root cause: `FORSETI_COOKIE_AUTHENTICATED` env var is never set in automation be
 **Roadmap audit runbook:** `runbooks/roadmap-audit.md`  
 **Scope:** Systematically implement all `pending` requirements in `dc_requirements` table until every requirement is either `implemented` or has a `feature_id` pointing to an active pipeline feature.
 
-Current status: Core ruleset implemented (action economy, ancestry, background, class, combat, conditions, skills). Open: movement gaps (GAP-2234/2235/2239-2242), hero point dead letter (GAP-2280/2281), exploration mode gaps (GAP-2290/2292), GM tools (hazard system, environment terrain), several APG classes.
+Current status: Core ruleset is broadly implemented and the live release engine is now aligned to `20260412-dungeoncrawler-release-d`. The prior scoped batch, `20260412-dungeoncrawler-release-b`, was closed empty and deferred back to `ready`; the active release has 8 deliverables currently `in_progress` (`dc-cr-downtime-mode`, `dc-cr-feats-ch05`, `dc-cr-gnome-heritage-sensate`, `dc-cr-gnome-heritage-umbral`, `dc-cr-hazards`, `dc-cr-magic-ch11`, `dc-cr-rest-watch-starvation`, `dc-cr-skills-society-create-forgery`). `dc-cr-gnome-heritage-chameleon` remains a stale carry-over `in_progress` item from `20260411-coordinated-release-next` and does not count as a release-d deliverable. Remaining roadmap focus areas are movement gaps (GAP-2234/2235/2239-2242), hero point dead letter (GAP-2280/2281), exploration mode gaps (GAP-2290/2292), GM tools, and later APG class work.
 
 See `runbooks/roadmap-audit.md` for full query protocol and per-chapter status.
 
 ---
 
-*Last updated: 2026-04-09 by ceo-copilot-2*
+*Last updated: 2026-04-12 by ceo-copilot-2*

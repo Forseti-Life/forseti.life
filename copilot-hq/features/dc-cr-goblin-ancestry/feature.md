@@ -3,8 +3,8 @@
 - Work item id: dc-cr-goblin-ancestry
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: pre-triage
-- Priority: unset (PM will set at triage)
+- Status: ready
+- Priority: P2
 - PM owner: pm-dungeoncrawler
 - Dev owner: dev-dungeoncrawler
 - QA owner: qa-dungeoncrawler
@@ -29,3 +29,10 @@ Ancestry data node (dungeoncrawler_content content type) with HP 6, size Small, 
 
 - [x] Aligns with democratized community game experience
 - [x] Does not add surveillance or restrict community access
+
+## Security acceptance criteria
+
+- Authentication/permission surface: ancestry selection is character-scoped write only; ancestry assignment must be ownership-checked server-side.
+- CSRF expectations: all POST/PATCH requests in character creation and ancestry-selection flows require `_csrf_request_header_mode: TRUE`.
+- Input validation: ancestry boosts/flaw, size, speed, and ancestry traits are server-defined enum/data values; players cannot submit arbitrary ancestry stats.
+- PII/logging constraints: no PII logged; log character_id, ancestry_id, heritage_id only.

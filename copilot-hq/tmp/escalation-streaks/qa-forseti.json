@@ -1,5 +1,4 @@
 {
-  "last_superior_escalation": "20260410-unit-test-20260409-235500-impl-forseti-jobhunter-return-to-open-redire",
-  "should_escalate": false,
-  "streak": 2
+  "last_superior_escalation": "20260412-unit-test-20260412-100923-impl-forseti-jobhunter-contact-tracker",
+  "streak": 0
 }

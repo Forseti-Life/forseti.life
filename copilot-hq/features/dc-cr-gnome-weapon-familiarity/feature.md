@@ -3,8 +3,8 @@
 - Work item id: dc-cr-gnome-weapon-familiarity
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: pre-triage
-- Priority: unset (PM will set at triage)
+- Status: ready
+- Priority: P2
 - PM owner: pm-dungeoncrawler
 - Dev owner: dev-dungeoncrawler
 - QA owner: qa-dungeoncrawler
@@ -28,3 +28,10 @@ Ancestry feat that adds glaive and kukri to the character's trained weapon list,
 
 - [x] Aligns with democratized community game experience
 - [x] Does not add surveillance or restrict community access
+
+## Security acceptance criteria
+
+- Authentication/permission surface: feat assignment is character-scoped write only; proficiency remap is server-calculated inside the weapon proficiency resolver.
+- CSRF expectations: all POST/PATCH requests in feat selection and equipment flows require `_csrf_request_header_mode: TRUE`.
+- Input validation: proficiency remap applies only to gnome-tagged weapons; access unlocks are limited to defined uncommon gnome weapons.
+- PII/logging constraints: no PII logged; log character_id, feat_id, granted_weapon_proficiencies only.

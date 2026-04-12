@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-04-12T13:54:48.262625",
+  "generated_at": "2026-04-12T15:55:03.562072",
   "window_minutes": 15,
   "teams": [
     {
@@ -84,7 +84,7 @@
       "workflow": {
         "dev_outbox_updates": 0,
         "dev_notify_qa_markers": 0,
-        "qa_done_markers": 0,
+        "qa_done_markers": 5,
         "handoff_signal": "weak"
       },
       "recent_deltas": [

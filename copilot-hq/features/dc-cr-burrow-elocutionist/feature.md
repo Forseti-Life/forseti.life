@@ -3,8 +3,8 @@
 - Work item id: dc-cr-burrow-elocutionist
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: pre-triage
-- Priority: unset (PM will set at triage)
+- Status: ready
+- Priority: P3
 - PM owner: pm-dungeoncrawler
 - Dev owner: dev-dungeoncrawler
 - QA owner: qa-dungeoncrawler
@@ -28,3 +28,10 @@ Ancestry feat that adds a special language/communication capability: can speak t
 
 - [x] Aligns with democratized community game experience
 - [x] Does not add surveillance or restrict community access
+
+## Security acceptance criteria
+
+- Authentication/permission surface: communication effect uses existing NPC/creature interaction flows only; no new permission surface beyond character-owned actions.
+- CSRF expectations: all POST/PATCH requests for dialogue or interaction actions require `_csrf_request_header_mode: TRUE`.
+- Input validation: the communication unlock applies only to creatures tagged as burrowing creatures; clients cannot spoof trait matches.
+- PII/logging constraints: no PII logged; log character_id, creature_id, communication_mode only.

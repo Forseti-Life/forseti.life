@@ -3,8 +3,8 @@
 - Work item id: dc-cr-animal-accomplice
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: pre-triage
-- Priority: unset (PM will set at triage)
+- Status: ready
+- Priority: P3
 - PM owner: pm-dungeoncrawler
 - Dev owner: dev-dungeoncrawler
 - QA owner: qa-dungeoncrawler
@@ -28,3 +28,10 @@ Ancestry feat that invokes the familiar grant flow (dc-cr-familiar) for non-spel
 
 - [x] Aligns with democratized community game experience
 - [x] Does not add surveillance or restrict community access
+
+## Security acceptance criteria
+
+- Authentication/permission surface: familiar grant and selection are character-scoped writes only; familiar ownership is enforced server-side.
+- CSRF expectations: all POST/PATCH requests in feat-selection and familiar-management flows require `_csrf_request_header_mode: TRUE`.
+- Input validation: granted familiar types must come from the valid familiar catalog; recommendation for burrow-speed animals is informational only and cannot bypass catalog rules.
+- PII/logging constraints: no PII logged; log character_id, feat_id, familiar_type only.

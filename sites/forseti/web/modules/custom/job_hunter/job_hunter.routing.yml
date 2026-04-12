@@ -1303,6 +1303,18 @@ job_hunter.interview_prep_save:
     _csrf_token: 'TRUE'
     job_id: \d+
 
+job_hunter.interview_round_save:
+  path: '/jobhunter/interview-rounds/{job_id}/save'
+  defaults:
+    _controller: '\Drupal\job_hunter\Controller\CompanyController::interviewRoundSave'
+    _title: 'Save Interview Round'
+  methods: [POST]
+  requirements:
+    _permission: 'access job hunter'
+    _user_is_logged_in: 'TRUE'
+    _csrf_token: 'TRUE'
+    job_id: \d+
+
 job_hunter.interview_prep_ai_tips:
   path: '/jobhunter/interview-prep/{job_id}/ai-tips'
   defaults:

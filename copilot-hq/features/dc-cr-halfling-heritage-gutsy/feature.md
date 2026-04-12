@@ -3,8 +3,8 @@
 - Work item id: dc-cr-halfling-heritage-gutsy
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: pre-triage
-- Priority: unset (PM will set at triage)
+- Status: ready
+- Priority: P3
 - PM owner: pm-dungeoncrawler
 - Dev owner: dev-dungeoncrawler
 - QA owner: qa-dungeoncrawler
@@ -32,3 +32,10 @@ Implements the Gutsy Halfling heritage: when a character with this heritage roll
 
 - [ ] Aligns with democratized community game experience
 - [ ] Does not add surveillance or restrict community access
+
+## Security acceptance criteria
+
+- Authentication/permission surface: heritage effects are passive and server-calculated within the existing save-resolution pipeline only.
+- CSRF expectations: all POST/PATCH combat/save-resolution actions require `_csrf_request_header_mode: TRUE`.
+- Input validation: success-to-critical-success upgrade applies only when the triggering effect carries the `emotion` trait and the character has Gutsy Halfling selected.
+- PII/logging constraints: no PII logged; log character_id, save_type, effect_traits, save_result_before_after only.

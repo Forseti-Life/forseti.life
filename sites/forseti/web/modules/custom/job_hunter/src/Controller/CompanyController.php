@@ -36,6 +36,16 @@ class CompanyController extends ControllerBase {
   const VALID_TAILORING_STATUSES = ['pending', 'queued', 'processing', 'completed', 'failed'];
 
   /**
+   * Valid interview round types.
+   */
+  const INTERVIEW_ROUND_TYPES = ['phone-screen', 'technical', 'behavioral', 'final', 'other'];
+
+  /**
+   * Valid interview round outcomes.
+   */
+  const INTERVIEW_ROUND_OUTCOMES = ['pending', 'passed', 'failed', 'withdrawn'];
+
+  /**
    * The database connection.
    *
    * @var \Drupal\Core\Database\Connection
@@ -132,6 +142,111 @@ class CompanyController extends ControllerBase {
     }
 
     return $decoded;
+  }
+
+  /**
+   * Load the saved-job row owned by the current user for a job requirement.
+   */
+  private function loadOwnedSavedJob(int $uid, int $job_id): ?object {
+    $saved_job = $this->database->select('jobhunter_saved_jobs', 'sj')
+      ->fields('sj', ['id', 'deadline_date', 'follow_up_date'])
+      ->condition('sj.uid', $uid)
+      ->condition('sj.job_id', $job_id)
+      ->execute()
+      ->fetchObject();
+
+    return $saved_job ?: NULL;
+  }
+
+  /**
+   * Load interview rounds for the current user and saved job in chronological order.
+   *
+   * @return object[]
+   *   Interview round rows.
+   */
+  private function loadInterviewRounds(int $uid, int $saved_job_id): array {
+    if (!$this->database->schema()->tableExists('jobhunter_interview_rounds')) {
+      return [];
+    }
+
+    return $this->database->select('jobhunter_interview_rounds', 'ir')
+      ->fields('ir', ['id', 'round_type', 'outcome', 'conducted_date', 'notes'])
+      ->condition('ir.uid', $uid)
+      ->condition('ir.saved_job_id', $saved_job_id)
+      ->orderBy('ir.conducted_date', 'ASC')
+      ->orderBy('ir.id', 'ASC')
+      ->execute()
+      ->fetchAll();
+  }
+
+  /**
+   * Return a human-friendly label for an interview round type.
+   */
+  private function getInterviewRoundTypeLabel(string $round_type): string {
+    $labels = [
+      'phone-screen' => 'Phone Screen',
+      'technical' => 'Technical',
+      'behavioral' => 'Behavioral',
+      'final' => 'Final',
+      'other' => 'Other',
+    ];
+
+    return $labels[$round_type] ?? ucwords(str_replace('-', ' ', $round_type));
+  }
+
+  /**
+   * Return label and CSS class metadata for an interview outcome.
+   *
+   * @return array{label: string, class: string}
+   *   Outcome display metadata.
+   */
+  private function getInterviewOutcomeMeta(string $outcome): array {
+    $meta = [
+      'pending' => ['label' => 'Pending', 'class' => 'outcome-pending'],
+      'passed' => ['label' => 'Passed', 'class' => 'outcome-passed'],
+      'failed' => ['label' => 'Failed', 'class' => 'outcome-failed'],
+      'withdrawn' => ['label' => 'Withdrawn', 'class' => 'outcome-withdrawn'],
+    ];
+
+    return $meta[$outcome] ?? ['label' => ucwords(str_replace('-', ' ', $outcome)), 'class' => 'outcome-neutral'];
+  }
+
+  /**
+   * Render the interview round log body markup.
+   */
+  private function buildInterviewRoundsLogHtml(array $rounds): string {
+    if (empty($rounds)) {
+      return '<p class="interview-rounds-empty">No interview rounds logged yet.</p>';
+    }
+
+    $rows_html = '';
+    foreach ($rounds as $round) {
+      $outcome_meta = $this->getInterviewOutcomeMeta((string) $round->outcome);
+      $notes = trim((string) ($round->notes ?? ''));
+      $notes_display = $notes !== '' ? htmlspecialchars($notes) : '&mdash;';
+      if ($notes !== '' && mb_strlen($notes) > 180) {
+        $notes_display = htmlspecialchars(mb_substr($notes, 0, 177) . '...');
+      }
+
+      $rows_html .= '<tr data-round-id="' . (int) $round->id . '">'
+        . '<td>' . htmlspecialchars($this->getInterviewRoundTypeLabel((string) $round->round_type)) . '</td>'
+        . '<td><span class="interview-outcome-badge ' . htmlspecialchars($outcome_meta['class']) . '">' . htmlspecialchars($outcome_meta['label']) . '</span></td>'
+        . '<td>' . htmlspecialchars((string) $round->conducted_date) . '</td>'
+        . '<td>' . $notes_display . '</td>'
+        . '<td><button type="button" class="button button--small button--secondary btn-interview-round-edit"'
+        . ' data-round-id="' . (int) $round->id . '"'
+        . ' data-round-type="' . htmlspecialchars((string) $round->round_type, ENT_QUOTES) . '"'
+        . ' data-outcome="' . htmlspecialchars((string) $round->outcome, ENT_QUOTES) . '"'
+        . ' data-conducted-date="' . htmlspecialchars((string) $round->conducted_date, ENT_QUOTES) . '"'
+        . ' data-notes="' . htmlspecialchars($notes, ENT_QUOTES) . '">'
+        . 'Edit</button></td>'
+        . '</tr>';
+    }
+
+    return '<table class="interview-rounds-table">'
+      . '<thead><tr><th>Round</th><th>Outcome</th><th>Date</th><th>Notes</th><th>Actions</th></tr></thead>'
+      . '<tbody>' . $rows_html . '</tbody>'
+      . '</table>';
   }
 
   /**
@@ -1194,12 +1309,7 @@ class CompanyController extends ControllerBase {
 
     // Application Notes block — visible only for saved jobs.
     $uid = (int) $this->currentUser->id();
-    $saved_job = $this->database->select('jobhunter_saved_jobs', 'sj')
-      ->fields('sj', ['id', 'deadline_date', 'follow_up_date'])
-      ->condition('sj.uid', $uid)
-      ->condition('sj.job_id', (int) $job_id)
-      ->execute()
-      ->fetchObject();
+    $saved_job = $this->loadOwnedSavedJob($uid, (int) $job_id);
 
     if ($saved_job) {
       $saved_job_id = (int) $saved_job->id;
@@ -1411,6 +1521,214 @@ class CompanyController extends ControllerBase {
           ',
         ],
         'deadline_tracker_js',
+      ];
+    }
+
+    // Interview outcome tracker — visible on saved-job detail pages once the
+    // interview rounds table exists.
+    if ($saved_job && $this->database->schema()->tableExists('jobhunter_interview_rounds')) {
+      $saved_job_id = (int) $saved_job->id;
+      $interview_rounds = $this->loadInterviewRounds($uid, $saved_job_id);
+      $save_url = Url::fromRoute('job_hunter.interview_round_save', ['job_id' => (int) $job_id])->toString();
+      $save_token = \Drupal::csrfToken()->get('jobhunter/interview-rounds/' . (int) $job_id . '/save');
+      $prep_url = Url::fromRoute('job_hunter.interview_prep', ['job_id' => (int) $job_id])->toString();
+
+      $round_type_options = '';
+      foreach (self::INTERVIEW_ROUND_TYPES as $round_type) {
+        $round_type_options .= '<option value="' . htmlspecialchars($round_type, ENT_QUOTES) . '">'
+          . htmlspecialchars($this->getInterviewRoundTypeLabel($round_type))
+          . '</option>';
+      }
+
+      $outcome_options = '';
+      foreach (self::INTERVIEW_ROUND_OUTCOMES as $outcome) {
+        $outcome_meta = $this->getInterviewOutcomeMeta($outcome);
+        $outcome_options .= '<option value="' . htmlspecialchars($outcome, ENT_QUOTES) . '">'
+          . htmlspecialchars($outcome_meta['label'])
+          . '</option>';
+      }
+
+      $summary_markup = '';
+      if (!empty($interview_rounds)) {
+        $latest_round = $interview_rounds[count($interview_rounds) - 1];
+        $latest_meta = $this->getInterviewOutcomeMeta((string) $latest_round->outcome);
+        $summary_markup = '<p class="interview-rounds-summary">'
+          . '<strong>' . count($interview_rounds) . '</strong> rounds logged. Latest: '
+          . htmlspecialchars($this->getInterviewRoundTypeLabel((string) $latest_round->round_type))
+          . ' — <span class="interview-outcome-badge ' . htmlspecialchars($latest_meta['class']) . '">'
+          . htmlspecialchars($latest_meta['label']) . '</span>'
+          . ' on ' . htmlspecialchars((string) $latest_round->conducted_date)
+          . '.</p>';
+      }
+
+      $content['interview_rounds'] = [
+        '#type' => 'container',
+        '#attributes' => ['class' => ['interview-rounds-section']],
+        '#markup' => '<h3>Interview Outcome Tracker</h3>'
+          . '<p class="interview-rounds-intro">Log each interview round here and keep prep notes separate at '
+          . '<a href="' . htmlspecialchars($prep_url) . '">Interview Prep</a>.</p>'
+          . $summary_markup
+          . '<div class="interview-round-form">'
+          . '<h4 class="interview-round-form-heading">Add Interview Round</h4>'
+          . '<input type="hidden" id="interview-round-id" value="">'
+          . '<div class="interview-round-form-grid">'
+          . '<div class="interview-round-field"><label for="interview-round-type">Round Type</label><select id="interview-round-type">' . $round_type_options . '</select></div>'
+          . '<div class="interview-round-field"><label for="interview-round-outcome">Outcome</label><select id="interview-round-outcome">' . $outcome_options . '</select></div>'
+          . '<div class="interview-round-field"><label for="interview-round-date">Date Conducted</label><input type="date" id="interview-round-date"></div>'
+          . '</div>'
+          . '<div class="interview-round-field"><label for="interview-round-notes">Notes</label><textarea id="interview-round-notes" rows="4" maxlength="4000" placeholder="Optional"></textarea></div>'
+          . '<div class="interview-round-actions">'
+          . '<button type="button" class="button button--primary btn-interview-round-save" data-save-url="' . $save_url . '" data-token="' . htmlspecialchars($save_token, ENT_QUOTES) . '">Save Interview Round</button>'
+          . '<button type="button" class="button button--secondary btn-interview-round-reset">Clear</button>'
+          . '<div id="interview-round-status-msg"></div>'
+          . '</div>'
+          . '</div>'
+          . '<div id="interview-round-log" class="interview-round-log">'
+          . $this->buildInterviewRoundsLogHtml($interview_rounds)
+          . '</div>',
+      ];
+
+      $content['#attached']['html_head'][] = [
+        [
+          '#tag' => 'style',
+          '#value' => '
+            .interview-rounds-section { margin-top: 24px; padding: 20px; background: #fefce8; border-radius: 8px; border-left: 4px solid #f59e0b; }
+            .interview-rounds-section h3 { margin: 0 0 10px 0; color: #333; }
+            .interview-rounds-intro { margin: 0 0 12px 0; }
+            .interview-rounds-summary { margin: 0 0 14px 0; color: #444; }
+            .interview-round-form { background: #fff; border: 1px solid #fde68a; border-radius: 8px; padding: 16px; margin-bottom: 18px; }
+            .interview-round-form-heading { margin: 0 0 12px 0; }
+            .interview-round-form-grid { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+            .interview-round-field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; }
+            .interview-round-field label { font-weight: 600; color: #555; font-size: 0.9em; }
+            .interview-round-field select,
+            .interview-round-field input[type="date"],
+            .interview-round-field textarea { width: 100%; max-width: 420px; padding: 8px 10px; border: 1px solid #d1d5db; border-radius: 4px; font-size: 0.95em; }
+            .interview-round-actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+            .interview-rounds-table { width: 100%; border-collapse: collapse; background: #fff; }
+            .interview-rounds-table th, .interview-rounds-table td { padding: 10px 12px; border-bottom: 1px solid #e5e7eb; text-align: left; vertical-align: top; }
+            .interview-rounds-table th { background: #f9fafb; font-weight: 600; }
+            .interview-rounds-empty { margin: 0; padding: 14px 0 4px; color: #666; }
+            .interview-outcome-badge { display: inline-block; padding: 3px 8px; border-radius: 999px; font-size: 0.85em; font-weight: 600; }
+            .interview-outcome-badge.outcome-pending { background: #e5e7eb; color: #374151; }
+            .interview-outcome-badge.outcome-passed { background: #d1fae5; color: #065f46; }
+            .interview-outcome-badge.outcome-failed { background: #fee2e2; color: #991b1b; }
+            .interview-outcome-badge.outcome-withdrawn { background: #fef3c7; color: #92400e; }
+            .interview-outcome-badge.outcome-neutral { background: #e0e7ff; color: #3730a3; }
+            #interview-round-status-msg { font-size: 0.9em; padding: 8px 12px; border-radius: 4px; display: none; }
+            #interview-round-status-msg.success { display: block; background: #d1fae5; color: #065f46; }
+            #interview-round-status-msg.error { display: block; background: #fee2e2; color: #991b1b; }
+          ',
+        ],
+        'interview_rounds_styles',
+      ];
+
+      $content['#attached']['html_head'][] = [
+        [
+          '#tag' => 'script',
+          '#value' => '
+(function() {
+  var saveBtn = document.querySelector(".btn-interview-round-save");
+  var resetBtn = document.querySelector(".btn-interview-round-reset");
+  if (!saveBtn || !resetBtn) { return; }
+
+  var statusEl = document.getElementById("interview-round-status-msg");
+  var roundIdEl = document.getElementById("interview-round-id");
+  var roundTypeEl = document.getElementById("interview-round-type");
+  var outcomeEl = document.getElementById("interview-round-outcome");
+  var dateEl = document.getElementById("interview-round-date");
+  var notesEl = document.getElementById("interview-round-notes");
+  var headingEl = document.querySelector(".interview-round-form-heading");
+  var logEl = document.getElementById("interview-round-log");
+
+  function setStatus(kind, message) {
+    if (!statusEl) { return; }
+    statusEl.className = kind ? kind : "";
+    statusEl.textContent = message || "";
+  }
+
+  function resetForm() {
+    roundIdEl.value = "";
+    roundTypeEl.value = "phone-screen";
+    outcomeEl.value = "pending";
+    dateEl.value = "";
+    notesEl.value = "";
+    headingEl.textContent = "Add Interview Round";
+    saveBtn.textContent = "Save Interview Round";
+  }
+
+  resetBtn.addEventListener("click", function() {
+    resetForm();
+    setStatus("", "");
+  });
+
+  document.addEventListener("click", function(event) {
+    var editBtn = event.target.closest(".btn-interview-round-edit");
+    if (!editBtn) { return; }
+    roundIdEl.value = editBtn.dataset.roundId || "";
+    roundTypeEl.value = editBtn.dataset.roundType || "phone-screen";
+    outcomeEl.value = editBtn.dataset.outcome || "pending";
+    dateEl.value = editBtn.dataset.conductedDate || "";
+    notesEl.value = editBtn.dataset.notes || "";
+    headingEl.textContent = "Edit Interview Round";
+    saveBtn.textContent = "Update Interview Round";
+    setStatus("", "");
+    notesEl.focus();
+  });
+
+  saveBtn.addEventListener("click", function() {
+    var saveUrl = saveBtn.dataset.saveUrl + "?token=" + encodeURIComponent(saveBtn.dataset.token);
+    var payload = {
+      round_id: roundIdEl.value,
+      round_type: roundTypeEl.value,
+      outcome: outcomeEl.value,
+      conducted_date: dateEl.value,
+      notes: notesEl.value
+    };
+
+    saveBtn.disabled = true;
+    resetBtn.disabled = true;
+    saveBtn.textContent = roundIdEl.value ? "Updating..." : "Saving...";
+
+    fetch(saveUrl, {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      credentials: "same-origin",
+      body: JSON.stringify(payload)
+    })
+      .then(function(response) {
+        return response.json().then(function(data) {
+          return {status: response.status, data: data};
+        });
+      })
+      .then(function(result) {
+        saveBtn.disabled = false;
+        resetBtn.disabled = false;
+        if (result.status === 200) {
+          if (logEl && result.data.log_html) {
+            logEl.innerHTML = result.data.log_html;
+          }
+          resetForm();
+          setStatus("success", result.data.message || "Interview round saved.");
+        }
+        else {
+          saveBtn.textContent = roundIdEl.value ? "Update Interview Round" : "Save Interview Round";
+          setStatus("error", result.data.error || "Unable to save interview round.");
+        }
+      })
+      .catch(function() {
+        saveBtn.disabled = false;
+        resetBtn.disabled = false;
+        saveBtn.textContent = roundIdEl.value ? "Update Interview Round" : "Save Interview Round";
+        setStatus("error", "Network error. Please try again.");
+      });
+  });
+
+  resetForm();
+})();
+          ',
+        ],
+        'interview_rounds_js',
       ];
     }
 
@@ -2195,6 +2513,108 @@ class CompanyController extends ControllerBase {
 
     $this->messenger()->addStatus($this->t('Interview notes saved.'));
     return new RedirectResponse(Url::fromRoute('job_hunter.interview_prep', ['job_id' => $job_id])->toString());
+  }
+
+  /**
+   * Save or update an interview round (POST, CSRF-guarded, AJAX).
+   *
+   * @param int $job_id
+   *   The saved job's job requirement ID.
+   */
+  public function interviewRoundSave($job_id): JsonResponse {
+    if (!$this->database->schema()->tableExists('jobhunter_interview_rounds')) {
+      return new JsonResponse(['error' => 'Interview tracker is not yet available. Run database updates first.'], 503);
+    }
+
+    $uid = (int) $this->currentUser->id();
+    $job_id = (int) $job_id;
+    $saved_job = $this->loadOwnedSavedJob($uid, $job_id);
+    if (!$saved_job) {
+      return new JsonResponse(['error' => 'Not found.'], 403);
+    }
+
+    $request = $this->requestStack->getCurrentRequest();
+    $body = json_decode($request->getContent(), TRUE);
+    if (!is_array($body)) {
+      $body = $request->request->all();
+    }
+
+    $round_id = isset($body['round_id']) && $body['round_id'] !== '' ? (int) $body['round_id'] : NULL;
+    $round_type = trim((string) ($body['round_type'] ?? ''));
+    $outcome = trim((string) ($body['outcome'] ?? ''));
+    $conducted_date = trim((string) ($body['conducted_date'] ?? ''));
+    $notes = strip_tags(trim((string) ($body['notes'] ?? '')));
+
+    if (!in_array($round_type, self::INTERVIEW_ROUND_TYPES, TRUE)) {
+      return new JsonResponse(['error' => 'Invalid interview round type.'], 400);
+    }
+    if (!in_array($outcome, self::INTERVIEW_ROUND_OUTCOMES, TRUE)) {
+      return new JsonResponse(['error' => 'Invalid interview outcome.'], 400);
+    }
+    if ($conducted_date === '') {
+      return new JsonResponse(['error' => 'Interview date is required.'], 400);
+    }
+
+    $parsed_date = \DateTime::createFromFormat('Y-m-d', $conducted_date);
+    if (!$parsed_date || $parsed_date->format('Y-m-d') !== $conducted_date) {
+      return new JsonResponse(['error' => 'Invalid interview date format. Use YYYY-MM-DD.'], 400);
+    }
+    if (mb_strlen($notes) > 4000) {
+      return new JsonResponse(['error' => 'Notes may not exceed 4000 characters.'], 400);
+    }
+
+    $saved_job_id = (int) $saved_job->id;
+    $now = time();
+
+    if ($round_id !== NULL) {
+      $existing_round = $this->database->select('jobhunter_interview_rounds', 'ir')
+        ->fields('ir', ['id'])
+        ->condition('ir.id', $round_id)
+        ->condition('ir.uid', $uid)
+        ->condition('ir.saved_job_id', $saved_job_id)
+        ->execute()
+        ->fetchField();
+
+      if (!$existing_round) {
+        return new JsonResponse(['error' => 'Interview round not found.'], 404);
+      }
+
+      $this->database->update('jobhunter_interview_rounds')
+        ->fields([
+          'round_type' => $round_type,
+          'outcome' => $outcome,
+          'conducted_date' => $conducted_date,
+          'notes' => $notes !== '' ? $notes : NULL,
+          'changed' => $now,
+        ])
+        ->condition('id', $round_id)
+        ->condition('uid', $uid)
+        ->condition('saved_job_id', $saved_job_id)
+        ->execute();
+
+      $message = 'Interview round updated.';
+    }
+    else {
+      $this->database->insert('jobhunter_interview_rounds')
+        ->fields([
+          'uid' => $uid,
+          'saved_job_id' => $saved_job_id,
+          'round_type' => $round_type,
+          'outcome' => $outcome,
+          'conducted_date' => $conducted_date,
+          'notes' => $notes !== '' ? $notes : NULL,
+          'created' => $now,
+          'changed' => $now,
+        ])
+        ->execute();
+
+      $message = 'Interview round saved.';
+    }
+
+    return new JsonResponse([
+      'message' => $message,
+      'log_html' => $this->buildInterviewRoundsLogHtml($this->loadInterviewRounds($uid, $saved_job_id)),
+    ]);
   }
 
   /**

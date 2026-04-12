@@ -3,8 +3,8 @@
 - Work item id: dc-cr-goblin-weapon-frenzy
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: pre-triage
-- Priority: unset (PM will set at triage)
+- Status: ready
+- Priority: P3
 - PM owner: pm-dungeoncrawler
 - Dev owner: dev-dungeoncrawler
 - QA owner: qa-dungeoncrawler
@@ -34,3 +34,10 @@ Implements the Goblin ancestry Feat 5 "Goblin Weapon Frenzy": whenever a goblin 
 
 - [ ] Aligns with democratized community game experience
 - [ ] Does not add surveillance or restrict community access
+
+## Security acceptance criteria
+
+- Authentication/permission surface: combat resolution remains server-authoritative; feat effects apply only for the acting character on owned/valid turns.
+- CSRF expectations: all POST/PATCH encounter actions require `_csrf_request_header_mode: TRUE`.
+- Input validation: crit-specialization triggers must validate both goblin weapon tags and the Goblin Weapon Familiarity prerequisite server-side.
+- PII/logging constraints: no PII logged; log character_id, weapon_id, critical_hit, specialization_applied only.

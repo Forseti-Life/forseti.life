@@ -4,6 +4,7 @@
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
 - Status: ready
+- Priority: P1
 - Release: 
 20260412-dungeoncrawler-release-b
 - PM owner: pm-dungeoncrawler

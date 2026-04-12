@@ -4,7 +4,9 @@
 
 **Maintained by:** `ba-dungeoncrawler` — update this file at the end of every scan chunk (same commit as new feature stubs). Include `Category` and `Depends on` for every new row (`Depends on` may be blank if no dependencies).
 
-**Last updated:** 2026-04-12 | Release: `20260412-dungeoncrawler-release-b` | Total: 77
+**Last updated:** 2026-04-12 | Active release: `20260412-dungeoncrawler-release-d` | Runtime next release pointer: `20260412-dungeoncrawler-release-b` | Total: 78
+
+**Release sync note:** Treat this index as backlog/duplicate-detection inventory. Live per-feature status and release progress come from each feature's `feature.md`, `dashboards/FEATURE_PROGRESS.md`, and the runtime pointers under `tmp/release-cycle-active/`.
 
 ---
 
@@ -63,6 +65,7 @@
 | dc-cr-gnome-weapon-specialist | game-mechanic | dc-cr-gnome-ancestry, dc-cr-gnome-weapon-familiarity, dc-cr-ancestry-feat-schedule | Gnome Feat 5: critical specialization effects with glaive, kukri, and gnome weapons |
 | dc-cr-goblin-ancestry | game-mechanic |  | Goblin ancestry: 6 HP, Small, Speed 25, Dex+Cha+Free boosts, Wisdom flaw |
 | dc-cr-goblin-very-sneaky | game-mechanic | dc-cr-goblin-ancestry, dc-cr-ancestry-feat-schedule | Goblin Feat 1: Sneak +5 ft movement; don't become Observed if cover/concealment held at end of turn |
+| dc-cr-goblin-weapon-familiarity | game-mechanic | dc-cr-goblin-ancestry, dc-cr-ancestry-feat-schedule | Goblin Feat 1: trained with dogslicer and horsechopper; uncommon goblin weapons unlocked; goblin weapon proficiencies remapped down by one step |
 | dc-cr-goblin-weapon-frenzy | game-mechanic | dc-cr-goblin-ancestry, dc-cr-goblin-weapon-familiarity, dc-cr-ancestry-feat-schedule | Goblin Feat 5: critical specialization effects with goblin weapons (prereq: Goblin Weapon Familiarity) |
 | dc-cr-halfling-ancestry | game-mechanic | dc-cr-ancestry-system | Halfling ancestry: 6 HP, Small, Speed 25, Dex+Wis boosts, Keen Eyes trait, Lucky Halfling |
 | dc-cr-halfling-heritage-gutsy | game-mechanic | dc-cr-halfling-ancestry, dc-cr-heritage-system | Halfling Heritage: success on emotion saving throw upgraded to critical success |

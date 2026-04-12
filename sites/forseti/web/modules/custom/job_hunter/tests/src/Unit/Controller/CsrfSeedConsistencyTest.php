@@ -24,10 +24,10 @@ use PHPUnit\Framework\TestCase;
 class CsrfSeedConsistencyTest extends TestCase {
 
   /** Routing YAML path relative to this file's module root. */
-  private const ROUTING_FILE = __DIR__ . '/../../../../../job_hunter.routing.yml';
+  private const ROUTING_FILE = __DIR__ . '/../../../../job_hunter.routing.yml';
 
   /** Controller source directory. */
-  private const CONTROLLER_DIR = __DIR__ . '/../../../../../src/Controller';
+  private const CONTROLLER_DIR = __DIR__ . '/../../../../src/Controller';
 
   /**
    * Returns all route paths from job_hunter.routing.yml, leading slash stripped.

@@ -3,8 +3,8 @@
 - Work item id: dc-cr-vivacious-conduit
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: pre-triage
-- Priority: unset (PM will set at triage)
+- Status: ready
+- Priority: P3
 - PM owner: pm-dungeoncrawler
 - Dev owner: dev-dungeoncrawler
 - QA owner: qa-dungeoncrawler
@@ -28,3 +28,10 @@ Ancestry feat (level 9) that hooks into the short-rest/exploration-mode healing 
 
 - [x] Aligns with democratized community game experience
 - [x] Does not add surveillance or restrict community access
+
+## Security acceptance criteria
+
+- Authentication/permission surface: healing is calculated in existing rest/Treat Wounds flows only; server must own all HP adjustments.
+- CSRF expectations: all POST/PATCH requests in rest, downtime, and healing flows require `_csrf_request_header_mode: TRUE`.
+- Input validation: bonus healing uses the character's Constitution modifier and half level; no client-supplied healing values accepted.
+- PII/logging constraints: no PII logged; log character_id, con_mod, level, bonus_healing only.
