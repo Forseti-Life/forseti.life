@@ -3204,23 +3204,19 @@ function job_hunter_update_9050() {
     'fields' => [
       'id'                => ['type' => 'serial', 'unsigned' => TRUE, 'not null' => TRUE],
       'uid'               => ['type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0],
-      'name'              => ['type' => 'varchar', 'length' => 255, 'not null' => TRUE, 'default' => ''],
-      'title'             => ['type' => 'varchar', 'length' => 255, 'not null' => FALSE, 'default' => NULL],
-      'company_id'        => ['type' => 'int', 'unsigned' => TRUE, 'not null' => FALSE, 'default' => NULL],
+      'full_name'         => ['type' => 'varchar', 'length' => 255, 'not null' => TRUE, 'default' => ''],
+      'job_title'         => ['type' => 'varchar', 'length' => 255, 'not null' => FALSE, 'default' => NULL],
+      'company_name'      => ['type' => 'varchar', 'length' => 255, 'not null' => TRUE, 'default' => ''],
       'linkedin_url'      => ['type' => 'varchar', 'length' => 512, 'not null' => FALSE, 'default' => NULL],
-      'email'             => ['type' => 'varchar', 'length' => 255, 'not null' => FALSE, 'default' => NULL],
-      'relationship_type'  => ['type' => 'varchar', 'length' => 32, 'not null' => TRUE, 'default' => 'connection'],
-      'notes'              => ['type' => 'text', 'size' => 'medium', 'not null' => FALSE],
-      'last_contact_date'  => ['type' => 'varchar', 'length' => 10, 'not null' => FALSE, 'default' => NULL],
-      'referral_status'    => ['type' => 'varchar', 'length' => 16, 'not null' => TRUE, 'default' => 'none'],
-      'created'            => ['type' => 'int', 'not null' => TRUE, 'default' => 0],
-      'changed'            => ['type' => 'int', 'not null' => TRUE, 'default' => 0],
+      'relationship_type' => ['type' => 'varchar', 'length' => 32, 'not null' => TRUE, 'default' => 'other'],
+      'last_contact_date' => ['type' => 'varchar', 'length' => 10, 'not null' => FALSE, 'default' => NULL],
+      'referral_status'   => ['type' => 'varchar', 'length' => 20, 'not null' => TRUE, 'default' => 'none'],
+      'notes'             => ['type' => 'text', 'size' => 'medium', 'not null' => FALSE],
+      'created'           => ['type' => 'int', 'not null' => TRUE, 'default' => 0],
+      'changed'           => ['type' => 'int', 'not null' => TRUE, 'default' => 0],
     ],
     'primary key' => ['id'],
-    'indexes' => [
-      'uid'        => ['uid'],
-      'company_id' => ['company_id'],
-    ],
+    'indexes' => ['uid' => ['uid']],
   ]);
   return t('Created jobhunter_contacts table for per-user contact/referral tracking.');
 }
@@ -3312,4 +3308,89 @@ function job_hunter_update_9054() {
     ]);
   }
   return t('Added last_contact_date and referral_status to jobhunter_contacts.');
+}
+
+/**
+ * Migrate jobhunter_contacts schema for release-e contact-referral-tracker.
+ *
+ * - Renames name → full_name, title → job_title
+ * - Drops company_id and email columns
+ * - Adds company_name (varchar 255)
+ * - Widens referral_status to varchar(20) for 'pending-referral'
+ * - Normalizes old referral_status values to 'none'
+ */
+function job_hunter_update_9055() {
+  $schema = \Drupal::database()->schema();
+  $db = \Drupal::database();
+
+  // Rename name → full_name.
+  if ($schema->fieldExists('jobhunter_contacts', 'name')) {
+    $schema->changeField('jobhunter_contacts', 'name', 'full_name', [
+      'type' => 'varchar', 'length' => 255, 'not null' => TRUE, 'default' => '',
+    ]);
+  }
+
+  // Rename title → job_title.
+  if ($schema->fieldExists('jobhunter_contacts', 'title')) {
+    $schema->changeField('jobhunter_contacts', 'title', 'job_title', [
+      'type' => 'varchar', 'length' => 255, 'not null' => FALSE, 'default' => NULL,
+    ]);
+  }
+
+  // Drop company_id (replaced by free-text company_name).
+  if ($schema->fieldExists('jobhunter_contacts', 'company_id')) {
+    $schema->dropField('jobhunter_contacts', 'company_id');
+  }
+
+  // Drop email (not in release-e schema).
+  if ($schema->fieldExists('jobhunter_contacts', 'email')) {
+    $schema->dropField('jobhunter_contacts', 'email');
+  }
+
+  // Add company_name free-text field.
+  if (!$schema->fieldExists('jobhunter_contacts', 'company_name')) {
+    $schema->addField('jobhunter_contacts', 'company_name', [
+      'type' => 'varchar', 'length' => 255, 'not null' => TRUE, 'default' => '',
+    ]);
+  }
+
+  // Widen referral_status to varchar(20) to accommodate 'pending-referral'.
+  $schema->changeField('jobhunter_contacts', 'referral_status', 'referral_status', [
+    'type' => 'varchar', 'length' => 20, 'not null' => TRUE, 'default' => 'none',
+  ]);
+
+  // Normalize any stale referral_status values to 'none'.
+  $db->update('jobhunter_contacts')
+    ->fields(['referral_status' => 'none'])
+    ->condition('referral_status', ['none', 'referred', 'pending-referral'], 'NOT IN')
+    ->execute();
+
+  return t('Migrated jobhunter_contacts schema for contact-referral-tracker.');
+}
+
+/**
+ * Create jobhunter_contact_job_links table for contact-to-saved-job referral links.
+ */
+function job_hunter_update_9056() {
+  $schema = \Drupal::database()->schema();
+  if ($schema->tableExists('jobhunter_contact_job_links')) {
+    return t('jobhunter_contact_job_links already exists.');
+  }
+  $schema->createTable('jobhunter_contact_job_links', [
+    'description' => 'Links between user contacts and saved jobs for referral tracking.',
+    'fields' => [
+      'id'           => ['type' => 'serial', 'unsigned' => TRUE, 'not null' => TRUE],
+      'uid'          => ['type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0],
+      'contact_id'   => ['type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE],
+      'saved_job_id' => ['type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE],
+      'created'      => ['type' => 'int', 'not null' => TRUE, 'default' => 0],
+    ],
+    'primary key' => ['id'],
+    'unique keys' => ['uid_contact_job' => ['uid', 'contact_id', 'saved_job_id']],
+    'indexes' => [
+      'uid'          => ['uid'],
+      'saved_job_id' => ['saved_job_id'],
+    ],
+  ]);
+  return t('Created jobhunter_contact_job_links table for referral tracking.');
 }

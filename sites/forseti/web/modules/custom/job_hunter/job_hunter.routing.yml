@@ -1586,6 +1586,19 @@ job_hunter.contacts_delete:
     _csrf_token: 'TRUE'
     contact_id: \d+
 
+# Contact Tracker — link contact to saved job (POST, CSRF split-route)
+job_hunter.contact_job_link_save:
+  path: '/jobhunter/contacts/{contact_id}/link-job'
+  defaults:
+    _controller: '\Drupal\job_hunter\Controller\CompanyController::contactJobLinkSave'
+    _title: 'Link Contact to Job'
+  methods: [POST]
+  requirements:
+    _permission: 'access job hunter'
+    _user_is_logged_in: 'TRUE'
+    _csrf_token: 'TRUE'
+    contact_id: \d+
+
 # Job-board Source Preferences — form (GET)
 job_hunter.source_preferences:
   path: '/jobhunter/preferences/sources'
