@@ -312,3 +312,6 @@ This file is a running list of targeted regression checks derived from completed
 - [ ] 20260411-235611-impl-dc-cr-gnome-heritage-chameleon — targeted regression check (see dev outbox: sessions/dev-dungeoncrawler/outbox/20260411-235611-impl-dc-cr-gnome-heritage-chameleon.md)
 - [ ] 20260412-034324-impl-dc-cr-downtime-mode — targeted regression check (see dev outbox: sessions/dev-dungeoncrawler/outbox/20260412-034324-impl-dc-cr-downtime-mode.md)
 - [ ] 20260412-034603-impl-dc-cr-feats-ch05 — targeted regression check (see dev outbox: sessions/dev-dungeoncrawler/outbox/20260412-034603-impl-dc-cr-feats-ch05.md)
+- [ ] 20260412-034603-impl-dc-cr-gnome-heritage-sensate — targeted regression check (see dev outbox: sessions/dev-dungeoncrawler/outbox/20260412-034603-impl-dc-cr-gnome-heritage-sensate.md)
+- [ ] 20260412-034603-impl-dc-cr-hazards — targeted regression check (see dev outbox: sessions/dev-dungeoncrawler/outbox/20260412-034603-impl-dc-cr-hazards.md)
+- [ ] 20260412-034603-impl-dc-cr-magic-ch11 — targeted regression check (see dev outbox: sessions/dev-dungeoncrawler/outbox/20260412-034603-impl-dc-cr-magic-ch11.md)

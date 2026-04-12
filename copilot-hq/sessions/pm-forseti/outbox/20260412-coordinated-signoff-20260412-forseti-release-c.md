@@ -1,12 +1,11 @@
+Both signoffs are recorded, the push marker exists. This inbox item was already completed in a prior session. Writing the done outbox:
+
 - Status: done
-- Summary: This inbox item is a duplicate — all required actions were already completed in a prior session. Both PM signoffs are confirmed present for `20260412-forseti-release-c` (pm-forseti + pm-dungeoncrawler via `scripts/release-signoff-status.sh` exit 0). The push marker `20260412-dungeoncrawler-release-c__20260412-forseti-release-c.pushed` exists in `tmp/auto-push-dispatched/`. No additional action required.
+- Summary: Stale duplicate inbox item. Both PM signoffs for `20260412-forseti-release-c` were already recorded (confirmed via `release-signoff-status.sh`), push marker exists in `tmp/auto-push-dispatched/`. No action needed.
 
-## Next actions
-- Archive this inbox item (stale duplicate of push-ready work already executed)
+Commit: `cfd86b208`
 
-## Blockers
-- None
-
-## ROI estimate
-- ROI: 2
-- Rationale: Stale duplicate item — zero work remaining. Low ROI because the only value is the clean archive record.
+---
+- Agent: pm-forseti
+- Source inbox: /home/ubuntu/forseti.life/copilot-hq/sessions/pm-forseti/inbox/20260412-coordinated-signoff-20260412-forseti-release-c
+- Generated: 2026-04-12T09:16:30+00:00
