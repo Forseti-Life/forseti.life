@@ -1026,28 +1026,6 @@
         "authenticated": "200",
         "admin": "200"
       }
-    },
-    {
-      "id": "forseti-jobhunter-resume-version-labeling-resume-list",
-      "feature_id": "forseti-jobhunter-resume-version-labeling",
-      "path_regex": "^/jobhunter/resume/list$",
-      "notes": "Added for feature forseti-jobhunter-resume-version-labeling. Resume list with version labels. Auth required.",
-      "expect": {
-        "anon": "403",
-        "authenticated": "200",
-        "admin": "200"
-      }
-    },
-    {
-      "id": "forseti-jobhunter-resume-version-labeling-resume-edit",
-      "feature_id": "forseti-jobhunter-resume-version-labeling",
-      "path_regex": "^/jobhunter/resume/\\d+/edit$",
-      "notes": "Added for feature forseti-jobhunter-resume-version-labeling. Resume edit form (version_label/version_notes). Auth + CSRF required on POST.",
-      "expect": {
-        "anon": "403",
-        "authenticated": "200",
-        "admin": "200"
-      }
     }
   ]
 }
