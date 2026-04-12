@@ -15868,6 +15868,100 @@
           "required_for_release": true
         }
       ]
+    },
+    {
+      "id": "dc-gmg-hazards-encounter",
+      "label": "GMG Hazards — stat block completeness, detection, disable, simple/complex/haunt types, disabled/destroyed/reset states, XP, damage pipeline, APG catalog integration",
+      "type": "playwright",
+      "feature_id": "dc-gmg-hazards",
+      "command": "npx playwright test tests/encounter/hazards.spec.js",
+      "artifacts": [
+        "sessions/qa-dungeoncrawler/artifacts/dc-gmg-hazards/playwright-encounter-report.json"
+      ],
+      "required_for_release": true,
+      "notes": "Security AC exemption confirmed: no new routes. All TCs are encounter-mechanic logic assertions. TC-HAZ-06 (haunt deactivated vs destroyed) depends on PM confirming supernatural-condition-resolution flow. TC-HAZ-10 (APG catalog) depends on APG source data being loaded.",
+      "test_cases": [
+        {
+          "id": "TC-HAZ-01",
+          "label": "Hazard stat block completeness: Stealth DC, Disable DC, AC, Saves, HP, Hardness, Immunities, Weaknesses, Resistances, Actions all present",
+          "feature_id": "dc-gmg-hazards",
+          "suite_context": "playwright/encounter",
+          "status": "pending_implementation",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-HAZ-02",
+          "label": "Hazard detection: entering area triggers Perception vs. Stealth DC; success reveals hazard, fail leaves hidden",
+          "feature_id": "dc-gmg-hazards",
+          "suite_context": "playwright/encounter",
+          "status": "pending_implementation",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-HAZ-03",
+          "label": "Hazard disable: applicable skill check vs. Disable DC; DC and skill sourced from stat block",
+          "feature_id": "dc-gmg-hazards",
+          "suite_context": "playwright/encounter",
+          "status": "pending_implementation",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-HAZ-04",
+          "label": "Simple hazard: resolves on trigger in one action; no initiative entry",
+          "feature_id": "dc-gmg-hazards",
+          "suite_context": "playwright/encounter",
+          "status": "pending_implementation",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-HAZ-05",
+          "label": "Complex hazard: joins initiative when triggered; takes own turns with defined action block",
+          "feature_id": "dc-gmg-hazards",
+          "suite_context": "playwright/encounter",
+          "status": "pending_implementation",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-HAZ-06",
+          "label": "Haunt hazard: disable = deactivated (not destroyed); re-activates on next trigger; destroyed only after supernatural condition resolved",
+          "feature_id": "dc-gmg-hazards",
+          "suite_context": "playwright/encounter",
+          "status": "pending_implementation",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-HAZ-07",
+          "label": "Disabled vs Destroyed state distinction; timed reset restores after interval; manual-reset stays disabled until GM action; destroyed = removed",
+          "feature_id": "dc-gmg-hazards",
+          "suite_context": "playwright/encounter",
+          "status": "pending_implementation",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-HAZ-08",
+          "label": "Hazard XP award on disable or destroy: XP = hazard.xp_value; fires once per event",
+          "feature_id": "dc-gmg-hazards",
+          "suite_context": "playwright/encounter",
+          "status": "pending_implementation",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-HAZ-09",
+          "label": "Hazard damage through standard pipeline: typed damage, resistances, immunities applied identically to creature attacks",
+          "feature_id": "dc-gmg-hazards",
+          "suite_context": "playwright/encounter",
+          "status": "pending_implementation",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-HAZ-10",
+          "label": "APG hazards (Engulfing Snare etc.) appear in hazard catalog alongside GMG hazards; filterable by source",
+          "feature_id": "dc-gmg-hazards",
+          "suite_context": "playwright/encounter",
+          "status": "pending_implementation",
+          "required_for_release": true
+        }
+      ]
     }
   ],
   "_schema_notes": [
