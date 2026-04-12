@@ -3,7 +3,7 @@
 - Work item id: dc-cr-gnome-heritage-sensate
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: ready
+- Status: in_progress
 - Priority: P2
 - PM owner: pm-dungeoncrawler
 - Dev owner: dev-dungeoncrawler
@@ -12,7 +12,7 @@
 - Category: game-mechanic
 - Release:
 
-20260412-dungeoncrawler-release-b
+20260412-dungeoncrawler-release-d
 
 Add the Sensate Gnome heritage, granting imprecise scent with a 30-foot range (doubled downwind, halved upwind) and a +2 circumstance bonus to Perception checks to locate undetected creatures within scent range. Feeds the senses/detection subsystem alongside darkvision and low-light vision.
 

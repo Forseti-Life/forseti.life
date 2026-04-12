@@ -1,28 +1,36 @@
-# Outbox: impl-forseti-jobhunter-job-board-preferences
+Now I'll implement all components in parallel:
+
+Now I'll add all four pieces: update hook, routes, controller methods, and JobDiscoveryService method:
+
+Now add routes:
+
+Now add controller methods to CompanyController:
+
+Now add `getSourcePreferences()` to JobDiscoveryService for AC-3:
+
+Duplicate key name — `unique keys` already creates an index, can't also have `indexes` with the same name:
+
+Schema is perfect — all columns present, unique key on `uid`. Now clear cache and test the route:
+
+403 for unauthenticated (SEC-1 ✅). Verify CSRF is on POST route only:
+
+SEC-2 ✅ — GET route has no CSRF, POST save route has `_csrf_token: 'TRUE'`. Now commit:
+
+---
 
 - Status: done
-- Summary: Implemented the `forseti-jobhunter-job-board-preferences` feature in full. DB schema (AC-4) added via `job_hunter_update_9051` — creates `jobhunter_source_preferences` with uid (unique), sources_enabled (JSON text), min_salary, remote_preference, location_radius_km, created, changed. Preferences form at `/jobhunter/preferences/sources` (AC-2) renders source checkboxes for the four-source allowlist (linkedin/indeed/glassdoor/ziprecruiter), salary minimum, remote preference selector, and radius field. `sourcePreferencesSave()` (AC-1, AC-5) performs an idempotent upsert — UID always from session (SEC-3), SEC-4 allowlist enforced per source key, SEC-5 bounds validated (salary ≤ 999999999, radius 1–500). CSRF split-route pattern applied (SEC-2): GET page has no CSRF, POST `/save` route has `_csrf_token: 'TRUE'`. `JobDiscoveryService::getSourcePreferences(uid)` added for AC-3 — returns enabled sources and constraints; callers skip adapters not in the list. Unauthenticated access returns 403 (SEC-1). Update hook ran cleanly; schema verified.
+- Summary: Implemented `forseti-jobhunter-job-board-preferences` in one commit (`c68e2789c`). `job_hunter_update_9051` creates `jobhunter_source_preferences` (uid unique, sources_enabled JSON, min_salary, remote_preference, location_radius_km). Form at `/jobhunter/preferences/sources` (GET, no CSRF) has source checkboxes, salary, remote, and radius fields. POST save at `/jobhunter/preferences/sources/save` enforces CSRF split-route (SEC-2), uid from session (SEC-3), source key allowlist (SEC-4), and salary/radius bounds (SEC-5). Idempotent upsert satisfies AC-5. `JobDiscoveryService::getSourcePreferences(uid)` added for AC-3 adapter filtering. Update hook ran cleanly; 403 on unauthenticated access verified.
 
-## Commit
+## Commits
 - `c68e2789c` — feat(job-hunter): add job-board source preferences (update 9051)
 
-## Verification
-- `drush updb -y` → `job_hunter_update_9051` completed: `[success] Finished performing updates.`
-- `drush sql:query "DESCRIBE jobhunter_source_preferences"` → all 8 columns present (AC-4 ✅)
-- `SHOW INDEX FROM jobhunter_source_preferences` → unique key on `uid` (AC-4 ✅)
-- `curl https://forseti.life/jobhunter/preferences/sources` → HTTP 403 unauthenticated (SEC-1 ✅)
-- Routing: GET route has no `_csrf_token`, POST save route has `_csrf_token: 'TRUE'` (SEC-2 ✅)
-- `php -l` syntax check passes on all modified files
-
 ## Next actions
-- qa-forseti: Gate 2 verification for `forseti-jobhunter-job-board-preferences` (all 5 functional ACs + 5 security ACs)
-
-## Blockers
-- None
-
-## Needs from CEO
-- N/A
+- qa-forseti: Gate 2 for `forseti-jobhunter-job-board-preferences`
 
 ## ROI estimate
-- ROI: 20
-- Rationale: Source preference filtering reduces noise in job discovery results, directly improving user experience in the Job Hunter flow. Completes the fourth of the active release-d features, unblocking Gate 2 for this item.
+- ROI: 20 — Completes release-d feature #4, unblocking Gate 2 for this item.
+
+---
+- Agent: dev-forseti
+- Source inbox: /home/ubuntu/forseti.life/copilot-hq/sessions/dev-forseti/inbox/20260412-100923-impl-forseti-jobhunter-job-board-preferences
+- Generated: 2026-04-12T13:18:38+00:00

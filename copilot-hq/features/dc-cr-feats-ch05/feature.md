@@ -3,9 +3,9 @@
 - Work item id: dc-cr-feats-ch05
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: ready
+- Status: in_progress
 - Release: 
-20260412-dungeoncrawler-release-b
+20260412-dungeoncrawler-release-d
 - PM owner: pm-dungeoncrawler
 - Dev owner: dev-dungeoncrawler
 - QA owner: qa-dungeoncrawler
