@@ -1,6 +1,6 @@
 # Feature Progress
 
-Generated: 2026-04-12T19:51:22Z
+Generated: 2026-04-12T21:53:58Z
 
 | Work item | Website | Module | Status | Priority | PM | Dev | QA |
 |-----------|---------|--------|--------|----------|----|-----|----|
@@ -75,21 +75,21 @@ Generated: 2026-04-12T19:51:22Z
 | dc-cr-feats-ch05 | dungeoncrawler | dungeoncrawler_content | in_progress |  |  |  |  |
 | dc-cr-fey-fellowship | dungeoncrawler | dungeoncrawler_content | done | P2 |  |  |  |
 | dc-cr-first-world-adept | dungeoncrawler | dungeoncrawler_content | ready | P3 |  |  |  |
-| dc-cr-first-world-magic | dungeoncrawler | dungeoncrawler_content | in_progress | P3 |  |  |  |
+| dc-cr-first-world-magic | dungeoncrawler | dungeoncrawler_content | ready | P3 |  |  |  |
 | dc-cr-focus-spells | dungeoncrawler | dungeoncrawler_content | done | unset (PM will set at triage) |  |  |  |
 | dc-cr-general-feats | dungeoncrawler | dungeoncrawler_content | done | unset (PM will set at triage) |  |  |  |
 | dc-cr-gm-narrative-engine | dungeoncrawler | dungeoncrawler_content | done | P3 |  |  |  |
 | dc-cr-gm-tools | dungeoncrawler | dungeoncrawler_content | done | unset (PM will set at triage) |  |  |  |
 | dc-cr-gnome-ancestry | dungeoncrawler | dungeoncrawler_content | done | P2 |  |  |  |
 | dc-cr-gnome-heritage-chameleon | dungeoncrawler | dungeoncrawler_content | in_progress | P2 |  |  |  |
-| dc-cr-gnome-heritage-fey-touched | dungeoncrawler | dungeoncrawler_content | in_progress | P3 |  |  |  |
+| dc-cr-gnome-heritage-fey-touched | dungeoncrawler | dungeoncrawler_content | ready | P3 |  |  |  |
 | dc-cr-gnome-heritage-sensate | dungeoncrawler | dungeoncrawler_content | in_progress | P2 |  |  |  |
 | dc-cr-gnome-heritage-umbral | dungeoncrawler | dungeoncrawler_content | in_progress | P2 |  |  |  |
-| dc-cr-gnome-heritage-wellspring | dungeoncrawler | dungeoncrawler_content | in_progress | P3 |  |  |  |
-| dc-cr-gnome-obsession | dungeoncrawler | dungeoncrawler_content | in_progress | P2 |  |  |  |
-| dc-cr-gnome-weapon-expertise | dungeoncrawler | dungeoncrawler_content | in_progress | P3 |  |  |  |
-| dc-cr-gnome-weapon-familiarity | dungeoncrawler | dungeoncrawler_content | in_progress | P2 |  |  |  |
-| dc-cr-gnome-weapon-specialist | dungeoncrawler | dungeoncrawler_content | in_progress | P2 |  |  |  |
+| dc-cr-gnome-heritage-wellspring | dungeoncrawler | dungeoncrawler_content | ready | P3 |  |  |  |
+| dc-cr-gnome-obsession | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
+| dc-cr-gnome-weapon-expertise | dungeoncrawler | dungeoncrawler_content | ready | P3 |  |  |  |
+| dc-cr-gnome-weapon-familiarity | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
+| dc-cr-gnome-weapon-specialist | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
 | dc-cr-goblin-ancestry | dungeoncrawler | dungeoncrawler_content | in_progress | P2 |  |  |  |
 | dc-cr-goblin-very-sneaky | dungeoncrawler | dungeoncrawler_content | in_progress | P2 |  |  |  |
 | dc-cr-goblin-weapon-familiarity | dungeoncrawler | dungeoncrawler_content | in_progress | P2 |  |  |  |
@@ -156,8 +156,10 @@ Generated: 2026-04-12T19:51:22Z
 | forseti-ai-conversation-job-suggestions | forseti.life | ai_conversation | shipped | medium |  |  |  |
 | forseti-ai-conversation-user-chat | forseti.life | ai_conversation | shipped | high |  |  |  |
 | forseti-ai-debug-gate | forseti.life | ai_conversation | shipped | P1 |  |  |  |
+| forseti-ai-local-llm-provider-selection | forseti.life | ai_conversation | ready |  |  |  |  |
 | forseti-ai-service-db-refactor | forseti.life | ai_conversation | shipped | P2 |  |  |  |
 | forseti-ai-service-refactor | forseti.life | ai_conversation | shipped | P2 |  |  |  |
+| forseti-community-incident-report | forseti.life | community_incident_report (new) | ready |  |  |  |  |
 | forseti-copilot-agent-tracker | forseti.life | copilot_agent_tracker | shipped | P1 |  |  |  |
 | forseti-csrf-fix | forseti.life | job_hunter | shipped | P0 |  |  |  |
 | forseti-csrf-post-routes-fix | forseti.life | job_hunter | shipped | P1 (security) |  |  |  |
