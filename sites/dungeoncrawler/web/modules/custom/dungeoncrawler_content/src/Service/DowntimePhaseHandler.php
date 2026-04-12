@@ -997,9 +997,23 @@ class DowntimePhaseHandler implements PhaseHandlerInterface {
       return ['error' => 'Already retraining. Complete or cancel current retraining before starting a new one.'];
     }
 
-    // REQ 2309: Duration: 7 days standard; 30 days for major class choices.
+    // REQ 2309 / AC-003: Duration by retrain type:
+    //   - feat: 7 days × feat level (AC-003: "1 week per feat level")
+    //   - skill: 7 days flat
+    //   - major class choices (druid_order, wizard_school, sorcerer_bloodline): 30 days
+    //   - all others: 7 days
     $major_choices = ['druid_order', 'wizard_school', 'sorcerer_bloodline'];
-    $days_required = in_array($retrain_type, $major_choices, TRUE) ? 30 : 7;
+    if (in_array($retrain_type, $major_choices, TRUE)) {
+      $days_required = 30;
+    }
+    elseif ($retrain_type === 'feat') {
+      // feat_level is required; default to 1 if omitted (guards against missing param).
+      $feat_level    = max(1, (int) ($params['feat_level'] ?? 1));
+      $days_required = 7 * $feat_level;
+    }
+    else {
+      $days_required = 7;
+    }
 
     if (!isset($game_state['downtime'])) {
       $game_state['downtime'] = [];
