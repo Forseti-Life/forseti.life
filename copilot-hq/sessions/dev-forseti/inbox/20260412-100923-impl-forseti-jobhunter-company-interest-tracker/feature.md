@@ -3,8 +3,8 @@
 - Work item id: forseti-jobhunter-company-interest-tracker
 - Website: forseti.life
 - Module: job_hunter
-- Status: in_progress
-- Release: 20260412-forseti-release-d
+- Status: ready
+- Release: 20260412-forseti-release-e
 - Feature type: new-feature
 - PM owner: pm-forseti
 - Dev owner: dev-forseti
