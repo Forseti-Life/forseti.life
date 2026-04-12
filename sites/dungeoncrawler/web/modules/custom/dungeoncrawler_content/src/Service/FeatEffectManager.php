@@ -58,6 +58,7 @@ class FeatEffectManager {
         'per_short_rest' => [],
         'per_long_rest' => [],
       ],
+      'feat_overrides' => [],
       'todo_review_features' => [],
       'applied_feats' => [],
       'notes' => [],
@@ -636,6 +637,9 @@ class FeatEffectManager {
             'name' => 'Recognize Spell',
             'action_cost' => 'reaction',
             'description' => 'Attempt to identify a spell as it is being cast.',
+            'auto_identify_thresholds' => [1 => 2, 2 => 4, 3 => 6, 4 => 10],
+            'crit_success_effect' => '+1 circumstance bonus to save or AC vs that spell',
+            'crit_failure_effect' => 'false_identification',
           ];
           $effects['applied_feats'][] = $feat_id;
           break;
@@ -1065,8 +1069,19 @@ class FeatEffectManager {
 
         case 'specialty-crafting':
           $this->addSelectionGrant($effects, 'specialty-crafting', 'specialty_crafting_choice', 1, 'Select a crafting specialty.');
-          $this->addConditionalSkillModifier($effects, 'Crafting', 1, 'Specialty Crafting first-pass baseline');
-          $effects['notes'][] = 'Specialty Crafting: crafting specialty selection and skill modifier applied.';
+          $crafting_rank_str = strtolower((string) ($character_data['skills']['Crafting'] ?? $character_data['skills']['crafting'] ?? 'trained'));
+          $crafting_rank_int = CharacterManager::PROFICIENCY_RANK_ORDER[$crafting_rank_str] ?? 1;
+          $crafting_bonus = ($crafting_rank_int >= CharacterManager::PROFICIENCY_RANK_ORDER['master']) ? 2 : 1;
+          $this->addConditionalSkillModifier($effects, 'Crafting', $crafting_bonus, 'Specialty Crafting circumstance bonus (rank-scaled)');
+          if ($crafting_rank_int < CharacterManager::PROFICIENCY_RANK_ORDER['master']) {
+            $effects['feat_overrides']['specialty-crafting_master_tier_pending'] = TRUE;
+          }
+          $effects['conditional_modifiers']['skills'][] = [
+            'id' => 'specialty-crafting-multi-specialty',
+            'rule' => 'gm_flag_multi_specialty_items',
+            'context' => 'Items spanning multiple specialties require GM adjudication',
+          ];
+          $effects['notes'][] = 'Specialty Crafting: +' . $crafting_bonus . ' circumstance bonus applied (Master = +2).';
           $effects['applied_feats'][] = $feat_id;
           break;
 
@@ -1079,27 +1094,34 @@ class FeatEffectManager {
 
         case 'trick-magic-item':
           $this->addSelectionGrant($effects, 'trick-magic-item', 'trick_magic_item_tradition_choice', 1, 'Select a magical tradition to improvise item activation.');
-          $this->addConditionalSkillModifier($effects, 'Arcana', 1, 'Trick Magic Item first-pass baseline');
           $effects['available_actions']['at_will'][] = [
             'id' => 'trick-magic-item',
             'name' => 'Trick Magic Item',
             'action_cost' => 1,
-            'description' => 'Trick Magic Item: first-pass feat action.',
+            'description' => 'Activate a magic item by succeeding at the tradition skill check.',
+            'tradition_skill_required' => [
+              'arcane'  => 'Arcana',
+              'divine'  => 'Religion',
+              'occult'  => 'Occultism',
+              'primal'  => 'Nature',
+            ],
+            'fallback_dc_formula' => '10_plus_level_proficiency_plus_max_mental',
+            'crit_fail_lockout' => 'per_item_until_daily_prep',
           ];
-          $effects['notes'][] = 'Trick Magic Item: tradition selection, skill modifier, and action applied.';
+          $effects['notes'][] = 'Trick Magic Item: tradition selection, tradition-skill gate, fallback DC, and crit-fail lockout applied.';
           $effects['applied_feats'][] = $feat_id;
           break;
 
         case 'virtuosic-performer':
           $this->addSelectionGrant($effects, 'virtuosic-performer', 'performance_specialty_choice', 1, 'Select a favored performance specialty.');
-          $this->addConditionalSkillModifier($effects, 'Performance', 1, 'Virtuosic Performer first-pass baseline');
-          $effects['available_actions']['at_will'][] = [
-            'id' => 'virtuosic-performer',
-            'name' => 'Virtuosic Performer',
-            'action_cost' => 1,
-            'description' => 'Virtuosic Performer: first-pass feat action.',
-          ];
-          $effects['notes'][] = 'Virtuosic Performer: performance specialty selection, skill modifier, and action applied.';
+          $perf_rank_str = strtolower((string) ($character_data['skills']['Performance'] ?? $character_data['skills']['performance'] ?? 'trained'));
+          $perf_rank_int = CharacterManager::PROFICIENCY_RANK_ORDER[$perf_rank_str] ?? 1;
+          $perf_bonus = ($perf_rank_int >= CharacterManager::PROFICIENCY_RANK_ORDER['master']) ? 2 : 1;
+          $this->addConditionalSkillModifier($effects, 'Performance', $perf_bonus, 'Virtuosic Performer circumstance bonus (rank-scaled)');
+          if ($perf_rank_int < CharacterManager::PROFICIENCY_RANK_ORDER['master']) {
+            $effects['feat_overrides']['virtuosic-performer_master_tier_pending'] = TRUE;
+          }
+          $effects['notes'][] = 'Virtuosic Performer: +' . $perf_bonus . ' circumstance bonus applied (Master = +2).';
           $effects['applied_feats'][] = $feat_id;
           break;
 
@@ -1136,7 +1158,43 @@ class FeatEffectManager {
           $effects['applied_feats'][] = $feat_id;
           break;
 
-        case 'assurance':
+        case 'battle-medicine': {
+          // AC: Healer's tools + Trained Medicine gate; DC/HP table matches Treat Wounds.
+          // Does NOT clear wounded condition. Per-character 1-day immunity tracked in game_state.
+          $effects['available_actions']['at_will'][] = [
+            'id' => 'battle-medicine',
+            'name' => 'Battle Medicine',
+            'action_cost' => 1,
+            'traits' => ['Healing', 'Manipulate'],
+            'description' => 'Spend 1 action to Treat Wounds in combat. Requires healer\'s tools and Trained Medicine. Does not remove the wounded condition. Target is immune to your Battle Medicine for 1 day.',
+            'requires_healers_tools' => TRUE,
+            'requires_trained_medicine' => TRUE,
+            'dc_table' => [1 => 15, 2 => 20, 3 => 30, 4 => 40],
+            'hp_bonus_table' => [1 => 0, 2 => 10, 3 => 30, 4 => 50],
+            'removes_wounded' => FALSE,
+            'immunity_key' => 'battle_medicine_immune',
+            'immunity_duration' => '1_day',
+          ];
+          $effects['notes'][] = 'Battle Medicine: encounter-phase heal action; healer\'s tools + Trained Medicine required; no wounded removal; 1-day immunity per target.';
+          $effects['applied_feats'][] = $feat_id;
+          break;
+        }
+
+        case 'assurance': {
+          // AC-003: Fixed result = 10 + proficiency bonus; no other modifiers.
+          $assurance_skill = strtolower(trim(
+            (string) ($this->resolveFeatSelectionValue('assurance', 'skill', $character_data) ?? 'unknown')
+          ));
+          $effects['feat_overrides']['assurance'][] = [
+            'type'    => 'fixed_result',
+            'skill'   => $assurance_skill,
+            'formula' => '10_plus_proficiency',
+          ];
+          $effects['notes'][] = 'Assurance (' . $assurance_skill . '): fixed result 10 + proficiency bonus; no other modifiers.';
+          $effects['applied_feats'][] = $feat_id;
+          break;
+        }
+
         case 'cat-fall':
         case 'charming-liar':
         case 'combat-climber':
@@ -1159,7 +1217,6 @@ class FeatEffectManager {
         case 'streetwise':
         case 'subtle-theft':
           $skill_mod_map = [
-            'assurance' => 'Any Skill',
             'cat-fall' => 'Acrobatics',
             'charming-liar' => 'Deception',
             'combat-climber' => 'Athletics',
@@ -1604,7 +1661,6 @@ class FeatEffectManager {
     }
 
     $skill_mods = [
-      'assurance' => 'Any Skill',
       'bargain-hunter' => 'Diplomacy',
       'cat-fall' => 'Acrobatics',
       'charming-liar' => 'Deception',
@@ -1629,7 +1685,6 @@ class FeatEffectManager {
       'read-lips' => 'Perception',
       'sign-language' => 'Society',
       'snare-crafting' => 'Crafting',
-      'specialty-crafting' => 'Crafting',
       'steady-balance' => 'Acrobatics',
       'streetwise' => 'Society',
       'student-of-the-canon' => 'Religion',
@@ -1638,8 +1693,6 @@ class FeatEffectManager {
       'terrain-expertise' => 'Survival',
       'titan-wrestler' => 'Athletics',
       'train-animal' => 'Nature',
-      'trick-magic-item' => 'Arcana',
-      'virtuosic-performer' => 'Performance',
     ];
     if (isset($skill_mods[$feat_id])) {
       $this->addConditionalSkillModifier($effects, $skill_mods[$feat_id], 1, $label . ' first-pass baseline');
@@ -1834,7 +1887,6 @@ class FeatEffectManager {
       'feather-step',
       'ride',
       'shield-block',
-      'assurance',
       'bargain-hunter',
       'cat-fall',
       'charming-liar',
@@ -1860,7 +1912,6 @@ class FeatEffectManager {
       'read-lips',
       'sign-language',
       'snare-crafting',
-      'specialty-crafting',
       'steady-balance',
       'streetwise',
       'student-of-the-canon',
@@ -1869,9 +1920,7 @@ class FeatEffectManager {
       'terrain-expertise',
       'titan-wrestler',
       'train-animal',
-      'trick-magic-item',
       'underwater-marauder',
-      'virtuosic-performer',
     ];
 
     $ids = [];

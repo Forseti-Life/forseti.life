@@ -350,7 +350,7 @@ class CharacterLevelingService {
    * @return array  Updated status.
    * @throws \InvalidArgumentException  On invalid feat or prerequisites.
    */
-  public function submitFeat(string $character_id, string $slot_type, string $feat_id): array {
+  public function submitFeat(string $character_id, string $slot_type, string $feat_id, array $feat_params = []): array {
     $record = $this->loadRecord($character_id);
     $char_data = json_decode($record->character_data, TRUE) ?? [];
     $lus = $char_data['levelUpState'] ?? [];
@@ -368,7 +368,7 @@ class CharacterLevelingService {
     $class_name = strtolower($char_data['basicInfo']['class'] ?? 'fighter');
 
     // Validate feat and prerequisites.
-    $feat = $this->validateFeat($feat_id, $slot_type, $class_name, $level, $char_data);
+    $feat = $this->validateFeat($feat_id, $slot_type, $class_name, $level, $char_data, $feat_params);
 
     // AC-002 / AC-004: if this is a dedication feat, run multiclass dedication
     // validation (breadth rule, no duplicate dedication, level minimum).
@@ -379,12 +379,16 @@ class CharacterLevelingService {
     // Add feat to character.
     $char_data['features'] = $char_data['features'] ?? ['classFeatures' => [], 'feats' => []];
     $char_data['features']['feats'] = $char_data['features']['feats'] ?? [];
-    $char_data['features']['feats'][] = [
+    $feat_entry = [
       'id'              => $feat_id,
       'name'            => $feat['name'] ?? $feat_id,
       'slot_type'       => $slot_type,
       'gained_at_level' => $level,
     ];
+    if (!empty($feat_params)) {
+      $feat_entry['feat_params'] = $feat_params;
+    }
+    $char_data['features']['feats'][] = $feat_entry;
 
     // Mark slot resolved.
     $char_data['levelUpState']['pendingChoices'][$slot_idx]['resolved'] = TRUE;
@@ -660,7 +664,8 @@ class CharacterLevelingService {
     string $slot_type,
     string $class_name,
     int $level,
-    array $char_data
+    array $char_data,
+    array $feat_params = []
   ): array {
     // Build the eligible catalog for the slot type.
     $catalog = match ($slot_type) {
@@ -715,9 +720,48 @@ class CharacterLevelingService {
       );
     }
 
-    // Already-owned check.
-    $owned_ids = array_column($char_data['features']['feats'] ?? [], 'id');
-    if (in_array($feat_id, $owned_ids, TRUE)) {
+    // AC-001/AC-006: skill_feat slots require the feat to have the Skill trait.
+    if ($slot_type === 'skill_feat' && !in_array('Skill', $feat['traits'] ?? [], TRUE)) {
+      throw new \InvalidArgumentException(
+        "Feat '{$feat_id}' does not have the Skill trait and cannot fill a skill_feat slot", 400
+      );
+    }
+
+    // Already-owned check — with repeatable and per-skill exceptions.
+    $owned_feats = $char_data['features']['feats'] ?? [];
+    $owned_ids = array_column($owned_feats, 'id');
+
+    if (!empty($feat['repeatable'])) {
+      // Repeatable feats (e.g., Armor Proficiency, Weapon Proficiency): allow
+      // re-selection up to repeatable_max times.
+      $owned_count = count(array_keys($owned_ids, $feat_id, TRUE));
+      $max = (int) ($feat['repeatable_max'] ?? 1);
+      if ($owned_count >= $max) {
+        throw new \InvalidArgumentException(
+          "Feat '{$feat_id}' has already been selected the maximum {$max} time(s)", 400
+        );
+      }
+    }
+    elseif (!empty($feat['assurance_per_skill'])) {
+      // Assurance can be taken once per skill — block same skill, allow new skills.
+      $selected_skill = strtolower(trim($feat_params['skill'] ?? ''));
+      if ($selected_skill === '') {
+        throw new \InvalidArgumentException(
+          "Feat '{$feat_id}' requires a 'skill' in feat_params (e.g. Acrobatics)", 400
+        );
+      }
+      foreach ($owned_feats as $owned) {
+        if (($owned['id'] ?? '') === $feat_id) {
+          $owned_skill = strtolower(trim($owned['feat_params']['skill'] ?? ''));
+          if ($owned_skill === $selected_skill) {
+            throw new \InvalidArgumentException(
+              "Assurance ({$selected_skill}) is already in character's feat list", 400
+            );
+          }
+        }
+      }
+    }
+    elseif (in_array($feat_id, $owned_ids, TRUE)) {
       throw new \InvalidArgumentException("Feat '{$feat_id}' is already in character's feat list", 400);
     }
 

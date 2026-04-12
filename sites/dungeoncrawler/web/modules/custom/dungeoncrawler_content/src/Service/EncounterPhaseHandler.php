@@ -213,6 +213,8 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
       // REQ 1688–1694: Medicine skill actions (encounter-phase).
       'administer_first_aid',
       'treat_poison',
+      // REQ: Battle Medicine [1 action, General Skill Feat, Trained Medicine].
+      'battle_medicine',
       // REQ 1591–1594, 2329: Recall Knowledge [1 action, Secret].
       'recall_knowledge',
       // REQ 1715–1722: Stealth skill actions [encounter-phase].
@@ -1421,6 +1423,72 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
         $game_state['turn']['actions_remaining'] = max(0, ($game_state['turn']['actions_remaining'] ?? 0) - 1);
         $result = ['treated' => $treated_tp, 'degree' => $degree_tp, 'd20' => $d20_tp, 'total' => $total_tp, 'dc' => $poison_dc_tp];
         $events[] = GameEventLogger::buildEvent('treat_poison', 'encounter', $actor_id, ['degree' => $degree_tp, 'treated' => $treated_tp, 'round' => $game_state['round'] ?? NULL], NULL, $target_id);
+        break;
+      }
+
+      // -----------------------------------------------------------------------
+      // Battle Medicine [1 action, Manipulate, General Skill Feat]
+      // Requires: healer's tools + Trained Medicine; same DC/HP table as Treat Wounds.
+      // Does NOT remove wounded condition. Per-healer 1-day immunity per target.
+      // -----------------------------------------------------------------------
+      case 'battle_medicine': {
+        $med_rank_bm = (int) ($params['medicine_proficiency_rank'] ?? 0);
+        if ($med_rank_bm < 1) {
+          return ['success' => FALSE, 'result' => ['error' => 'Battle Medicine requires Trained Medicine.'], 'mutations' => [], 'events' => [], 'phase_transition' => NULL, 'narration' => NULL];
+        }
+        if (empty($params['has_healers_tools'])) {
+          return ['success' => FALSE, 'result' => ['error' => 'Battle Medicine requires healer\'s tools.'], 'mutations' => [], 'events' => [], 'phase_transition' => NULL, 'narration' => NULL];
+        }
+
+        // Per-healer 1-day immunity per target (keyed by actor+target pair).
+        $effective_target_bm = $target_id ?? $actor_id;
+        $bm_immune_key = $actor_id . ':' . $effective_target_bm;
+        if (!empty($game_state['battle_medicine_immune'][$bm_immune_key])) {
+          return ['success' => FALSE, 'result' => ['error' => 'Target is immune to this healer\'s Battle Medicine for 1 day.'], 'mutations' => [], 'events' => [], 'phase_transition' => NULL, 'narration' => NULL];
+        }
+
+        $dc_table_bm   = [1 => 15, 2 => 20, 3 => 30, 4 => 40];
+        $hp_bonus_bm   = [1 => 0,  2 => 10, 3 => 30, 4 => 50];
+        $rank_key_bm   = min(4, max(1, $med_rank_bm));
+        $dc_bm         = (int) ($params['override_dc'] ?? $dc_table_bm[$rank_key_bm]);
+        $med_bonus_bm  = (int) ($params['medicine_bonus'] ?? 0);
+        $item_bonus_bm = !empty($params['is_improvised_tools']) ? -2 : 0;
+
+        $d20_bm  = $this->numberGenerationService->rollPathfinderDie(20);
+        $d8a_bm  = $this->numberGenerationService->rollPathfinderDie(8);
+        $d8b_bm  = $this->numberGenerationService->rollPathfinderDie(8);
+        $total_bm = $d20_bm + $med_bonus_bm + $item_bonus_bm;
+        $degree_bm = $this->combatCalculator->calculateDegreeOfSuccess($total_bm, $dc_bm, $d20_bm);
+
+        $healed_bm = 0;
+        $damage_bm = 0;
+        $mutations_bm = [];
+
+        if ($degree_bm === 'critical_success') {
+          $healed_bm = (($d8a_bm + $d8b_bm) + $hp_bonus_bm[$rank_key_bm]) * 2;
+        }
+        elseif ($degree_bm === 'success') {
+          $healed_bm = ($d8a_bm + $d8b_bm) + $hp_bonus_bm[$rank_key_bm];
+        }
+        elseif ($degree_bm === 'critical_failure') {
+          $damage_bm = $this->numberGenerationService->rollPathfinderDie(8);
+        }
+
+        // Mark immunity (does not remove wounded; healer-specific).
+        $game_state['battle_medicine_immune'][$bm_immune_key] = TRUE;
+        $game_state['turn']['actions_remaining'] = max(0, ($game_state['turn']['actions_remaining'] ?? 0) - 1);
+
+        $result = [
+          'degree'  => $degree_bm,
+          'healed'  => $healed_bm,
+          'damage'  => $damage_bm,
+          'dc'      => $dc_bm,
+          'd20'     => $d20_bm,
+          'total'   => $total_bm,
+          'removes_wounded' => FALSE,
+          'mutations' => $mutations_bm,
+        ];
+        $events[] = GameEventLogger::buildEvent('battle_medicine', 'encounter', $actor_id, ['degree' => $degree_bm, 'healed' => $healed_bm, 'round' => $game_state['round'] ?? NULL], NULL, $effective_target_bm);
         break;
       }
 
