@@ -14522,7 +14522,9 @@
         "sessions/qa-dungeoncrawler/artifacts/dc-cr-skills-society-create-forgery/phpunit-report.xml"
       ],
       "required_for_release": true,
-      "notes": "Security AC exemption: no new routes. Dependencies: dc-cr-skill-system. Open PM items: TC-SOC-01 humanoid org scope; TC-SOC-04 writing materials model; TC-SOC-05 page count input; TC-SOC-07 specialist DC exact values; TC-SOC-08 special tools DC modifier; TC-SOC-12 crit success quality tier; TC-SOC-13 Deception DC snapshot vs dynamic; TC-SOC-14 examine trigger model.",
+      "activated_release": "20260412-dungeoncrawler-release-b",
+      "activated_date": "2026-04-12",
+      "notes": "Security AC exemption: no new routes. Dependencies: dc-cr-skill-system. Open PM items: TC-SOC-01 humanoid org scope; TC-SOC-04 writing materials model; TC-SOC-05 page count input; TC-SOC-07 specialist DC exact values; TC-SOC-08 special tools DC modifier; TC-SOC-12 crit success quality tier; TC-SOC-13 Deception DC snapshot vs dynamic; TC-SOC-14 examine trigger model. 14 TCs pending_implementation — awaiting Dev implementation this release.",
       "test_cases": [
         {
           "id": "TC-SOC-01",
