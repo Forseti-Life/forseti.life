@@ -3150,6 +3150,126 @@
       ],
       "required_for_release": true,
       "notes": "Submit form with linkedin_url='https://evil.example.com/fake'. Expect form validation error; COUNT(*) = 0."
+    },
+    {
+      "id": "forseti-jobhunter-job-board-preferences-tc1-save-new-preferences-smoke",
+      "label": "TC-1: Save new preferences row (smoke) \u2014 row created in jobhunter_source_preferences",
+      "type": "functional",
+      "feature_id": "forseti-jobhunter-job-board-preferences",
+      "command": "drush sql:query \"SELECT sources_enabled, min_salary, remote_preference FROM jobhunter_source_preferences WHERE uid=<uid>\" 2>/dev/null",
+      "artifacts": [
+        "/tmp/qa-forseti-job-board-prefs-tc1.log"
+      ],
+      "required_for_release": true,
+      "notes": "Submit form with sources_enabled=['indeed'], min_salary=75000, remote_preference=remote_only. Expect matching row."
+    },
+    {
+      "id": "forseti-jobhunter-job-board-preferences-tc2-preferences-page-renders",
+      "label": "TC-2: /jobhunter/preferences/sources page renders for authenticated user",
+      "type": "functional",
+      "feature_id": "forseti-jobhunter-job-board-preferences",
+      "command": "curl -s -o /dev/null -w \"%{http_code}\" -b \"$FORSETI_COOKIE_AUTHENTICATED\" https://forseti.life/jobhunter/preferences/sources",
+      "artifacts": [
+        "/tmp/qa-forseti-job-board-prefs-tc2.log"
+      ],
+      "required_for_release": true,
+      "notes": "Expect HTTP 200; page contains 'source-preferences-form' markup with source checkboxes and salary/remote fields."
+    },
+    {
+      "id": "forseti-jobhunter-job-board-preferences-tc3-preferences-prepopulate-on-revisit",
+      "label": "TC-3: Preferences form pre-populates with saved values on revisit",
+      "type": "functional",
+      "feature_id": "forseti-jobhunter-job-board-preferences",
+      "command": "curl -s -b \"$FORSETI_COOKIE_AUTHENTICATED\" https://forseti.life/jobhunter/preferences/sources | grep -c 'hybrid'",
+      "artifacts": [
+        "/tmp/qa-forseti-job-board-prefs-tc3.log"
+      ],
+      "required_for_release": true,
+      "notes": "Given prior row with remote_preference=hybrid. Form HTML must contain selected 'hybrid' option. Grep count >= 1."
+    },
+    {
+      "id": "forseti-jobhunter-job-board-preferences-tc4-update-idempotency",
+      "label": "TC-4: Re-submit preferences updates existing row, no duplicate rows",
+      "type": "functional",
+      "feature_id": "forseti-jobhunter-job-board-preferences",
+      "command": "drush sql:query \"SELECT COUNT(*) FROM jobhunter_source_preferences WHERE uid=<uid>\" 2>/dev/null",
+      "artifacts": [
+        "/tmp/qa-forseti-job-board-prefs-tc4.log"
+      ],
+      "required_for_release": true,
+      "notes": "After second submit with min_salary=90000, COUNT(*) must remain 1 (upsert). Verify min_salary updated."
+    },
+    {
+      "id": "forseti-jobhunter-job-board-preferences-tc5-discovery-service-skips-disabled-source",
+      "label": "TC-5: JobDiscoveryService skips disabled source per user preferences",
+      "type": "functional",
+      "feature_id": "forseti-jobhunter-job-board-preferences",
+      "command": "grep -r 'JobDiscoveryService' /home/ubuntu/forseti.life/sites/forseti/web/modules/custom/job_hunter/src/ 2>/dev/null | grep -c 'sources_enabled'",
+      "artifacts": [
+        "/tmp/qa-forseti-job-board-prefs-tc5.log"
+      ],
+      "required_for_release": true,
+      "notes": "Given sources_enabled=['indeed'] (LinkedIn excluded), LinkedIn adapter must not be invoked. Unit test or integration log must show LinkedIn call count=0."
+    },
+    {
+      "id": "forseti-jobhunter-job-board-preferences-tc6-unknown-source-key-rejected",
+      "label": "TC-6: Unknown source key in sources_enabled rejected \u2014 form validation error, no DB write",
+      "type": "security",
+      "feature_id": "forseti-jobhunter-job-board-preferences",
+      "command": "drush sql:query \"SELECT sources_enabled FROM jobhunter_source_preferences WHERE uid=<uid>\" 2>/dev/null",
+      "artifacts": [
+        "/tmp/qa-forseti-job-board-prefs-tc6.log"
+      ],
+      "required_for_release": true,
+      "notes": "Submit form with sources_enabled=['evil_source']. Expect validation error; DB must not contain 'evil_source'."
+    },
+    {
+      "id": "forseti-jobhunter-job-board-preferences-tc7-salary-out-of-bounds-rejected",
+      "label": "TC-7: min_salary out-of-bounds (negative or extremely large) rejected \u2014 form validation error",
+      "type": "security",
+      "feature_id": "forseti-jobhunter-job-board-preferences",
+      "command": "drush sql:query \"SELECT min_salary FROM jobhunter_source_preferences WHERE uid=<uid>\" 2>/dev/null",
+      "artifacts": [
+        "/tmp/qa-forseti-job-board-prefs-tc7.log"
+      ],
+      "required_for_release": true,
+      "notes": "Submit min_salary=-1 and min_salary=9999999999. Both must return form error; DB row must remain unchanged."
+    },
+    {
+      "id": "forseti-jobhunter-job-board-preferences-tc8-anon-access-403",
+      "label": "TC-8: Unauthenticated GET /jobhunter/preferences/sources returns 403 or redirect",
+      "type": "security",
+      "feature_id": "forseti-jobhunter-job-board-preferences",
+      "command": "curl -s -o /dev/null -w \"%{http_code}\" https://forseti.life/jobhunter/preferences/sources",
+      "artifacts": [
+        "/tmp/qa-forseti-job-board-prefs-tc8.log"
+      ],
+      "required_for_release": true,
+      "notes": "Expect 403 or 302 redirect to login. Anonymous access to preferences page must be blocked."
+    },
+    {
+      "id": "forseti-jobhunter-job-board-preferences-tc9-csrf-required-on-post",
+      "label": "TC-9: Authenticated POST without CSRF token returns 403",
+      "type": "security",
+      "feature_id": "forseti-jobhunter-job-board-preferences",
+      "command": "curl -s -o /dev/null -w \"%{http_code}\" -X POST -b \"$FORSETI_COOKIE_AUTHENTICATED\" https://forseti.life/jobhunter/preferences/sources",
+      "artifacts": [
+        "/tmp/qa-forseti-job-board-prefs-tc9.log"
+      ],
+      "required_for_release": true,
+      "notes": "POST without X-CSRF-Token header must return 403. Tests Drupal CSRF protection on preferences save route."
+    },
+    {
+      "id": "forseti-jobhunter-job-board-preferences-tc10-cross-user-isolation",
+      "label": "TC-10: Cross-user isolation \u2014 preferences are uid-scoped, user B cannot see user A salary",
+      "type": "security",
+      "feature_id": "forseti-jobhunter-job-board-preferences",
+      "command": "drush sql:query \"SELECT min_salary FROM jobhunter_source_preferences WHERE uid=<uid_B>\" 2>/dev/null",
+      "artifacts": [
+        "/tmp/qa-forseti-job-board-prefs-tc10.log"
+      ],
+      "required_for_release": true,
+      "notes": "User A has min_salary=100000; user B has min_salary=50000. Each user sees only their own. DB confirm uid_B row = 50000."
     }
   ],
   "_schema_notes": [

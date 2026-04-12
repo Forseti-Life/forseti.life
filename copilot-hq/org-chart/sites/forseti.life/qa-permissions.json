@@ -982,6 +982,17 @@
         "authenticated": "200",
         "admin": "200"
       }
+    },
+    {
+      "id": "forseti-jobhunter-job-board-preferences-preferences-sources-page",
+      "feature_id": "forseti-jobhunter-job-board-preferences",
+      "path_regex": "^/jobhunter/preferences/sources$",
+      "notes": "Added for feature forseti-jobhunter-job-board-preferences. Per-user job-board source preferences page. Auth required; CSRF required on POST.",
+      "expect": {
+        "anon": "403",
+        "authenticated": "200",
+        "admin": "200"
+      }
     }
   ]
 }
