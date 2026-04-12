@@ -189,6 +189,25 @@ If count is already ≥7, do NOT activate more. If count is <7, activate only en
 
 **Lesson (2026-04-09, GAP-DC-PM-AUTO-CLOSE-IMMEDIATE):** In release-d (20260409), PM activated exactly 10 features (the auto-close threshold), triggering immediate release-close-now before dev could pick up any work items. Third consecutive empty release. Root cause: PM count not verified before activation.
 
+**Lesson (2026-04-12, GAP-DC-PM-SCOPE-UNBUILT-01):** In release-b (20260412-dungeoncrawler-release-b), PM activated 10 features simultaneously. 5 had no dev outbox (unbuilt). Auto-close fired immediately, all 10 deferred, 0 shipped. Unbuilt features consumed all cap slots and blocked dev-complete features from shipping quickly.
+
+**Scope activation ordering (required — GAP-DC-PM-SCOPE-UNBUILT-01):**
+Before activating any batch, classify the ready backlog into two tiers:
+1. **Dev-complete**: feature has a dev-dungeoncrawler outbox confirming implementation done (commit hash present). Check: `ls sessions/dev-dungeoncrawler/outbox/ | grep <feature-id>` and confirm `Status: done` inside.
+2. **Unbuilt**: no dev outbox, or dev outbox status is not `done`.
+
+Activation order rule:
+- Activate dev-complete features first, up to the soft cap.
+- Only activate unbuilt features after all dev-complete features are activated AND cap slots remain.
+- Rationale: dev-complete features can reach QA Gate 2 in 1 cycle; unbuilt features need 2+ cycles minimum. Prioritizing dev-complete features maximizes the chance of shipping before auto-close fires.
+
+**Soft cap rule (updated — GAP-DC-PM-SCOPE-CAP-COLLISION-01):**
+The ≤7 HARD STOP above applies at all times. Additionally:
+- Default: activate no more than **5 features** per batch (leaving ≥5 slots as delivery runway for features already in dev/QA pipeline).
+- Exception: if ALL features in the activation batch are dev-complete (confirmed dev outbox, `Status: done`) AND QA unit tests for those features already have passing evidence, you may fill up to **9 slots** (leaving 1 slot as headroom).
+- Never fill to 10 — that is the instant-auto-close threshold.
+- After each activation batch, pause and verify at least one feature has dev output before activating more.
+
 **PRE-CHECK (required before every activation run):**
 ```bash
 cat tmp/release-cycle-active/dungeoncrawler.release_id
