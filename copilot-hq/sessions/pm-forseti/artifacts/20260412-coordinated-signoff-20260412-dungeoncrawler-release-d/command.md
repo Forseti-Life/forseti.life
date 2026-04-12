@@ -1,3 +1,6 @@
+- Status: done
+- Completed: 2026-04-12T17:59:36Z
+
 # Coordinated signoff: 20260412-dungeoncrawler-release-d
 
 pm-dungeoncrawler has signed off on release 20260412-dungeoncrawler-release-d. Coordinated signoff required from pm-forseti.
