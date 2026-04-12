@@ -337,7 +337,7 @@ class DowntimePhaseHandler implements PhaseHandlerInterface {
           return ['success' => FALSE, 'result' => ['error' => 'prepare_staff requires params.staff_instance_id.'], 'mutations' => [], 'events' => [], 'phase_transition' => NULL, 'narration' => NULL];
         }
         $char_state_dt = $this->characterStateService->getState($actor_id);
-        $result = $this->magicItemService->prepareStaff($actor_id, $staff_id_dt, $staff_data_dt, $char_state_dt, $game_state);
+        $result = $this->magicItemService->prepareStaff($staff_id_dt, $actor_id, $char_state_dt, $game_state);
         $events[] = GameEventLogger::buildEvent('prepare_staff', 'downtime', $actor_id, ['staff_instance_id' => $staff_id_dt, 'success' => $result['success']]);
         break;
       }
@@ -373,7 +373,8 @@ class DowntimePhaseHandler implements PhaseHandlerInterface {
         $source_item_tr = $params['source_item_data'] ?? [];
         $dest_item_tr   = $params['dest_item_data'] ?? [];
         $char_state_tr  = $this->characterStateService->getState($actor_id);
-        $result = $this->magicItemService->transferRune($source_item_tr, $dest_item_tr, $rune_type_tr, $rune_data_tr, $char_state_tr);
+        $craft_bonus_tr = (int) ($char_state_tr['skills']['crafting']['bonus'] ?? 0);
+        $result = $this->magicItemService->transferRune($source_item_tr, $dest_item_tr, $rune_type_tr, $rune_data_tr, $craft_bonus_tr);
         $events[] = GameEventLogger::buildEvent('transfer_rune', 'downtime', $actor_id, ['source' => $source_id_tr, 'dest' => $dest_id_tr, 'rune_type' => $rune_type_tr, 'success' => $result['success']]);
         break;
       }
@@ -385,7 +386,7 @@ class DowntimePhaseHandler implements PhaseHandlerInterface {
         $snare_data_dt  = $params['snare_data'] ?? [];
         $location_id_dt = $params['location_id'] ?? 'unknown';
         $char_state_dt  = $this->characterStateService->getState($actor_id);
-        $result = $this->magicItemService->craftSnare($actor_id, $snare_data_dt, $location_id_dt, $char_state_dt, $game_state);
+        $result = $this->magicItemService->craftSnare($snare_data_dt, $char_state_dt, $location_id_dt, $game_state);
         $events[] = GameEventLogger::buildEvent('craft_snare', 'downtime', $actor_id, ['location_id' => $location_id_dt, 'success' => $result['success']]);
         break;
       }
@@ -397,7 +398,10 @@ class DowntimePhaseHandler implements PhaseHandlerInterface {
         $char_ids_dp = $params['char_ids'] ?? [$actor_id];
         $prep_results = [];
         foreach ($char_ids_dp as $char_id_dp) {
-          $prep_results[$char_id_dp] = $this->magicItemService->performDailyPreparations($char_id_dp, $game_state);
+          $char_data_dp   = $this->characterStateService->getState($char_id_dp);
+          $owned_items_dp = $params['owned_item_instances'][$char_id_dp] ?? [];
+          $this->magicItemService->performDailyPreparations($char_id_dp, $char_data_dp, $owned_items_dp, $game_state);
+          $prep_results[$char_id_dp] = ['prepared' => TRUE];
         }
         $result = ['prepared' => $prep_results];
         $events[] = GameEventLogger::buildEvent('daily_preparations', 'downtime', $actor_id, ['chars' => array_keys($prep_results)]);

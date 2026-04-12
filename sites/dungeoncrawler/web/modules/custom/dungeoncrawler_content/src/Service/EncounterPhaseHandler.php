@@ -2063,7 +2063,7 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
           return ['success' => FALSE, 'result' => ['error' => 'activate_item requires params.item_instance_id.'], 'mutations' => [], 'events' => [], 'phase_transition' => NULL, 'narration' => NULL];
         }
         $char_state_ai = $params['char_state'] ?? [];
-        $activate_result_ai = $this->magicItemService->activateItem($actor_id, $item_id_ai, $item_data_ai, $component_ai, $char_state_ai, $game_state);
+        $activate_result_ai = $this->magicItemService->activateItem($actor_id, $item_id_ai, $item_data_ai, $char_state_ai, $game_state);
         $game_state['turn']['actions_remaining'] = max(0, ($game_state['turn']['actions_remaining'] ?? 0) - ($activate_result_ai['actions_cost'] ?? 1));
         $result = $activate_result_ai;
         $events[] = GameEventLogger::buildEvent('activate_item', 'encounter', $actor_id, ['item_instance_id' => $item_id_ai, 'success' => $activate_result_ai['success'], 'round' => $game_state['round'] ?? NULL]);
@@ -2110,7 +2110,7 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
           return ['success' => FALSE, 'result' => ['error' => 'cast_from_scroll requires params.scroll_instance_id.'], 'mutations' => [], 'events' => [], 'phase_transition' => NULL, 'narration' => NULL];
         }
         $char_state_enc = $params['char_state'] ?? [];
-        $scroll_result_enc = $this->magicItemService->castFromScroll($actor_id, $scroll_id_enc, $scroll_data_enc, $char_state_enc, $game_state);
+        $scroll_result_enc = $this->magicItemService->castFromScroll($scroll_data_enc, $char_state_enc, $game_state);
         $game_state['turn']['actions_remaining'] = max(0, ($game_state['turn']['actions_remaining'] ?? 0) - ($scroll_result_enc['actions_cost'] ?? 2));
         $result = $scroll_result_enc;
         $events[] = GameEventLogger::buildEvent('cast_from_scroll', 'encounter', $actor_id, ['scroll_instance_id' => $scroll_id_enc, 'success' => $scroll_result_enc['success'], 'round' => $game_state['round'] ?? NULL]);
@@ -2127,8 +2127,9 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
         if (!$staff_id_enc) {
           return ['success' => FALSE, 'result' => ['error' => 'cast_from_staff requires params.staff_instance_id.'], 'mutations' => [], 'events' => [], 'phase_transition' => NULL, 'narration' => NULL];
         }
+        $spell_id_enc   = $params['spell_id'] ?? '';
         $char_state_enc = $params['char_state'] ?? [];
-        $staff_result_enc = $this->magicItemService->castFromStaff($actor_id, $staff_id_enc, $staff_data_enc, $spell_level_enc, $char_state_enc, $game_state);
+        $staff_result_enc = $this->magicItemService->castFromStaff($staff_id_enc, $actor_id, $staff_data_enc, $spell_id_enc, $spell_level_enc, $char_state_enc, $game_state);
         $game_state['turn']['actions_remaining'] = max(0, ($game_state['turn']['actions_remaining'] ?? 0) - ($staff_result_enc['actions_cost'] ?? 2));
         $result = $staff_result_enc;
         $events[] = GameEventLogger::buildEvent('cast_from_staff', 'encounter', $actor_id, ['staff_instance_id' => $staff_id_enc, 'spell_level' => $spell_level_enc, 'success' => $staff_result_enc['success'], 'round' => $game_state['round'] ?? NULL]);
@@ -2144,7 +2145,8 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
         if (!$wand_id_enc) {
           return ['success' => FALSE, 'result' => ['error' => 'cast_from_wand requires params.wand_instance_id.'], 'mutations' => [], 'events' => [], 'phase_transition' => NULL, 'narration' => NULL];
         }
-        $wand_result_enc = $this->magicItemService->castFromWand($actor_id, $wand_id_enc, $wand_data_enc, $game_state);
+        $char_state_wand = $params['char_state'] ?? [];
+        $wand_result_enc = $this->magicItemService->castFromWand($wand_id_enc, $wand_data_enc, $char_state_wand, $game_state);
         $game_state['turn']['actions_remaining'] = max(0, ($game_state['turn']['actions_remaining'] ?? 0) - ($wand_result_enc['actions_cost'] ?? 2));
         $result = $wand_result_enc;
         $events[] = GameEventLogger::buildEvent('cast_from_wand', 'encounter', $actor_id, ['wand_instance_id' => $wand_id_enc, 'success' => $wand_result_enc['success'], 'round' => $game_state['round'] ?? NULL]);
@@ -2160,7 +2162,7 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
         if (!$wand_id_ow) {
           return ['success' => FALSE, 'result' => ['error' => 'overcharge_wand requires params.wand_instance_id.'], 'mutations' => [], 'events' => [], 'phase_transition' => NULL, 'narration' => NULL];
         }
-        $overcharge_result_ow = $this->magicItemService->overchargeWand($actor_id, $wand_id_ow, $wand_data_ow, $game_state);
+        $overcharge_result_ow = $this->magicItemService->overchargeWand($wand_id_ow, $game_state);
         $game_state['turn']['actions_remaining'] = max(0, ($game_state['turn']['actions_remaining'] ?? 0) - ($overcharge_result_ow['actions_cost'] ?? 2));
         $result = $overcharge_result_ow;
         $events[] = GameEventLogger::buildEvent('overcharge_wand', 'encounter', $actor_id, ['wand_instance_id' => $wand_id_ow, 'success' => $overcharge_result_ow['success'], 'round' => $game_state['round'] ?? NULL]);
@@ -2172,10 +2174,11 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
       // -----------------------------------------------------------------------
       case 'activate_talisman': {
         $talisman_id_enc = $params['talisman_instance_id'] ?? NULL;
+        $host_item_id_enc = $params['host_item_instance_id'] ?? $talisman_id_enc;
         if (!$talisman_id_enc) {
           return ['success' => FALSE, 'result' => ['error' => 'activate_talisman requires params.talisman_instance_id.'], 'mutations' => [], 'events' => [], 'phase_transition' => NULL, 'narration' => NULL];
         }
-        $talisman_result_enc = $this->magicItemService->activateTalisman($actor_id, $talisman_id_enc, $game_state);
+        $talisman_result_enc = $this->magicItemService->activateTalisman($host_item_id_enc, $actor_id, $game_state);
         $game_state['turn']['actions_remaining'] = max(0, ($game_state['turn']['actions_remaining'] ?? 0) - ($talisman_result_enc['actions_cost'] ?? 1));
         $result = $talisman_result_enc;
         $events[] = GameEventLogger::buildEvent('activate_talisman', 'encounter', $actor_id, ['talisman_instance_id' => $talisman_id_enc, 'success' => $talisman_result_enc['success'], 'round' => $game_state['round'] ?? NULL]);

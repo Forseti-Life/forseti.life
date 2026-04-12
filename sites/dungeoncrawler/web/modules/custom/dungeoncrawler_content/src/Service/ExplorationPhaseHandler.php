@@ -1059,7 +1059,7 @@ class ExplorationPhaseHandler implements PhaseHandlerInterface {
           return ['success' => FALSE, 'result' => ['error' => 'activate_item requires params.item_instance_id.'], 'mutations' => [], 'events' => [], 'phase_transition' => NULL, 'narration' => NULL];
         }
         $char_state = $this->characterStateService->getState($actor_id);
-        $activate_result = $this->magicItemService->activateItem($actor_id, $item_id, $item_data, $component, $char_state, $game_state);
+        $activate_result = $this->magicItemService->activateItem($actor_id, $item_id, $item_data, $char_state, $game_state);
         $result = $activate_result;
         $events[] = GameEventLogger::buildEvent('activate_item', 'exploration', $actor_id, ['item_instance_id' => $item_id, 'success' => $activate_result['success']]);
         break;
@@ -1103,7 +1103,7 @@ class ExplorationPhaseHandler implements PhaseHandlerInterface {
           return ['success' => FALSE, 'result' => ['error' => 'cast_from_scroll requires params.scroll_instance_id.'], 'mutations' => [], 'events' => [], 'phase_transition' => NULL, 'narration' => NULL];
         }
         $char_state = $this->characterStateService->getState($actor_id);
-        $scroll_result = $this->magicItemService->castFromScroll($actor_id, $scroll_id, $scroll_data, $char_state, $game_state);
+        $scroll_result = $this->magicItemService->castFromScroll($scroll_data, $char_state, $game_state);
         $result = $scroll_result;
         $events[] = GameEventLogger::buildEvent('cast_from_scroll', 'exploration', $actor_id, ['scroll_instance_id' => $scroll_id, 'success' => $scroll_result['success']]);
         break;
@@ -1119,7 +1119,7 @@ class ExplorationPhaseHandler implements PhaseHandlerInterface {
           return ['success' => FALSE, 'result' => ['error' => 'prepare_staff requires params.staff_instance_id.'], 'mutations' => [], 'events' => [], 'phase_transition' => NULL, 'narration' => NULL];
         }
         $char_state = $this->characterStateService->getState($actor_id);
-        $prepare_result = $this->magicItemService->prepareStaff($actor_id, $staff_id, $staff_data, $char_state, $game_state);
+        $prepare_result = $this->magicItemService->prepareStaff($staff_id, $actor_id, $char_state, $game_state);
         $result = $prepare_result;
         $events[] = GameEventLogger::buildEvent('prepare_staff', 'exploration', $actor_id, ['staff_instance_id' => $staff_id, 'success' => $prepare_result['success']]);
         break;
@@ -1135,8 +1135,9 @@ class ExplorationPhaseHandler implements PhaseHandlerInterface {
         if (!$staff_id) {
           return ['success' => FALSE, 'result' => ['error' => 'cast_from_staff requires params.staff_instance_id.'], 'mutations' => [], 'events' => [], 'phase_transition' => NULL, 'narration' => NULL];
         }
+        $spell_id   = $params['spell_id'] ?? '';
         $char_state = $this->characterStateService->getState($actor_id);
-        $cast_result = $this->magicItemService->castFromStaff($actor_id, $staff_id, $staff_data, $spell_level, $char_state, $game_state);
+        $cast_result = $this->magicItemService->castFromStaff($staff_id, $actor_id, $staff_data, $spell_id, $spell_level, $char_state, $game_state);
         $result = $cast_result;
         $events[] = GameEventLogger::buildEvent('cast_from_staff', 'exploration', $actor_id, ['staff_instance_id' => $staff_id, 'spell_level' => $spell_level, 'success' => $cast_result['success']]);
         break;
@@ -1151,7 +1152,8 @@ class ExplorationPhaseHandler implements PhaseHandlerInterface {
         if (!$wand_id) {
           return ['success' => FALSE, 'result' => ['error' => 'cast_from_wand requires params.wand_instance_id.'], 'mutations' => [], 'events' => [], 'phase_transition' => NULL, 'narration' => NULL];
         }
-        $cast_result = $this->magicItemService->castFromWand($actor_id, $wand_id, $wand_data, $game_state);
+        $char_state = $this->characterStateService->getState($actor_id);
+        $cast_result = $this->magicItemService->castFromWand($wand_id, $wand_data, $char_state, $game_state);
         $result = $cast_result;
         $events[] = GameEventLogger::buildEvent('cast_from_wand', 'exploration', $actor_id, ['wand_instance_id' => $wand_id, 'success' => $cast_result['success']]);
         break;
@@ -1166,7 +1168,7 @@ class ExplorationPhaseHandler implements PhaseHandlerInterface {
         if (!$wand_id) {
           return ['success' => FALSE, 'result' => ['error' => 'overcharge_wand requires params.wand_instance_id.'], 'mutations' => [], 'events' => [], 'phase_transition' => NULL, 'narration' => NULL];
         }
-        $overcharge_result = $this->magicItemService->overchargeWand($actor_id, $wand_id, $wand_data, $game_state);
+        $overcharge_result = $this->magicItemService->overchargeWand($wand_id, $game_state);
         $result = $overcharge_result;
         $events[] = GameEventLogger::buildEvent('overcharge_wand', 'exploration', $actor_id, ['wand_instance_id' => $wand_id, 'success' => $overcharge_result['success']]);
         break;
@@ -1179,7 +1181,7 @@ class ExplorationPhaseHandler implements PhaseHandlerInterface {
         $snare_data  = $params['snare_data'] ?? [];
         $location_id = $params['location_id'] ?? ($game_state['active_room_id'] ?? 'unknown');
         $char_state  = $this->characterStateService->getState($actor_id);
-        $snare_result = $this->magicItemService->craftSnare($actor_id, $snare_data, $location_id, $char_state, $game_state);
+        $snare_result = $this->magicItemService->craftSnare($snare_data, $char_state, $location_id, $game_state);
         $result = $snare_result;
         $events[] = GameEventLogger::buildEvent('craft_snare', 'exploration', $actor_id, ['location_id' => $location_id, 'success' => $snare_result['success']]);
         break;
@@ -1189,13 +1191,13 @@ class ExplorationPhaseHandler implements PhaseHandlerInterface {
       // REQ 2546–2548: Affix talisman to item.
       // -----------------------------------------------------------------------
       case 'affix_talisman': {
-        $talisman_id   = $params['talisman_instance_id'] ?? NULL;
-        $talisman_data = $params['talisman_data'] ?? [];
-        $target_item   = $params['target_item_data'] ?? [];
-        if (!$talisman_id) {
-          return ['success' => FALSE, 'result' => ['error' => 'affix_talisman requires params.talisman_instance_id.'], 'mutations' => [], 'events' => [], 'phase_transition' => NULL, 'narration' => NULL];
+        $talisman_id          = $params['talisman_instance_id'] ?? NULL;
+        $talisman_data        = $params['talisman_data'] ?? [];
+        $host_item_instance_id = $params['target_item_instance_id'] ?? NULL;
+        if (!$talisman_id || !$host_item_instance_id) {
+          return ['success' => FALSE, 'result' => ['error' => 'affix_talisman requires params.talisman_instance_id and params.target_item_instance_id.'], 'mutations' => [], 'events' => [], 'phase_transition' => NULL, 'narration' => NULL];
         }
-        $affix_result = $this->magicItemService->affixTalisman($actor_id, $talisman_id, $talisman_data, $target_item, $game_state);
+        $affix_result = $this->magicItemService->affixTalisman($host_item_instance_id, $talisman_data, $game_state);
         $result = $affix_result;
         $events[] = GameEventLogger::buildEvent('affix_talisman', 'exploration', $actor_id, ['talisman_instance_id' => $talisman_id, 'success' => $affix_result['success']]);
         break;
@@ -1206,10 +1208,11 @@ class ExplorationPhaseHandler implements PhaseHandlerInterface {
       // -----------------------------------------------------------------------
       case 'activate_talisman': {
         $talisman_id = $params['talisman_instance_id'] ?? NULL;
+        $host_item_id = $params['host_item_instance_id'] ?? $talisman_id;
         if (!$talisman_id) {
           return ['success' => FALSE, 'result' => ['error' => 'activate_talisman requires params.talisman_instance_id.'], 'mutations' => [], 'events' => [], 'phase_transition' => NULL, 'narration' => NULL];
         }
-        $activate_result = $this->magicItemService->activateTalisman($actor_id, $talisman_id, $game_state);
+        $activate_result = $this->magicItemService->activateTalisman($host_item_id, $actor_id, $game_state);
         $result = $activate_result;
         $events[] = GameEventLogger::buildEvent('activate_talisman', 'exploration', $actor_id, ['talisman_instance_id' => $talisman_id, 'success' => $activate_result['success']]);
         break;
@@ -1263,7 +1266,8 @@ class ExplorationPhaseHandler implements PhaseHandlerInterface {
         $source_item = $params['source_item_data'] ?? [];
         $dest_item   = $params['dest_item_data'] ?? [];
         $char_state  = $this->characterStateService->getState($actor_id);
-        $transfer_result = $this->magicItemService->transferRune($source_item, $dest_item, $rune_type, $rune_data, $char_state);
+        $craft_bonus = (int) ($char_state['skills']['crafting']['bonus'] ?? 0);
+        $transfer_result = $this->magicItemService->transferRune($source_item, $dest_item, $rune_type, $rune_data, $craft_bonus);
         $result = $transfer_result;
         $events[] = GameEventLogger::buildEvent('transfer_rune', 'exploration', $actor_id, ['source_item_instance_id' => $source_id, 'dest_item_instance_id' => $dest_id, 'rune_type' => $rune_type, 'success' => $transfer_result['success']]);
         break;

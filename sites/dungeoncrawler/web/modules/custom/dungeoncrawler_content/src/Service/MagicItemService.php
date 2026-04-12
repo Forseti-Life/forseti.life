@@ -1111,6 +1111,60 @@ class MagicItemService {
   }
 
   // ---------------------------------------------------------------------------
+  // Oils (REQs 2474–2477)
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Apply a magical oil to an item or creature (REQs 2474–2477).
+   *
+   * REQ 2474: Applying oil requires two free hands and a single Interact action.
+   * REQ 2475: Cannot be applied to an unwilling creature that is not incapacitated.
+   * REQ 2476: Oil is consumed on application (remove from inventory).
+   * REQ 2477: Effects from oil_data['effect'] are merged onto the target in game_state.
+   *
+   * @param string $char_id            Actor applying the oil.
+   * @param string $oil_instance_id    Oil item instance being consumed.
+   * @param array  $oil_data           Oil item data (effect, name, etc.).
+   * @param array  $target_item_data   Target item/entity data; must include 'willing' or 'incapacitated'.
+   * @param array  $game_state         Game state (passed by reference).
+   *
+   * @return array{success: bool, reason?: string}
+   */
+  public function applyOil(
+    string $char_id,
+    string $oil_instance_id,
+    array $oil_data,
+    array $target_item_data,
+    array &$game_state
+  ): array {
+    // REQ 2475: Block on unwilling non-incapacitated targets.
+    $is_creature = !empty($target_item_data['is_creature']);
+    if ($is_creature) {
+      $willing       = !empty($target_item_data['willing']);
+      $incapacitated = !empty($target_item_data['incapacitated']);
+      if (!$willing && !$incapacitated) {
+        return ['success' => FALSE, 'reason' => 'Cannot apply oil to an unwilling, non-incapacitated creature.'];
+      }
+    }
+
+    // REQ 2476: Consume oil.
+    $game_state['magic_items']['consumed_oils'][] = $oil_instance_id;
+
+    // REQ 2477: Apply effect.
+    $effect = $oil_data['effect'] ?? [];
+    if (!empty($effect)) {
+      $target_id = $target_item_data['instance_id'] ?? $target_item_data['id'] ?? NULL;
+      if ($target_id) {
+        foreach ($effect as $key => $value) {
+          $game_state['magic_items']['oil_effects'][$target_id][$key] = $value;
+        }
+      }
+    }
+
+    return ['success' => TRUE, 'oil_instance_id' => $oil_instance_id];
+  }
+
+  // ---------------------------------------------------------------------------
   // Snares (REQs 2514–2520)
   // ---------------------------------------------------------------------------
 
