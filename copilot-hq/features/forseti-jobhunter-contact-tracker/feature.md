@@ -48,9 +48,11 @@ Verify: add a contact with company_id=X; view a saved job at company X → "Your
 
 ### AC-4: DB schema — jobhunter_contacts table
 
-Given the module update hook has run, when querying the schema, then the table exists with columns: `id` (serial PK), `uid` (int), `name` (varchar 255, required), `company_id` (int, nullable FK), `role_title` (varchar 255, nullable), `relationship_type` (varchar 16: warm/cold/referral/recruiter), `last_contact_date` (date, nullable), `referral_status` (varchar 16: none/requested/pending/provided), `notes` (text, nullable), `created` (int), `changed` (int).
+Given the module update hook has run, when querying the schema, then the table exists with columns: `id` (serial PK), `uid` (int), `name` (varchar 255, required), `company_id` (int, nullable FK), `title` (varchar 255, nullable), `relationship_type` (varchar 32: recruiter/referral/hiring_manager/connection), `last_contact_date` (date, nullable), `referral_status` (varchar 16: none/requested/pending/provided), `notes` (text, nullable), `created` (int), `changed` (int).
 
-Verify: `drush sql:query "DESCRIBE jobhunter_contacts"` → all columns present.
+PM decision (2026-04-12): `role_title` → `title` rename and extended `relationship_type` enum accepted as intentional improvements; `last_contact_date` and `referral_status` remain required (explicitly part of feature summary and AC-2 list view — not descoped).
+
+Verify: `drush sql:query "DESCRIBE jobhunter_contacts"` → all columns present including `last_contact_date` and `referral_status`.
 
 ### AC-5: Delete contact removes the row
 
