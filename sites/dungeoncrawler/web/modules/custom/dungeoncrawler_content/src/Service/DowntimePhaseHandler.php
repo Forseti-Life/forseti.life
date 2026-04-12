@@ -121,6 +121,8 @@ class DowntimePhaseHandler implements PhaseHandlerInterface {
       'assign_watch',
       // REQ 2347–2349: Starvation and thirst advancement.
       'advance_starvation',
+      // REQ 1731–1736: Create a Forgery [Downtime, Secret, Trained Society].
+      'create_forgery',
     ];
   }
 
@@ -284,6 +286,18 @@ class DowntimePhaseHandler implements PhaseHandlerInterface {
         $events[] = GameEventLogger::buildEvent('subsist', 'downtime', $actor_id, [
           'skill'  => $params['skill'] ?? NULL,
           'degree' => $params['degree'] ?? NULL,
+        ]);
+        break;
+
+      // -----------------------------------------------------------------------
+      // REQ 1731–1736: Create a Forgery [Downtime, Secret, Trained Society]
+      // Caller passes the degree; result is coarsened (secret roll convention).
+      // -----------------------------------------------------------------------
+      case 'create_forgery':
+        $result = $this->processCreateForgery($actor_id, $params, $game_state);
+        $events[] = GameEventLogger::buildEvent('create_forgery', 'downtime', $actor_id, [
+          'document_type' => $params['document_type'] ?? NULL,
+          'outcome'       => $result['outcome'] ?? NULL,
         ]);
         break;
 
@@ -1617,6 +1631,126 @@ class DowntimePhaseHandler implements PhaseHandlerInterface {
       ->execute();
 
     return ['success' => TRUE, 'new_currency' => $new_currency, 'added_cp' => $amount_cp];
+  }
+
+  // ---------------------------------------------------------------------------
+  // REQ 1731–1736: Create a Forgery [Downtime, Secret, Trained Society]
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Processes a Create a Forgery downtime action (REQs 1731–1736).
+   *
+   * This is a Secret roll per PF2e rules: the outcome is stored server-side
+   * and only a coarsened result is returned to the caller.  The raw degree
+   * is prefixed with '_' and must never be sent to the client.
+   *
+   * DCs (CRB p.251):
+   *   - common:        DC 20
+   *   - specialist:    DC 30
+   *   - official_seal: DC 40
+   *
+   * Outcomes (coarsened):
+   *   - success              (critical_success or success)
+   *   - failure              (failure — detectable, but character does not know)
+   *   - critical_failure_revealed (crit fail — character is aware; may retry)
+   *
+   * Detection: when a viewer examines the forgery later, they roll Society
+   * vs the forger's Deception DC (stored server-side as detection_dc).
+   *
+   * Params:
+   *   - document_type (string):    common | specialist | official_seal.
+   *   - degree (string):           critical_success | success | failure | critical_failure.
+   *   - deception_modifier (int):  forger's Deception modifier for detection DC.
+   *   - proficiency_rank (int):    1=Trained, 2=Expert, 3=Master, 4=Legendary (0 = untrained).
+   *   - forgery_id (string|null):  caller-supplied ID; auto-generated if absent.
+   *
+   * @param string|null $actor_id
+   * @param array       $params
+   * @param array       $game_state  Modified by reference (forgeries registry updated).
+   *
+   * @return array  Result with keys: success, outcome, forgery_id, dc, actor_aware.
+   */
+  protected function processCreateForgery(?string $actor_id, array $params, array &$game_state): array {
+    $proficiency_rank  = (int) ($params['proficiency_rank'] ?? 0);
+    $document_type     = $params['document_type'] ?? 'common';
+    $degree            = $params['degree'] ?? 'failure';
+    $deception_mod     = (int) ($params['deception_modifier'] ?? 0);
+
+    // REQ 1731: Requires Trained Society (rank >= 1).
+    if ($proficiency_rank < 1) {
+      return [
+        'success' => FALSE,
+        'error'   => 'untrained',
+        'message' => 'Create a Forgery requires at least Trained proficiency in Society.',
+      ];
+    }
+
+    // REQ 1732: DC by document type.
+    $dc_map = [
+      'common'        => 20,
+      'specialist'    => 30,
+      'official_seal' => 40,
+    ];
+    $dc = $dc_map[$document_type] ?? $dc_map['common'];
+
+    // Detection DC: viewer rolls Society vs forger's Deception DC (10 + mod).
+    $detection_dc = 10 + $deception_mod;
+
+    // Assign or generate a stable forgery ID for this document.
+    $forgery_id = $params['forgery_id'] ?? uniqid('forgery_', TRUE);
+
+    if (!isset($game_state['forgeries'])) {
+      $game_state['forgeries'] = [];
+    }
+
+    // REQ 1733–1736: Resolve outcome.
+    // Store the raw degree server-side (prefixed _degree — never expose to caller).
+    switch ($degree) {
+      case 'critical_success':
+      case 'success':
+        // REQ 1733: Success — forgery passes casual inspection.
+        $outcome    = 'success';
+        $detectable = FALSE;
+        $actor_aware = FALSE;
+        break;
+
+      case 'failure':
+        // REQ 1734: Failure — forgery is detectable to trained eyes.
+        $outcome    = 'failure';
+        $detectable = TRUE;
+        $actor_aware = FALSE;
+        break;
+
+      case 'critical_failure':
+        // REQ 1735: Crit failure — obviously fake; character is aware and may retry.
+        $outcome    = 'critical_failure_revealed';
+        $detectable = TRUE;
+        $actor_aware = TRUE;
+        break;
+
+      default:
+        return ['success' => FALSE, 'error' => 'invalid_degree', 'message' => "Invalid degree: {$degree}."];
+    }
+
+    // Persist server-side state (raw degree and detection DC are secret).
+    $game_state['forgeries'][$forgery_id] = [
+      '_degree'      => $degree,
+      'document_type' => $document_type,
+      'dc'           => $dc,
+      'detectable'   => $detectable,
+      'detection_dc' => $detection_dc,
+      'actor_id'     => $actor_id,
+    ];
+
+    $game_state['downtime']['days_elapsed'] = ($game_state['downtime']['days_elapsed'] ?? 0) + 1;
+
+    return [
+      'success'     => TRUE,
+      'forgery_id'  => $forgery_id,
+      'outcome'     => $outcome,
+      'dc'          => $dc,
+      'actor_aware' => $actor_aware,
+    ];
   }
 
 
