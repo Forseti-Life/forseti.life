@@ -13836,7 +13836,9 @@
         "sessions/qa-dungeoncrawler/artifacts/dc-cr-magic-ch11/phpunit-report.xml"
       ],
       "required_for_release": true,
-      "notes": "Security AC exemption confirmed: no new routes. Dependencies: dc-cr-magic-items, dc-cr-alchemical-items, dc-cr-rune-system, dc-cr-crafting. TC-MCH-11 (Cast a Spell activation) and TC-MCH-78 (Mutagen countercasting) overlap with dc-cr-spells-ch07. 78 TCs active.",
+      "activated_release": "20260412-dungeoncrawler-release-b",
+      "activated_date": "2026-04-12",
+      "notes": "Security AC exemption confirmed: no new routes. Dependencies: dc-cr-magic-items, dc-cr-alchemical-items, dc-cr-rune-system, dc-cr-crafting. TC-MCH-11 (Cast a Spell activation) and TC-MCH-78 (Mutagen countercasting) overlap with dc-cr-spells-ch07 (shipped this cycle). 78 TCs pending_implementation — awaiting Dev implementation this release.",
       "test_cases": [
         {
           "id": "TC-MCH-01",
