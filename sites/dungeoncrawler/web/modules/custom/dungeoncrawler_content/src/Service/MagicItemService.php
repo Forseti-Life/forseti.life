@@ -521,6 +521,14 @@ class MagicItemService {
       $effects['bulk_reduction'] = 1;
     }
 
+    if ($material === 'dragonhide') {
+      // REQ 2447: Dragonhide — immunity to dragon type's damage; +1 circumstance to AC/saves vs that type.
+      // Caller retrieves dragonhide_type from item_data and applies immunity/bonus accordingly.
+      $effects['dragon_damage_immunity'] = TRUE;
+      $effects['circumstance_ac_vs_dragon'] = 1;
+      $effects['circumstance_save_vs_dragon'] = 1;
+    }
+
     return $effects;
   }
 
@@ -782,12 +790,16 @@ class MagicItemService {
       // Attacker is also in splash zone — no attacker damage here, just record.
     }
 
+    // REQ 2469: Combine primary + splash for the main target before resistance/weakness.
+    $combined_primary = $primary_damage + ($degree !== 'critical_failure' ? $splash_amount : 0);
+
     return [
-      'primary_damage' => $primary_damage,
-      'splash_damage'  => $splash_amount,
-      'splash_targets' => $splash_targets,
-      'traits'         => ['manipulate'],
-      'damage_type'    => $damage_type,
+      'primary_damage'               => $primary_damage,
+      'splash_damage'                => $splash_amount,
+      'combined_damage_primary_target' => $combined_primary,
+      'splash_targets'               => $splash_targets,
+      'traits'                       => ['manipulate'],
+      'damage_type'                  => $damage_type,
     ];
   }
 
@@ -819,6 +831,141 @@ class MagicItemService {
     }
 
     return ['poison_applied' => FALSE, 'poison_consumed' => FALSE];
+  }
+
+  // ---------------------------------------------------------------------------
+  // Alchemical: mutagens + other poison exposure types (REQs 2470–2475)
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Apply a mutagen to a character (REQs 2470–2471).
+   *
+   * REQ 2470: Benefit + Drawback apply simultaneously; polymorph effect.
+   * REQ 2471: New polymorph attempt counteracts existing using item level.
+   *
+   * @param string $char_id
+   * @param array  $mutagen_data  Must include: level, duration_rounds, benefit[], drawback[].
+   * @param array  $game_state
+   *
+   * @return array{success: bool, reason: string, benefit: array, drawback: array, item_level: int}
+   */
+  public function applyMutagen(
+    string $char_id,
+    array $mutagen_data,
+    array &$game_state
+  ): array {
+    $benefit         = $mutagen_data['benefit'] ?? [];
+    $drawback        = $mutagen_data['drawback'] ?? [];
+    $item_level      = (int) ($mutagen_data['level'] ?? 1);
+    $duration_rounds = (int) ($mutagen_data['duration_rounds'] ?? 10);
+
+    // REQ 2471: Counteract existing polymorph using item level (higher or equal wins).
+    $existing = $game_state['characters'][$char_id]['polymorph'] ?? NULL;
+    if ($existing) {
+      $existing_level = (int) ($existing['item_level'] ?? 0);
+      if ($item_level < $existing_level) {
+        return ['success' => FALSE, 'reason' => 'Counteract failed: existing polymorph level is higher.', 'benefit' => [], 'drawback' => [], 'item_level' => $item_level];
+      }
+    }
+
+    // REQ 2470: Apply benefit + drawback simultaneously as polymorph.
+    $game_state['characters'][$char_id]['polymorph'] = [
+      'type'            => 'mutagen',
+      'item_level'      => $item_level,
+      'benefit'         => $benefit,
+      'drawback'        => $drawback,
+      'duration_rounds' => $duration_rounds,
+      'applied_at'      => time(),
+    ];
+
+    return ['success' => TRUE, 'reason' => 'Mutagen applied.', 'benefit' => $benefit, 'drawback' => $drawback, 'item_level' => $item_level];
+  }
+
+  /**
+   * Place an inhaled poison cloud on a hex (REQs 2473–2474).
+   *
+   * REQ 2473: Inhaled — 10-ft cube cloud; entering cloud triggers save.
+   * REQ 2474: Holding breath (1 action): +2 circumstance to save for 1 round.
+   *
+   * @return array{cloud_placed: bool, hex_id: string, duration_rounds: int}
+   */
+  public function applyInhaledPoison(
+    string $hex_id,
+    array $poison_data,
+    array &$game_state
+  ): array {
+    $game_state['map']['poison_clouds'][$hex_id] = [
+      'poison_data'     => $poison_data,
+      'duration_rounds' => 10, // 1 minute = 10 combat rounds
+      'applied_at'      => time(),
+    ];
+    return ['cloud_placed' => TRUE, 'hex_id' => $hex_id, 'duration_rounds' => 10];
+  }
+
+  /**
+   * Check whether a character entering a hex triggers an inhaled poison save.
+   *
+   * REQ 2474: +2 circumstance bonus to the save if character is holding breath.
+   *
+   * @return array{triggered: bool, poison_data?: array, circumstance_bonus: int}
+   */
+  public function checkInhaledPoisonEntry(
+    string $char_id,
+    string $hex_id,
+    array &$game_state
+  ): array {
+    $cloud = $game_state['map']['poison_clouds'][$hex_id] ?? NULL;
+    if (!$cloud) {
+      return ['triggered' => FALSE, 'circumstance_bonus' => 0];
+    }
+    $holding_breath     = !empty($game_state['characters'][$char_id]['holding_breath']);
+    $circumstance_bonus = $holding_breath ? 2 : 0;
+    return ['triggered' => TRUE, 'poison_data' => $cloud['poison_data'], 'circumstance_bonus' => $circumstance_bonus];
+  }
+
+  /**
+   * Hold breath action: +2 circumstance vs inhaled poisons for 1 round (REQ 2474).
+   */
+  public function holdBreath(string $char_id, array &$game_state): void {
+    $game_state['characters'][$char_id]['holding_breath'] = TRUE;
+  }
+
+  /**
+   * Apply a contact poison on skin contact (REQ 2473).
+   *
+   * REQ 2473: Contact — triggers on touch; save triggered on contact.
+   *
+   * @return array{poison_applied: bool, poison_data?: array}
+   */
+  public function applyContactPoison(
+    string $target_id,
+    array $poison_data,
+    array &$game_state
+  ): array {
+    $game_state['characters'][$target_id]['pending_saves'][] = [
+      'type'        => 'contact_poison',
+      'poison_data' => $poison_data,
+    ];
+    return ['poison_applied' => TRUE, 'poison_data' => $poison_data];
+  }
+
+  /**
+   * Apply an ingested poison on consumption (REQ 2473).
+   *
+   * REQ 2473: Ingested — triggers when consumed; save triggered on ingestion.
+   *
+   * @return array{poison_applied: bool, poison_data: array}
+   */
+  public function applyIngestedPoison(
+    string $target_id,
+    array $poison_data,
+    array &$game_state
+  ): array {
+    $game_state['characters'][$target_id]['pending_saves'][] = [
+      'type'        => 'ingested_poison',
+      'poison_data' => $poison_data,
+    ];
+    return ['poison_applied' => TRUE, 'poison_data' => $poison_data];
   }
 
   // ---------------------------------------------------------------------------
