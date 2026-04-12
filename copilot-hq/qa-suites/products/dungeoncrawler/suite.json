@@ -14940,6 +14940,783 @@
           "required_for_release": true
         }
       ]
+    },
+    {
+      "id": "dc-cr-spells-ch07-playwright-core",
+      "label": "Spells ch07 core: traditions/schools, spell slots (prepared/spontaneous/signature), heightening, cantrips (auto-heightened/free slots), focus pool base (TC-SP-19/20), innate spells",
+      "type": "playwright",
+      "feature_id": "dc-cr-spells-ch07",
+      "command": "npx playwright test --grep spells-ch07-core tests/dungeoncrawler/",
+      "artifacts": [
+        "sessions/qa-dungeoncrawler/artifacts/dc-cr-spells-ch07/playwright-core-results.xml"
+      ],
+      "required_for_release": true,
+      "notes": "Dependency: dc-cr-spellcasting. 21 TCs (TC-SP-02/03/05\u201320/29\u201331). TC-SP-29: innate spell uses Cha mod regardless of class spellcasting attribute.",
+      "test_cases": [
+        {
+          "id": "TC-SP-02",
+          "label": "Caster tradition determined by class; tradition trait appended to cast spell action output",
+          "feature_id": "dc-cr-spells-ch07",
+          "suite_context": "playwright/core",
+          "status": "pending_implementation",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-SP-03",
+          "label": "School specialization flag captured on character entity; no bonus without flag",
+          "feature_id": "dc-cr-spells-ch07",
+          "suite_context": "playwright/core",
+          "status": "pending_implementation",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-SP-05",
+          "label": "Tradition membership gate: arcane caster cannot access divine-only spells without multi-tradition feature",
+          "feature_id": "dc-cr-spells-ch07",
+          "suite_context": "playwright/core",
+          "status": "pending_implementation",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-SP-06",
+          "label": "Spell slots tracked per level (1\u201310) independently; not a shared pool",
+          "feature_id": "dc-cr-spells-ch07",
+          "suite_context": "playwright/core",
+          "status": "pending_implementation",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-SP-07",
+          "label": "Spell slots refresh on daily preparation event; partial restoration is a regression",
+          "feature_id": "dc-cr-spells-ch07",
+          "suite_context": "playwright/downtime",
+          "status": "pending_implementation",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-SP-08",
+          "label": "Prepared caster: daily prep locks spell per slot; casting expends that slot",
+          "feature_id": "dc-cr-spells-ch07",
+          "suite_context": "playwright/encounter",
+          "status": "pending_implementation",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-SP-09",
+          "label": "Same spell prepared in multiple slots allows multiple casts per day",
+          "feature_id": "dc-cr-spells-ch07",
+          "suite_context": "playwright/encounter",
+          "status": "pending_implementation",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-SP-10",
+          "label": "Spontaneous caster: any known spell castable from any available same-or-higher slot",
+          "feature_id": "dc-cr-spells-ch07",
+          "suite_context": "playwright/encounter",
+          "status": "pending_implementation",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-SP-11",
+          "label": "Spontaneous caster: daily prep restores slot count, not repertoire; repertoire unchanged after prep",
+          "feature_id": "dc-cr-spells-ch07",
+          "suite_context": "playwright/core",
+          "status": "pending_implementation",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-SP-12",
+          "label": "Signature spell can be heightened to any available slot level regardless of known level",
+          "feature_id": "dc-cr-spells-ch07",
+          "suite_context": "playwright/encounter",
+          "status": "pending_implementation",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-SP-13",
+          "label": "Non-signature spontaneous spell blocked from heightening to level not in repertoire",
+          "feature_id": "dc-cr-spells-ch07",
+          "suite_context": "playwright/encounter",
+          "status": "pending_implementation",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-SP-14",
+          "label": "Heightened (Nth) entry: bonus applies only at exact level specified",
+          "feature_id": "dc-cr-spells-ch07",
+          "suite_context": "playwright/encounter",
+          "status": "pending_implementation",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-SP-15",
+          "label": "Heightened (+N) cumulative: bonus stacks per increment above base level",
+          "feature_id": "dc-cr-spells-ch07",
+          "suite_context": "playwright/encounter",
+          "status": "pending_implementation",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-SP-16",
+          "label": "Heightening requires slot of sufficient level; lower slot rejected",
+          "feature_id": "dc-cr-spells-ch07",
+          "suite_context": "playwright/encounter",
+          "status": "pending_implementation",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-SP-17",
+          "label": "Cantrip effective level = ceil(character level / 2); auto-heightened",
+          "feature_id": "dc-cr-spells-ch07",
+          "suite_context": "playwright/core",
+          "status": "pending_implementation",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-SP-18",
+          "label": "Cantrips cost no spell slots; castable any number of times",
+          "feature_id": "dc-cr-spells-ch07",
+          "suite_context": "playwright/encounter",
+          "status": "pending_implementation",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-SP-19",
+          "label": "Focus pool separate from spell slots; max cap = 3 regardless of additional sources",
+          "feature_id": "dc-cr-spells-ch07",
+          "suite_context": "playwright/core",
+          "status": "pending_implementation",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-SP-20",
+          "label": "Refocus (10 min): restores 1 FP; second Refocus has no effect until FP spent",
+          "feature_id": "dc-cr-spells-ch07",
+          "suite_context": "playwright/downtime",
+          "status": "pending_implementation",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-SP-29",
+          "label": "Innate spells use Cha mod for attack/DC; character at least Trained",
+          "feature_id": "dc-cr-spells-ch07",
+          "suite_context": "playwright/encounter",
+          "status": "pending_implementation",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-SP-30",
+          "label": "Innate non-cantrip: once/day; cannot be heightened; daily prep restores",
+          "feature_id": "dc-cr-spells-ch07",
+          "suite_context": "playwright/encounter",
+          "status": "pending_implementation",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-SP-31",
+          "label": "Innate cantrips auto-heightened like class cantrips",
+          "feature_id": "dc-cr-spells-ch07",
+          "suite_context": "playwright/core",
+          "status": "pending_implementation",
+          "required_for_release": true
+        }
+      ]
+    },
+    {
+      "id": "dc-cr-spells-ch07-playwright-encounter",
+      "label": "Spells ch07 encounter: action costs/disruption, components (material/somatic/verbal/focus/substitution), metamagic, spell attack/DC formulas, MAP, area/range/targeting, durations (round/sustained/dismiss), special types (illusion/counteract/incapacitation/polymorph), edge cases, failure modes",
+      "type": "playwright",
+      "feature_id": "dc-cr-spells-ch07",
+      "command": "npx playwright test --grep spells-ch07-encounter tests/dungeoncrawler/",
+      "artifacts": [
+        "sessions/qa-dungeoncrawler/artifacts/dc-cr-spells-ch07/playwright-encounter-results.xml"
+      ],
+      "required_for_release": true,
+      "notes": "TC-SP-55: incapacitation downgrade (CritFail\u2192Fail, CritSuccess\u2192Success) must be server-side, not UI only. TC-SP-56: battle form must block spellcasting/speech/manipulate as distinct code paths.",
+      "test_cases": [
+        {
+          "id": "TC-SP-32",
+          "label": "Casting action cost derived from spell entity; 2-action cost enforced in encounter",
+          "feature_id": "dc-cr-spells-ch07",
+          "suite_context": "playwright/encounter",
+          "status": "pending_implementation",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-SP-33",
+          "label": "Disruption mid-cast expends slot but produces no effect; target takes no effect",
+          "feature_id": "dc-cr-spells-ch07",
+          "suite_context": "playwright/encounter",
+          "status": "pending_implementation",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-SP-34",
+          "label": "Spells with cast time >1 round have Exploration trait; blocked in encounter mode",
+          "feature_id": "dc-cr-spells-ch07",
+          "suite_context": "playwright/encounter",
+          "status": "pending_implementation",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-SP-35",
+          "label": "Disruption during Sustain ends spell immediately",
+          "feature_id": "dc-cr-spells-ch07",
+          "suite_context": "playwright/encounter",
+          "status": "pending_implementation",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-SP-36",
+          "label": "Material component: free hand required; consumed on cast; component pouch satisfies requirement",
+          "feature_id": "dc-cr-spells-ch07",
+          "suite_context": "playwright/encounter",
+          "status": "pending_implementation",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-SP-37",
+          "label": "Somatic component: fully restrained blocks cast; holding item does not block somatic",
+          "feature_id": "dc-cr-spells-ch07",
+          "suite_context": "playwright/encounter",
+          "status": "pending_implementation",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-SP-38",
+          "label": "Verbal component: silenced condition blocks; verbal spells produce audible signature",
+          "feature_id": "dc-cr-spells-ch07",
+          "suite_context": "playwright/encounter",
+          "status": "pending_implementation",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-SP-39",
+          "label": "Innate spells always allow Material\u2192Somatic substitution regardless of free-hand state",
+          "feature_id": "dc-cr-spells-ch07",
+          "suite_context": "playwright/encounter",
+          "status": "pending_implementation",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-SP-40",
+          "label": "Metamagic declared before cast; modifies subsequent Cast a Spell action",
+          "feature_id": "dc-cr-spells-ch07",
+          "suite_context": "playwright/encounter",
+          "status": "pending_implementation",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-SP-41",
+          "label": "Metamagic wasted if next action is not Cast a Spell; no refund; action spent",
+          "feature_id": "dc-cr-spells-ch07",
+          "suite_context": "playwright/encounter",
+          "status": "pending_implementation",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-SP-42",
+          "label": "Spell attack roll = spellcasting mod + proficiency + bonuses; MAP applies (\u20135/\u20134 agile)",
+          "feature_id": "dc-cr-spells-ch07",
+          "suite_context": "playwright/encounter",
+          "status": "pending_implementation",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-SP-44",
+          "label": "Weapon specialization bonus does NOT apply to spell attack rolls",
+          "feature_id": "dc-cr-spells-ch07",
+          "suite_context": "playwright/encounter",
+          "status": "pending_implementation",
+          "required_for_release": true,
+          "notes": "PM_clarification_note: fighter with weapon spec casting touch spell; attack log must show 0 weapon_spec contribution"
+        },
+        {
+          "id": "TC-SP-45",
+          "label": "Basic saving throw degrees: CritSuccess=0, Success=half, Failure=full, CritFail=double",
+          "feature_id": "dc-cr-spells-ch07",
+          "suite_context": "playwright/encounter",
+          "status": "pending_implementation",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-SP-46",
+          "label": "Touch spells require target in unarmed reach; out-of-reach returns error",
+          "feature_id": "dc-cr-spells-ch07",
+          "suite_context": "playwright/encounter",
+          "status": "pending_implementation",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-SP-47",
+          "label": "Willing target declarable at any time regardless of condition (incapacitated still counts)",
+          "feature_id": "dc-cr-spells-ch07",
+          "suite_context": "playwright/encounter",
+          "status": "pending_implementation",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-SP-48",
+          "label": "Invalid target: only that target excluded; valid targets still affected (not full-fizzle)",
+          "feature_id": "dc-cr-spells-ch07",
+          "suite_context": "playwright/encounter",
+          "status": "pending_implementation",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-SP-49",
+          "label": "Line of effect required from caster to target; total cover blocks",
+          "feature_id": "dc-cr-spells-ch07",
+          "suite_context": "playwright/encounter",
+          "status": "pending_implementation",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-SP-50",
+          "label": "Round-based duration: decrements at start of caster turn; ends at 0",
+          "feature_id": "dc-cr-spells-ch07",
+          "suite_context": "playwright/encounter",
+          "status": "pending_implementation",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-SP-51",
+          "label": "Sustained spell: ends end of next turn; Concentrate extends; sustain >100 rounds \u2192 fatigue + ends",
+          "feature_id": "dc-cr-spells-ch07",
+          "suite_context": "playwright/encounter",
+          "status": "pending_implementation",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-SP-52",
+          "label": "Dismiss (1 action, Concentrate): ends dismissible spell immediately; non-dismissible blocked",
+          "feature_id": "dc-cr-spells-ch07",
+          "suite_context": "playwright/encounter",
+          "status": "pending_implementation",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-SP-53",
+          "label": "Illusion disbelief: Interact triggers save; CritSuccess=reveals; Success=hazy; physical proof alone does not auto-grant",
+          "feature_id": "dc-cr-spells-ch07",
+          "suite_context": "playwright/encounter",
+          "status": "pending_implementation",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-SP-54",
+          "label": "Counteract is separate roll; light/darkness always counteract each other; non-magical light cannot overcome magical darkness",
+          "feature_id": "dc-cr-spells-ch07",
+          "suite_context": "playwright/encounter",
+          "status": "pending_implementation",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-SP-55",
+          "label": "Incapacitation trait: hard downgrade for creatures > half caster level (CritFail\u2192Fail, CritSuccess\u2192Success)",
+          "feature_id": "dc-cr-spells-ch07",
+          "suite_context": "playwright/encounter",
+          "status": "pending_implementation",
+          "required_for_release": true,
+          "notes": "Must be server-side enforcement, not UI only"
+        },
+        {
+          "id": "TC-SP-56",
+          "label": "Polymorph (battle form): gear absorbed; spellcasting/speech/manipulate actions blocked; form attacks replace unarmed",
+          "feature_id": "dc-cr-spells-ch07",
+          "suite_context": "playwright/encounter",
+          "status": "pending_implementation",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-SP-74",
+          "label": "Spontaneous non-signature heighten to level not in repertoire: blocked with descriptive error",
+          "feature_id": "dc-cr-spells-ch07",
+          "suite_context": "playwright/encounter",
+          "status": "pending_implementation",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-SP-75",
+          "label": "Metamagic followed by non-Cast action: metamagic consumed, no refund, no effect",
+          "feature_id": "dc-cr-spells-ch07",
+          "suite_context": "playwright/encounter",
+          "status": "pending_implementation",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-SP-76",
+          "label": "Sustain >100 rounds: fatigued condition applied; sustained spell ends",
+          "feature_id": "dc-cr-spells-ch07",
+          "suite_context": "playwright/encounter",
+          "status": "pending_implementation",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-SP-77",
+          "label": "Focus Pool at 3 with 4th focus source: pool cap enforced at 3",
+          "feature_id": "dc-cr-spells-ch07",
+          "suite_context": "playwright/core",
+          "status": "pending_implementation",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-SP-78",
+          "label": "Disrupted spell: slot/FP/action expended; target receives no effect",
+          "feature_id": "dc-cr-spells-ch07",
+          "suite_context": "playwright/encounter",
+          "status": "pending_implementation",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-SP-79",
+          "label": "Invalid target excluded; valid targets in same spell receive full effect",
+          "feature_id": "dc-cr-spells-ch07",
+          "suite_context": "playwright/encounter",
+          "status": "pending_implementation",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-SP-80",
+          "label": "Weapon specialization bonus absent from spell attack roll log",
+          "feature_id": "dc-cr-spells-ch07",
+          "suite_context": "playwright/encounter",
+          "status": "pending_implementation",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-SP-81",
+          "label": "Innate non-cantrip used twice in one day: second use blocked with \"daily use exhausted\"",
+          "feature_id": "dc-cr-spells-ch07",
+          "suite_context": "playwright/encounter",
+          "status": "pending_implementation",
+          "required_for_release": true
+        }
+      ]
+    },
+    {
+      "id": "dc-cr-spells-ch07-data-validation",
+      "label": "Spells ch07 data model: spell entity field completeness (all required+optional fields), traditions array + school field, essence_type, heightened entries (specific vs cumulative), rarity flags (H/U/R), spell variants as distinct entities, spell DC formula",
+      "type": "playwright",
+      "feature_id": "dc-cr-spells-ch07",
+      "command": "npx playwright test --grep spells-ch07-data tests/dungeoncrawler/",
+      "artifacts": [
+        "sessions/qa-dungeoncrawler/artifacts/dc-cr-spells-ch07/playwright-data-results.xml"
+      ],
+      "required_for_release": true,
+      "notes": "TC-SP-58: PM to confirm nullable vs required field list. TC-SP-01: two-schools validation error expected.",
+      "test_cases": [
+        {
+          "id": "TC-SP-01",
+          "label": "Spell entity has traditions[] array and school field; saving with two schools returns validation error",
+          "feature_id": "dc-cr-spells-ch07",
+          "suite_context": "playwright/data",
+          "status": "pending_implementation",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-SP-04",
+          "label": "Essence classification stored on spell entity as essence_type field; null allowed for non-classified",
+          "feature_id": "dc-cr-spells-ch07",
+          "suite_context": "playwright/data",
+          "status": "pending_implementation",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-SP-43",
+          "label": "Spell DC = 10 + spellcasting mod + proficiency; weapon-spec bonus absent",
+          "feature_id": "dc-cr-spells-ch07",
+          "suite_context": "playwright/data",
+          "status": "pending_implementation",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-SP-58",
+          "label": "Spell entity stores all fields: name/type/level/school/traditions/rarity/cast/components/trigger/cost/range/area/targets/save/duration/description/heightened_effects",
+          "feature_id": "dc-cr-spells-ch07",
+          "suite_context": "playwright/data",
+          "status": "pending_implementation",
+          "required_for_release": true,
+          "suite_context_note": "PM_clarification_pending:nullable_vs_required_field_list"
+        },
+        {
+          "id": "TC-SP-59",
+          "label": "Heightened entries stored as structured data: specific-level vs cumulative distinguished correctly",
+          "feature_id": "dc-cr-spells-ch07",
+          "suite_context": "playwright/data",
+          "status": "pending_implementation",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-SP-60",
+          "label": "Rarity flags H/U/R stored; uncommon/rare spells gated by access grant",
+          "feature_id": "dc-cr-spells-ch07",
+          "suite_context": "playwright/data",
+          "status": "pending_implementation",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-SP-61",
+          "label": "Spell variants (Harm vs Heal) stored as distinct entities; no shared state",
+          "feature_id": "dc-cr-spells-ch07",
+          "suite_context": "playwright/data",
+          "status": "pending_implementation",
+          "required_for_release": true
+        }
+      ]
+    },
+    {
+      "id": "dc-cr-spells-ch07-playwright-content",
+      "label": "Spells ch07 content gates: all Arcane/Divine/Occult/Primal spell list entries accessible to respective casters; tradition membership enforced",
+      "type": "playwright",
+      "feature_id": "dc-cr-spells-ch07",
+      "command": "npx playwright test --grep spells-ch07-content tests/dungeoncrawler/",
+      "artifacts": [
+        "sessions/qa-dungeoncrawler/artifacts/dc-cr-spells-ch07/playwright-content-results.xml"
+      ],
+      "required_for_release": true,
+      "notes": "TC-SP-62\u201365 are content-completeness gates. PM must provide expected spell counts per tradition per level for these TCs to have concrete pass/fail criteria.",
+      "test_cases": [
+        {
+          "id": "TC-SP-62",
+          "label": "Arcane spell list: all entries accessible to arcane casters; no divine-only spells present",
+          "feature_id": "dc-cr-spells-ch07",
+          "suite_context": "playwright/content",
+          "status": "pending_implementation",
+          "required_for_release": true,
+          "suite_context_note": "PM_clarification_pending:arcane_spell_count_per_level"
+        },
+        {
+          "id": "TC-SP-63",
+          "label": "Divine spell list: all entries accessible to divine casters",
+          "feature_id": "dc-cr-spells-ch07",
+          "suite_context": "playwright/content",
+          "status": "pending_implementation",
+          "required_for_release": true,
+          "suite_context_note": "PM_clarification_pending:divine_spell_count_per_level"
+        },
+        {
+          "id": "TC-SP-64",
+          "label": "Occult spell list: all entries accessible to occult casters",
+          "feature_id": "dc-cr-spells-ch07",
+          "suite_context": "playwright/content",
+          "status": "pending_implementation",
+          "required_for_release": true,
+          "suite_context_note": "PM_clarification_pending:occult_spell_count_per_level"
+        },
+        {
+          "id": "TC-SP-65",
+          "label": "Primal spell list: all entries accessible to primal casters",
+          "feature_id": "dc-cr-spells-ch07",
+          "suite_context": "playwright/content",
+          "status": "pending_implementation",
+          "required_for_release": true,
+          "suite_context_note": "PM_clarification_pending:primal_spell_count_per_level"
+        }
+      ]
+    },
+    {
+      "id": "dc-cr-spells-ch07-playwright-focus-spells",
+      "label": "Spells ch07 focus spells: focus spell mechanics (auto-heightened, pool-only, spellcaster flag, daily restore), class focus spells by class (Bard/Champion/Cleric/Druid/Monk/Sorcerer/Wizard), advanced domain gate",
+      "type": "playwright",
+      "feature_id": "dc-cr-spells-ch07",
+      "command": "npx playwright test --grep spells-ch07-focus tests/dungeoncrawler/",
+      "artifacts": [
+        "sessions/qa-dungeoncrawler/artifacts/dc-cr-spells-ch07/playwright-focus-results.xml"
+      ],
+      "required_for_release": true,
+      "notes": "Conditional dependency: dc-cr-focus-spells must be in same release. 16 TCs (TC-SP-21\u201328, TC-SP-66\u201373). Recommend bundling activation with dc-cr-focus-spells rather than running before that feature is implemented.",
+      "test_cases": [
+        {
+          "id": "TC-SP-21",
+          "label": "Focus spells auto-heightened: effective level = ceil(char level / 2)",
+          "feature_id": "dc-cr-spells-ch07",
+          "suite_context": "playwright/focus",
+          "status": "pending_implementation",
+          "required_for_release": true,
+          "dependency": "dc-cr-focus-spells"
+        },
+        {
+          "id": "TC-SP-22",
+          "label": "Focus spells cannot be placed in spell slots; attempt returns error",
+          "feature_id": "dc-cr-spells-ch07",
+          "suite_context": "playwright/focus",
+          "status": "pending_implementation",
+          "required_for_release": true,
+          "dependency": "dc-cr-focus-spells"
+        },
+        {
+          "id": "TC-SP-23",
+          "label": "Spell slots cannot activate focus spells; blocked at validation layer",
+          "feature_id": "dc-cr-spells-ch07",
+          "suite_context": "playwright/focus",
+          "status": "pending_implementation",
+          "required_for_release": true,
+          "dependency": "dc-cr-focus-spells"
+        },
+        {
+          "id": "TC-SP-24",
+          "label": "Non-spellcaster with focus ability: character.is_spellcaster = false",
+          "feature_id": "dc-cr-spells-ch07",
+          "suite_context": "playwright/focus",
+          "status": "pending_implementation",
+          "required_for_release": true,
+          "dependency": "dc-cr-focus-spells"
+        },
+        {
+          "id": "TC-SP-25",
+          "label": "Multiple focus sources share one pool; all draw from same pool",
+          "feature_id": "dc-cr-spells-ch07",
+          "suite_context": "playwright/focus",
+          "status": "pending_implementation",
+          "required_for_release": true,
+          "dependency": "dc-cr-focus-spells"
+        },
+        {
+          "id": "TC-SP-26",
+          "label": "Daily prep restores all FP to pool max (up to 3)",
+          "feature_id": "dc-cr-spells-ch07",
+          "suite_context": "playwright/focus",
+          "status": "pending_implementation",
+          "required_for_release": true,
+          "dependency": "dc-cr-focus-spells"
+        },
+        {
+          "id": "TC-SP-27",
+          "label": "Bard composition focus spells accessible via bard focus ability feats",
+          "feature_id": "dc-cr-spells-ch07",
+          "suite_context": "playwright/focus",
+          "status": "pending_implementation",
+          "required_for_release": true,
+          "dependency": "dc-cr-focus-spells"
+        },
+        {
+          "id": "TC-SP-28",
+          "label": "Wizard school focus spells gated behind school feature",
+          "feature_id": "dc-cr-spells-ch07",
+          "suite_context": "playwright/focus",
+          "status": "pending_implementation",
+          "required_for_release": true,
+          "dependency": "dc-cr-focus-spells"
+        },
+        {
+          "id": "TC-SP-66",
+          "label": "Bard composition focus spells (Inspire Courage/Defense/Competence, Counter Performance, Lingering Composition) grant correct FP cost",
+          "feature_id": "dc-cr-spells-ch07",
+          "suite_context": "playwright/focus",
+          "status": "pending_implementation",
+          "required_for_release": true,
+          "dependency": "dc-cr-focus-spells"
+        },
+        {
+          "id": "TC-SP-67",
+          "label": "Champion devotion focus spells (Lay on Hands, Litanies, Hero Defiance) present with devotion feat",
+          "feature_id": "dc-cr-spells-ch07",
+          "suite_context": "playwright/focus",
+          "status": "pending_implementation",
+          "required_for_release": true,
+          "dependency": "dc-cr-focus-spells"
+        },
+        {
+          "id": "TC-SP-68",
+          "label": "Cleric domain focus spells organized by domain; each selection adds 1 FP to pool",
+          "feature_id": "dc-cr-spells-ch07",
+          "suite_context": "playwright/focus",
+          "status": "pending_implementation",
+          "required_for_release": true,
+          "dependency": "dc-cr-focus-spells"
+        },
+        {
+          "id": "TC-SP-69",
+          "label": "Druid order focus spells per order; Wild Shape at cantrip level, heightened at 2nd/4th/6th",
+          "feature_id": "dc-cr-spells-ch07",
+          "suite_context": "playwright/focus",
+          "status": "pending_implementation",
+          "required_for_release": true,
+          "dependency": "dc-cr-focus-spells"
+        },
+        {
+          "id": "TC-SP-70",
+          "label": "Monk ki focus spells (Ki Strike, Ki Rush, Wholeness of Body, Ki Blast, Quivering Palm, Stunning Fist) via feats",
+          "feature_id": "dc-cr-spells-ch07",
+          "suite_context": "playwright/focus",
+          "status": "pending_implementation",
+          "required_for_release": true,
+          "dependency": "dc-cr-focus-spells"
+        },
+        {
+          "id": "TC-SP-71",
+          "label": "Sorcerer bloodline focus spells per bloodline (Draconic/Demonic/Undead/Fey/Angelic/Imperial) \u2014 distinct spells per bloodline",
+          "feature_id": "dc-cr-spells-ch07",
+          "suite_context": "playwright/focus",
+          "status": "pending_implementation",
+          "required_for_release": true,
+          "dependency": "dc-cr-focus-spells"
+        },
+        {
+          "id": "TC-SP-72",
+          "label": "Wizard school focus spells per school; cross-school access blocked",
+          "feature_id": "dc-cr-spells-ch07",
+          "suite_context": "playwright/focus",
+          "status": "pending_implementation",
+          "required_for_release": true,
+          "dependency": "dc-cr-focus-spells"
+        },
+        {
+          "id": "TC-SP-73",
+          "label": "Advanced domain focus spells require class feature unlock; not available at basic domain selection",
+          "feature_id": "dc-cr-spells-ch07",
+          "suite_context": "playwright/focus",
+          "status": "pending_implementation",
+          "required_for_release": true,
+          "dependency": "dc-cr-focus-spells"
+        }
+      ]
+    },
+    {
+      "id": "dc-cr-spells-ch07-playwright-rituals",
+      "label": "Spells ch07 rituals: ritual spell system (no spell slots, time-based, secondary casters); blocked in encounter mode",
+      "type": "playwright",
+      "feature_id": "dc-cr-spells-ch07",
+      "command": "npx playwright test --grep spells-ch07-rituals tests/dungeoncrawler/",
+      "artifacts": [
+        "sessions/qa-dungeoncrawler/artifacts/dc-cr-spells-ch07/playwright-ritual-results.xml"
+      ],
+      "required_for_release": true,
+      "notes": "Conditional dependency: dc-cr-rituals. Single TC (TC-SP-57). Recommend activating in same release as dc-cr-rituals.",
+      "test_cases": [
+        {
+          "id": "TC-SP-57",
+          "label": "Ritual spells: no spell slots, time-based, secondary casters; blocked in encounter mode",
+          "feature_id": "dc-cr-spells-ch07",
+          "suite_context": "playwright/rituals",
+          "status": "pending_implementation",
+          "required_for_release": true,
+          "dependency": "dc-cr-rituals"
+        }
+      ]
+    },
+    {
+      "id": "dc-cr-spells-ch07-role-url-audit",
+      "label": "Spells ch07 ACL regression: no new routes; existing spell cast endpoints require auth; spell repertoire API requires auth",
+      "type": "role-url-audit",
+      "feature_id": "dc-cr-spells-ch07",
+      "command": "python3 scripts/role-url-audit.py --product dungeoncrawler --feature dc-cr-spells-ch07",
+      "artifacts": [
+        "sessions/qa-dungeoncrawler/artifacts/dc-cr-spells-ch07/role-url-audit.json"
+      ],
+      "required_for_release": true,
+      "test_cases": [
+        {
+          "id": "TC-SP-82",
+          "label": "Spell routes/forms require character ownership; anon access \u2192 403/redirect; spell repertoire API requires auth",
+          "feature_id": "dc-cr-spells-ch07",
+          "suite_context": "role-url-audit",
+          "status": "pending_implementation",
+          "required_for_release": true
+        }
+      ]
     }
   ],
   "_schema_notes": [
