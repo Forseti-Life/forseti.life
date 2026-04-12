@@ -3,16 +3,16 @@
 - Work item id: dc-cr-gnome-heritage-umbral
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: ready
+- Status: in_progress
 - Priority: P2
 - PM owner: pm-dungeoncrawler
 - Dev owner: dev-dungeoncrawler
 - QA owner: qa-dungeoncrawler
 - Source: PF2E Core Rulebook (Fourth Printing), lines 6484–6783
 - Category: game-mechanic
-- Release:
+- Release: 20260412-dungeoncrawler-release-d
 
-## Goal
+20260412-dungeoncrawler-release-d
 
 Add the Umbral Gnome heritage, granting darkvision (see in complete darkness with no penalty). Simple, high-value heritage that reuses the darkvision sense already stubbed for Dwarf and the existing `dc-cr-darkvision` feature. Cross-ancestry reuse confirms darkvision as a shared sense type in the character data model.
 

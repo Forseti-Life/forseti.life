@@ -5,7 +5,7 @@
 - Module: dungeoncrawler_content
 - Status: in_progress
 - Priority: P2
-- Release: 
+- Release: 20260412-dungeoncrawler-release-d
 20260412-dungeoncrawler-release-d
 - Dev owner: dev-dungeoncrawler
 - QA owner: qa-dungeoncrawler

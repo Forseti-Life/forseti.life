@@ -10,7 +10,7 @@
 - QA owner: qa-dungeoncrawler
 - Source: PF2E Core Rulebook (Fourth Printing), lines 6484–6783
 - Category: game-mechanic
-- Release:
+- Release: 20260412-dungeoncrawler-release-d
 
 20260412-dungeoncrawler-release-d
 
