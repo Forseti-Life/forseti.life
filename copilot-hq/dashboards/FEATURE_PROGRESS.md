@@ -1,6 +1,6 @@
 # Feature Progress
 
-Generated: 2026-04-12T01:24:21Z
+Generated: 2026-04-12T03:36:25Z
 
 | Work item | Website | Module | Status | Priority | PM | Dev | QA |
 |-----------|---------|--------|--------|----------|----|-----|----|
@@ -52,7 +52,7 @@ Generated: 2026-04-12T01:24:21Z
 | dc-cr-decipher-identify-learn | dungeoncrawler | dungeoncrawler_content | done | P2 |  |  |  |
 | dc-cr-dice-system | dungeoncrawler | dungeoncrawler_content | done | P0 (foundational — every resolution system depends on this) |  |  |  |
 | dc-cr-difficulty-class | dungeoncrawler | dungeoncrawler_content | done | P0 (core check resolution mechanic — encounter and skill systems depend on this) |  |  |  |
-| dc-cr-downtime-mode | dungeoncrawler | dungeoncrawler_content | ready |  |  |  |  |
+| dc-cr-downtime-mode | dungeoncrawler | dungeoncrawler_content | ready | P1 |  |  |  |
 | dc-cr-dwarf-ancestry | dungeoncrawler | dungeoncrawler_content | done | P2 (extends ancestry-system with specific stat block; all deps now satisfied — ancestry-system ✓, clan-dagger shipped ✓, heritage-system ✓) |  |  |  |
 | dc-cr-dwarf-heritage-ancient-blooded | dungeoncrawler | dungeoncrawler_content | done | P3 (depends on dc-cr-heritage-system and dc-cr-dwarf-ancestry, neither yet shipped; deferred to next cycle) |  |  |  |
 | dc-cr-dwarf-heritage-death-warden | dungeoncrawler | dungeoncrawler_content | done | unset (PM will set at triage) |  |  |  |
@@ -94,7 +94,10 @@ Generated: 2026-04-12T01:24:21Z
 | dc-cr-goblin-very-sneaky | dungeoncrawler | dungeoncrawler_content | pre-triage | unset (PM will set at triage) |  |  |  |
 | dc-cr-goblin-weapon-frenzy | dungeoncrawler | dungeoncrawler_content | pre-triage | unset (PM will set at triage) |  |  |  |
 | dc-cr-halfling-ancestry | dungeoncrawler | dungeoncrawler_content | pre-triage | (set by PM) |  |  |  |
-| dc-cr-hazards | dungeoncrawler | dungeoncrawler_content | ready |  |  |  |  |
+| dc-cr-halfling-heritage-gutsy | dungeoncrawler | dungeoncrawler_content | pre-triage | unset (PM will set at triage) |  |  |  |
+| dc-cr-halfling-heritage-hillock | dungeoncrawler | dungeoncrawler_content | pre-triage | unset (PM will set at triage) |  |  |  |
+| dc-cr-halfling-keen-eyes | dungeoncrawler | dungeoncrawler_content | pre-triage | unset (PM will set at triage) |  |  |  |
+| dc-cr-hazards | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
 | dc-cr-heritage-system | dungeoncrawler | dungeoncrawler_content | done | P1 (character creation dependency; heritage selection step immediately follows ancestry in creation wizard) |  |  |  |
 | dc-cr-human-ancestry | dungeoncrawler | dungeoncrawler_content | done |  |  |  |  |
 | dc-cr-languages | dungeoncrawler | dungeoncrawler_content | done | P2 (blocks dc-cr-elf-ancestry and dc-cr-elf-heritage-cavern; accepted for 20260407-dungeoncrawler-release-b) |  |  |  |

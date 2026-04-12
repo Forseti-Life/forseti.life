@@ -44,6 +44,11 @@ class DowntimePhaseHandler implements PhaseHandlerInterface {
   protected NpcPsychologyService $npcPsychology;
 
   /**
+   * @var \Drupal\dungeoncrawler_content\Service\MagicItemService
+   */
+  protected MagicItemService $magicItemService;
+
+  /**
    * Constructs a DowntimePhaseHandler.
    */
   public function __construct(
@@ -51,13 +56,15 @@ class DowntimePhaseHandler implements PhaseHandlerInterface {
     LoggerChannelFactoryInterface $logger_factory,
     CharacterStateService $character_state_service,
     CraftingService $crafting_service,
-    NpcPsychologyService $npc_psychology
+    NpcPsychologyService $npc_psychology,
+    ?MagicItemService $magic_item_service = NULL
   ) {
     $this->database = $database;
     $this->logger = $logger_factory->get('dungeoncrawler');
     $this->characterStateService = $character_state_service;
     $this->craftingService = $crafting_service;
     $this->npcPsychology = $npc_psychology;
+    $this->magicItemService = $magic_item_service ?? new MagicItemService(new NumberGenerationService());
   }
 
   /**
@@ -91,6 +98,18 @@ class DowntimePhaseHandler implements PhaseHandlerInterface {
       'subsist',
       'treat_disease',
       'run_business',
+      // REQ 2397–2409: Magic item investment during downtime.
+      'invest_item',
+      // REQ 2501–2510: Prepare staff at daily preparations.
+      'prepare_staff',
+      // REQ 2455–2467: Etch rune (downtime Craft activity).
+      'etch_rune',
+      // REQ 2468–2473: Transfer rune (downtime Craft activity).
+      'transfer_rune',
+      // REQ 2536–2545: Craft and place snare (1-minute craft).
+      'craft_snare',
+      // REQ 2397: Daily Preparations — reset magic item state.
+      'daily_preparations',
     ];
   }
 
@@ -282,6 +301,97 @@ class DowntimePhaseHandler implements PhaseHandlerInterface {
           'earned_cp'  => $result['earned_cp'] ?? 0,
         ]);
         break;
+
+      // -----------------------------------------------------------------------
+      // REQ 2397–2409: Invest a magic item (daily preparations context).
+      // -----------------------------------------------------------------------
+      case 'invest_item': {
+        $item_id_dt   = $params['item_instance_id'] ?? NULL;
+        $item_data_dt = $params['item_data'] ?? [];
+        if (!$item_id_dt) {
+          return ['success' => FALSE, 'result' => ['error' => 'invest_item requires params.item_instance_id.'], 'mutations' => [], 'events' => [], 'phase_transition' => NULL, 'narration' => NULL];
+        }
+        $result = $this->magicItemService->investItem($actor_id, $item_id_dt, $item_data_dt, $game_state);
+        $events[] = GameEventLogger::buildEvent('invest_item', 'downtime', $actor_id, ['item_instance_id' => $item_id_dt, 'success' => $result['success']]);
+        break;
+      }
+
+      // -----------------------------------------------------------------------
+      // REQ 2501–2510: Prepare a staff (daily preparations).
+      // -----------------------------------------------------------------------
+      case 'prepare_staff': {
+        $staff_id_dt   = $params['staff_instance_id'] ?? NULL;
+        $staff_data_dt = $params['staff_data'] ?? [];
+        if (!$staff_id_dt) {
+          return ['success' => FALSE, 'result' => ['error' => 'prepare_staff requires params.staff_instance_id.'], 'mutations' => [], 'events' => [], 'phase_transition' => NULL, 'narration' => NULL];
+        }
+        $char_state_dt = $this->characterStateService->getState($actor_id);
+        $result = $this->magicItemService->prepareStaff($actor_id, $staff_id_dt, $staff_data_dt, $char_state_dt, $game_state);
+        $events[] = GameEventLogger::buildEvent('prepare_staff', 'downtime', $actor_id, ['staff_instance_id' => $staff_id_dt, 'success' => $result['success']]);
+        break;
+      }
+
+      // -----------------------------------------------------------------------
+      // REQ 2455–2467: Etch a rune onto an item (downtime Craft activity).
+      // -----------------------------------------------------------------------
+      case 'etch_rune': {
+        $item_id_er   = $params['item_instance_id'] ?? NULL;
+        $rune_type_er = $params['rune_type'] ?? NULL;
+        $rune_data_er = $params['rune_data'] ?? [];
+        $item_data_er = $params['item_data'] ?? [];
+        if (!$item_id_er || !$rune_type_er) {
+          return ['success' => FALSE, 'result' => ['error' => 'etch_rune requires params.item_instance_id and params.rune_type.'], 'mutations' => [], 'events' => [], 'phase_transition' => NULL, 'narration' => NULL];
+        }
+        $char_state_er = $this->characterStateService->getState($actor_id);
+        $result = $this->magicItemService->etchRune($item_data_er, $rune_type_er, $rune_data_er, $char_state_er);
+        $events[] = GameEventLogger::buildEvent('etch_rune', 'downtime', $actor_id, ['item_instance_id' => $item_id_er, 'rune_type' => $rune_type_er, 'success' => $result['success']]);
+        break;
+      }
+
+      // -----------------------------------------------------------------------
+      // REQ 2468–2473: Transfer a rune between two items (downtime Craft).
+      // -----------------------------------------------------------------------
+      case 'transfer_rune': {
+        $source_id_tr = $params['source_item_instance_id'] ?? NULL;
+        $dest_id_tr   = $params['dest_item_instance_id'] ?? NULL;
+        $rune_type_tr = $params['rune_type'] ?? NULL;
+        $rune_data_tr = $params['rune_data'] ?? [];
+        if (!$source_id_tr || !$dest_id_tr || !$rune_type_tr) {
+          return ['success' => FALSE, 'result' => ['error' => 'transfer_rune requires source_item_instance_id, dest_item_instance_id, and rune_type.'], 'mutations' => [], 'events' => [], 'phase_transition' => NULL, 'narration' => NULL];
+        }
+        $source_item_tr = $params['source_item_data'] ?? [];
+        $dest_item_tr   = $params['dest_item_data'] ?? [];
+        $char_state_tr  = $this->characterStateService->getState($actor_id);
+        $result = $this->magicItemService->transferRune($source_item_tr, $dest_item_tr, $rune_type_tr, $rune_data_tr, $char_state_tr);
+        $events[] = GameEventLogger::buildEvent('transfer_rune', 'downtime', $actor_id, ['source' => $source_id_tr, 'dest' => $dest_id_tr, 'rune_type' => $rune_type_tr, 'success' => $result['success']]);
+        break;
+      }
+
+      // -----------------------------------------------------------------------
+      // REQ 2536–2545: Craft and place a snare (1-minute quick craft).
+      // -----------------------------------------------------------------------
+      case 'craft_snare': {
+        $snare_data_dt  = $params['snare_data'] ?? [];
+        $location_id_dt = $params['location_id'] ?? 'unknown';
+        $char_state_dt  = $this->characterStateService->getState($actor_id);
+        $result = $this->magicItemService->craftSnare($actor_id, $snare_data_dt, $location_id_dt, $char_state_dt, $game_state);
+        $events[] = GameEventLogger::buildEvent('craft_snare', 'downtime', $actor_id, ['location_id' => $location_id_dt, 'success' => $result['success']]);
+        break;
+      }
+
+      // -----------------------------------------------------------------------
+      // REQ 2397: Daily Preparations — reset investments, staff, wand state.
+      // -----------------------------------------------------------------------
+      case 'daily_preparations': {
+        $char_ids_dp = $params['char_ids'] ?? [$actor_id];
+        $prep_results = [];
+        foreach ($char_ids_dp as $char_id_dp) {
+          $prep_results[$char_id_dp] = $this->magicItemService->performDailyPreparations($char_id_dp, $game_state);
+        }
+        $result = ['prepared' => $prep_results];
+        $events[] = GameEventLogger::buildEvent('daily_preparations', 'downtime', $actor_id, ['chars' => array_keys($prep_results)]);
+        break;
+      }
 
       default:
         return [

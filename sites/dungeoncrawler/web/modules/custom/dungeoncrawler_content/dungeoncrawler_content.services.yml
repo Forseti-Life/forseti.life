@@ -458,6 +458,11 @@ services:
     arguments:
       - '@dungeoncrawler_content.number_generation'
 
+  dungeoncrawler_content.magic_item_service:
+    class: Drupal\dungeoncrawler_content\Service\MagicItemService
+    arguments:
+      - '@dungeoncrawler_content.number_generation'
+
   # Game Coordinator Engine Services
   dungeoncrawler_content.game_event_logger:
     class: Drupal\dungeoncrawler_content\Service\GameEventLogger
@@ -477,6 +482,7 @@ services:
       - '@dungeoncrawler_content.narration_engine'
       - '@dungeoncrawler_content.knowledge_acquisition'
       - '@dungeoncrawler_content.hazard_service'
+      - '@dungeoncrawler_content.magic_item_service'
 
   dungeoncrawler_content.encounter_phase_handler:
     class: Drupal\dungeoncrawler_content\Service\EncounterPhaseHandler
@@ -499,6 +505,7 @@ services:
       - '@dungeoncrawler_content.narration_engine'
       - '@dungeoncrawler_content.movement_resolver'
       - '@dungeoncrawler_content.hazard_service'
+      - '@dungeoncrawler_content.magic_item_service'
 
   dungeoncrawler_content.crafting:
     class: Drupal\dungeoncrawler_content\Service\CraftingService
@@ -516,6 +523,7 @@ services:
       - '@dungeoncrawler_content.character_state'
       - '@dungeoncrawler_content.crafting'
       - '@dungeoncrawler_content.npc_psychology_service'
+      - '@dungeoncrawler_content.magic_item_service'
 
   dungeoncrawler_content.game_coordinator:
     class: Drupal\dungeoncrawler_content\Service\GameCoordinatorService

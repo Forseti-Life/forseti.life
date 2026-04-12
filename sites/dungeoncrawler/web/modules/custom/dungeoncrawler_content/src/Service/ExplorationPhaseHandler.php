@@ -94,6 +94,11 @@ class ExplorationPhaseHandler implements PhaseHandlerInterface {
   protected HazardService $hazardService;
 
   /**
+   * @var \Drupal\dungeoncrawler_content\Service\MagicItemService
+   */
+  protected MagicItemService $magicItemService;
+
+  /**
    * Constructs an ExplorationPhaseHandler.
    */
   public function __construct(
@@ -106,7 +111,8 @@ class ExplorationPhaseHandler implements PhaseHandlerInterface {
     AiGmService $ai_gm_service,
     ?NarrationEngine $narration_engine = NULL,
     ?KnowledgeAcquisitionService $knowledge_acquisition = NULL,
-    ?HazardService $hazard_service = NULL
+    ?HazardService $hazard_service = NULL,
+    ?MagicItemService $magic_item_service = NULL
   ) {
     $this->database = $database;
     $this->logger = $logger_factory->get('dungeoncrawler');
@@ -125,6 +131,7 @@ class ExplorationPhaseHandler implements PhaseHandlerInterface {
         new DcAdjustmentService()
       );
     $this->hazardService = $hazard_service ?? new HazardService($number_generation_service);
+    $this->magicItemService = $magic_item_service ?? new MagicItemService($number_generation_service);
   }
 
   /**
@@ -183,6 +190,36 @@ class ExplorationPhaseHandler implements PhaseHandlerInterface {
       'counteract_hazard',
       // REQ 2392: Attack a hazard to destroy it.
       'attack_hazard',
+      // REQ 2397–2409: Magic item investment.
+      'invest_item',
+      // REQ 2410–2425: Activate a magic item.
+      'activate_item',
+      // REQ 2416–2420: Sustain an activation.
+      'sustain_activation',
+      // REQ 2421–2424: Dismiss an activation.
+      'dismiss_activation',
+      // REQ 2478–2490: Cast from scroll.
+      'cast_from_scroll',
+      // REQ 2501–2510: Prepare a staff (daily preparations context).
+      'prepare_staff',
+      // REQ 2511–2520: Cast from staff.
+      'cast_from_staff',
+      // REQ 2521–2530: Cast from wand.
+      'cast_from_wand',
+      // REQ 2531–2535: Overcharge wand.
+      'overcharge_wand',
+      // REQ 2536–2545: Craft and place snare.
+      'craft_snare',
+      // REQ 2546–2548: Affix talisman to item.
+      'affix_talisman',
+      // REQ 2549: Activate talisman.
+      'activate_talisman',
+      // REQ 2474–2477: Apply oil.
+      'apply_oil',
+      // REQ 2455–2467: Etch rune onto item.
+      'etch_rune',
+      // REQ 2468–2473: Transfer rune between items.
+      'transfer_rune',
     ];
   }
 
@@ -993,6 +1030,242 @@ class ExplorationPhaseHandler implements PhaseHandlerInterface {
         $result = $dmg_result + ['xp_awarded' => $xp_awarded];
         $events[] = GameEventLogger::buildEvent('attack_hazard', 'exploration', $actor_id, ['hazard_id' => $hazard_id, 'damage' => $raw_damage, 'destroyed' => $dmg_result['destroyed']]);
         $this->persistDungeonData($campaign_id, $dungeon_data);
+        break;
+      }
+
+      // -----------------------------------------------------------------------
+      // REQ 2397–2409: Invest a magic item (exploration / daily prep).
+      // -----------------------------------------------------------------------
+      case 'invest_item': {
+        $item_id   = $params['item_instance_id'] ?? NULL;
+        $item_data = $params['item_data'] ?? [];
+        if (!$item_id) {
+          return ['success' => FALSE, 'result' => ['error' => 'invest_item requires params.item_instance_id.'], 'mutations' => [], 'events' => [], 'phase_transition' => NULL, 'narration' => NULL];
+        }
+        $invest_result = $this->magicItemService->investItem($actor_id, $item_id, $item_data, $game_state);
+        $result = $invest_result;
+        $events[] = GameEventLogger::buildEvent('invest_item', 'exploration', $actor_id, ['item_instance_id' => $item_id, 'success' => $invest_result['success']]);
+        break;
+      }
+
+      // -----------------------------------------------------------------------
+      // REQ 2410–2425: Activate a magic item.
+      // -----------------------------------------------------------------------
+      case 'activate_item': {
+        $item_id   = $params['item_instance_id'] ?? NULL;
+        $item_data = $params['item_data'] ?? [];
+        $component = $params['component'] ?? 'command';
+        if (!$item_id) {
+          return ['success' => FALSE, 'result' => ['error' => 'activate_item requires params.item_instance_id.'], 'mutations' => [], 'events' => [], 'phase_transition' => NULL, 'narration' => NULL];
+        }
+        $char_state = $this->characterStateService->getState($actor_id);
+        $activate_result = $this->magicItemService->activateItem($actor_id, $item_id, $item_data, $component, $char_state, $game_state);
+        $result = $activate_result;
+        $events[] = GameEventLogger::buildEvent('activate_item', 'exploration', $actor_id, ['item_instance_id' => $item_id, 'success' => $activate_result['success']]);
+        break;
+      }
+
+      // -----------------------------------------------------------------------
+      // REQ 2416–2420: Sustain an active activation.
+      // -----------------------------------------------------------------------
+      case 'sustain_activation': {
+        $item_id = $params['item_instance_id'] ?? NULL;
+        if (!$item_id) {
+          return ['success' => FALSE, 'result' => ['error' => 'sustain_activation requires params.item_instance_id.'], 'mutations' => [], 'events' => [], 'phase_transition' => NULL, 'narration' => NULL];
+        }
+        $sustain_result = $this->magicItemService->sustainActivation($actor_id, $item_id, $game_state);
+        $result = $sustain_result;
+        $events[] = GameEventLogger::buildEvent('sustain_activation', 'exploration', $actor_id, ['item_instance_id' => $item_id, 'success' => $sustain_result['success']]);
+        break;
+      }
+
+      // -----------------------------------------------------------------------
+      // REQ 2421–2424: Dismiss an active activation.
+      // -----------------------------------------------------------------------
+      case 'dismiss_activation': {
+        $item_id = $params['item_instance_id'] ?? NULL;
+        if (!$item_id) {
+          return ['success' => FALSE, 'result' => ['error' => 'dismiss_activation requires params.item_instance_id.'], 'mutations' => [], 'events' => [], 'phase_transition' => NULL, 'narration' => NULL];
+        }
+        $dismiss_result = $this->magicItemService->dismissActivation($actor_id, $item_id, $game_state);
+        $result = $dismiss_result;
+        $events[] = GameEventLogger::buildEvent('dismiss_activation', 'exploration', $actor_id, ['item_instance_id' => $item_id]);
+        break;
+      }
+
+      // -----------------------------------------------------------------------
+      // REQ 2478–2490: Cast from scroll.
+      // -----------------------------------------------------------------------
+      case 'cast_from_scroll': {
+        $scroll_id = $params['scroll_instance_id'] ?? NULL;
+        $scroll_data = $params['scroll_data'] ?? [];
+        if (!$scroll_id) {
+          return ['success' => FALSE, 'result' => ['error' => 'cast_from_scroll requires params.scroll_instance_id.'], 'mutations' => [], 'events' => [], 'phase_transition' => NULL, 'narration' => NULL];
+        }
+        $char_state = $this->characterStateService->getState($actor_id);
+        $scroll_result = $this->magicItemService->castFromScroll($actor_id, $scroll_id, $scroll_data, $char_state, $game_state);
+        $result = $scroll_result;
+        $events[] = GameEventLogger::buildEvent('cast_from_scroll', 'exploration', $actor_id, ['scroll_instance_id' => $scroll_id, 'success' => $scroll_result['success']]);
+        break;
+      }
+
+      // -----------------------------------------------------------------------
+      // REQ 2501–2510: Prepare a staff (daily preparations).
+      // -----------------------------------------------------------------------
+      case 'prepare_staff': {
+        $staff_id   = $params['staff_instance_id'] ?? NULL;
+        $staff_data = $params['staff_data'] ?? [];
+        if (!$staff_id) {
+          return ['success' => FALSE, 'result' => ['error' => 'prepare_staff requires params.staff_instance_id.'], 'mutations' => [], 'events' => [], 'phase_transition' => NULL, 'narration' => NULL];
+        }
+        $char_state = $this->characterStateService->getState($actor_id);
+        $prepare_result = $this->magicItemService->prepareStaff($actor_id, $staff_id, $staff_data, $char_state, $game_state);
+        $result = $prepare_result;
+        $events[] = GameEventLogger::buildEvent('prepare_staff', 'exploration', $actor_id, ['staff_instance_id' => $staff_id, 'success' => $prepare_result['success']]);
+        break;
+      }
+
+      // -----------------------------------------------------------------------
+      // REQ 2511–2520: Cast from staff.
+      // -----------------------------------------------------------------------
+      case 'cast_from_staff': {
+        $staff_id   = $params['staff_instance_id'] ?? NULL;
+        $staff_data = $params['staff_data'] ?? [];
+        $spell_level = (int) ($params['spell_level'] ?? 1);
+        if (!$staff_id) {
+          return ['success' => FALSE, 'result' => ['error' => 'cast_from_staff requires params.staff_instance_id.'], 'mutations' => [], 'events' => [], 'phase_transition' => NULL, 'narration' => NULL];
+        }
+        $char_state = $this->characterStateService->getState($actor_id);
+        $cast_result = $this->magicItemService->castFromStaff($actor_id, $staff_id, $staff_data, $spell_level, $char_state, $game_state);
+        $result = $cast_result;
+        $events[] = GameEventLogger::buildEvent('cast_from_staff', 'exploration', $actor_id, ['staff_instance_id' => $staff_id, 'spell_level' => $spell_level, 'success' => $cast_result['success']]);
+        break;
+      }
+
+      // -----------------------------------------------------------------------
+      // REQ 2521–2530: Cast from wand.
+      // -----------------------------------------------------------------------
+      case 'cast_from_wand': {
+        $wand_id   = $params['wand_instance_id'] ?? NULL;
+        $wand_data = $params['wand_data'] ?? [];
+        if (!$wand_id) {
+          return ['success' => FALSE, 'result' => ['error' => 'cast_from_wand requires params.wand_instance_id.'], 'mutations' => [], 'events' => [], 'phase_transition' => NULL, 'narration' => NULL];
+        }
+        $cast_result = $this->magicItemService->castFromWand($actor_id, $wand_id, $wand_data, $game_state);
+        $result = $cast_result;
+        $events[] = GameEventLogger::buildEvent('cast_from_wand', 'exploration', $actor_id, ['wand_instance_id' => $wand_id, 'success' => $cast_result['success']]);
+        break;
+      }
+
+      // -----------------------------------------------------------------------
+      // REQ 2531–2535: Overcharge wand (risky extra use).
+      // -----------------------------------------------------------------------
+      case 'overcharge_wand': {
+        $wand_id   = $params['wand_instance_id'] ?? NULL;
+        $wand_data = $params['wand_data'] ?? [];
+        if (!$wand_id) {
+          return ['success' => FALSE, 'result' => ['error' => 'overcharge_wand requires params.wand_instance_id.'], 'mutations' => [], 'events' => [], 'phase_transition' => NULL, 'narration' => NULL];
+        }
+        $overcharge_result = $this->magicItemService->overchargeWand($actor_id, $wand_id, $wand_data, $game_state);
+        $result = $overcharge_result;
+        $events[] = GameEventLogger::buildEvent('overcharge_wand', 'exploration', $actor_id, ['wand_instance_id' => $wand_id, 'success' => $overcharge_result['success']]);
+        break;
+      }
+
+      // -----------------------------------------------------------------------
+      // REQ 2536–2545: Craft and place a snare.
+      // -----------------------------------------------------------------------
+      case 'craft_snare': {
+        $snare_data  = $params['snare_data'] ?? [];
+        $location_id = $params['location_id'] ?? ($game_state['active_room_id'] ?? 'unknown');
+        $char_state  = $this->characterStateService->getState($actor_id);
+        $snare_result = $this->magicItemService->craftSnare($actor_id, $snare_data, $location_id, $char_state, $game_state);
+        $result = $snare_result;
+        $events[] = GameEventLogger::buildEvent('craft_snare', 'exploration', $actor_id, ['location_id' => $location_id, 'success' => $snare_result['success']]);
+        break;
+      }
+
+      // -----------------------------------------------------------------------
+      // REQ 2546–2548: Affix talisman to item.
+      // -----------------------------------------------------------------------
+      case 'affix_talisman': {
+        $talisman_id   = $params['talisman_instance_id'] ?? NULL;
+        $talisman_data = $params['talisman_data'] ?? [];
+        $target_item   = $params['target_item_data'] ?? [];
+        if (!$talisman_id) {
+          return ['success' => FALSE, 'result' => ['error' => 'affix_talisman requires params.talisman_instance_id.'], 'mutations' => [], 'events' => [], 'phase_transition' => NULL, 'narration' => NULL];
+        }
+        $affix_result = $this->magicItemService->affixTalisman($actor_id, $talisman_id, $talisman_data, $target_item, $game_state);
+        $result = $affix_result;
+        $events[] = GameEventLogger::buildEvent('affix_talisman', 'exploration', $actor_id, ['talisman_instance_id' => $talisman_id, 'success' => $affix_result['success']]);
+        break;
+      }
+
+      // -----------------------------------------------------------------------
+      // REQ 2549: Activate talisman.
+      // -----------------------------------------------------------------------
+      case 'activate_talisman': {
+        $talisman_id = $params['talisman_instance_id'] ?? NULL;
+        if (!$talisman_id) {
+          return ['success' => FALSE, 'result' => ['error' => 'activate_talisman requires params.talisman_instance_id.'], 'mutations' => [], 'events' => [], 'phase_transition' => NULL, 'narration' => NULL];
+        }
+        $activate_result = $this->magicItemService->activateTalisman($actor_id, $talisman_id, $game_state);
+        $result = $activate_result;
+        $events[] = GameEventLogger::buildEvent('activate_talisman', 'exploration', $actor_id, ['talisman_instance_id' => $talisman_id, 'success' => $activate_result['success']]);
+        break;
+      }
+
+      // -----------------------------------------------------------------------
+      // REQ 2474–2477: Apply oil to an item.
+      // -----------------------------------------------------------------------
+      case 'apply_oil': {
+        $oil_id       = $params['oil_instance_id'] ?? NULL;
+        $oil_data     = $params['oil_data'] ?? [];
+        $target_item  = $params['target_item_data'] ?? [];
+        if (!$oil_id) {
+          return ['success' => FALSE, 'result' => ['error' => 'apply_oil requires params.oil_instance_id.'], 'mutations' => [], 'events' => [], 'phase_transition' => NULL, 'narration' => NULL];
+        }
+        $oil_result = $this->magicItemService->applyOil($actor_id, $oil_id, $oil_data, $target_item, $game_state);
+        $result = $oil_result;
+        $events[] = GameEventLogger::buildEvent('apply_oil', 'exploration', $actor_id, ['oil_instance_id' => $oil_id, 'success' => $oil_result['success']]);
+        break;
+      }
+
+      // -----------------------------------------------------------------------
+      // REQ 2455–2467: Etch a rune onto an item.
+      // -----------------------------------------------------------------------
+      case 'etch_rune': {
+        $item_id   = $params['item_instance_id'] ?? NULL;
+        $rune_type = $params['rune_type'] ?? NULL;
+        $rune_data = $params['rune_data'] ?? [];
+        if (!$item_id || !$rune_type) {
+          return ['success' => FALSE, 'result' => ['error' => 'etch_rune requires params.item_instance_id and params.rune_type.'], 'mutations' => [], 'events' => [], 'phase_transition' => NULL, 'narration' => NULL];
+        }
+        $char_state  = $this->characterStateService->getState($actor_id);
+        $item_data   = $params['item_data'] ?? [];
+        $etch_result = $this->magicItemService->etchRune($item_data, $rune_type, $rune_data, $char_state);
+        $result = $etch_result;
+        $events[] = GameEventLogger::buildEvent('etch_rune', 'exploration', $actor_id, ['item_instance_id' => $item_id, 'rune_type' => $rune_type, 'success' => $etch_result['success']]);
+        break;
+      }
+
+      // -----------------------------------------------------------------------
+      // REQ 2468–2473: Transfer a rune between two items.
+      // -----------------------------------------------------------------------
+      case 'transfer_rune': {
+        $source_id   = $params['source_item_instance_id'] ?? NULL;
+        $dest_id     = $params['dest_item_instance_id'] ?? NULL;
+        $rune_type   = $params['rune_type'] ?? NULL;
+        $rune_data   = $params['rune_data'] ?? [];
+        if (!$source_id || !$dest_id || !$rune_type) {
+          return ['success' => FALSE, 'result' => ['error' => 'transfer_rune requires source_item_instance_id, dest_item_instance_id, and rune_type.'], 'mutations' => [], 'events' => [], 'phase_transition' => NULL, 'narration' => NULL];
+        }
+        $source_item = $params['source_item_data'] ?? [];
+        $dest_item   = $params['dest_item_data'] ?? [];
+        $char_state  = $this->characterStateService->getState($actor_id);
+        $transfer_result = $this->magicItemService->transferRune($source_item, $dest_item, $rune_type, $rune_data, $char_state);
+        $result = $transfer_result;
+        $events[] = GameEventLogger::buildEvent('transfer_rune', 'exploration', $actor_id, ['source_item_instance_id' => $source_id, 'dest_item_instance_id' => $dest_id, 'rune_type' => $rune_type, 'success' => $transfer_result['success']]);
         break;
       }
 

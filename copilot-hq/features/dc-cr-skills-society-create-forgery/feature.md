@@ -3,9 +3,9 @@
 - Work item id: dc-cr-skills-society-create-forgery
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: ready
+- Status: in_progress
 - Release: 
-- Priority: P3
+20260412-dungeoncrawler-release-b
 - PM owner: pm-dungeoncrawler
 - Dev owner: dev-dungeoncrawler
 - QA owner: qa-dungeoncrawler

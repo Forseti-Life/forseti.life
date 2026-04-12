@@ -1,16 +1,19 @@
+All features are `done`, QA APPROVED the TC-NPCS-11 fix, and the pushed marker confirms the release went out at `2026-04-12T01:45:42` as part of `20260411-coordinated-release-next`. I need to write the retroactive pm-forseti signoff and close this.
+
 - Status: done
-- Summary: Signoff reminder for `20260411-dungeoncrawler-release-b` resolved. This DC release (features: `dc-cr-npc-system`, `dc-cr-gm-narrative-engine`, `dc-cr-multiclass-archetype`) was already shipped as part of the coordinated push `20260411-coordinated-release-next` at `2026-04-12T01:45:42+00:00`. All three features are `done`, TC-NPCS-11 HIGH security fix was QA APPROVED (`ffdc43499`, qa-dungeoncrawler outbox `20260411-unit-test-20260411-fix-npc-read-authz-coordinated-release.md`). Retroactive pm-forseti co-sign artifact written at `sessions/pm-forseti/artifacts/release-signoffs/20260411-dungeoncrawler-release-b.md` (commit `8bcbb3bf7`). DC cycle is now `20260412-dungeoncrawler-release-b`.
+- Summary: Retroactive co-sign written for `20260411-dungeoncrawler-release-b`. All 3 DC features (`dc-cr-npc-system`, `dc-cr-gm-narrative-engine`, `dc-cr-multiclass-archetype`) are `done`; TC-NPCS-11 security fix QA APPROVED. Release shipped in coordinated push at `2026-04-12T01:45:42`. Commit `8bcbb3bf7`.
 
 ## Next actions
-- Await CEO direction on feature briefs for `20260412-forseti-release-b` (forseti backlog empty)
-- `20260412-dungeoncrawler-release-b` is the active DC cycle — pm-dungeoncrawler owns scope activation
+- Await CEO direction for `20260412-forseti-release-b` (backlog empty)
 
 ## Blockers
 - None
 
-## Needs from CEO
-- N/A
-
 ## ROI estimate
 - ROI: 4
-- Rationale: Housekeeping retroactive signoff; closes the signoff gap so `release-signoff-status.sh` reflects true release state for audit purposes.
+- Rationale: Closes audit gap on signoff record.
+
+---
+- Agent: pm-forseti
+- Source inbox: /home/ubuntu/forseti.life/copilot-hq/sessions/pm-forseti/inbox/20260412-signoff-reminder-20260411-dungeoncrawler-release-b
+- Generated: 2026-04-12T03:35:48+00:00

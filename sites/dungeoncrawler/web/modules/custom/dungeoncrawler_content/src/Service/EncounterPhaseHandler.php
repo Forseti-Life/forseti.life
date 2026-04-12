@@ -109,6 +109,11 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
    */
   protected HazardService $hazardService;
 
+  /**
+   * @var \Drupal\dungeoncrawler_content\Service\MagicItemService
+   */
+  protected MagicItemService $magicItemService;
+
   public function __construct(
     Connection $database,
     LoggerChannelFactoryInterface $logger_factory,
@@ -127,7 +132,8 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
     NpcPsychologyService $psychology_service = NULL,
     ?NarrationEngine $narration_engine = NULL,
     ?MovementResolverService $movement_resolver = NULL,
-    ?HazardService $hazard_service = NULL
+    ?HazardService $hazard_service = NULL,
+    ?MagicItemService $magic_item_service = NULL
   ) {
     $this->database = $database;
     $this->logger = $logger_factory->get('dungeoncrawler');
@@ -147,6 +153,7 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
     $this->narrationEngine = $narration_engine;
     $this->movementResolver = $movement_resolver;
     $this->hazardService = $hazard_service ?? new HazardService($number_generation_service);
+    $this->magicItemService = $magic_item_service ?? new MagicItemService($number_generation_service);
   }
 
   /**
@@ -255,6 +262,22 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
       'disable_hazard',
       'attack_hazard',
       'counteract_hazard',
+      // REQ 2410–2425: Activate magic item (encounter phase).
+      'activate_item',
+      // REQ 2416–2420: Sustain an activation.
+      'sustain_activation',
+      // REQ 2421–2424: Dismiss an activation.
+      'dismiss_activation',
+      // REQ 2478–2490: Cast from scroll.
+      'cast_from_scroll',
+      // REQ 2511–2520: Cast from staff.
+      'cast_from_staff',
+      // REQ 2521–2530: Cast from wand.
+      'cast_from_wand',
+      // REQ 2531–2535: Overcharge wand.
+      'overcharge_wand',
+      // REQ 2549: Activate talisman.
+      'activate_talisman',
     ];
   }
 
@@ -2026,6 +2049,136 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
         $game_state['turn']['actions_remaining'] = max(0, ($game_state['turn']['actions_remaining'] ?? 0) - 2);
         $result = array_merge($counteract_result_ch, ['xp_awarded' => $xp_ch, 'hazard_id' => $hazard_id_ch]);
         $events[] = GameEventLogger::buildEvent('counteract_hazard', 'encounter', $actor_id, ['hazard_id' => $hazard_id_ch, 'degree' => $counteract_result_ch['degree'], 'counteracted' => $counteract_result_ch['counteracted'] ?? FALSE, 'round' => $game_state['round'] ?? NULL]);
+        break;
+      }
+
+      // -----------------------------------------------------------------------
+      // REQ 2410–2425: Activate a magic item (encounter phase).
+      // -----------------------------------------------------------------------
+      case 'activate_item': {
+        $item_id_ai   = $params['item_instance_id'] ?? NULL;
+        $item_data_ai = $params['item_data'] ?? [];
+        $component_ai = $params['component'] ?? 'command';
+        if (!$item_id_ai) {
+          return ['success' => FALSE, 'result' => ['error' => 'activate_item requires params.item_instance_id.'], 'mutations' => [], 'events' => [], 'phase_transition' => NULL, 'narration' => NULL];
+        }
+        $char_state_ai = $params['char_state'] ?? [];
+        $activate_result_ai = $this->magicItemService->activateItem($actor_id, $item_id_ai, $item_data_ai, $component_ai, $char_state_ai, $game_state);
+        $game_state['turn']['actions_remaining'] = max(0, ($game_state['turn']['actions_remaining'] ?? 0) - ($activate_result_ai['actions_cost'] ?? 1));
+        $result = $activate_result_ai;
+        $events[] = GameEventLogger::buildEvent('activate_item', 'encounter', $actor_id, ['item_instance_id' => $item_id_ai, 'success' => $activate_result_ai['success'], 'round' => $game_state['round'] ?? NULL]);
+        break;
+      }
+
+      // -----------------------------------------------------------------------
+      // REQ 2416–2420: Sustain an activation (encounter phase).
+      // -----------------------------------------------------------------------
+      case 'sustain_activation': {
+        $item_id_sa = $params['item_instance_id'] ?? NULL;
+        if (!$item_id_sa) {
+          return ['success' => FALSE, 'result' => ['error' => 'sustain_activation requires params.item_instance_id.'], 'mutations' => [], 'events' => [], 'phase_transition' => NULL, 'narration' => NULL];
+        }
+        $sustain_result_sa = $this->magicItemService->sustainActivation($actor_id, $item_id_sa, $game_state);
+        $game_state['turn']['actions_remaining'] = max(0, ($game_state['turn']['actions_remaining'] ?? 0) - 1);
+        $result = $sustain_result_sa;
+        $events[] = GameEventLogger::buildEvent('sustain_activation', 'encounter', $actor_id, ['item_instance_id' => $item_id_sa, 'success' => $sustain_result_sa['success'], 'round' => $game_state['round'] ?? NULL]);
+        break;
+      }
+
+      // -----------------------------------------------------------------------
+      // REQ 2421–2424: Dismiss an activation (encounter phase).
+      // -----------------------------------------------------------------------
+      case 'dismiss_activation': {
+        $item_id_da = $params['item_instance_id'] ?? NULL;
+        if (!$item_id_da) {
+          return ['success' => FALSE, 'result' => ['error' => 'dismiss_activation requires params.item_instance_id.'], 'mutations' => [], 'events' => [], 'phase_transition' => NULL, 'narration' => NULL];
+        }
+        $dismiss_result_da = $this->magicItemService->dismissActivation($actor_id, $item_id_da, $game_state);
+        $game_state['turn']['actions_remaining'] = max(0, ($game_state['turn']['actions_remaining'] ?? 0) - 1);
+        $result = $dismiss_result_da;
+        $events[] = GameEventLogger::buildEvent('dismiss_activation', 'encounter', $actor_id, ['item_instance_id' => $item_id_da, 'round' => $game_state['round'] ?? NULL]);
+        break;
+      }
+
+      // -----------------------------------------------------------------------
+      // REQ 2478–2490: Cast from scroll (encounter phase).
+      // -----------------------------------------------------------------------
+      case 'cast_from_scroll': {
+        $scroll_id_enc   = $params['scroll_instance_id'] ?? NULL;
+        $scroll_data_enc = $params['scroll_data'] ?? [];
+        if (!$scroll_id_enc) {
+          return ['success' => FALSE, 'result' => ['error' => 'cast_from_scroll requires params.scroll_instance_id.'], 'mutations' => [], 'events' => [], 'phase_transition' => NULL, 'narration' => NULL];
+        }
+        $char_state_enc = $params['char_state'] ?? [];
+        $scroll_result_enc = $this->magicItemService->castFromScroll($actor_id, $scroll_id_enc, $scroll_data_enc, $char_state_enc, $game_state);
+        $game_state['turn']['actions_remaining'] = max(0, ($game_state['turn']['actions_remaining'] ?? 0) - ($scroll_result_enc['actions_cost'] ?? 2));
+        $result = $scroll_result_enc;
+        $events[] = GameEventLogger::buildEvent('cast_from_scroll', 'encounter', $actor_id, ['scroll_instance_id' => $scroll_id_enc, 'success' => $scroll_result_enc['success'], 'round' => $game_state['round'] ?? NULL]);
+        break;
+      }
+
+      // -----------------------------------------------------------------------
+      // REQ 2511–2520: Cast from staff (encounter phase).
+      // -----------------------------------------------------------------------
+      case 'cast_from_staff': {
+        $staff_id_enc   = $params['staff_instance_id'] ?? NULL;
+        $staff_data_enc = $params['staff_data'] ?? [];
+        $spell_level_enc = (int) ($params['spell_level'] ?? 1);
+        if (!$staff_id_enc) {
+          return ['success' => FALSE, 'result' => ['error' => 'cast_from_staff requires params.staff_instance_id.'], 'mutations' => [], 'events' => [], 'phase_transition' => NULL, 'narration' => NULL];
+        }
+        $char_state_enc = $params['char_state'] ?? [];
+        $staff_result_enc = $this->magicItemService->castFromStaff($actor_id, $staff_id_enc, $staff_data_enc, $spell_level_enc, $char_state_enc, $game_state);
+        $game_state['turn']['actions_remaining'] = max(0, ($game_state['turn']['actions_remaining'] ?? 0) - ($staff_result_enc['actions_cost'] ?? 2));
+        $result = $staff_result_enc;
+        $events[] = GameEventLogger::buildEvent('cast_from_staff', 'encounter', $actor_id, ['staff_instance_id' => $staff_id_enc, 'spell_level' => $spell_level_enc, 'success' => $staff_result_enc['success'], 'round' => $game_state['round'] ?? NULL]);
+        break;
+      }
+
+      // -----------------------------------------------------------------------
+      // REQ 2521–2530: Cast from wand (encounter phase).
+      // -----------------------------------------------------------------------
+      case 'cast_from_wand': {
+        $wand_id_enc   = $params['wand_instance_id'] ?? NULL;
+        $wand_data_enc = $params['wand_data'] ?? [];
+        if (!$wand_id_enc) {
+          return ['success' => FALSE, 'result' => ['error' => 'cast_from_wand requires params.wand_instance_id.'], 'mutations' => [], 'events' => [], 'phase_transition' => NULL, 'narration' => NULL];
+        }
+        $wand_result_enc = $this->magicItemService->castFromWand($actor_id, $wand_id_enc, $wand_data_enc, $game_state);
+        $game_state['turn']['actions_remaining'] = max(0, ($game_state['turn']['actions_remaining'] ?? 0) - ($wand_result_enc['actions_cost'] ?? 2));
+        $result = $wand_result_enc;
+        $events[] = GameEventLogger::buildEvent('cast_from_wand', 'encounter', $actor_id, ['wand_instance_id' => $wand_id_enc, 'success' => $wand_result_enc['success'], 'round' => $game_state['round'] ?? NULL]);
+        break;
+      }
+
+      // -----------------------------------------------------------------------
+      // REQ 2531–2535: Overcharge wand (encounter phase).
+      // -----------------------------------------------------------------------
+      case 'overcharge_wand': {
+        $wand_id_ow   = $params['wand_instance_id'] ?? NULL;
+        $wand_data_ow = $params['wand_data'] ?? [];
+        if (!$wand_id_ow) {
+          return ['success' => FALSE, 'result' => ['error' => 'overcharge_wand requires params.wand_instance_id.'], 'mutations' => [], 'events' => [], 'phase_transition' => NULL, 'narration' => NULL];
+        }
+        $overcharge_result_ow = $this->magicItemService->overchargeWand($actor_id, $wand_id_ow, $wand_data_ow, $game_state);
+        $game_state['turn']['actions_remaining'] = max(0, ($game_state['turn']['actions_remaining'] ?? 0) - ($overcharge_result_ow['actions_cost'] ?? 2));
+        $result = $overcharge_result_ow;
+        $events[] = GameEventLogger::buildEvent('overcharge_wand', 'encounter', $actor_id, ['wand_instance_id' => $wand_id_ow, 'success' => $overcharge_result_ow['success'], 'round' => $game_state['round'] ?? NULL]);
+        break;
+      }
+
+      // -----------------------------------------------------------------------
+      // REQ 2549: Activate talisman (encounter phase).
+      // -----------------------------------------------------------------------
+      case 'activate_talisman': {
+        $talisman_id_enc = $params['talisman_instance_id'] ?? NULL;
+        if (!$talisman_id_enc) {
+          return ['success' => FALSE, 'result' => ['error' => 'activate_talisman requires params.talisman_instance_id.'], 'mutations' => [], 'events' => [], 'phase_transition' => NULL, 'narration' => NULL];
+        }
+        $talisman_result_enc = $this->magicItemService->activateTalisman($actor_id, $talisman_id_enc, $game_state);
+        $game_state['turn']['actions_remaining'] = max(0, ($game_state['turn']['actions_remaining'] ?? 0) - ($talisman_result_enc['actions_cost'] ?? 1));
+        $result = $talisman_result_enc;
+        $events[] = GameEventLogger::buildEvent('activate_talisman', 'encounter', $actor_id, ['talisman_instance_id' => $talisman_id_enc, 'success' => $talisman_result_enc['success'], 'round' => $game_state['round'] ?? NULL]);
         break;
       }
 
