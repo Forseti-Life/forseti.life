@@ -378,18 +378,26 @@ For each stale in_progress feature (wrong release or no QA APPROVE): set `Status
 
 Lesson: Stale in_progress features from prior releases count toward the 10-feature auto-close threshold and can trigger false auto-closes on a new release before any dev/QA work completes.
 
-## Empty release Gate 2 bypass policy (required — updated 2026-04-05)
+## Empty release Gate 2 bypass policy (required — updated 2026-04-12)
 When a release closes with **zero features shipped** (all deferred), `release-signoff.sh` will fail Gate 2 because no QA APPROVE evidence references the release ID.
 
-**PM self-certification (no escalation required):** use the `--empty-release` flag:
+**Pre-cert prerequisite check (required before filing empty-release self-cert — GAP-DC-PM-PREMATURE-EMPTY-CERT-01):**
+Before calling `release-signoff.sh --empty-release`, you MUST attempt scope-activate for the current release cycle. An empty-release self-cert is valid ONLY when ONE of these conditions is true:
+- **(a)** `pm-scope-activate.sh` was run and returned 0 eligible features (backlog genuinely empty), OR
+- **(b)** The only backlog features are unbuilt (no dev outbox confirms implementation done) AND PM explicitly chooses to defer them to the next cycle, OR
+- **(c)** The orchestrator fires `release-close-now` with explicit "no features active" AND PM has verified the backlog is clear.
+
+Do NOT file an empty-release self-cert as part of a prior release's close-out paperwork. Each release's certification must happen AFTER that release's own scope-activate attempt — not pre-emptively during a previous release's signoff.
+
+**Lesson (2026-04-12, GAP-DC-PM-PREMATURE-EMPTY-CERT-01):** In `20260412-dungeoncrawler-release-c`, PM filed an empty-release self-cert at 04:59 — only 100 seconds after the cycle started at 04:57. Dev then delivered `dc-cr-skills-society-create-forgery` (05:11) and `dc-cr-skills-survival-track-direction` (05:20) — 15+ minutes after the self-cert — but both slipped to the next cycle. Root cause: PM pre-empted the cycle's scope window as part of the prior release's close-out.
+
+**PM self-certification (no escalation required):** once the prerequisite check passes, use the `--empty-release` flag:
 ```bash
 bash scripts/release-signoff.sh dungeoncrawler <release-id> --empty-release
 ```
 This writes a Gate 2 self-cert to `sessions/qa-dungeoncrawler/outbox/` on PM's behalf and proceeds with signoff. No CEO or QA involvement needed for empty releases.
 
 Do NOT re-activate features into the stale release before running signoff — this triggers another auto-close loop.
-
-Lesson: Empty releases are self-certifiable at PM level. Do not escalate to CEO for Gate 2 waivers.
 
 ## QA inbox staleness check (required — periodic improvement round)
 During each improvement-round or groom cycle, check the qa-dungeoncrawler inbox for backlog buildup:
