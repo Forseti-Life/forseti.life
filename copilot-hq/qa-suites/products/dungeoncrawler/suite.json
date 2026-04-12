@@ -14387,6 +14387,126 @@
           "suite_context": "overlaps:dc-cr-spells-ch07"
         }
       ]
+    },
+    {
+      "id": "dc-cr-rest-watch-starvation-phpunit",
+      "label": "Rest, watch schedule, starvation/thirst: daily prep sequence, thirst/starvation damage tracks, healing blocked, edge cases",
+      "type": "phpunit",
+      "feature_id": "dc-cr-rest-watch-starvation",
+      "command": "cd /home/ubuntu/forseti.life/sites/dungeoncrawler && vendor/bin/phpunit web/modules/custom/dungeoncrawler_content/tests/src/Functional/RestWatchStarvationTest.php",
+      "artifacts": [
+        "sessions/qa-dungeoncrawler/artifacts/dc-cr-rest-watch-starvation/phpunit-report.xml"
+      ],
+      "required_for_release": true,
+      "notes": "Security AC exemption confirmed: no new routes. Dependencies: dc-cr-conditions, dc-cr-skill-system. TC-RWS-01 watch duration table values need BA confirmation (PF2E CRB ch10 Watches). TC-RWS-04/08 damage onset formula con_modifier+1; no cap confirmed in AC. 15 TCs active.",
+      "test_cases": [
+        {
+          "id": "TC-RWS-01",
+          "label": "Watch schedule data defined per party size (1-6 PCs); watch_duration and min_segments non-null",
+          "feature_id": "dc-cr-rest-watch-starvation",
+          "required_for_release": true,
+          "status": "pending_implementation",
+          "suite_context": "data_values_pending_BA_confirmation"
+        },
+        {
+          "id": "TC-RWS-02",
+          "label": "Daily prep sequence enforced: rest_complete before watch_complete before spells_prepared",
+          "feature_id": "dc-cr-rest-watch-starvation",
+          "required_for_release": true,
+          "status": "pending_implementation"
+        },
+        {
+          "id": "TC-RWS-03",
+          "label": "Thirst: fatigued condition applied on day 0 without water",
+          "feature_id": "dc-cr-rest-watch-starvation",
+          "required_for_release": true,
+          "status": "pending_implementation"
+        },
+        {
+          "id": "TC-RWS-04",
+          "label": "Thirst: damage track activates at day (con_modifier+1); damage_per_hour=1d4",
+          "feature_id": "dc-cr-rest-watch-starvation",
+          "required_for_release": true,
+          "status": "pending_implementation"
+        },
+        {
+          "id": "TC-RWS-05",
+          "label": "Thirst: healing blocked while dehydrated; reason=thirst_unresolved",
+          "feature_id": "dc-cr-rest-watch-starvation",
+          "required_for_release": true,
+          "status": "pending_implementation"
+        },
+        {
+          "id": "TC-RWS-06",
+          "label": "Thirst: damage track deactivates on quench; dehydrated=false; healing unblocked",
+          "feature_id": "dc-cr-rest-watch-starvation",
+          "required_for_release": true,
+          "status": "pending_implementation"
+        },
+        {
+          "id": "TC-RWS-07",
+          "label": "Starvation: fatigued condition applied on day 0 without food",
+          "feature_id": "dc-cr-rest-watch-starvation",
+          "required_for_release": true,
+          "status": "pending_implementation"
+        },
+        {
+          "id": "TC-RWS-08",
+          "label": "Starvation: damage track activates at day (con_modifier+1); damage_per_day=1",
+          "feature_id": "dc-cr-rest-watch-starvation",
+          "required_for_release": true,
+          "status": "pending_implementation"
+        },
+        {
+          "id": "TC-RWS-09",
+          "label": "Starvation: healing blocked while starving; reason=starvation_unresolved",
+          "feature_id": "dc-cr-rest-watch-starvation",
+          "required_for_release": true,
+          "status": "pending_implementation"
+        },
+        {
+          "id": "TC-RWS-10",
+          "label": "Starvation: damage track deactivates on feed; starving=false; healing unblocked",
+          "feature_id": "dc-cr-rest-watch-starvation",
+          "required_for_release": true,
+          "status": "pending_implementation"
+        },
+        {
+          "id": "TC-RWS-11",
+          "label": "Environmental hazard intervals: thirst trigger=hourly; starvation trigger=daily",
+          "feature_id": "dc-cr-rest-watch-starvation",
+          "required_for_release": true,
+          "status": "pending_implementation"
+        },
+        {
+          "id": "TC-RWS-12",
+          "label": "Edge: Con modifier <=0 \u2014 onset_days = max(1, con_modifier+1) for both tracks",
+          "feature_id": "dc-cr-rest-watch-starvation",
+          "required_for_release": true,
+          "status": "pending_implementation"
+        },
+        {
+          "id": "TC-RWS-13",
+          "label": "Edge: simultaneously starving and dehydrated \u2014 independent tracks; healing blocked by both",
+          "feature_id": "dc-cr-rest-watch-starvation",
+          "required_for_release": true,
+          "status": "pending_implementation"
+        },
+        {
+          "id": "TC-RWS-14",
+          "label": "Failure: healing during active starvation \u2014 healed=0, blocked=true",
+          "feature_id": "dc-cr-rest-watch-starvation",
+          "required_for_release": true,
+          "status": "pending_implementation"
+        },
+        {
+          "id": "TC-RWS-15",
+          "label": "Failure: daily prep without rest complete \u2014 spells_restored=false",
+          "feature_id": "dc-cr-rest-watch-starvation",
+          "required_for_release": true,
+          "status": "pending_implementation"
+        }
+      ]
     }
   ],
   "_schema_notes": [
