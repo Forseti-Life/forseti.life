@@ -14507,6 +14507,284 @@
           "status": "pending_implementation"
         }
       ]
+    },
+    {
+      "id": "dc-cr-skills-society-create-forgery-phpunit",
+      "label": "Society: Recall Knowledge domain/untrained, Create a Forgery (Trained gate, materials, DC tiers, 4 degrees, detection, crit-fail notification)",
+      "type": "phpunit",
+      "feature_id": "dc-cr-skills-society-create-forgery",
+      "command": "cd /home/ubuntu/forseti.life/sites/dungeoncrawler && vendor/bin/phpunit web/modules/custom/dungeoncrawler_content/tests/src/Functional/SkillsSocietyForgeryTest.php",
+      "artifacts": [
+        "sessions/qa-dungeoncrawler/artifacts/dc-cr-skills-society-create-forgery/phpunit-report.xml"
+      ],
+      "required_for_release": true,
+      "notes": "Security AC exemption: no new routes. Dependencies: dc-cr-skill-system. Open PM items: TC-SOC-01 humanoid org scope; TC-SOC-04 writing materials model; TC-SOC-05 page count input; TC-SOC-07 specialist DC exact values; TC-SOC-08 special tools DC modifier; TC-SOC-12 crit success quality tier; TC-SOC-13 Deception DC snapshot vs dynamic; TC-SOC-14 examine trigger model.",
+      "test_cases": [
+        {
+          "id": "TC-SOC-01",
+          "label": "RK Society: domain covers cultures/laws/social structures/history/humanoid orgs/nations/settlements",
+          "feature_id": "dc-cr-skills-society-create-forgery",
+          "required_for_release": true,
+          "status": "pending_implementation",
+          "suite_context": "PM_clarification_pending:humanoid_org_scope"
+        },
+        {
+          "id": "TC-SOC-02",
+          "label": "RK Society: untrained use permitted; rolls at untrained modifier",
+          "feature_id": "dc-cr-skills-society-create-forgery",
+          "required_for_release": true,
+          "status": "pending_implementation"
+        },
+        {
+          "id": "TC-SOC-03",
+          "label": "Create a Forgery: Trained gate \u2014 untrained blocked",
+          "feature_id": "dc-cr-skills-society-create-forgery",
+          "required_for_release": true,
+          "status": "pending_implementation"
+        },
+        {
+          "id": "TC-SOC-04",
+          "label": "Create a Forgery: writing materials required; no materials = blocked",
+          "feature_id": "dc-cr-skills-society-create-forgery",
+          "required_for_release": true,
+          "status": "pending_implementation",
+          "suite_context": "PM_clarification_pending:materials_model"
+        },
+        {
+          "id": "TC-SOC-05",
+          "label": "Create a Forgery: downtime activity; time_cost = 10min x page_count",
+          "feature_id": "dc-cr-skills-society-create-forgery",
+          "required_for_release": true,
+          "status": "pending_implementation",
+          "suite_context": "PM_clarification_pending:page_count_input"
+        },
+        {
+          "id": "TC-SOC-06",
+          "label": "Create a Forgery: common document DC=20",
+          "feature_id": "dc-cr-skills-society-create-forgery",
+          "required_for_release": true,
+          "status": "pending_implementation"
+        },
+        {
+          "id": "TC-SOC-07",
+          "label": "Create a Forgery: specialist document DC>=30",
+          "feature_id": "dc-cr-skills-society-create-forgery",
+          "required_for_release": true,
+          "status": "pending_implementation",
+          "suite_context": "PM_clarification_pending:specialist_dc_exact_values"
+        },
+        {
+          "id": "TC-SOC-08",
+          "label": "Create a Forgery: official government seal DC>=40; special tools may lower DC",
+          "feature_id": "dc-cr-skills-society-create-forgery",
+          "required_for_release": true,
+          "status": "pending_implementation",
+          "suite_context": "PM_clarification_pending:tools_dc_modifier"
+        },
+        {
+          "id": "TC-SOC-09",
+          "label": "Create a Forgery: Failure \u2014 quality=detectable; forgery still created",
+          "feature_id": "dc-cr-skills-society-create-forgery",
+          "required_for_release": true,
+          "status": "pending_implementation"
+        },
+        {
+          "id": "TC-SOC-10",
+          "label": "Create a Forgery: Critical Failure \u2014 quality=obviously_fake; character notified; retry_allowed=true",
+          "feature_id": "dc-cr-skills-society-create-forgery",
+          "required_for_release": true,
+          "status": "pending_implementation"
+        },
+        {
+          "id": "TC-SOC-11",
+          "label": "Create a Forgery: Success \u2014 quality=standard; forgery_record created",
+          "feature_id": "dc-cr-skills-society-create-forgery",
+          "required_for_release": true,
+          "status": "pending_implementation"
+        },
+        {
+          "id": "TC-SOC-12",
+          "label": "Create a Forgery: Critical Success \u2014 quality=exceptional (or same as Success if PM confirms)",
+          "feature_id": "dc-cr-skills-society-create-forgery",
+          "required_for_release": true,
+          "status": "pending_implementation",
+          "suite_context": "PM_clarification_pending:crit_success_quality_tier"
+        },
+        {
+          "id": "TC-SOC-13",
+          "label": "Detection: viewer Society vs forger Deception DC; success=detected, failure=accepted",
+          "feature_id": "dc-cr-skills-society-create-forgery",
+          "required_for_release": true,
+          "status": "pending_implementation",
+          "suite_context": "PM_clarification_pending:deception_dc_snapshot_vs_dynamic"
+        },
+        {
+          "id": "TC-SOC-14",
+          "label": "Detection: triggered only on active examine; passive receipt does not roll",
+          "feature_id": "dc-cr-skills-society-create-forgery",
+          "required_for_release": true,
+          "status": "pending_implementation",
+          "suite_context": "PM_clarification_pending:examine_trigger_model"
+        }
+      ]
+    },
+    {
+      "id": "dc-cr-skills-society-create-forgery-role-url-audit",
+      "label": "Society/Create a Forgery ACL regression: no new routes; existing downtime handler routes retain ACL",
+      "type": "role-url-audit",
+      "feature_id": "dc-cr-skills-society-create-forgery",
+      "command": "python3 scripts/role-url-audit.py --product dungeoncrawler --feature dc-cr-skills-society-create-forgery",
+      "artifacts": [
+        "sessions/qa-dungeoncrawler/artifacts/dc-cr-skills-society-create-forgery/role-url-audit.json"
+      ],
+      "required_for_release": true,
+      "test_cases": [
+        {
+          "id": "TC-SOC-15",
+          "label": "ACL regression: no new routes; existing downtime routes retain ACL",
+          "feature_id": "dc-cr-skills-society-create-forgery",
+          "required_for_release": true,
+          "status": "pending_implementation"
+        }
+      ]
+    },
+    {
+      "id": "dc-cr-skills-society-create-forgery-phpunit",
+      "label": "Society: Recall Knowledge domain/untrained, Create a Forgery (Trained gate, materials, DC tiers, 4 degrees, Crit Fail notification, detection)",
+      "type": "phpunit",
+      "feature_id": "dc-cr-skills-society-create-forgery",
+      "command": "cd /home/ubuntu/forseti.life/sites/dungeoncrawler && vendor/bin/phpunit web/modules/custom/dungeoncrawler_content/tests/src/Functional/SkillsSocietyForgeryTest.php",
+      "artifacts": [
+        "sessions/qa-dungeoncrawler/artifacts/dc-cr-skills-society-create-forgery/phpunit-report.xml"
+      ],
+      "required_for_release": true,
+      "notes": "Security AC exemption: no new routes. Downtime-only action. TC-SOC-01 needs PM confirmation on monstrous org domain scope. TC-SOC-04 writing materials model (inventory flag vs assumed-available). TC-SOC-07/08 specialist/official DC exact values. TC-SOC-12 Crit Success distinct quality vs Success. TC-SOC-13 Deception DC snapshot vs dynamic. TC-SOC-14 active-examine trigger model. All 15 TCs activatable now; assertion values need BA/PM confirmation on flagged items.",
+      "test_cases": [
+        {
+          "id": "TC-SOC-01",
+          "label": "RK Society domain scope: cultures/laws/social-structures/history/humanoid-orgs/nations/settlements",
+          "feature_id": "dc-cr-skills-society-create-forgery",
+          "required_for_release": true,
+          "status": "pending_implementation",
+          "suite_context": "pm_clarification_needed:humanoid_org_scope"
+        },
+        {
+          "id": "TC-SOC-02",
+          "label": "RK Society: untrained use permitted; rolls at untrained modifier",
+          "feature_id": "dc-cr-skills-society-create-forgery",
+          "required_for_release": true,
+          "status": "pending_implementation"
+        },
+        {
+          "id": "TC-SOC-03",
+          "label": "Create a Forgery: Trained gate; untrained blocked",
+          "feature_id": "dc-cr-skills-society-create-forgery",
+          "required_for_release": true,
+          "status": "pending_implementation"
+        },
+        {
+          "id": "TC-SOC-04",
+          "label": "Create a Forgery: writing materials required gate; blocked without",
+          "feature_id": "dc-cr-skills-society-create-forgery",
+          "required_for_release": true,
+          "status": "pending_implementation",
+          "suite_context": "pm_clarification_needed:materials_model"
+        },
+        {
+          "id": "TC-SOC-05",
+          "label": "Create a Forgery: downtime activity; time_cost = 10min x page_count",
+          "feature_id": "dc-cr-skills-society-create-forgery",
+          "required_for_release": true,
+          "status": "pending_implementation"
+        },
+        {
+          "id": "TC-SOC-06",
+          "label": "Create a Forgery: DC 20 for common documents",
+          "feature_id": "dc-cr-skills-society-create-forgery",
+          "required_for_release": true,
+          "status": "pending_implementation"
+        },
+        {
+          "id": "TC-SOC-07",
+          "label": "Create a Forgery: DC 30+ for specialist documents",
+          "feature_id": "dc-cr-skills-society-create-forgery",
+          "required_for_release": true,
+          "status": "pending_implementation",
+          "suite_context": "pm_clarification_needed:specialist_dc_exact"
+        },
+        {
+          "id": "TC-SOC-08",
+          "label": "Create a Forgery: DC 40+ for official government seals; special tools may modify DC",
+          "feature_id": "dc-cr-skills-society-create-forgery",
+          "required_for_release": true,
+          "status": "pending_implementation",
+          "suite_context": "pm_clarification_needed:tools_dc_modifier"
+        },
+        {
+          "id": "TC-SOC-09",
+          "label": "Create a Forgery Failure: forgery.quality=detectable; forgery created",
+          "feature_id": "dc-cr-skills-society-create-forgery",
+          "required_for_release": true,
+          "status": "pending_implementation"
+        },
+        {
+          "id": "TC-SOC-10",
+          "label": "Create a Forgery Critical Failure: quality=obviously_fake; character notified; retry_allowed",
+          "feature_id": "dc-cr-skills-society-create-forgery",
+          "required_for_release": true,
+          "status": "pending_implementation"
+        },
+        {
+          "id": "TC-SOC-11",
+          "label": "Create a Forgery Success: quality=standard; forgery_record created",
+          "feature_id": "dc-cr-skills-society-create-forgery",
+          "required_for_release": true,
+          "status": "pending_implementation"
+        },
+        {
+          "id": "TC-SOC-12",
+          "label": "Create a Forgery Critical Success: quality=exceptional (or same as Success per PM)",
+          "feature_id": "dc-cr-skills-society-create-forgery",
+          "required_for_release": true,
+          "status": "pending_implementation",
+          "suite_context": "pm_clarification_needed:crit_success_quality"
+        },
+        {
+          "id": "TC-SOC-13",
+          "label": "Detection: viewer Society vs forger Deception DC; success=detected, failure=accepted",
+          "feature_id": "dc-cr-skills-society-create-forgery",
+          "required_for_release": true,
+          "status": "pending_implementation",
+          "suite_context": "pm_clarification_needed:deception_dc_snapshot_vs_dynamic"
+        },
+        {
+          "id": "TC-SOC-14",
+          "label": "Detection: active examine triggers detection roll; passive receipt does not",
+          "feature_id": "dc-cr-skills-society-create-forgery",
+          "required_for_release": true,
+          "status": "pending_implementation",
+          "suite_context": "pm_clarification_needed:examine_trigger_model"
+        },
+        {
+          "id": "TC-SOC-15",
+          "label": "ACL regression: no new routes from Society/Create a Forgery; existing downtime handler ACL unchanged",
+          "feature_id": "dc-cr-skills-society-create-forgery",
+          "required_for_release": true,
+          "status": "pending_implementation"
+        }
+      ]
+    },
+    {
+      "id": "dc-cr-skills-society-create-forgery-role-url-audit",
+      "label": "Society/Create a Forgery ACL regression: no new routes; downtime handler routes retain expected ACL",
+      "type": "role-url-audit",
+      "feature_id": "dc-cr-skills-society-create-forgery",
+      "command": "ALLOW_PROD_QA=1 bash scripts/site-audit-run.sh dungeoncrawler",
+      "artifacts": [
+        "sessions/qa-dungeoncrawler/artifacts/dc-cr-skills-society-create-forgery/role-url-audit.json"
+      ],
+      "required_for_release": true,
+      "notes": "Security AC exemption confirmed: no new routes introduced. Validates existing downtime handler ACL is unaffected."
     }
   ],
   "_schema_notes": [
