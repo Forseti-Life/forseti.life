@@ -121,15 +121,15 @@ That page is rendered from this file. CEO and architect seats must treat the roa
 **Scope product:** forseti.life  
 **Suite manifest:** `qa-suites/products/forseti/suite.json`
 
-**Current state:** The originally dispatched fill/retire/auth-unblock features are now all marked `shipped` in the backlog (`forseti-qa-suite-fill-*`, `forseti-qa-suite-retire-stale`, `forseti-qa-e2e-auth-pipeline`). The project registry is stale and needs a closeout review against the success criteria.
+**Current state (2026-04-12 closeout audit):** Phase 1 (triage) is complete — the 6 PROJ-002 features shipped represent the triage classification work: 52 fill, 18 retire, 18 defer, 4 keep-as-is against the 94 suites that existed at triage time. However, Phase 2 (actually writing `test_cases` into `suite.json`) has NOT started. As of 2026-04-12, `suite.json` has **252 suites, only 2 with `test_cases`** (15 total). The suite count grew from 94 → 252 due to new feature suites added in releases since triage. The core problem (no executable regression tests) persists.
 
-**Last scoped release:** `20260409-forseti-release-i`
+**Last scoped release:** `20260412-forseti-release-e`
 
 **Progress SLA:** 7 days without release-scoped work or a PM re-baseline/grooming update = breach
 
-**Next step:** PM should run a closeout audit: confirm whether the shipped work satisfies the project success metrics, then either mark the project complete or dispatch the remaining gap as a new follow-on project.
+**Next step:** qa-forseti: execute Phase 2 — fill `test_cases` for the 52 priority suites identified in the triage report (`sessions/qa-forseti/artifacts/proj002-suite-triage/triage-report.md`), starting with the 27 CEO pre-classified `fill` candidates. Target: ≥2 test_cases per suite, sourced from existing QA outbox verification commands.
 
-**Queue status:** `pm-forseti` inbox item queued on 2026-04-12: `20260412-proj002-closeout-qa-suite`
+**Queue status:** qa-forseti Phase 2 dispatch queued 2026-04-12: `20260412-proj002-phase2-suite-fill`
 
 ### Problem
 
