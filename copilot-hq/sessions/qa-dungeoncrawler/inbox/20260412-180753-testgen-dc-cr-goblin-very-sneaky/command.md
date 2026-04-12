@@ -75,3 +75,5 @@ See full process: `runbooks/intake-to-qa-handoff.md`
 
 ## Security acceptance criteria
 - Security AC exemption: action-resolution adjustment only; no new routes or data entry surface
+- Agent: qa-dungeoncrawler
+- Status: pending

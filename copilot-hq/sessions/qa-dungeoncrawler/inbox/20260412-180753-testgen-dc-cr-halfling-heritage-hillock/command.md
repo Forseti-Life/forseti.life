@@ -75,3 +75,5 @@ See full process: `runbooks/intake-to-qa-handoff.md`
 
 ## Security acceptance criteria
 - Security AC exemption: passive heritage/healing adjustment only; no new route surface
+- Agent: qa-dungeoncrawler
+- Status: pending

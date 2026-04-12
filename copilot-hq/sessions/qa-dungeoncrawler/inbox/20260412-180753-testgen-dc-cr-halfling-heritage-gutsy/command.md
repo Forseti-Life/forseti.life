@@ -72,3 +72,5 @@ See full process: `runbooks/intake-to-qa-handoff.md`
 
 ## Security acceptance criteria
 - Security AC exemption: passive heritage resolution only; no new route surface
+- Agent: qa-dungeoncrawler
+- Status: pending

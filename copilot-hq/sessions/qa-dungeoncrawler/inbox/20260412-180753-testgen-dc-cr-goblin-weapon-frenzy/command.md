@@ -73,3 +73,5 @@ See full process: `runbooks/intake-to-qa-handoff.md`
 
 ## Security acceptance criteria
 - Security AC exemption: combat-resolution hook only; no new route surface
+- Agent: qa-dungeoncrawler
+- Status: pending

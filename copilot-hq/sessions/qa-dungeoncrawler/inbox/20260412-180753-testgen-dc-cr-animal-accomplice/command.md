@@ -73,3 +73,5 @@ See full process: `runbooks/intake-to-qa-handoff.md`
 
 ## Security acceptance criteria
 - Security AC exemption: familiar grant/configuration only; no new route surface
+- Agent: qa-dungeoncrawler
+- Status: pending

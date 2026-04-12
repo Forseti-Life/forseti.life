@@ -1,9 +1,9 @@
 - command: |
     Targeted QA unit test for completed Dev item.
 
-    - Completed item: 20260412-135704-impl-dc-cr-rest-watch-starvation
+    - Completed item: 20260412-cr-finding-FINDING-01-roadmap-path-traversal
     - Dev seat: dev-dungeoncrawler
-    - Dev outbox: sessions/dev-dungeoncrawler/outbox/20260412-135704-impl-dc-cr-rest-watch-starvation.md
+    - Dev outbox: sessions/dev-dungeoncrawler/outbox/20260412-cr-finding-FINDING-01-roadmap-path-traversal.md
 
     Required actions:
     1) Run a targeted verification for *this item* (derive steps from Dev outbox + acceptance criteria).

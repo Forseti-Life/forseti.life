@@ -4,9 +4,9 @@
 - Type: new
 - Module: dungeoncrawler_content
 - Priority: P2
-- Status: ready
+- Status: in_progress
 - Release: 
-20260412-dungeoncrawler-release-b
+20260412-dungeoncrawler-release-e
 
 ## Goal
 

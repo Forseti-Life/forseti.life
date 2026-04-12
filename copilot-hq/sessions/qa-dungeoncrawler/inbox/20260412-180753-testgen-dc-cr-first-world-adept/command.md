@@ -73,3 +73,5 @@ See full process: `runbooks/intake-to-qa-handoff.md`
 
 ## Security acceptance criteria
 - Security AC exemption: ancestry feat grant only; no new route surface beyond existing character and spell flows
+- Agent: qa-dungeoncrawler
+- Status: pending

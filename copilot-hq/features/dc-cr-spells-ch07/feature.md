@@ -3,10 +3,10 @@
 - Work item id: dc-cr-spells-ch07
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: ready
+- Status: in_progress
 - Priority: P1
 - Release: 
-20260412-dungeoncrawler-release-b
+20260412-dungeoncrawler-release-e
 - PM owner: pm-dungeoncrawler
 - Dev owner: dev-dungeoncrawler
 - QA owner: qa-dungeoncrawler

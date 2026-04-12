@@ -80,3 +80,5 @@ See full process: `runbooks/intake-to-qa-handoff.md`
 
 ## Security acceptance criteria
 - Security AC exemption: game-mechanic heritage; no new routes or user-facing input beyond character creation
+- Agent: qa-dungeoncrawler
+- Status: pending
