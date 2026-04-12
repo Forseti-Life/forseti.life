@@ -307,6 +307,25 @@ When qa-dungeoncrawler files a unit-test outbox with `Status: blocked` and a nam
 
 **Lesson (2026-04-09, DEF-FIGHTER-01):** qa-dungeoncrawler filed 3x BLOCK on missing Sudden Charge feat (single array entry). pm-dungeoncrawler did not dispatch the fix to dev-dungeoncrawler — CEO received the 3rd escalation and dispatched dev directly. This is always a PM-level dispatch decision, not CEO authority.
 
+## Gate 2 — Security fix re-verify ROI floor (GAP-DC-SECURITY-ROI-01, 2026-04-12)
+When a security or HIGH-severity fix is committed mid-release and you dispatch a QA re-verify unit-test item:
+
+- **Minimum ROI: 200.** Set `roi.txt` to 200 or higher when the item is created.
+- Rationale: a security fix re-verify is release-blocking. The existing qa-dungeoncrawler Gate 2 ROI floor (≥200) already covers the QA execution side, but the *dispatch* must also set ROI ≥200 to avoid CEO manual intervention.
+- Failure mode (2026-04-11): `20260411-unit-test-20260411-fix-npc-read-authz-coordinated-release` dispatched at ROI 6 for a HIGH-severity NPC authz bypass. CEO had to manually boost to 50. Two wasted CEO cycles.
+
+## Pre-escalation dependency check (required — GAP-DC-STALE-ESCALATION-02, 2026-04-12)
+Before writing any escalation outbox (Status: blocked or needs-info) where you are "waiting on QA APPROVE" or "waiting on dev fix":
+
+```bash
+# Check if the QA outbox file you need already exists
+ls sessions/qa-dungeoncrawler/outbox/ | grep "<item-id-substring>"
+```
+
+If the file exists, the dependency is already satisfied — do NOT escalate. Read the file, confirm APPROVE/BLOCK, and proceed to next step.
+
+**Failure mode (2026-04-11):** pm-dungeoncrawler wrote escalation at 22:37 ("QA APPROVE not yet published"). QA APPROVE landed at 22:44 (7 min later). Escalation fired into CEO inbox twice, consuming 2 CEO execution slots with no actionable decision needed. The fix is: always `ls` for the outbox file before writing a blocked escalation.
+
 ## Gate 2 — Throughput-Constrained Waiver Policy (CEO-approved 2026-03-27)
 
 When QA testgen throughput is zero AND at least one release cycle has elapsed without test plan output from qa-dungeoncrawler:

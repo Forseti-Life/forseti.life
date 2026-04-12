@@ -18,5 +18,5 @@ The executor focuses on writing the outbox and does not write back to the inbox 
 **Medium-term:** Executor should append `- Status: done` to the inbox `command.md` after each successful outbox write.
 
 ## Prevention
-- Dev-infra dispatched to implement the orchestrator guard.
+- Dev-infra dispatched 2026-04-12: `sessions/dev-infra/inbox/20260412-executor-inbox-close-policy-fix/` (ROI 25). This dispatch was NOT created when this lesson was originally filed (2026-04-10) — that was a documentation error. Dispatch created 2026-04-12 during DC release-b improvement round.
 - All CEO inbox item responses now include a `Status: done` line in `command.md` when closed.
