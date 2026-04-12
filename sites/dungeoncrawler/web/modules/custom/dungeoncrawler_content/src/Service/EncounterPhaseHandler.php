@@ -2007,16 +2007,17 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
         if (!$hazard_id_dh) {
           return ['success' => FALSE, 'result' => ['error' => 'hazard_id required.'], 'mutations' => [], 'events' => [], 'phase_transition' => NULL, 'narration' => NULL];
         }
-        $hazard_ref_dh = &$this->hazardService->findHazardByInstanceId($dungeon_data, $hazard_id_dh);
+        $hazard_ref_dh = &$this->hazardService->findHazardByInstanceId($hazard_id_dh, $dungeon_data);
         if ($hazard_ref_dh === NULL) {
           return ['success' => FALSE, 'result' => ['error' => 'Hazard not found.'], 'mutations' => [], 'events' => [], 'phase_transition' => NULL, 'narration' => NULL];
         }
         $skill_rank_dh = (int) ($params['skill_proficiency_rank'] ?? 0);
         $skill_bonus_dh = (int) ($params['skill_bonus'] ?? 0);
-        $disable_result_dh = $this->hazardService->disableHazard($hazard_ref_dh, $skill_rank_dh, $skill_bonus_dh);
+        // REQ 2384: disableHazard(entity, skill_bonus, skill_rank) — bonus before rank.
+        $disable_result_dh = $this->hazardService->disableHazard($hazard_ref_dh, $skill_bonus_dh, $skill_rank_dh);
         $xp_dh = 0;
         if (!empty($disable_result_dh['disabled'])) {
-          $xp_dh = $this->hazardService->awardHazardXp($hazard_ref_dh, $game_state);
+          $xp_dh = $this->hazardService->awardHazardXp($game_state, $hazard_ref_dh, (int) ($game_state['party_level'] ?? 1));
         }
         $complexity_dh = $hazard_ref_dh['complexity'] ?? 'simple';
         $phase_transition_dh = NULL;
@@ -2036,16 +2037,15 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
         if (!$hazard_id_ah) {
           return ['success' => FALSE, 'result' => ['error' => 'hazard_id required.'], 'mutations' => [], 'events' => [], 'phase_transition' => NULL, 'narration' => NULL];
         }
-        $hazard_ref_ah = &$this->hazardService->findHazardByInstanceId($dungeon_data, $hazard_id_ah);
+        $hazard_ref_ah = &$this->hazardService->findHazardByInstanceId($hazard_id_ah, $dungeon_data);
         if ($hazard_ref_ah === NULL) {
           return ['success' => FALSE, 'result' => ['error' => 'Hazard not found.'], 'mutations' => [], 'events' => [], 'phase_transition' => NULL, 'narration' => NULL];
         }
         $damage_amount_ah = (int) ($params['damage'] ?? 0);
-        $damage_type_ah = $params['damage_type'] ?? 'bludgeoning';
-        $damage_result_ah = $this->hazardService->applyDamageToHazard($hazard_ref_ah, $damage_amount_ah, $damage_type_ah);
+        $damage_result_ah = $this->hazardService->applyDamageToHazard($hazard_ref_ah, $damage_amount_ah);
         $xp_ah = 0;
         if (!empty($damage_result_ah['disabled'])) {
-          $xp_ah = $this->hazardService->awardHazardXp($hazard_ref_ah, $game_state);
+          $xp_ah = $this->hazardService->awardHazardXp($game_state, $hazard_ref_ah, (int) ($game_state['party_level'] ?? 1));
         }
         $complexity_ah = $hazard_ref_ah['complexity'] ?? 'simple';
         $phase_transition_ah = NULL;
@@ -2066,16 +2066,19 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
         if (!$hazard_id_ch) {
           return ['success' => FALSE, 'result' => ['error' => 'hazard_id required.'], 'mutations' => [], 'events' => [], 'phase_transition' => NULL, 'narration' => NULL];
         }
-        $hazard_ref_ch = &$this->hazardService->findHazardByInstanceId($dungeon_data, $hazard_id_ch);
+        $hazard_ref_ch = &$this->hazardService->findHazardByInstanceId($hazard_id_ch, $dungeon_data);
         if ($hazard_ref_ch === NULL) {
           return ['success' => FALSE, 'result' => ['error' => 'Hazard not found.'], 'mutations' => [], 'events' => [], 'phase_transition' => NULL, 'narration' => NULL];
         }
         $counteract_level_ch = (int) ($params['counteract_level'] ?? 0);
         $counteract_bonus_ch = (int) ($params['counteract_bonus'] ?? 0);
-        $counteract_result_ch = $this->hazardService->counteractMagicalHazard($hazard_ref_ch, $counteract_level_ch, $counteract_bonus_ch);
+        // REQ 2393: Roll d20 + bonus for total; pass natural roll for degree calculation.
+        $d20_ch = $this->numberGenerationService->rollPathfinderDie(20);
+        $total_ch = $d20_ch + $counteract_bonus_ch;
+        $counteract_result_ch = $this->hazardService->counteractMagicalHazard($hazard_ref_ch, $counteract_level_ch, $total_ch, $d20_ch);
         $xp_ch = 0;
         if (!empty($counteract_result_ch['counteracted'])) {
-          $xp_ch = $this->hazardService->awardHazardXp($hazard_ref_ch, $game_state);
+          $xp_ch = $this->hazardService->awardHazardXp($game_state, $hazard_ref_ch, (int) ($game_state['party_level'] ?? 1));
         }
         $game_state['turn']['actions_remaining'] = max(0, ($game_state['turn']['actions_remaining'] ?? 0) - 2);
         $result = array_merge($counteract_result_ch, ['xp_awarded' => $xp_ch, 'hazard_id' => $hazard_id_ch]);
@@ -3603,6 +3606,28 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
    */
   protected function autoPlayNpcTurn(int $encounter_id, string $entity_id, array &$game_state, array &$dungeon_data, int $campaign_id): array {
     $events = [];
+
+    // REQ 2381: Complex hazard routine — execute per-round routine actions rather than NPC AI.
+    $hazard_entity = $this->hazardService->findHazardByInstanceId($entity_id, $dungeon_data);
+    if ($hazard_entity !== NULL && ($hazard_entity['type'] ?? '') === 'hazard') {
+      $routine = $hazard_entity['routine'] ?? [];
+      if (!empty($routine)) {
+        foreach ($routine as $action_str) {
+          $events[] = GameEventLogger::buildEvent('hazard_routine_action', 'encounter', $entity_id, [
+            'action' => $action_str,
+            'round' => $game_state['round'] ?? NULL,
+          ]);
+        }
+      }
+      else {
+        $events[] = GameEventLogger::buildEvent('hazard_routine_action', 'encounter', $entity_id, [
+          'action' => 'none',
+          'round' => $game_state['round'] ?? NULL,
+        ]);
+      }
+      return ['events' => $events];
+    }
+
     $context = $this->buildNpcContext($entity_id, $game_state, $dungeon_data);
 
     // Check config flag — if AI autoplay disabled, always use fallback.

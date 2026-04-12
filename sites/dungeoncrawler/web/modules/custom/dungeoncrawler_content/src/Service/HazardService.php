@@ -24,7 +24,8 @@ namespace Drupal\dungeoncrawler_content\Service;
  *     "successes_needed": 1          // > 1 for complex hazards
  *   },
  *   "trigger": {
- *     "type": "passive"              // "passive" | "active"
+ *     "type": "passive",             // "passive" | "active"
+ *     "action": "open_door"          // Optional; for active triggers: which action fires it
  *   },
  *   "effect": {
  *     "damage": "2d6",
@@ -248,6 +249,16 @@ class HazardService {
       ];
     }
 
+    // REQ edge: Broken hazards cannot activate.
+    if (!empty($hazard_entity['state']['broken'])) {
+      return [
+        'triggered'         => FALSE,
+        'effect'            => [],
+        'already_triggered' => FALSE,
+        'blocked_reason'    => 'broken',
+      ];
+    }
+
     $hazard_entity['state']['triggered'] = TRUE;
     $effect = $hazard_entity['effect'] ?? [];
 
@@ -411,7 +422,20 @@ class HazardService {
    *   Keys: effective_damage, hardness_absorbed, current_hp, broken, destroyed,
    *         triggered (bool — fires if hit but NOT destroyed outright).
    */
-  public function applyDamageToHazard(array &$hazard_entity, int $raw_damage): array {
+  public function applyDamageToHazard(array &$hazard_entity, int $raw_damage, bool $effect_can_target_objects = TRUE): array {
+    // REQ: Hazards are immune to effects that cannot target objects.
+    if (!$effect_can_target_objects) {
+      return [
+        'effective_damage'  => 0,
+        'hardness_absorbed' => 0,
+        'current_hp'        => (int) ($hazard_entity['state']['current_hp'] ?? $hazard_entity['stats']['hp'] ?? 0),
+        'broken'            => $hazard_entity['state']['broken'] ?? FALSE,
+        'destroyed'         => FALSE,
+        'triggered'         => FALSE,
+        'blocked_reason'    => 'Hazards are immune to effects that cannot target objects.',
+      ];
+    }
+
     $hardness = (int) ($hazard_entity['stats']['hardness'] ?? 0);
     $max_hp = (int) ($hazard_entity['stats']['hp'] ?? 0);
     $bt = (int) ($hazard_entity['stats']['bt'] ?? intdiv($max_hp, 2));
@@ -589,6 +613,37 @@ class HazardService {
 
     $table = self::HAZARD_XP_TABLE[$diff] ?? [8, 30];
     return $complexity === 'complex' ? $table[1] : $table[0];
+  }
+
+  // ---------------------------------------------------------------------------
+  // Reset
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Resets a hazard to its initial armed state (clears triggered/disabled flags).
+   *
+   * REQ: Hazards with reset="auto" or reset="manual" can be re-armed.
+   * Broken/destroyed hazards are not reset by this method.
+   *
+   * @param array $hazard_entity
+   *   Hazard entity (passed by reference).
+   *
+   * @return array
+   *   Keys: reset (bool), blocked (bool), blocked_reason (string|null).
+   */
+  public function resetHazard(array &$hazard_entity): array {
+    $reset_type = $hazard_entity['reset'] ?? NULL;
+    if (!$reset_type) {
+      return ['reset' => FALSE, 'blocked' => TRUE, 'blocked_reason' => 'This hazard has no reset property.'];
+    }
+    if (!empty($hazard_entity['state']['disabled']) && ($hazard_entity['state']['current_hp'] ?? 1) <= 0) {
+      return ['reset' => FALSE, 'blocked' => TRUE, 'blocked_reason' => 'Destroyed hazards cannot be reset.'];
+    }
+    // Clear triggered/disabled; preserve broken so repair is still needed if applicable.
+    $hazard_entity['state']['triggered'] = FALSE;
+    $hazard_entity['state']['disabled'] = FALSE;
+    $hazard_entity['state']['successes'] = 0;
+    return ['reset' => TRUE, 'blocked' => FALSE, 'blocked_reason' => NULL];
   }
 
   // ---------------------------------------------------------------------------

@@ -1960,9 +1960,40 @@ class ExplorationPhaseHandler implements PhaseHandlerInterface {
 
     $this->persistDungeonData($campaign_id, $dungeon_data);
 
+    // REQ 2378: Active-trigger hazards fire when PC explicitly takes triggering action.
+    $active_hazard_events = [];
+    foreach ($this->hazardService->getRoomHazards($dungeon_data) as $hazard_snapshot) {
+      $hazard_id_act = $hazard_snapshot['instance_id'] ?? $hazard_snapshot['id'] ?? NULL;
+      if (!$hazard_id_act) {
+        continue;
+      }
+      $hazard_ref_act = &$this->hazardService->findHazardByInstanceId($hazard_id_act, $dungeon_data);
+      if (!$hazard_ref_act) {
+        continue;
+      }
+      if (!empty($hazard_ref_act['state']['detected'])) {
+        continue;
+      }
+      if (($hazard_ref_act['trigger']['type'] ?? 'passive') !== 'active') {
+        continue;
+      }
+      $trigger_act = $this->hazardService->triggerHazard($hazard_ref_act);
+      if ($trigger_act['triggered']) {
+        $active_hazard_events[] = [
+          'type' => 'hazard_triggered',
+          'instance_id' => $hazard_id_act,
+          'name' => $hazard_ref_act['name'] ?? $hazard_id_act,
+          'effect' => $trigger_act['effect'],
+          'via' => 'open_door',
+        ];
+      }
+    }
+    $this->persistDungeonData($campaign_id, $dungeon_data);
+
     return [
       'opened' => TRUE,
       'target' => $target_id,
+      'hazard_events' => $active_hazard_events,
       'mutations' => [
         ['entity' => $target_id, 'field' => 'passable', 'to' => TRUE],
       ],
