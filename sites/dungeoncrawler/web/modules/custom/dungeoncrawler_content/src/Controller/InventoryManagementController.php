@@ -237,7 +237,8 @@ class InventoryManagementController extends ControllerBase {
   ): JsonResponse {
     try {
       $data = json_decode($request->getContent(), TRUE) ?: [];
-      $gm_override = !empty($data['gm_override']);
+      $gm_override = !empty($data['gm_override'])
+        && \Drupal::currentUser()->hasPermission('administer dungeoncrawler campaigns');
       $campaign_id = isset($data['campaign_id']) ? (int) $data['campaign_id'] : NULL;
 
       $result = $this->inventoryService->sellItem(
