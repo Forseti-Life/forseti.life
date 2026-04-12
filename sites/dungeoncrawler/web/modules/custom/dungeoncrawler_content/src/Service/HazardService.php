@@ -88,6 +88,123 @@ class HazardService {
   ];
 
   /**
+   * Valid hazard_type values (GMG ch02).
+   *
+   * "haunt" type is distinct: deactivation is temporary; full destruction
+   * requires resolving the underlying supernatural condition.
+   */
+  protected const VALID_HAZARD_TYPES = ['environmental', 'trap', 'haunt'];
+
+  /**
+   * APG hazard catalog templates (Advanced Player's Guide).
+   *
+   * Loaded alongside GMG hazards for GM encounter-building (dc-gmg-hazards AC).
+   * Keys are content_id; values are stat-block templates following the same
+   * entity structure as dungeon_data entities.
+   */
+  protected const APG_HAZARD_CATALOG = [
+    'engulfing_snare' => [
+      'content_id'        => 'engulfing_snare',
+      'source'            => 'apg',
+      'name'              => 'Engulfing Snare',
+      'hazard_type'       => 'trap',
+      'complexity'        => 'simple',
+      'level'             => 2,
+      'stealth_dc'        => 18,
+      'stealth_modifier'  => 10,
+      'disable'           => ['skill' => 'thievery', 'dc' => 18, 'successes_needed' => 1],
+      'trigger'           => ['type' => 'passive', 'action' => NULL],
+      'effect'            => [
+        'damage'          => '1d10+6',
+        'damage_type'     => 'piercing',
+        'description'     => 'The snare springs shut and engulfs the triggering creature, dealing 1d10+6 piercing damage (DC 19 basic Reflex). On a failure the creature is also grabbed.',
+        'save'            => ['type' => 'reflex', 'dc' => 19, 'basic' => TRUE],
+        'conditions_applied' => ['grabbed'],
+      ],
+      'stats'             => ['ac' => NULL, 'saves' => [], 'hardness' => 0, 'hp' => NULL, 'bt' => NULL],
+      'reset'             => 'manual',
+      'is_magical'        => FALSE,
+      'rarity'            => 'common',
+      'traits'            => ['Mechanical', 'Trap', 'Snare'],
+    ],
+    'spike_trap_apg' => [
+      'content_id'        => 'spike_trap_apg',
+      'source'            => 'apg',
+      'name'              => 'Spike Trap',
+      'hazard_type'       => 'trap',
+      'complexity'        => 'simple',
+      'level'             => 4,
+      'stealth_dc'        => 22,
+      'stealth_modifier'  => 12,
+      'disable'           => ['skill' => 'thievery', 'dc' => 22, 'successes_needed' => 1],
+      'trigger'           => ['type' => 'passive', 'action' => NULL],
+      'effect'            => [
+        'damage'          => '2d8+8',
+        'damage_type'     => 'piercing',
+        'description'     => 'Spikes shoot upward dealing 2d8+8 piercing damage (DC 21 basic Reflex).',
+        'save'            => ['type' => 'reflex', 'dc' => 21, 'basic' => TRUE],
+        'conditions_applied' => [],
+      ],
+      'stats'             => ['ac' => NULL, 'saves' => [], 'hardness' => 0, 'hp' => NULL, 'bt' => NULL],
+      'reset'             => 'manual',
+      'is_magical'        => FALSE,
+      'rarity'            => 'common',
+      'traits'            => ['Mechanical', 'Trap'],
+    ],
+    'mirror_trap_apg' => [
+      'content_id'        => 'mirror_trap_apg',
+      'source'            => 'apg',
+      'name'              => 'Mirror Trap',
+      'hazard_type'       => 'trap',
+      'complexity'        => 'simple',
+      'level'             => 6,
+      'stealth_dc'        => 26,
+      'stealth_modifier'  => 15,
+      'disable'           => ['skill' => 'thievery', 'dc' => 26, 'successes_needed' => 1],
+      'trigger'           => ['type' => 'passive', 'action' => NULL],
+      'effect'            => [
+        'damage'          => NULL,
+        'damage_type'     => NULL,
+        'description'     => 'A magical mirror trap teleports the triggering creature to a random location within 30 feet (DC 24 Will; failure = random teleport).',
+        'save'            => ['type' => 'will', 'dc' => 24, 'basic' => FALSE],
+        'conditions_applied' => [],
+      ],
+      'stats'             => ['ac' => NULL, 'saves' => [], 'hardness' => 5, 'hp' => 20, 'bt' => 10],
+      'reset'             => 'auto',
+      'is_magical'        => TRUE,
+      'spell_level'       => 3,
+      'counteract_dc'     => 22,
+      'rarity'            => 'uncommon',
+      'traits'            => ['Magical', 'Trap', 'Teleportation'],
+    ],
+    'crushing_wall_apg' => [
+      'content_id'        => 'crushing_wall_apg',
+      'source'            => 'apg',
+      'name'              => 'Crushing Wall',
+      'hazard_type'       => 'environmental',
+      'complexity'        => 'complex',
+      'level'             => 8,
+      'stealth_dc'        => 27,
+      'stealth_modifier'  => 15,
+      'disable'           => ['skill' => 'thievery', 'dc' => 27, 'successes_needed' => 2],
+      'trigger'           => ['type' => 'passive', 'action' => NULL],
+      'effect'            => [
+        'damage'          => '3d10+15',
+        'damage_type'     => 'bludgeoning',
+        'description'     => 'The wall advances and crushes all creatures in its path for 3d10+15 bludgeoning (DC 28 basic Reflex per round).',
+        'save'            => ['type' => 'reflex', 'dc' => 28, 'basic' => TRUE],
+        'conditions_applied' => [],
+      ],
+      'stats'             => ['ac' => 28, 'saves' => ['fortitude' => 20], 'hardness' => 14, 'hp' => 60, 'bt' => 30],
+      'reset'             => NULL,
+      'is_magical'        => FALSE,
+      'rarity'            => 'uncommon',
+      'traits'            => ['Mechanical', 'Environmental'],
+      'routine'           => ['Advance wall 5 feet and deal crush damage to all creatures in affected hexes.'],
+    ],
+  ];
+
+  /**
    * @var \Drupal\dungeoncrawler_content\Service\NumberGenerationService
    */
   protected NumberGenerationService $numberGenerator;
@@ -249,6 +366,30 @@ class HazardService {
       ];
     }
 
+    // GMG ch02: Destroyed haunts (supernatural condition resolved) cannot
+    // re-activate.
+    if (!empty($hazard_entity['state']['destroyed']) && $this->isHauntHazard($hazard_entity)) {
+      return [
+        'triggered'         => FALSE,
+        'effect'            => [],
+        'already_triggered' => FALSE,
+        'blocked_reason'    => 'haunt_destroyed',
+      ];
+    }
+
+    // GMG ch02: Deactivated haunts re-arm on re-trigger (deactivation is
+    // temporary; the supernatural condition persists until resolved).
+    if (!empty($hazard_entity['state']['deactivated']) && $this->isHauntHazard($hazard_entity)) {
+      $hazard_entity['state']['deactivated'] = FALSE;
+      $hazard_entity['state']['triggered'] = TRUE;
+      return [
+        'triggered'          => TRUE,
+        'effect'             => $hazard_entity['effect'] ?? [],
+        'already_triggered'  => FALSE,
+        'haunt_reactivated'  => TRUE,
+      ];
+    }
+
     // REQ edge: Broken hazards cannot activate.
     if (!empty($hazard_entity['state']['broken'])) {
       return [
@@ -365,6 +506,7 @@ class HazardService {
 
     $triggered = FALSE;
     $disabled = FALSE;
+    $deactivated = FALSE;
 
     if ($degree === 'critical_failure') {
       // REQ 2385: Crit fail on disable triggers the hazard.
@@ -375,15 +517,29 @@ class HazardService {
       // REQ 2386: Crit success = two successes.
       $hazard_entity['state']['successes'] += 2;
       if ($hazard_entity['state']['successes'] >= $successes_needed) {
-        $disabled = TRUE;
-        $hazard_entity['state']['disabled'] = TRUE;
+        if ($this->isHauntHazard($hazard_entity)) {
+          // GMG ch02: Haunt deactivation is temporary; not full destruction.
+          $deactivated = TRUE;
+          $hazard_entity['state']['deactivated'] = TRUE;
+        }
+        else {
+          $disabled = TRUE;
+          $hazard_entity['state']['disabled'] = TRUE;
+        }
       }
     }
     elseif ($degree === 'success') {
       $hazard_entity['state']['successes']++;
       if ($hazard_entity['state']['successes'] >= $successes_needed) {
-        $disabled = TRUE;
-        $hazard_entity['state']['disabled'] = TRUE;
+        if ($this->isHauntHazard($hazard_entity)) {
+          // GMG ch02: Haunt deactivation is temporary; not full destruction.
+          $deactivated = TRUE;
+          $hazard_entity['state']['deactivated'] = TRUE;
+        }
+        else {
+          $disabled = TRUE;
+          $hazard_entity['state']['disabled'] = TRUE;
+        }
       }
     }
     // Failure: no progress, no trigger.
@@ -391,6 +547,7 @@ class HazardService {
     return [
       'degree'          => $degree,
       'disabled'        => $disabled,
+      'deactivated'     => $deactivated,
       'triggered'       => $triggered,
       'blocked'         => FALSE,
       'blocked_reason'  => NULL,
@@ -639,9 +796,15 @@ class HazardService {
     if (!empty($hazard_entity['state']['disabled']) && ($hazard_entity['state']['current_hp'] ?? 1) <= 0) {
       return ['reset' => FALSE, 'blocked' => TRUE, 'blocked_reason' => 'Destroyed hazards cannot be reset.'];
     }
-    // Clear triggered/disabled; preserve broken so repair is still needed if applicable.
+    // GMG ch02: Haunts whose supernatural condition is resolved are permanently
+    // destroyed; they cannot be reset.
+    if (!empty($hazard_entity['state']['destroyed']) && $this->isHauntHazard($hazard_entity)) {
+      return ['reset' => FALSE, 'blocked' => TRUE, 'blocked_reason' => 'This haunt\'s supernatural condition has been resolved; it is permanently destroyed.'];
+    }
+    // Clear triggered/disabled/deactivated; preserve broken so repair is still needed if applicable.
     $hazard_entity['state']['triggered'] = FALSE;
     $hazard_entity['state']['disabled'] = FALSE;
+    $hazard_entity['state']['deactivated'] = FALSE;
     $hazard_entity['state']['successes'] = 0;
     return ['reset' => TRUE, 'blocked' => FALSE, 'blocked_reason' => NULL];
   }
@@ -677,6 +840,13 @@ class HazardService {
         if (!empty($entity['state']['disabled']) || !empty($entity['state']['triggered'])) {
           continue;
         }
+        // GMG ch02: Destroyed haunts are permanently gone; exclude them.
+        if (!empty($entity['state']['destroyed']) && $this->isHauntHazard($entity)) {
+          continue;
+        }
+        // GMG ch02: Deactivated haunts still "exist" in the room (the
+        // supernatural condition is unresolved); include them so the GM can
+        // see them and so re-trigger detection logic fires correctly.
       }
       $hazards[] = $entity;
     }
@@ -745,6 +915,163 @@ class HazardService {
       return 'failure';
     }
     return 'critical_failure';
+  }
+
+  // ---------------------------------------------------------------------------
+  // GMG ch02: Haunt hazard helpers
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Returns TRUE if this hazard entity is a haunt type.
+   *
+   * GMG ch02: Haunts are supernatural hazards. Disabling one is temporary
+   * (deactivation); the hazard can re-trigger until the underlying supernatural
+   * condition is resolved via resolveHauntCondition().
+   *
+   * @param array $hazard_entity
+   *   Hazard entity array.
+   *
+   * @return bool
+   */
+  public function isHauntHazard(array $hazard_entity): bool {
+    $hazard_type = strtolower($hazard_entity['hazard_type'] ?? '');
+    if ($hazard_type === 'haunt') {
+      return TRUE;
+    }
+    // Fallback: check traits array for 'Haunt' (older entity format).
+    $traits = array_map('strtolower', $hazard_entity['traits'] ?? []);
+    return in_array('haunt', $traits, TRUE);
+  }
+
+  /**
+   * Returns the display state string for a hazard entity (GMG ch02).
+   *
+   * For haunts: distinguishes "deactivated" (temporary) from "destroyed"
+   * (supernatural condition resolved). For standard hazards: uses
+   * "disabled"/"triggered"/"destroyed"/"active".
+   *
+   * @param array $hazard_entity
+   *   Hazard entity array.
+   *
+   * @return string
+   *   One of: active|deactivated|disabled|triggered|destroyed|broken.
+   */
+  public function getHazardDisplayState(array $hazard_entity): string {
+    $state = $hazard_entity['state'] ?? [];
+
+    if ($this->isHauntHazard($hazard_entity)) {
+      if (!empty($state['destroyed'])) {
+        return 'destroyed';
+      }
+      if (!empty($state['deactivated'])) {
+        return 'deactivated';
+      }
+    }
+    else {
+      if (($state['current_hp'] ?? 1) <= 0) {
+        return 'destroyed';
+      }
+      if (!empty($state['disabled'])) {
+        return 'disabled';
+      }
+    }
+
+    if (!empty($state['broken'])) {
+      return 'broken';
+    }
+    if (!empty($state['triggered'])) {
+      return 'triggered';
+    }
+    return 'active';
+  }
+
+  /**
+   * Resolves the supernatural condition of a haunt, permanently destroying it.
+   *
+   * GMG ch02: A haunt is not truly destroyed until its underlying supernatural
+   * cause is resolved (e.g., the spirit is put to rest, the cursed object is
+   * removed). After this call the haunt will not re-trigger and cannot be reset.
+   *
+   * @param array $hazard_entity
+   *   Haunt hazard entity (passed by reference).
+   * @param string $resolution_method
+   *   Description of how the condition was resolved (logged for traceability).
+   *
+   * @return array
+   *   Keys: resolved (bool), blocked (bool), blocked_reason (string|null),
+   *         resolution_method (string).
+   */
+  public function resolveHauntCondition(array &$hazard_entity, string $resolution_method = 'condition_resolved'): array {
+    if (!$this->isHauntHazard($hazard_entity)) {
+      return [
+        'resolved'         => FALSE,
+        'blocked'          => TRUE,
+        'blocked_reason'   => 'resolveHauntCondition() only applies to haunt hazards.',
+        'resolution_method' => $resolution_method,
+      ];
+    }
+
+    $hazard_entity['state']['destroyed'] = TRUE;
+    $hazard_entity['state']['deactivated'] = FALSE;
+    $hazard_entity['state']['triggered'] = FALSE;
+    $hazard_entity['state']['disabled'] = FALSE;
+    $hazard_entity['state']['haunt_condition_resolved'] = TRUE;
+    $hazard_entity['state']['resolution_method'] = $resolution_method;
+
+    return [
+      'resolved'          => TRUE,
+      'blocked'           => FALSE,
+      'blocked_reason'    => NULL,
+      'resolution_method' => $resolution_method,
+    ];
+  }
+
+  // ---------------------------------------------------------------------------
+  // GMG ch02: APG hazard catalog
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Returns all APG hazard catalog templates, optionally filtered by type.
+   *
+   * These templates are merged into the hazard catalog alongside GMG hazards
+   * for GM encounter-building (dc-gmg-hazards AC).
+   *
+   * @param string|null $hazard_type
+   *   Optional filter: 'trap'|'environmental'|'haunt'. NULL returns all.
+   *
+   * @return array
+   *   Array of hazard catalog entries keyed by content_id.
+   */
+  public function getApgHazardCatalog(?string $hazard_type = NULL): array {
+    if ($hazard_type === NULL) {
+      return self::APG_HAZARD_CATALOG;
+    }
+    return array_filter(
+      self::APG_HAZARD_CATALOG,
+      fn($entry) => ($entry['hazard_type'] ?? '') === $hazard_type
+    );
+  }
+
+  /**
+   * Returns a single APG hazard template by content_id, or NULL if not found.
+   *
+   * @param string $content_id
+   *
+   * @return array|null
+   */
+  public function getApgHazardTemplate(string $content_id): ?array {
+    return self::APG_HAZARD_CATALOG[$content_id] ?? NULL;
+  }
+
+  /**
+   * Returns TRUE if the given content_id is a valid hazard_type value.
+   *
+   * @param string $hazard_type
+   *
+   * @return bool
+   */
+  public function isValidHazardType(string $hazard_type): bool {
+    return in_array(strtolower($hazard_type), self::VALID_HAZARD_TYPES, TRUE);
   }
 
 }

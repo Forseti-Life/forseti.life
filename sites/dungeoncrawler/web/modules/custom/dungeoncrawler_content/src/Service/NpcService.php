@@ -26,6 +26,46 @@ class NpcService {
   /** Attitude ladder ordered from best to worst for step-change logic (AC-002). */
   const ATTITUDE_ORDER = ['friendly', 'indifferent', 'unfriendly', 'hostile'];
 
+  /**
+   * Valid NPC archetype tags for NPC Gallery entries (GMG ch02 / dc-gmg-hazards).
+   *
+   * Gallery entries use these archetypes so GMs can quickly find stat blocks by
+   * role during encounter/scene building.
+   */
+  const VALID_ARCHETYPES = [
+    'guard', 'soldier', 'bandit', 'thug',
+    'merchant', 'shopkeeper', 'innkeeper',
+    'noble', 'courtier', 'ambassador',
+    'priest', 'cultist', 'zealot',
+    'wizard', 'alchemist', 'sage',
+    'rogue', 'assassin', 'spy',
+    'scout', 'ranger', 'hunter',
+    'healer', 'herbalist',
+    'laborer', 'farmer', 'dockworker',
+    'performer', 'bard', 'gladiator',
+    'criminal', 'fence', 'smuggler',
+  ];
+
+  /**
+   * Valid alignment values for NPC Gallery search filtering.
+   *
+   * PF2e uses a single-axis alignment (LN/NG/CE etc.) stored as a string.
+   */
+  const VALID_ALIGNMENTS = ['LG', 'NG', 'CG', 'LN', 'N', 'CN', 'LE', 'NE', 'CE'];
+
+  /**
+   * Level-range bands for encounter-building classification.
+   *
+   * low  =  1–4  (starting tier)
+   * mid  =  5–10 (standard adventurer tier)
+   * high = 11–20 (heroic/epic tier)
+   */
+  const LEVEL_RANGES = [
+    'low'  => [1, 4],
+    'mid'  => [5, 10],
+    'high' => [11, 20],
+  ];
+
   public function __construct(
     protected readonly Connection $database,
     protected readonly AccountInterface $currentUser
@@ -390,6 +430,207 @@ class NpcService {
     if ((int) $owner !== $uid && !$this->currentUser->hasPermission('administer dungeoncrawler content')) {
       throw new \InvalidArgumentException('Access denied to campaign', 403);
     }
+  }
+
+  // ── NPC Gallery (GMG ch02 / dc-gmg-hazards) ───────────────────────────────
+
+  /**
+   * Creates a new NPC Gallery entry (pre-built archetype stat block).
+   *
+   * GMG ch02: NPC Gallery entries are pre-built stat blocks representing
+   * common archetypes. They are stored as NPCs with is_gallery_entry=1 and
+   * an npc_archetype tag so GMs can quickly assign them to scenes.
+   *
+   * Gallery entries are not tied to a campaign (campaign_id = 0).
+   *
+   * @param array $data
+   *   Required: name, npc_archetype.
+   *   Optional: alignment, level, role, attitude, perception, armor_class,
+   *             hit_points, fort_save, ref_save, will_save, lore_notes,
+   *             dialogue_notes, entity_ref.
+   *
+   * @return array  Created gallery NPC record.
+   * @throws \InvalidArgumentException  On validation failure.
+   */
+  public function createGalleryEntry(array $data): array {
+    $name = trim($data['name'] ?? '');
+    if ($name === '') {
+      throw new \InvalidArgumentException('name is required', 400);
+    }
+
+    $archetype = strtolower($data['npc_archetype'] ?? '');
+    if ($archetype === '' || !in_array($archetype, self::VALID_ARCHETYPES, TRUE)) {
+      throw new \InvalidArgumentException(
+        'npc_archetype must be one of: ' . implode(', ', self::VALID_ARCHETYPES), 400
+      );
+    }
+
+    $alignment = strtoupper($data['alignment'] ?? 'N');
+    if (!in_array($alignment, self::VALID_ALIGNMENTS, TRUE)) {
+      throw new \InvalidArgumentException(
+        'alignment must be one of: ' . implode(', ', self::VALID_ALIGNMENTS), 400
+      );
+    }
+
+    $role = $data['role'] ?? 'neutral';
+    if (!in_array($role, self::VALID_ROLES, TRUE)) {
+      throw new \InvalidArgumentException(
+        'role must be one of: ' . implode(', ', self::VALID_ROLES), 400
+      );
+    }
+
+    $now = time();
+    $fields = [
+      'campaign_id'     => 0,
+      'name'            => $name,
+      'role'            => $role,
+      'attitude'        => $data['attitude'] ?? 'indifferent',
+      'level'           => (int) ($data['level'] ?? 1),
+      'perception'      => (int) ($data['perception'] ?? 0),
+      'armor_class'     => (int) ($data['armor_class'] ?? 10),
+      'hit_points'      => (int) ($data['hit_points'] ?? 0),
+      'fort_save'       => (int) ($data['fort_save'] ?? 0),
+      'ref_save'        => (int) ($data['ref_save'] ?? 0),
+      'will_save'       => (int) ($data['will_save'] ?? 0),
+      'lore_notes'      => $data['lore_notes'] ?? '',
+      'dialogue_notes'  => $data['dialogue_notes'] ?? '',
+      'entity_ref'      => $data['entity_ref'] ?? '',
+      'npc_archetype'   => $archetype,
+      'alignment'       => $alignment,
+      'is_gallery_entry' => 1,
+      'created'         => $now,
+      'updated'         => $now,
+    ];
+
+    $id = $this->database->insert('dc_npc')->fields($fields)->execute();
+    return $this->getById((int) $id);
+  }
+
+  /**
+   * Searches the NPC Gallery by level, archetype, and/or alignment.
+   *
+   * GMG ch02: NPC Gallery entries are searchable for fast encounter-building.
+   *
+   * @param array $filters
+   *   Optional keys:
+   *   - level (int): exact level match.
+   *   - level_range (string): 'low'|'mid'|'high' — band filter.
+   *   - npc_archetype (string): exact archetype match.
+   *   - alignment (string): alignment code (e.g. 'LN', 'CG').
+   *   - role (string): NPC role.
+   * @param int $limit
+   *   Max results (default 50).
+   *
+   * @return array  Array of gallery NPC records.
+   */
+  public function searchGallery(array $filters = [], int $limit = 50): array {
+    $query = $this->database->select('dc_npc', 'n')
+      ->fields('n')
+      ->condition('n.is_gallery_entry', 1)
+      ->orderBy('n.level', 'ASC')
+      ->orderBy('n.npc_archetype', 'ASC')
+      ->range(0, $limit);
+
+    if (isset($filters['level'])) {
+      $query->condition('n.level', (int) $filters['level']);
+    }
+    elseif (!empty($filters['level_range'])) {
+      $range = self::LEVEL_RANGES[$filters['level_range']] ?? NULL;
+      if ($range) {
+        $query->condition('n.level', $range[0], '>=');
+        $query->condition('n.level', $range[1], '<=');
+      }
+    }
+
+    if (!empty($filters['npc_archetype'])) {
+      $query->condition('n.npc_archetype', strtolower($filters['npc_archetype']));
+    }
+
+    if (!empty($filters['alignment'])) {
+      $query->condition('n.alignment', strtoupper($filters['alignment']));
+    }
+
+    if (!empty($filters['role'])) {
+      $query->condition('n.role', $filters['role']);
+    }
+
+    return $query->execute()->fetchAll(\PDO::FETCH_ASSOC);
+  }
+
+  /**
+   * Assigns an NPC Gallery entry to a campaign scene.
+   *
+   * Creates a campaign-scoped copy of the gallery entry so the GM can edit
+   * temporary boosts (companion HP tracking, etc.) without modifying the
+   * gallery archetype.
+   *
+   * @param int $gallery_npc_id
+   *   ID of the gallery entry to copy.
+   * @param int $campaign_id
+   *   Target campaign.
+   * @param string $scene_ref
+   *   Scene or room reference string (e.g. "room-7", "encounter-3").
+   *
+   * @return array  The new campaign-scoped NPC record.
+   * @throws \InvalidArgumentException  If gallery entry not found or access denied.
+   */
+  public function assignGalleryEntryToScene(int $gallery_npc_id, int $campaign_id, string $scene_ref): array {
+    $this->validateCampaignAccess($campaign_id);
+
+    $template = $this->database->select('dc_npc', 'n')
+      ->fields('n')
+      ->condition('n.id', $gallery_npc_id)
+      ->condition('n.is_gallery_entry', 1)
+      ->execute()
+      ->fetchAssoc();
+
+    if (!$template) {
+      throw new \InvalidArgumentException("Gallery entry {$gallery_npc_id} not found", 404);
+    }
+
+    $now = time();
+    $fields = [
+      'campaign_id'     => $campaign_id,
+      'name'            => $template['name'],
+      'role'            => $template['role'],
+      'attitude'        => $template['attitude'],
+      'level'           => $template['level'],
+      'perception'      => $template['perception'],
+      'armor_class'     => $template['armor_class'],
+      'hit_points'      => $template['hit_points'],
+      'fort_save'       => $template['fort_save'],
+      'ref_save'        => $template['ref_save'],
+      'will_save'       => $template['will_save'],
+      'lore_notes'      => $template['lore_notes'],
+      'dialogue_notes'  => $template['dialogue_notes'],
+      'entity_ref'      => $template['entity_ref'],
+      'npc_archetype'   => $template['npc_archetype'],
+      'alignment'       => $template['alignment'],
+      'is_gallery_entry' => 0,
+      'scene_ref'       => $scene_ref,
+      'gallery_source_id' => $gallery_npc_id,
+      'created'         => $now,
+      'updated'         => $now,
+    ];
+
+    $id = $this->database->insert('dc_npc')->fields($fields)->execute();
+    return $this->getById((int) $id);
+  }
+
+  /**
+   * Returns the level-range band name for a given NPC level.
+   *
+   * @param int $level
+   *
+   * @return string  'low'|'mid'|'high'
+   */
+  public function getLevelRange(int $level): string {
+    foreach (self::LEVEL_RANGES as $band => [$min, $max]) {
+      if ($level >= $min && $level <= $max) {
+        return $band;
+      }
+    }
+    return $level < 1 ? 'low' : 'high';
   }
 
 }

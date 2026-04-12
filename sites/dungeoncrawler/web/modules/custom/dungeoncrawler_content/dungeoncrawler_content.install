@@ -5503,3 +5503,77 @@ function dungeoncrawler_content_update_10042() {
 
   return 'Created dc_npc and dc_npc_history tables (dc-cr-npc-system).';
 }
+
+/**
+ * Add NPC Gallery columns to dc_npc (dc-gmg-hazards).
+ *
+ * Adds: npc_archetype, alignment, is_gallery_entry, scene_ref,
+ * gallery_source_id — enabling the NPC Gallery feature (GMG ch02).
+ */
+function dungeoncrawler_content_update_10043() {
+  $schema = \Drupal::database()->schema();
+
+  $columns = [
+    'npc_archetype' => [
+      'type'        => 'varchar',
+      'length'      => 64,
+      'not null'    => TRUE,
+      'default'     => '',
+      'description' => 'NPC Gallery archetype tag (guard, merchant, assassin, etc.).',
+    ],
+    'alignment' => [
+      'type'        => 'varchar',
+      'length'      => 4,
+      'not null'    => TRUE,
+      'default'     => 'N',
+      'description' => 'PF2e alignment code (LG, NG, CG, LN, N, CN, LE, NE, CE).',
+    ],
+    'is_gallery_entry' => [
+      'type'        => 'int',
+      'size'        => 'tiny',
+      'not null'    => TRUE,
+      'default'     => 0,
+      'description' => '1 = this is a reusable NPC Gallery archetype; 0 = campaign-specific NPC.',
+    ],
+    'scene_ref' => [
+      'type'        => 'varchar',
+      'length'      => 255,
+      'not null'    => TRUE,
+      'default'     => '',
+      'description' => 'Scene/room reference when assigned from gallery (e.g. "room-7").',
+    ],
+    'gallery_source_id' => [
+      'type'        => 'int',
+      'unsigned'    => TRUE,
+      'not null'    => TRUE,
+      'default'     => 0,
+      'description' => 'FK to dc_npc.id of the gallery template this was copied from (0 if original).',
+    ],
+  ];
+
+  foreach ($columns as $column => $spec) {
+    if (!$schema->fieldExists('dc_npc', $column)) {
+      $schema->addField('dc_npc', $column, $spec);
+    }
+  }
+
+  // Add indexes for gallery search queries.
+  if (!$schema->indexExists('dc_npc', 'gallery_archetype')) {
+    $schema->addIndex('dc_npc', 'gallery_archetype', ['is_gallery_entry', 'npc_archetype'], [
+      'fields' => [
+        'is_gallery_entry' => ['type' => 'int', 'size' => 'tiny', 'not null' => TRUE, 'default' => 0],
+        'npc_archetype'    => ['type' => 'varchar', 'length' => 64, 'not null' => TRUE, 'default' => ''],
+      ],
+    ]);
+  }
+  if (!$schema->indexExists('dc_npc', 'gallery_alignment')) {
+    $schema->addIndex('dc_npc', 'gallery_alignment', ['is_gallery_entry', 'alignment'], [
+      'fields' => [
+        'is_gallery_entry' => ['type' => 'int', 'size' => 'tiny', 'not null' => TRUE, 'default' => 0],
+        'alignment'        => ['type' => 'varchar', 'length' => 4, 'not null' => TRUE, 'default' => 'N'],
+      ],
+    ]);
+  }
+
+  return 'Added NPC Gallery columns (npc_archetype, alignment, is_gallery_entry, scene_ref, gallery_source_id) to dc_npc (dc-gmg-hazards).';
+}
