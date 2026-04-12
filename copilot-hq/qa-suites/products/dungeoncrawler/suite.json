@@ -13825,6 +13825,568 @@
           "suite_context": "immediately_activatable"
         }
       ]
+    },
+    {
+      "id": "dc-cr-magic-ch11-phpunit",
+      "label": "Magic Ch11: item basics, activation, investiture, runes, armor/weapons, alchemical, consumables, staves, wands, snares, worn items",
+      "type": "phpunit",
+      "feature_id": "dc-cr-magic-ch11",
+      "command": "cd /home/ubuntu/forseti.life/sites/dungeoncrawler && vendor/bin/phpunit web/modules/custom/dungeoncrawler_content/tests/src/Functional/MagicItemSystemTest.php",
+      "artifacts": [
+        "sessions/qa-dungeoncrawler/artifacts/dc-cr-magic-ch11/phpunit-report.xml"
+      ],
+      "required_for_release": true,
+      "notes": "Security AC exemption confirmed: no new routes. Dependencies: dc-cr-magic-items, dc-cr-alchemical-items, dc-cr-rune-system, dc-cr-crafting. TC-MCH-11 (Cast a Spell activation) and TC-MCH-78 (Mutagen countercasting) overlap with dc-cr-spells-ch07. 78 TCs active.",
+      "test_cases": [
+        {
+          "id": "TC-MCH-01",
+          "label": "Passive/constant effects \u2014 automatic on equip; no Activate action required",
+          "feature_id": "dc-cr-magic-ch11",
+          "required_for_release": true,
+          "status": "pending_implementation"
+        },
+        {
+          "id": "TC-MCH-02",
+          "label": "Invested trait \u2014 boolean tracking per character; invested_items list updated on Invest",
+          "feature_id": "dc-cr-magic-ch11",
+          "required_for_release": true,
+          "status": "pending_implementation"
+        },
+        {
+          "id": "TC-MCH-03",
+          "label": "Investment cap \u2014 10th item succeeds; 11th has no magical effect",
+          "feature_id": "dc-cr-magic-ch11",
+          "required_for_release": true,
+          "status": "pending_implementation"
+        },
+        {
+          "id": "TC-MCH-04",
+          "label": "Uninvested item \u2014 mundane bonuses still apply; invested bonuses suppressed",
+          "feature_id": "dc-cr-magic-ch11",
+          "required_for_release": true,
+          "status": "pending_implementation"
+        },
+        {
+          "id": "TC-MCH-05",
+          "label": "Investiture lost on item removal \u2014 invested slot freed",
+          "feature_id": "dc-cr-magic-ch11",
+          "required_for_release": true,
+          "status": "pending_implementation"
+        },
+        {
+          "id": "TC-MCH-06",
+          "label": "Daily investment limit resets at Daily Preparations",
+          "feature_id": "dc-cr-magic-ch11",
+          "required_for_release": true,
+          "status": "pending_implementation"
+        },
+        {
+          "id": "TC-MCH-07",
+          "label": "Invest an Item \u2014 action cost matches item type (1-action vs longer)",
+          "feature_id": "dc-cr-magic-ch11",
+          "required_for_release": true,
+          "status": "pending_implementation"
+        },
+        {
+          "id": "TC-MCH-08",
+          "label": "Removed invested item \u2014 slot used for remainder of day; re-invest counts against cap",
+          "feature_id": "dc-cr-magic-ch11",
+          "required_for_release": true,
+          "status": "pending_implementation"
+        },
+        {
+          "id": "TC-MCH-09",
+          "label": "Activation cost is item-specific \u2014 stored in activate_action field",
+          "feature_id": "dc-cr-magic-ch11",
+          "required_for_release": true,
+          "status": "pending_implementation"
+        },
+        {
+          "id": "TC-MCH-10",
+          "label": "Activation components add traits correctly (Cast a Spell, Command, Interact, Focus)",
+          "feature_id": "dc-cr-magic-ch11",
+          "required_for_release": true,
+          "status": "pending_implementation"
+        },
+        {
+          "id": "TC-MCH-11",
+          "label": "Cast a Spell activation requires spellcasting class feature; blocked without it",
+          "feature_id": "dc-cr-magic-ch11",
+          "required_for_release": true,
+          "status": "pending_implementation",
+          "suite_context": "overlaps:dc-cr-spells-ch07"
+        },
+        {
+          "id": "TC-MCH-12",
+          "label": "Long-duration activation \u2014 exploration trait; blocked in encounter mode",
+          "feature_id": "dc-cr-magic-ch11",
+          "required_for_release": true,
+          "status": "pending_implementation"
+        },
+        {
+          "id": "TC-MCH-13",
+          "label": "Disrupted activation \u2014 actions lost, daily use consumed",
+          "feature_id": "dc-cr-magic-ch11",
+          "required_for_release": true,
+          "status": "pending_implementation"
+        },
+        {
+          "id": "TC-MCH-14",
+          "label": "Daily use counts reset at Daily Preparations",
+          "feature_id": "dc-cr-magic-ch11",
+          "required_for_release": true,
+          "status": "pending_implementation"
+        },
+        {
+          "id": "TC-MCH-15",
+          "label": "Use limit tied to item object, not character",
+          "feature_id": "dc-cr-magic-ch11",
+          "required_for_release": true,
+          "status": "pending_implementation"
+        },
+        {
+          "id": "TC-MCH-16",
+          "label": "Sustain an Activation \u2014 1-action concentrate extends effect by 1 round",
+          "feature_id": "dc-cr-magic-ch11",
+          "required_for_release": true,
+          "status": "pending_implementation"
+        },
+        {
+          "id": "TC-MCH-17",
+          "label": "Sustaining >100 rounds \u2014 fatigue applied, effect ends",
+          "feature_id": "dc-cr-magic-ch11",
+          "required_for_release": true,
+          "status": "pending_implementation"
+        },
+        {
+          "id": "TC-MCH-18",
+          "label": "Disrupted Sustain \u2014 effect ends immediately",
+          "feature_id": "dc-cr-magic-ch11",
+          "required_for_release": true,
+          "status": "pending_implementation"
+        },
+        {
+          "id": "TC-MCH-19",
+          "label": "Dismiss \u2014 1-action concentrate ends eligible sustained activation",
+          "feature_id": "dc-cr-magic-ch11",
+          "required_for_release": true,
+          "status": "pending_implementation"
+        },
+        {
+          "id": "TC-MCH-20",
+          "label": "Magic item data model completeness \u2014 all required fields present and non-null",
+          "feature_id": "dc-cr-magic-ch11",
+          "required_for_release": true,
+          "status": "pending_implementation"
+        },
+        {
+          "id": "TC-MCH-21",
+          "label": "Multi-type items \u2014 base + typed variants with level/price/stat overrides",
+          "feature_id": "dc-cr-magic-ch11",
+          "required_for_release": true,
+          "status": "pending_implementation"
+        },
+        {
+          "id": "TC-MCH-22",
+          "label": "No level gate on using items (only on Crafting)",
+          "feature_id": "dc-cr-magic-ch11",
+          "required_for_release": true,
+          "status": "pending_implementation"
+        },
+        {
+          "id": "TC-MCH-23",
+          "label": "Four rarity tiers present \u2014 common/uncommon/rare/unique enum",
+          "feature_id": "dc-cr-magic-ch11",
+          "required_for_release": true,
+          "status": "pending_implementation"
+        },
+        {
+          "id": "TC-MCH-24",
+          "label": "Rare items not purchasable by default; formulas unavailable by default",
+          "feature_id": "dc-cr-magic-ch11",
+          "required_for_release": true,
+          "status": "pending_implementation"
+        },
+        {
+          "id": "TC-MCH-25",
+          "label": "Unique items \u2014 max_quantity=1; second instance blocked/warned",
+          "feature_id": "dc-cr-magic-ch11",
+          "required_for_release": true,
+          "status": "pending_implementation"
+        },
+        {
+          "id": "TC-MCH-26",
+          "label": "Alchemical items \u2014 is_magical=false; immune to Dispel Magic; no aura",
+          "feature_id": "dc-cr-magic-ch11",
+          "required_for_release": true,
+          "status": "pending_implementation"
+        },
+        {
+          "id": "TC-MCH-27",
+          "label": "Consumable crafting \u2014 produces 4 copies per Craft activity",
+          "feature_id": "dc-cr-magic-ch11",
+          "required_for_release": true,
+          "status": "pending_implementation"
+        },
+        {
+          "id": "TC-MCH-28",
+          "label": "Focused items \u2014 +1 Focus Point on investiture; max 1 bonus/day; no pool = 0 points",
+          "feature_id": "dc-cr-magic-ch11",
+          "required_for_release": true,
+          "status": "pending_implementation"
+        },
+        {
+          "id": "TC-MCH-29",
+          "label": "Crafting proficiency gates \u2014 Trained=L1-8, Master=L9-15, Legendary=L16+",
+          "feature_id": "dc-cr-magic-ch11",
+          "required_for_release": true,
+          "status": "pending_implementation"
+        },
+        {
+          "id": "TC-MCH-30",
+          "label": "Crafting feat requirements enforced \u2014 Magical/Alchemical/Snare Crafting feats",
+          "feature_id": "dc-cr-magic-ch11",
+          "required_for_release": true,
+          "status": "pending_implementation"
+        },
+        {
+          "id": "TC-MCH-31",
+          "label": "Item upgrade Crafting \u2014 cost = new price minus old price; DC uses new item level",
+          "feature_id": "dc-cr-magic-ch11",
+          "required_for_release": true,
+          "status": "pending_implementation"
+        },
+        {
+          "id": "TC-MCH-32",
+          "label": "Item has at most one precious material \u2014 second application blocked",
+          "feature_id": "dc-cr-magic-ch11",
+          "required_for_release": true,
+          "status": "pending_implementation"
+        },
+        {
+          "id": "TC-MCH-33",
+          "label": "Precious material grade proficiency gates \u2014 Low=Expert, Standard=Master, High=Legendary",
+          "feature_id": "dc-cr-magic-ch11",
+          "required_for_release": true,
+          "status": "pending_implementation"
+        },
+        {
+          "id": "TC-MCH-34",
+          "label": "Precious material level caps \u2014 Low=L8, Standard=L15, High=no limit",
+          "feature_id": "dc-cr-magic-ch11",
+          "required_for_release": true,
+          "status": "pending_implementation"
+        },
+        {
+          "id": "TC-MCH-35",
+          "label": "Precious material investment percentages \u2014 Low=10%, Standard=25%, High=100%",
+          "feature_id": "dc-cr-magic-ch11",
+          "required_for_release": true,
+          "status": "pending_implementation"
+        },
+        {
+          "id": "TC-MCH-36",
+          "label": "Orichalcum \u2014 self-repair after 24h; +1 initiative; 4 property rune slots",
+          "feature_id": "dc-cr-magic-ch11",
+          "required_for_release": true,
+          "status": "pending_implementation"
+        },
+        {
+          "id": "TC-MCH-37",
+          "label": "Property rune slots equal potency rune value (0-3)",
+          "feature_id": "dc-cr-magic-ch11",
+          "required_for_release": true,
+          "status": "pending_implementation"
+        },
+        {
+          "id": "TC-MCH-38",
+          "label": "Armor with rune gains invested trait automatically",
+          "feature_id": "dc-cr-magic-ch11",
+          "required_for_release": true,
+          "status": "pending_implementation"
+        },
+        {
+          "id": "TC-MCH-39",
+          "label": "Orphaned property runes go dormant when potency removed",
+          "feature_id": "dc-cr-magic-ch11",
+          "required_for_release": true,
+          "status": "pending_implementation"
+        },
+        {
+          "id": "TC-MCH-40",
+          "label": "Duplicate property runes \u2014 higher level only (except different energy-resistant types)",
+          "feature_id": "dc-cr-magic-ch11",
+          "required_for_release": true,
+          "status": "pending_implementation"
+        },
+        {
+          "id": "TC-MCH-41",
+          "label": "Transfer Rune \u2014 10% of rune price; minimum 1 day Craft activity",
+          "feature_id": "dc-cr-magic-ch11",
+          "required_for_release": true,
+          "status": "pending_implementation"
+        },
+        {
+          "id": "TC-MCH-42",
+          "label": "Transfer from runestone \u2014 free (cost=0)",
+          "feature_id": "dc-cr-magic-ch11",
+          "required_for_release": true,
+          "status": "pending_implementation"
+        },
+        {
+          "id": "TC-MCH-43",
+          "label": "Incompatible rune transfer \u2014 automatic critical failure",
+          "feature_id": "dc-cr-magic-ch11",
+          "required_for_release": true,
+          "status": "pending_implementation"
+        },
+        {
+          "id": "TC-MCH-44",
+          "label": "Specific locked magic items \u2014 property rune slots=0; fundamental runes still allowed",
+          "feature_id": "dc-cr-magic-ch11",
+          "required_for_release": true,
+          "status": "pending_implementation"
+        },
+        {
+          "id": "TC-MCH-45",
+          "label": "Bomb \u2014 martial thrown weapon, 20 ft range, manipulate trait on Strike",
+          "feature_id": "dc-cr-magic-ch11",
+          "required_for_release": true,
+          "status": "pending_implementation"
+        },
+        {
+          "id": "TC-MCH-46",
+          "label": "Splash damage \u2014 5 ft radius, no Str modifier, not doubled on crit",
+          "feature_id": "dc-cr-magic-ch11",
+          "required_for_release": true,
+          "status": "pending_implementation"
+        },
+        {
+          "id": "TC-MCH-47",
+          "label": "Resistance/weakness applies to combined splash + initial damage",
+          "feature_id": "dc-cr-magic-ch11",
+          "required_for_release": true,
+          "status": "pending_implementation"
+        },
+        {
+          "id": "TC-MCH-48",
+          "label": "Mutagen \u2014 Benefit + Drawback simultaneously; polymorph effect; new attempts counteract",
+          "feature_id": "dc-cr-magic-ch11",
+          "required_for_release": true,
+          "status": "pending_implementation"
+        },
+        {
+          "id": "TC-MCH-49",
+          "label": "Four poison exposure types \u2014 Contact/Ingested/Inhaled/Injury distinct trigger conditions",
+          "feature_id": "dc-cr-magic-ch11",
+          "required_for_release": true,
+          "status": "pending_implementation"
+        },
+        {
+          "id": "TC-MCH-50",
+          "label": "Injury poison \u2014 consumed on crit-fail Strike; remains after failed Strike; consumed on successful piercing/slashing",
+          "feature_id": "dc-cr-magic-ch11",
+          "required_for_release": true,
+          "status": "pending_implementation"
+        },
+        {
+          "id": "TC-MCH-51",
+          "label": "Scroll \u2014 destroyed on use; no cantrips/focus/rituals",
+          "feature_id": "dc-cr-magic-ch11",
+          "required_for_release": true,
+          "status": "pending_implementation"
+        },
+        {
+          "id": "TC-MCH-52",
+          "label": "Scroll casting \u2014 must be on caster's spell list; uses caster's attack/DC/tradition",
+          "feature_id": "dc-cr-magic-ch11",
+          "required_for_release": true,
+          "status": "pending_implementation"
+        },
+        {
+          "id": "TC-MCH-53",
+          "label": "Scroll rarity matches stored spell's rarity",
+          "feature_id": "dc-cr-magic-ch11",
+          "required_for_release": true,
+          "status": "pending_implementation"
+        },
+        {
+          "id": "TC-MCH-54",
+          "label": "Talisman \u2014 one per item; multiple talismans deactivate all; requires wielding/wearing",
+          "feature_id": "dc-cr-magic-ch11",
+          "required_for_release": true,
+          "status": "pending_implementation"
+        },
+        {
+          "id": "TC-MCH-55",
+          "label": "Staff \u2014 one preparer per day; only preparer expends charges",
+          "feature_id": "dc-cr-magic-ch11",
+          "required_for_release": true,
+          "status": "pending_implementation"
+        },
+        {
+          "id": "TC-MCH-56",
+          "label": "Staff daily charges = preparer's highest spell slot level",
+          "feature_id": "dc-cr-magic-ch11",
+          "required_for_release": true,
+          "status": "pending_implementation"
+        },
+        {
+          "id": "TC-MCH-57",
+          "label": "Prepared caster \u2014 sacrifice slot for extra charges (max once/day)",
+          "feature_id": "dc-cr-magic-ch11",
+          "required_for_release": true,
+          "status": "pending_implementation"
+        },
+        {
+          "id": "TC-MCH-58",
+          "label": "Spontaneous caster \u2014 1 charge + 1 spell slot to cast staff spell",
+          "feature_id": "dc-cr-magic-ch11",
+          "required_for_release": true,
+          "status": "pending_implementation"
+        },
+        {
+          "id": "TC-MCH-59",
+          "label": "Staff cantrip \u2014 0 charges; heightened to caster's cantrip level",
+          "feature_id": "dc-cr-magic-ch11",
+          "required_for_release": true,
+          "status": "pending_implementation"
+        },
+        {
+          "id": "TC-MCH-60",
+          "label": "Wand daily use = 1 cast; overcharge available after daily cast",
+          "feature_id": "dc-cr-magic-ch11",
+          "required_for_release": true,
+          "status": "pending_implementation"
+        },
+        {
+          "id": "TC-MCH-61",
+          "label": "Wand overcharge \u2014 success=Broken, failure=Destroyed",
+          "feature_id": "dc-cr-magic-ch11",
+          "required_for_release": true,
+          "status": "pending_implementation"
+        },
+        {
+          "id": "TC-MCH-62",
+          "label": "Wand overcharge when already overcharged \u2014 auto-Destroyed",
+          "feature_id": "dc-cr-magic-ch11",
+          "required_for_release": true,
+          "status": "pending_implementation"
+        },
+        {
+          "id": "TC-MCH-63",
+          "label": "Snare requires Snare Crafting feat + snare kit",
+          "feature_id": "dc-cr-magic-ch11",
+          "required_for_release": true,
+          "status": "pending_implementation"
+        },
+        {
+          "id": "TC-MCH-64",
+          "label": "Snare occupies 5-ft square; cannot be relocated",
+          "feature_id": "dc-cr-magic-ch11",
+          "required_for_release": true,
+          "status": "pending_implementation"
+        },
+        {
+          "id": "TC-MCH-65",
+          "label": "Snare detection/disable DC = creator's Crafting DC",
+          "feature_id": "dc-cr-magic-ch11",
+          "required_for_release": true,
+          "status": "pending_implementation"
+        },
+        {
+          "id": "TC-MCH-66",
+          "label": "Expert+ crafter snares \u2014 only found by actively searching creatures",
+          "feature_id": "dc-cr-magic-ch11",
+          "required_for_release": true,
+          "status": "pending_implementation"
+        },
+        {
+          "id": "TC-MCH-67",
+          "label": "Creator disarms own snare \u2014 1 Interact action, adjacent",
+          "feature_id": "dc-cr-magic-ch11",
+          "required_for_release": true,
+          "status": "pending_implementation"
+        },
+        {
+          "id": "TC-MCH-68",
+          "label": "Worn slot uniqueness \u2014 one item per slot",
+          "feature_id": "dc-cr-magic-ch11",
+          "required_for_release": true,
+          "status": "pending_implementation"
+        },
+        {
+          "id": "TC-MCH-69",
+          "label": "Rings \u2014 no slot limit (multiple rings allowed)",
+          "feature_id": "dc-cr-magic-ch11",
+          "required_for_release": true,
+          "status": "pending_implementation"
+        },
+        {
+          "id": "TC-MCH-70",
+          "label": "Explorer's clothing can have armor runes etched",
+          "feature_id": "dc-cr-magic-ch11",
+          "required_for_release": true,
+          "status": "pending_implementation"
+        },
+        {
+          "id": "TC-MCH-71",
+          "label": "Apex items \u2014 +2 to ability score or raise to 18, whichever higher",
+          "feature_id": "dc-cr-magic-ch11",
+          "required_for_release": true,
+          "status": "pending_implementation"
+        },
+        {
+          "id": "TC-MCH-72",
+          "label": "Only one apex benefit active at a time; second apex item provides no extra score increase",
+          "feature_id": "dc-cr-magic-ch11",
+          "required_for_release": true,
+          "status": "pending_implementation"
+        },
+        {
+          "id": "TC-MCH-73",
+          "label": "Apex benefit fires only on first investment within 24 hours",
+          "feature_id": "dc-cr-magic-ch11",
+          "required_for_release": true,
+          "status": "pending_implementation"
+        },
+        {
+          "id": "TC-MCH-74",
+          "label": "Edge: 11th invested item \u2014 no error, item not destroyed, no magical effect",
+          "feature_id": "dc-cr-magic-ch11",
+          "required_for_release": true,
+          "status": "pending_implementation"
+        },
+        {
+          "id": "TC-MCH-75",
+          "label": "Edge: two identical property runes \u2014 higher level only (unless different energy types)",
+          "feature_id": "dc-cr-magic-ch11",
+          "required_for_release": true,
+          "status": "pending_implementation"
+        },
+        {
+          "id": "TC-MCH-76",
+          "label": "Failure: cast scroll without spell on list \u2014 blocked",
+          "feature_id": "dc-cr-magic-ch11",
+          "required_for_release": true,
+          "status": "pending_implementation"
+        },
+        {
+          "id": "TC-MCH-77",
+          "label": "Failure: staff prepared by one character, accessed by another \u2014 blocked",
+          "feature_id": "dc-cr-magic-ch11",
+          "required_for_release": true,
+          "status": "pending_implementation"
+        },
+        {
+          "id": "TC-MCH-78",
+          "label": "Failure: mutagen countercasting \u2014 system attempts counteract check (does not silently stack)",
+          "feature_id": "dc-cr-magic-ch11",
+          "required_for_release": true,
+          "status": "pending_implementation",
+          "suite_context": "overlaps:dc-cr-spells-ch07"
+        }
+      ]
     }
   ],
   "_schema_notes": [
