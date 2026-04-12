@@ -228,6 +228,14 @@ Example of WRONG pattern (this happened 2026-04-10 release-d): dispatched ba-for
 
 Reference: 2026-04-09 `20260409-forseti-release-e`, 2026-04-10 `20260410-forseti-release-d` both had this anti-pattern.
 
+### Scope-activate retry cap (required)
+- **Maximum 2 scope-activate attempts per release cycle per site.**
+- If both attempts return zero ready features (confirmed empty backlog), immediately:
+  1. Run `bash scripts/release-signoff.sh forseti <release_id> --empty-release` to self-certify the empty release.
+  2. Write an outbox `blocked` update noting the empty release self-cert and requesting ba-forseti feature briefs for the next cycle (per BA brief pipeline policy above).
+  3. Do NOT re-fire scope-activate again in the same cycle.
+- Rationale: Re-firing scope-activate after a confirmed-empty backlog is pure waste — backlog state does not change between executor ticks. Each re-fire consumes an executor slot with no new information (GAP-FORSETI-PM-SCOPE-SPIN-01, 9+ wasted fires across release-b/c).
+
 ## Scope-activate with zero ready features but parallel in_progress releases (required — lesson 2026-04-11)
 
 **Pattern (2026-04-11 release-c)**: `pm-scope-activate.sh` returns zero ready features because all 7 forseti features are `in_progress` across two parallel releases (`release-f` with 4 features, `release-g` with 3). The orchestrator re-fires `scope-activate` every ~30-60 min while the active release has 0 features scoped.
