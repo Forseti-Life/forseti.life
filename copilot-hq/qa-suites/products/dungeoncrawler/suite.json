@@ -15717,6 +15717,151 @@
           "required_for_release": true
         }
       ]
+    },
+    {
+      "id": "dc-cr-treasure-by-level-phpunit",
+      "label": "Treasure by Level \u2014 table completeness, sell rules, party adjustment, starting wealth",
+      "type": "phpunit",
+      "feature_id": "dc-cr-treasure-by-level",
+      "command": "./vendor/bin/phpunit --filter=TreasureByLevel tests/src/",
+      "artifacts": [
+        "tests/results/dc-cr-treasure-by-level-phpunit.xml"
+      ],
+      "required_for_release": true,
+      "notes": "TC-TBL-08/09 enforcement mode (soft-flag vs hard-block) depends on PM decision \u2014 placeholder assertions cover soft-flag pattern by default.",
+      "test_cases": [
+        {
+          "id": "TC-TBL-01",
+          "description": "Treasure table has 20 rows (levels 1-20); each row has non-null currency, permanent_items, consumables fields",
+          "suite_type": "unit",
+          "class_method": "TreasureByLevelTest::testTableCompleteness",
+          "ac_tag": "NEW",
+          "status": "pending_implementation"
+        },
+        {
+          "id": "TC-TBL-02",
+          "description": "Currency column metadata documents currency_includes: [coins, gems, art_objects, half_price_items]; no item type listed as full-price",
+          "suite_type": "unit",
+          "class_method": "TreasureByLevelTest::testCurrencyColumnComposition",
+          "ac_tag": "NEW",
+          "status": "pending_implementation"
+        },
+        {
+          "id": "TC-TBL-03",
+          "description": "Party size 5 returns base_currency + 1x per-PC adjustment; party size 6 returns base + 2x; etc.",
+          "suite_type": "unit",
+          "class_method": "TreasureByLevelTest::testPartySizeAdjustmentAbove4",
+          "ac_tag": "NEW",
+          "status": "pending_implementation",
+          "notes": "Note to PM: per-PC currency adjustment amounts per level need BA extraction from CRB Table 10-9 Party Adjustments column"
+        },
+        {
+          "id": "TC-TBL-04",
+          "description": "Standard item (not gem/art/raw material) sells for half listed Price",
+          "suite_type": "unit",
+          "class_method": "TreasureByLevelTest::testSellStandardItemHalfPrice",
+          "ac_tag": "NEW",
+          "status": "pending_implementation"
+        },
+        {
+          "id": "TC-TBL-05",
+          "description": "Gem sells at full listed Price",
+          "suite_type": "unit",
+          "class_method": "TreasureByLevelTest::testSellGemFullPrice",
+          "ac_tag": "NEW",
+          "status": "pending_implementation"
+        },
+        {
+          "id": "TC-TBL-06",
+          "description": "Art object sells at full listed Price",
+          "suite_type": "unit",
+          "class_method": "TreasureByLevelTest::testSellArtObjectFullPrice",
+          "ac_tag": "NEW",
+          "status": "pending_implementation"
+        },
+        {
+          "id": "TC-TBL-07",
+          "description": "Raw material sells at full listed Price",
+          "suite_type": "unit",
+          "class_method": "TreasureByLevelTest::testSellRawMaterialFullPrice",
+          "ac_tag": "NEW",
+          "status": "pending_implementation"
+        },
+        {
+          "id": "TC-TBL-08",
+          "description": "Selling during downtime phase succeeds; selling during encounter/exploration returns flagged:true or blocked:true",
+          "suite_type": "unit",
+          "class_method": "TreasureByLevelTest::testBuySellRestrictedToDowntime",
+          "ac_tag": "NEW",
+          "status": "pending_implementation",
+          "notes": "Note to PM: AC says typically only downtime and flagged or blocked per GM \u2014 ambiguous between soft-flag and hard-block. Default assertion targets soft-flag pattern; PM decision required for final enforcement mode."
+        },
+        {
+          "id": "TC-TBL-09",
+          "description": "Selling during encounter/exploration returns {success: false, reason: not_downtime, gm_override_available: true} (soft-flag)",
+          "suite_type": "unit",
+          "class_method": "TreasureByLevelTest::testSellDuringEncounterFlaggedNotBlocked",
+          "ac_tag": "EDGE",
+          "status": "pending_implementation",
+          "notes": "Conditional on PM decision from TC-TBL-08. If hard-block chosen, expected changes to {success: false, blocked: true}."
+        },
+        {
+          "id": "TC-TBL-10",
+          "description": "Party size < 4 returns base_currency minus per-PC reduction; result > 0 (not blocked)",
+          "suite_type": "unit",
+          "class_method": "TreasureByLevelTest::testPartySizeBelowBaseline",
+          "ac_tag": "EDGE",
+          "status": "pending_implementation",
+          "notes": "Note to PM: per-PC reduction amount needs CRB table extraction (same as TC-TBL-03)."
+        },
+        {
+          "id": "TC-TBL-11",
+          "description": "Starting wealth table has entries for all levels 1-20; each row has non-null currency and optional item_budget",
+          "suite_type": "unit",
+          "class_method": "TreasureByLevelTest::testStartingWealthTableCompleteness",
+          "ac_tag": "NEW",
+          "status": "pending_implementation",
+          "notes": "Note to PM: exact starting wealth values per level need BA extraction from CRB Table 10-10 or equivalent."
+        },
+        {
+          "id": "TC-TBL-12",
+          "description": "Selling standard item at full price blocked or flagged; system enforces half-price rule",
+          "suite_type": "unit",
+          "class_method": "TreasureByLevelTest::testSellStandardItemAtFullPriceBlocked",
+          "ac_tag": "FAILURE",
+          "status": "pending_implementation"
+        },
+        {
+          "id": "TC-TBL-13",
+          "description": "starting_wealth(level=5) returns level-5 row; starting_wealth(level=1) returns level-1 row; values differ",
+          "suite_type": "unit",
+          "class_method": "TreasureByLevelTest::testStartingWealthUsesCorrectLevelRow",
+          "ac_tag": "FAILURE",
+          "status": "pending_implementation"
+        }
+      ]
+    },
+    {
+      "id": "dc-cr-treasure-by-level-role-url-audit",
+      "label": "Treasure by Level ACL regression: no new routes; economy/sell endpoints require auth; no anon access to sell or budget APIs",
+      "type": "role-url-audit",
+      "feature_id": "dc-cr-treasure-by-level",
+      "command": "python3 scripts/role-url-audit.py --product dungeoncrawler --feature dc-cr-treasure-by-level",
+      "artifacts": [
+        "sessions/qa-dungeoncrawler/artifacts/dc-cr-treasure-by-level/role-url-audit.json"
+      ],
+      "required_for_release": true,
+      "notes": "Security AC exemption confirmed: no new routes. Economy/sell endpoints inherit auth from dc-cr-economy. Anon access to sell or item-budget APIs must be 403/redirect.",
+      "test_cases": [
+        {
+          "id": "TC-TBL-14",
+          "label": "Treasure/sell endpoints require auth; anon access returns 403/redirect; economy budget APIs require auth",
+          "feature_id": "dc-cr-treasure-by-level",
+          "suite_context": "role-url-audit",
+          "status": "pending_implementation",
+          "required_for_release": true
+        }
+      ]
     }
   ],
   "_schema_notes": [

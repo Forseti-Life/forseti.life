@@ -280,6 +280,16 @@ Required contents (at minimum):
 - A table or list of features with their suite-activate outbox references
 - Any non-blocking caveats (pending-dev-confirmation items, provisional APPROVEs)
 
+**CRITICAL: always use the active release ID from `tmp/release-cycle-active/<site>.release_id`**
+Do NOT use the feature's original development release ID. `release-signoff.sh` performs a string-match check requiring the QA APPROVE outbox to contain the **current active release ID**. Filing APPROVE against the wrong release ID blocks `release-signoff.sh` and requires a re-dispatch.
+
+```bash
+cat tmp/release-cycle-active/dungeoncrawler.release_id
+# Use this exact string in the APPROVE outbox
+```
+
+Root cause (GAP-DC-QA-RELEASE-ID-MISMATCH, 2026-04-12): APPROVE filed with a prior release ID caused `release-signoff.sh` string-match to fail on `20260412-dungeoncrawler-release-b`. Re-dispatch required.
+
 Root cause (GAP-DC-QA-GATE2-CONSOLIDATE-01, 2026-04-08): qa-dungeoncrawler processed all 10 suite-activate items for `20260407-dungeoncrawler-release-b` by 19:46 UTC Apr 7 but did not file a consolidated Gate 2 APPROVE outbox. Pipeline stagnated for 4.5h. CEO was required to file the APPROVE on qa's behalf to unblock the release.
 
 ## Suite-activate feature-status pre-check (required — GAP-DC-QA-DEFERRED-SUITE-ACTIVATE-01)
