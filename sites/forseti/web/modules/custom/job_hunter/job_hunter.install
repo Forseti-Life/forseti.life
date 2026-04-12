@@ -3105,3 +3105,35 @@ function job_hunter_update_9049() {
   _job_hunter_create_company_research_table();
   return t('Created jobhunter_company_research table for per-user company research tracking.');
 }
+
+/**
+ * Create jobhunter_contacts table for per-user contact/referral tracking.
+ */
+function job_hunter_update_9050() {
+  $schema = \Drupal::database()->schema();
+  if ($schema->tableExists('jobhunter_contacts')) {
+    return t('jobhunter_contacts already exists.');
+  }
+  $schema->createTable('jobhunter_contacts', [
+    'description' => 'Per-user contact/referral relationships keyed by uid.',
+    'fields' => [
+      'id'                => ['type' => 'serial', 'unsigned' => TRUE, 'not null' => TRUE],
+      'uid'               => ['type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0],
+      'name'              => ['type' => 'varchar', 'length' => 255, 'not null' => TRUE, 'default' => ''],
+      'title'             => ['type' => 'varchar', 'length' => 255, 'not null' => FALSE, 'default' => NULL],
+      'company_id'        => ['type' => 'int', 'unsigned' => TRUE, 'not null' => FALSE, 'default' => NULL],
+      'linkedin_url'      => ['type' => 'varchar', 'length' => 512, 'not null' => FALSE, 'default' => NULL],
+      'email'             => ['type' => 'varchar', 'length' => 255, 'not null' => FALSE, 'default' => NULL],
+      'relationship_type' => ['type' => 'varchar', 'length' => 32, 'not null' => TRUE, 'default' => 'connection'],
+      'notes'             => ['type' => 'text', 'size' => 'medium', 'not null' => FALSE],
+      'created'           => ['type' => 'int', 'not null' => TRUE, 'default' => 0],
+      'changed'           => ['type' => 'int', 'not null' => TRUE, 'default' => 0],
+    ],
+    'primary key' => ['id'],
+    'indexes' => [
+      'uid'        => ['uid'],
+      'company_id' => ['company_id'],
+    ],
+  ]);
+  return t('Created jobhunter_contacts table for per-user contact/referral tracking.');
+}

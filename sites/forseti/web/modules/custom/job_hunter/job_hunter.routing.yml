@@ -1514,3 +1514,62 @@ job_hunter.company_research_save:
     _user_is_logged_in: 'TRUE'
     _csrf_token: 'TRUE'
     company_id: \d+
+
+# Contact Tracker — list
+job_hunter.contacts_list:
+  path: '/jobhunter/contacts'
+  defaults:
+    _controller: '\Drupal\job_hunter\Controller\CompanyController::contactsList'
+    _title: 'My Contacts'
+  methods: [GET]
+  requirements:
+    _permission: 'access job hunter'
+    _user_is_logged_in: 'TRUE'
+
+# Contact Tracker — add form (GET)
+job_hunter.contacts_add:
+  path: '/jobhunter/contacts/add'
+  defaults:
+    _controller: '\Drupal\job_hunter\Controller\CompanyController::contactForm'
+    _title: 'Add Contact'
+  methods: [GET]
+  requirements:
+    _permission: 'access job hunter'
+    _user_is_logged_in: 'TRUE'
+
+# Contact Tracker — save/create (POST, CSRF split-route)
+job_hunter.contacts_save:
+  path: '/jobhunter/contacts/save'
+  defaults:
+    _controller: '\Drupal\job_hunter\Controller\CompanyController::contactSave'
+    _title: 'Save Contact'
+  methods: [POST]
+  requirements:
+    _permission: 'access job hunter'
+    _user_is_logged_in: 'TRUE'
+    _csrf_token: 'TRUE'
+
+# Contact Tracker — edit form (GET)
+job_hunter.contacts_edit:
+  path: '/jobhunter/contacts/{contact_id}/edit'
+  defaults:
+    _controller: '\Drupal\job_hunter\Controller\CompanyController::contactForm'
+    _title: 'Edit Contact'
+  methods: [GET]
+  requirements:
+    _permission: 'access job hunter'
+    _user_is_logged_in: 'TRUE'
+    contact_id: \d+
+
+# Contact Tracker — delete (POST, CSRF split-route)
+job_hunter.contacts_delete:
+  path: '/jobhunter/contacts/{contact_id}/delete'
+  defaults:
+    _controller: '\Drupal\job_hunter\Controller\CompanyController::contactDelete'
+    _title: 'Delete Contact'
+  methods: [POST]
+  requirements:
+    _permission: 'access job hunter'
+    _user_is_logged_in: 'TRUE'
+    _csrf_token: 'TRUE'
+    contact_id: \d+
