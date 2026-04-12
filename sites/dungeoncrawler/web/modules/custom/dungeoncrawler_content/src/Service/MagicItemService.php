@@ -70,6 +70,17 @@ class MagicItemService {
    */
   const WAND_OVERCHARGE_DC = 10;
 
+  /**
+   * Valid snare types (dc-cr-snares feature).
+   * Effect resolution handled by triggerSnare().
+   */
+  const VALID_SNARE_TYPES = [
+    'alarm',
+    'hampering',
+    'marking',
+    'striking',
+  ];
+
   protected NumberGenerationService $numberGenerationService;
 
   public function __construct(NumberGenerationService $number_generation_service) {
@@ -1195,6 +1206,14 @@ class MagicItemService {
       return ['success' => FALSE, 'snare' => [], 'failures' => ['missing_kit: Snare kit required.']];
     }
 
+    // Validate snare type.
+    $snare_type = $snare_data['snare_type'] ?? ($snare_data['type'] ?? NULL);
+    if (!in_array($snare_type, self::VALID_SNARE_TYPES, TRUE)) {
+      return ['success' => FALSE, 'snare' => [], 'failures' => [
+        'invalid_snare_type: Must be one of: ' . implode(', ', self::VALID_SNARE_TYPES) . '.',
+      ]];
+    }
+
     $craft_rank = (int) ($char_state['crafting_rank'] ?? $char_state['skills']['crafting']['rank'] ?? 0);
     $craft_bonus = (int) ($char_state['skills']['crafting']['bonus'] ?? 0);
     $craft_dc  = 10 + $craft_bonus;
@@ -1202,9 +1221,29 @@ class MagicItemService {
     // REQ 2518: Expert+ crafter — snare only found by actively searching.
     $requires_search = $craft_rank >= 2;
 
+    // Placed square (grid hex {q, r} or NULL if placement is room-level).
+    $placed_square = $snare_data['placed_square'] ?? NULL;
+
+    // Block placement in an occupied square.
+    if ($placed_square !== NULL) {
+      foreach ($game_state['snares'][$location_id] ?? [] as $existing) {
+        if (!($existing['triggered'] ?? FALSE) && !($existing['disarmed'] ?? FALSE)) {
+          $es = $existing['placed_square'] ?? NULL;
+          if ($es !== NULL
+            && (int) $es['q'] === (int) $placed_square['q']
+            && (int) $es['r'] === (int) $placed_square['r']
+          ) {
+            return ['success' => FALSE, 'snare' => [], 'failures' => ['occupied_square: A snare already occupies that square.']];
+          }
+        }
+      }
+    }
+
     $snare_instance = [
-      'snare_id'        => $snare_data['id'] ?? 'unknown',
+      'snare_id'        => $snare_data['id'] ?? uniqid('snare_', TRUE),
+      'snare_type'      => $snare_type,
       'location_id'     => $location_id,
+      'placed_square'   => $placed_square,
       'creator_id'      => $char_state['id'] ?? '',
       'detection_dc'    => $craft_dc,
       'disable_dc'      => $craft_dc,
@@ -1212,6 +1251,7 @@ class MagicItemService {
       'min_prof_detect' => $craft_rank >= 3 ? 3 : ($craft_rank >= 2 ? 2 : 1),
       'triggered'       => FALSE,
       'disarmed'        => FALSE,
+      'level'           => (int) ($snare_data['level'] ?? 1),
       'data'            => $snare_data,
     ];
 
@@ -1238,6 +1278,152 @@ class MagicItemService {
     }
     $game_state['snares'][$location_id][$snare_index]['disarmed'] = TRUE;
     return ['success' => TRUE, 'reason' => 'Snare disarmed in 1 action.'];
+  }
+
+  /**
+   * Find and trigger any active snare at a given hex in the given location.
+   *
+   * Called by EncounterPhaseHandler::processStride() after position update.
+   * Returns NULL if no snare was triggered; returns trigger result if one fires.
+   *
+   * @param string $target_id     Entity entering the square (triggering creature).
+   * @param string $location_id   Room/area ID (key in $game_state['snares']).
+   * @param array  $to_hex        Target hex {q, r}.
+   * @param array  $game_state    Modified by reference when snare is triggered.
+   *
+   * @return array|null  NULL if no snare triggered; effect result array otherwise.
+   */
+  public function checkSnareAtHex(
+    string $target_id,
+    string $location_id,
+    array $to_hex,
+    array &$game_state
+  ): ?array {
+    if (empty($game_state['snares'][$location_id])) {
+      return NULL;
+    }
+
+    foreach ($game_state['snares'][$location_id] as $idx => &$snare) {
+      if ($snare['triggered'] || $snare['disarmed']) {
+        continue;
+      }
+      $ps = $snare['placed_square'] ?? NULL;
+      if ($ps === NULL) {
+        continue;
+      }
+      if ((int) $ps['q'] !== (int) $to_hex['q'] || (int) $ps['r'] !== (int) $to_hex['r']) {
+        continue;
+      }
+
+      // Mark triggered before resolving so recursive calls can't re-fire.
+      $snare['triggered'] = TRUE;
+      $game_state['snares'][$location_id][$idx]['triggered'] = TRUE;
+
+      $effect = $this->triggerSnare($snare, $target_id, $game_state);
+      return $effect;
+    }
+    unset($snare);
+
+    return NULL;
+  }
+
+  /**
+   * Resolve the mechanical effect of a triggered snare (dc-cr-snares feature).
+   *
+   * Snare types:
+   *   alarm     — emits a loud noise (300 ft radius). No save.
+   *   hampering — difficult terrain in that square for the triggering creature
+   *               (persists for 1 minute / 10 rounds).
+   *   marking   — applies 'marked' condition to triggering creature (visible
+   *               marker useful for tracking; no save).
+   *   striking  — deals physical piercing damage; damage = 2d6 per snare level.
+   *               (No save; damage is halved on a separate per-AC check if caller
+   *               passes snare_data['is_magical'], but basic damage is always dealt.)
+   *
+   * @param array  $snare_instance  The triggered snare instance.
+   * @param string $target_id       Entity that triggered the snare.
+   * @param array  $game_state      Modified by reference for condition/terrain changes.
+   *
+   * @return array  Effect result with keys: snare_type, target_id, effect.
+   */
+  public function triggerSnare(array $snare_instance, string $target_id, array &$game_state): array {
+    $snare_type = $snare_instance['snare_type'] ?? 'unknown';
+    $snare_id   = $snare_instance['snare_id'] ?? 'unknown';
+    $level      = (int) ($snare_instance['level'] ?? 1);
+    $effect     = [];
+
+    switch ($snare_type) {
+      case 'alarm':
+        // Alarm snare: loud noise in 300 ft radius; record in game_state.
+        if (!isset($game_state['snare_alarms'])) {
+          $game_state['snare_alarms'] = [];
+        }
+        $game_state['snare_alarms'][] = [
+          'snare_id'    => $snare_id,
+          'location_id' => $snare_instance['location_id'] ?? '',
+          'hex'         => $snare_instance['placed_square'] ?? NULL,
+          'radius_ft'   => 300,
+          'target_id'   => $target_id,
+        ];
+        $effect = ['alarm_radius_ft' => 300, 'message' => 'A loud alarm rings out!'];
+        break;
+
+      case 'hampering':
+        // Hampering snare: difficult terrain for triggering creature for 10 rounds.
+        if (!isset($game_state['snare_difficult_terrain'])) {
+          $game_state['snare_difficult_terrain'] = [];
+        }
+        $game_state['snare_difficult_terrain'][$target_id][] = [
+          'snare_id'     => $snare_id,
+          'hex'          => $snare_instance['placed_square'] ?? NULL,
+          'rounds_left'  => 10,
+          'type'         => 'difficult',
+        ];
+        $effect = ['terrain' => 'difficult', 'duration_rounds' => 10, 'target_id' => $target_id];
+        break;
+
+      case 'marking':
+        // Marking snare: applies 'marked' condition (no save).
+        if (!isset($game_state['conditions'][$target_id])) {
+          $game_state['conditions'][$target_id] = [];
+        }
+        $game_state['conditions'][$target_id][] = [
+          'condition' => 'marked',
+          'source'    => 'snare:' . $snare_id,
+          'visible'   => TRUE,
+        ];
+        $effect = ['condition' => 'marked', 'target_id' => $target_id];
+        break;
+
+      case 'striking':
+        // Striking snare: 2d6 piercing damage per snare level. No save required.
+        $dice_count = 2 * max(1, $level);
+        $damage = 0;
+        for ($i = 0; $i < $dice_count; $i++) {
+          $damage += $this->numberGenerationService->rollPathfinderDie(6);
+        }
+        if (!isset($game_state['snare_damage'])) {
+          $game_state['snare_damage'] = [];
+        }
+        $game_state['snare_damage'][] = [
+          'target_id'   => $target_id,
+          'snare_id'    => $snare_id,
+          'damage'      => $damage,
+          'damage_type' => 'piercing',
+        ];
+        $effect = ['damage' => $damage, 'damage_type' => 'piercing', 'target_id' => $target_id];
+        break;
+
+      default:
+        $effect = ['error' => "Unknown snare type: {$snare_type}."];
+    }
+
+    return [
+      'snare_type' => $snare_type,
+      'snare_id'   => $snare_id,
+      'target_id'  => $target_id,
+      'effect'     => $effect,
+    ];
   }
 
   // ---------------------------------------------------------------------------

@@ -3213,11 +3213,19 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
       $this->logger->warning('Failed to update participant position: @error', ['@error' => $e->getMessage()]);
     }
 
+    // Check for snare trigger at the destination hex (dc-cr-snares).
+    $snare_trigger = NULL;
+    $location_id_stride = $game_state['active_room_id'] ?? ($dungeon_data['current_room_id'] ?? NULL);
+    if ($location_id_stride !== NULL && !$is_forced) {
+      $snare_trigger = $this->magicItemService->checkSnareAtHex($actor_id, $location_id_stride, $to_hex, $game_state);
+    }
+
     return [
       'stride' => TRUE,
       'from_hex' => $from_hex,
       'to_hex' => $to_hex,
       'is_forced' => $is_forced,
+      'snare_triggered' => $snare_trigger,
       'mutations' => [
         ['entity' => $actor_id, 'field' => 'placement.hex', 'from' => $from_hex, 'to' => $to_hex],
       ],
