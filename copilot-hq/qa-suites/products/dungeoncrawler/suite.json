@@ -14649,142 +14649,144 @@
       ]
     },
     {
-      "id": "dc-cr-skills-society-create-forgery-phpunit",
-      "label": "Society: Recall Knowledge domain/untrained, Create a Forgery (Trained gate, materials, DC tiers, 4 degrees, Crit Fail notification, detection)",
+      "id": "dc-cr-skills-survival-track-direction-phpunit",
+      "label": "Survival: Sense Direction (free/clear/adverse/crit-success), Cover Tracks (Trained gate, half-speed, pursuer DC), Track (Trained gate, trail DC, 4 degrees, perm-lost, interaction)",
       "type": "phpunit",
-      "feature_id": "dc-cr-skills-society-create-forgery",
-      "command": "cd /home/ubuntu/forseti.life/sites/dungeoncrawler && vendor/bin/phpunit web/modules/custom/dungeoncrawler_content/tests/src/Functional/SkillsSocietyForgeryTest.php",
+      "feature_id": "dc-cr-skills-survival-track-direction",
+      "command": "cd /home/ubuntu/forseti.life/sites/dungeoncrawler && vendor/bin/phpunit web/modules/custom/dungeoncrawler_content/tests/src/Functional/SkillsSurvivalTest.php",
       "artifacts": [
-        "sessions/qa-dungeoncrawler/artifacts/dc-cr-skills-society-create-forgery/phpunit-report.xml"
+        "sessions/qa-dungeoncrawler/artifacts/dc-cr-skills-survival-track-direction/phpunit-report.xml"
       ],
       "required_for_release": true,
-      "notes": "Security AC exemption: no new routes. Downtime-only action. TC-SOC-01 needs PM confirmation on monstrous org domain scope. TC-SOC-04 writing materials model (inventory flag vs assumed-available). TC-SOC-07/08 specialist/official DC exact values. TC-SOC-12 Crit Success distinct quality vs Success. TC-SOC-13 Deception DC snapshot vs dynamic. TC-SOC-14 active-examine trigger model. All 15 TCs activatable now; assertion values need BA/PM confirmation on flagged items.",
+      "notes": "Security AC exemption: no new routes. Dependency: dc-cr-skill-system only; trail record data model needed for TC-SUR-13/14. PM clarification pending: TC-SUR-02 clear-conditions model, TC-SUR-03 adverse-conditions enum, TC-SUR-04 landmark tracking model, TC-SUR-06 half-speed rounding, TC-SUR-07 Cover Tracks DC source, TC-SUR-09 Track DC table, TC-SUR-10 full-info fields, TC-SUR-14 Cover Tracks DC storage.",
       "test_cases": [
         {
-          "id": "TC-SOC-01",
-          "label": "RK Society domain scope: cultures/laws/social-structures/history/humanoid-orgs/nations/settlements",
-          "feature_id": "dc-cr-skills-society-create-forgery",
+          "id": "TC-SUR-01",
+          "label": "Sense Direction: free exploration activity; untrained allowed; no action cost",
+          "feature_id": "dc-cr-skills-survival-track-direction",
+          "required_for_release": true,
+          "status": "pending_implementation"
+        },
+        {
+          "id": "TC-SUR-02",
+          "label": "Sense Direction: clear conditions \u2014 no check required; auto-success direction+rough location",
+          "feature_id": "dc-cr-skills-survival-track-direction",
           "required_for_release": true,
           "status": "pending_implementation",
-          "suite_context": "pm_clarification_needed:humanoid_org_scope"
+          "suite_context": "PM_clarification_pending:clear_conditions_model"
         },
         {
-          "id": "TC-SOC-02",
-          "label": "RK Society: untrained use permitted; rolls at untrained modifier",
-          "feature_id": "dc-cr-skills-society-create-forgery",
-          "required_for_release": true,
-          "status": "pending_implementation"
-        },
-        {
-          "id": "TC-SOC-03",
-          "label": "Create a Forgery: Trained gate; untrained blocked",
-          "feature_id": "dc-cr-skills-society-create-forgery",
-          "required_for_release": true,
-          "status": "pending_implementation"
-        },
-        {
-          "id": "TC-SOC-04",
-          "label": "Create a Forgery: writing materials required gate; blocked without",
-          "feature_id": "dc-cr-skills-society-create-forgery",
+          "id": "TC-SUR-03",
+          "label": "Sense Direction: supernatural_darkness/magical_fog/featureless_plane \u2014 check required",
+          "feature_id": "dc-cr-skills-survival-track-direction",
           "required_for_release": true,
           "status": "pending_implementation",
-          "suite_context": "pm_clarification_needed:materials_model"
+          "suite_context": "PM_clarification_pending:adverse_conditions_enum"
         },
         {
-          "id": "TC-SOC-05",
-          "label": "Create a Forgery: downtime activity; time_cost = 10min x page_count",
-          "feature_id": "dc-cr-skills-society-create-forgery",
-          "required_for_release": true,
-          "status": "pending_implementation"
-        },
-        {
-          "id": "TC-SOC-06",
-          "label": "Create a Forgery: DC 20 for common documents",
-          "feature_id": "dc-cr-skills-society-create-forgery",
-          "required_for_release": true,
-          "status": "pending_implementation"
-        },
-        {
-          "id": "TC-SOC-07",
-          "label": "Create a Forgery: DC 30+ for specialist documents",
-          "feature_id": "dc-cr-skills-society-create-forgery",
+          "id": "TC-SUR-04",
+          "label": "Sense Direction: Critical Success on check \u2014 output includes approximate_distance_from_landmark",
+          "feature_id": "dc-cr-skills-survival-track-direction",
           "required_for_release": true,
           "status": "pending_implementation",
-          "suite_context": "pm_clarification_needed:specialist_dc_exact"
+          "suite_context": "PM_clarification_pending:landmark_tracking_model"
         },
         {
-          "id": "TC-SOC-08",
-          "label": "Create a Forgery: DC 40+ for official government seals; special tools may modify DC",
-          "feature_id": "dc-cr-skills-society-create-forgery",
-          "required_for_release": true,
-          "status": "pending_implementation",
-          "suite_context": "pm_clarification_needed:tools_dc_modifier"
-        },
-        {
-          "id": "TC-SOC-09",
-          "label": "Create a Forgery Failure: forgery.quality=detectable; forgery created",
-          "feature_id": "dc-cr-skills-society-create-forgery",
+          "id": "TC-SUR-05",
+          "label": "Cover Tracks: Trained gate \u2014 untrained blocked",
+          "feature_id": "dc-cr-skills-survival-track-direction",
           "required_for_release": true,
           "status": "pending_implementation"
         },
         {
-          "id": "TC-SOC-10",
-          "label": "Create a Forgery Critical Failure: quality=obviously_fake; character notified; retry_allowed",
-          "feature_id": "dc-cr-skills-society-create-forgery",
+          "id": "TC-SUR-06",
+          "label": "Cover Tracks: exploration activity; movement_speed_modifier=0.5 while active",
+          "feature_id": "dc-cr-skills-survival-track-direction",
+          "required_for_release": true,
+          "status": "pending_implementation",
+          "suite_context": "PM_clarification_pending:half_speed_rounding"
+        },
+        {
+          "id": "TC-SUR-07",
+          "label": "Cover Tracks: pursuer track_check vs max(stealth_dc, survival_dc); success=trail_followed, fail=trail_lost",
+          "feature_id": "dc-cr-skills-survival-track-direction",
+          "required_for_release": true,
+          "status": "pending_implementation",
+          "suite_context": "PM_clarification_pending:cover_tracks_dc_source"
+        },
+        {
+          "id": "TC-SUR-08",
+          "label": "Track: Trained gate \u2014 untrained blocked",
+          "feature_id": "dc-cr-skills-survival-track-direction",
           "required_for_release": true,
           "status": "pending_implementation"
         },
         {
-          "id": "TC-SOC-11",
-          "label": "Create a Forgery Success: quality=standard; forgery_record created",
-          "feature_id": "dc-cr-skills-society-create-forgery",
+          "id": "TC-SUR-09",
+          "label": "Track: DC based on trail_age x environment_conditions; older/adverse = higher DC",
+          "feature_id": "dc-cr-skills-survival-track-direction",
+          "required_for_release": true,
+          "status": "pending_implementation",
+          "suite_context": "PM_clarification_pending:track_dc_table"
+        },
+        {
+          "id": "TC-SUR-10",
+          "label": "Track: Critical Success \u2014 full movement speed; trail_info_level=full",
+          "feature_id": "dc-cr-skills-survival-track-direction",
+          "required_for_release": true,
+          "status": "pending_implementation",
+          "suite_context": "PM_clarification_pending:full_info_fields"
+        },
+        {
+          "id": "TC-SUR-11",
+          "label": "Track: Success \u2014 trail_progress=true; movement_speed_modifier=0.5",
+          "feature_id": "dc-cr-skills-survival-track-direction",
           "required_for_release": true,
           "status": "pending_implementation"
         },
         {
-          "id": "TC-SOC-12",
-          "label": "Create a Forgery Critical Success: quality=exceptional (or same as Success per PM)",
-          "feature_id": "dc-cr-skills-society-create-forgery",
-          "required_for_release": true,
-          "status": "pending_implementation",
-          "suite_context": "pm_clarification_needed:crit_success_quality"
-        },
-        {
-          "id": "TC-SOC-13",
-          "label": "Detection: viewer Society vs forger Deception DC; success=detected, failure=accepted",
-          "feature_id": "dc-cr-skills-society-create-forgery",
-          "required_for_release": true,
-          "status": "pending_implementation",
-          "suite_context": "pm_clarification_needed:deception_dc_snapshot_vs_dynamic"
-        },
-        {
-          "id": "TC-SOC-14",
-          "label": "Detection: active examine triggers detection roll; passive receipt does not",
-          "feature_id": "dc-cr-skills-society-create-forgery",
-          "required_for_release": true,
-          "status": "pending_implementation",
-          "suite_context": "pm_clarification_needed:examine_trigger_model"
-        },
-        {
-          "id": "TC-SOC-15",
-          "label": "ACL regression: no new routes from Society/Create a Forgery; existing downtime handler ACL unchanged",
-          "feature_id": "dc-cr-skills-society-create-forgery",
+          "id": "TC-SUR-12",
+          "label": "Track: Failure \u2014 trail_progress=false; trail_state=retryable; retry_allowed=true",
+          "feature_id": "dc-cr-skills-survival-track-direction",
           "required_for_release": true,
           "status": "pending_implementation"
+        },
+        {
+          "id": "TC-SUR-13",
+          "label": "Track: Critical Failure \u2014 trail_state=permanently_lost; retry_allowed=false; retry attempt blocked",
+          "feature_id": "dc-cr-skills-survival-track-direction",
+          "required_for_release": true,
+          "status": "pending_implementation"
+        },
+        {
+          "id": "TC-SUR-14",
+          "label": "Interaction: Cover Tracks + Track \u2014 track_dc = cover_tracks_result from trail record; standard DC table bypassed",
+          "feature_id": "dc-cr-skills-survival-track-direction",
+          "required_for_release": true,
+          "status": "pending_implementation",
+          "suite_context": "PM_clarification_pending:cover_tracks_dc_storage"
         }
       ]
     },
     {
-      "id": "dc-cr-skills-society-create-forgery-role-url-audit",
-      "label": "Society/Create a Forgery ACL regression: no new routes; downtime handler routes retain expected ACL",
+      "id": "dc-cr-skills-survival-track-direction-role-url-audit",
+      "label": "Survival ACL regression: no new routes; existing exploration handler routes retain ACL",
       "type": "role-url-audit",
-      "feature_id": "dc-cr-skills-society-create-forgery",
-      "command": "ALLOW_PROD_QA=1 bash scripts/site-audit-run.sh dungeoncrawler",
+      "feature_id": "dc-cr-skills-survival-track-direction",
+      "command": "python3 scripts/role-url-audit.py --product dungeoncrawler --feature dc-cr-skills-survival-track-direction",
       "artifacts": [
-        "sessions/qa-dungeoncrawler/artifacts/dc-cr-skills-society-create-forgery/role-url-audit.json"
+        "sessions/qa-dungeoncrawler/artifacts/dc-cr-skills-survival-track-direction/role-url-audit.json"
       ],
       "required_for_release": true,
-      "notes": "Security AC exemption confirmed: no new routes introduced. Validates existing downtime handler ACL is unaffected."
+      "test_cases": [
+        {
+          "id": "TC-SUR-15",
+          "label": "ACL regression: no new routes; existing exploration routes retain ACL",
+          "feature_id": "dc-cr-skills-survival-track-direction",
+          "required_for_release": true,
+          "status": "pending_implementation"
+        }
+      ]
     }
   ],
   "_schema_notes": [
