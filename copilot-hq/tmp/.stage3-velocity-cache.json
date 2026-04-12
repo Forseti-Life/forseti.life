@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-04-12T15:59:50.134213",
+  "generated_at": "2026-04-12T17:54:11.314633",
   "window_minutes": 15,
   "teams": [
     {
@@ -76,7 +76,7 @@
       "label": "Dungeoncrawler",
       "site": "dungeoncrawler",
       "window_minutes": 15,
-      "latest_run": "20260412-093907",
+      "latest_run": "20260412-165823",
       "latest_open_issues": 0,
       "resolved_last_window": 0,
       "introduced_last_window": 0,
@@ -84,20 +84,10 @@
       "workflow": {
         "dev_outbox_updates": 0,
         "dev_notify_qa_markers": 0,
-        "qa_done_markers": 5,
+        "qa_done_markers": 0,
         "handoff_signal": "weak"
       },
       "recent_deltas": [
-        {
-          "from_run": "20260412-054829",
-          "to_run": "20260412-054949",
-          "to_ts": "2026-04-12T05:49:49",
-          "prev_total": 0,
-          "cur_total": 0,
-          "resolved": 0,
-          "introduced": 0,
-          "elapsed_minutes": 1.33
-        },
         {
           "from_run": "20260412-054949",
           "to_run": "20260412-055009",
@@ -137,6 +127,16 @@
           "resolved": 0,
           "introduced": 0,
           "elapsed_minutes": 185.73
+        },
+        {
+          "from_run": "20260412-093907",
+          "to_run": "20260412-165823",
+          "to_ts": "2026-04-12T16:58:23",
+          "prev_total": 0,
+          "cur_total": 0,
+          "resolved": 0,
+          "introduced": 0,
+          "elapsed_minutes": 439.27
         }
       ]
     }

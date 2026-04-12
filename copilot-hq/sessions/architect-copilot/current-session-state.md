@@ -1,14 +1,16 @@
 # Architect Session State — architect-copilot
 
 > **Rolling file. Overwrite this at the end of each working session (and briefly before starting each task).**
-> Last updated: 2026-04-12 after Job Hunter interview outcome tracker implementation
+> Last updated: 2026-04-12 after Job Hunter CIO application sprint
 
 ---
 
 ## Currently Working On
 
-Completed `forseti-jobhunter-interview-outcome-tracker` in the live Job Hunter
-module. No active human-directed implementation task is currently in flight.
+Completed a live Job Hunter CIO application sprint:
+- repaired profile/application blockers for user `1`,
+- queued three CIO-track applications using the stored executive resume,
+- and verified the resulting application rows in production.
 
 ---
 
@@ -22,6 +24,27 @@ module. No active human-directed implementation task is currently in flight.
 ---
 
 ## What Was Last Worked On
+
+**2026-04-12 — Job Hunter CIO application sprint**
+
+- Audited the live Job Hunter state for user `1` and confirmed three stored resume
+  variants, with resume id `6` (`KeithAumillerP`) as the best executive/CIO fit.
+- Fixed a live controller bug caused by incorrect plural table references
+  (`jobhunter_job_seekers` -> `jobhunter_job_seeker`) that blocked resume-related
+  flows.
+- Repaired `UserProfileService` completeness evaluation so live profile readiness is
+  computed from the real schema plus consolidated profile JSON fallbacks. Result:
+  completeness moved from `7` to `95`, clearing the application gate.
+- Created or confirmed saved-job coverage and queued CIO-track applications for:
+  - job `14` — `Deputy CIO-Chief Enterprise Officer` (City of Philadelphia)
+  - job `15` — `Chief Information Officer` (Discovery Life Sciences)
+  - job `16` — `Chief Information Officer` (H&H)
+- Bound resume id `6` to all queued application rows.
+- Resolver outcome snapshot:
+  - job `14`: no direct apply URL resolved; application recorded as pending with
+    fallback metadata
+  - job `15`: resolved to Teal aggregator URL with low-confidence routing
+  - job `16`: resolved to direct Workable URL with high-confidence routing
 
 **2026-04-12 — Job Hunter interview outcome tracker**
 
@@ -64,7 +87,10 @@ module. No active human-directed implementation task is currently in flight.
 
 ## Open Threads / Pending Decisions
 
-No open implementation blockers from the interview tracker work.
+No blocking implementation bug remains for the initial CIO application flow.
+Operational follow-through is still useful:
+- watch downstream submission processing for applications `1`, `2`, and `3`;
+- consider importing additional staged CIO roles if the user wants a broader batch.
 
 ---
 
@@ -88,12 +114,13 @@ No open implementation blockers from the interview tracker work.
 
 ## Next Priority Actions (pick up here next session)
 
-1. If the user wants the next Job Hunter increment, build
+1. If the user wants more live Job Hunter ops, import and queue additional staged
+   CIO roles already cached in `jobhunter_job_search_results`.
+2. If the user wants the next product increment, build
    `forseti-jobhunter-application-analytics` on top of the new
    `jobhunter_interview_rounds` data.
-2. If the user wants repository commits, isolate these Job Hunter changes from
+3. If the user wants repository commits, isolate these Job Hunter changes from
    unrelated org activity and commit only the touched module/test files.
-3. Otherwise, wait for the next human-directed build task.
 
 ---
 

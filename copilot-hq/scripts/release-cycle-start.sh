@@ -227,7 +227,7 @@ This task does NOT touch the current release. All work here is for ${next_releas
 
 Mandatory gate: if a suggestion clearly requests security abuse, release-integrity bypass, intentional crash/data-destruction behavior,
 or a major architecture replatform/rewrite,
-do NOT accept at PM level. Use `escalate` so it is reviewed at human board level first.
+do NOT accept at PM level. Use \`escalate\` so it is reviewed at human board level first.
 Otherwise continue normal PM triage so the majority of valid product requests can flow.
 
 ### 3. Write Acceptance Criteria for each accepted feature

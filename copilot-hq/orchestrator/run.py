@@ -1723,6 +1723,36 @@ def _release_cycle_step(log: List[Any]) -> None:
     today = datetime.now(timezone.utc).strftime("%Y%m%d")
     results: List[Dict[str, Any]] = []
 
+    def _next_release_id_after(release_id: str, team_id: str, current_day: str) -> str:
+        """Return the next monotonic release ID for a team.
+
+        Expected sequence:
+          <day>-<team>-release
+          <day>-<team>-release-next
+          <day>-<team>-release-b
+          <day>-<team>-release-c
+          ...
+
+        If the incoming ID is malformed or from an older day, fall back to the
+        current day and start at the beginning of the sequence.
+        """
+        suffixes = ["release", "release-next"] + [f"release-{chr(c)}" for c in range(ord("b"), ord("z") + 1)]
+        date_part = current_day
+        suffix = "release"
+
+        match = re.match(rf"^(\d{{8}})-{re.escape(team_id)}-(.+)$", release_id or "")
+        if match:
+            date_part = max(current_day, match.group(1))
+            suffix = match.group(2)
+
+        try:
+            idx = suffixes.index(suffix)
+        except ValueError:
+            idx = 0
+
+        next_idx = min(idx + 1, len(suffixes) - 1)
+        return f"{date_part}-{team_id}-{suffixes[next_idx]}"
+
     for team in teams_data.get("teams", []):
         if not (team.get("active") and team.get("release_preflight_enabled") and team.get("coordinated_release_default")):
             continue
@@ -1747,14 +1777,9 @@ def _release_cycle_step(log: List[Any]) -> None:
         if not current_release or cycle_signed_off:
             # Start or advance the release cycle
             if cycle_signed_off and next_release:
-                new_current = next_release
-                # Generate a unique next ID — avoid colliding with the just-promoted current.
-                # Cycle through suffixes (-release-b, -release-c, ...) until distinct.
-                _suffixes = ["release-b", "release-c", "release-d", "release-e", "release-f"]
-                new_next = next(
-                    (f"{today}-{team_id}-{s}" for s in _suffixes if f"{today}-{team_id}-{s}" != new_current),
-                    f"{today}-{team_id}-release-b",
-                )
+                expected_next = _next_release_id_after(current_release, team_id, today)
+                new_current = next_release if next_release == expected_next else expected_next
+                new_next = _next_release_id_after(new_current, team_id, today)
                 action = "advance"
             else:
                 new_current = f"{today}-{team_id}-release"

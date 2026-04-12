@@ -73,6 +73,9 @@ services:
   dungeoncrawler_content.schema_loader:
     class: Drupal\dungeoncrawler_content\Service\SchemaLoader
 
+  dungeoncrawler_content.roadmap_pipeline_status_resolver:
+    class: Drupal\dungeoncrawler_content\Service\RoadmapPipelineStatusResolver
+
   dungeoncrawler_content.ability_score_tracker:
     class: Drupal\dungeoncrawler_content\Service\AbilityScoreTracker
     arguments: ['@dungeoncrawler_content.character_manager']

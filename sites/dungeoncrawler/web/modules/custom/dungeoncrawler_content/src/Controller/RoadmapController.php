@@ -4,6 +4,7 @@ namespace Drupal\dungeoncrawler_content\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Database\Connection;
+use Drupal\dungeoncrawler_content\Service\RoadmapPipelineStatusResolver;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -23,20 +24,26 @@ class RoadmapController extends ControllerBase {
 
   protected Connection $database;
 
-  public function __construct(Connection $database) {
+  protected RoadmapPipelineStatusResolver $pipelineStatusResolver;
+
+  public function __construct(Connection $database, RoadmapPipelineStatusResolver $pipeline_status_resolver) {
     $this->database = $database;
+    $this->pipelineStatusResolver = $pipeline_status_resolver;
   }
 
   public static function create(ContainerInterface $container): static {
-    return new static($container->get('database'));
+    return new static(
+      $container->get('database'),
+      $container->get('dungeoncrawler_content.roadmap_pipeline_status_resolver')
+    );
   }
 
   /**
    * Renders the /roadmap page.
    */
   public function page(): array {
-    // Roadmap is read-only for all web users. Status is maintained by the
-    // pm-dungeoncrawler agent via drush dungeoncrawler:roadmap-set-status.
+    // Requirements linked to a feature_id inherit status from the release
+    // pipeline automatically. Unlinked requirements still use stored DB status.
     $is_admin = FALSE;
 
     // Fetch all requirements ordered for grouping.
@@ -78,18 +85,20 @@ class RoadmapController extends ControllerBase {
         $books[$bid]['chapters'][$ck]['sections'][$sec] = [];
       }
 
+      $resolved_status = $this->pipelineStatusResolver->resolveRoadmapStatus($row->feature_id ?? NULL, $row->status);
+
       $books[$bid]['chapters'][$ck]['sections'][$sec][] = [
         'id'              => $row->id,
         'paragraph_title' => $row->paragraph_title,
         'req_text'        => $row->req_text,
-        'status'          => $row->status,
-        'status_label'    => self::STATUS_LABELS[$row->status] ?? $row->status,
+        'status'          => $resolved_status,
+        'status_label'    => self::STATUS_LABELS[$resolved_status] ?? $resolved_status,
         'feature_id'      => $row->feature_id ?? '',
       ];
 
-      $books[$bid]['counts'][$row->status]++;
-      $books[$bid]['chapters'][$ck]['counts'][$row->status]++;
-      $totals[$row->status]++;
+      $books[$bid]['counts'][$resolved_status]++;
+      $books[$bid]['chapters'][$ck]['counts'][$resolved_status]++;
+      $totals[$resolved_status]++;
     }
 
     // Sort books by canonical order.

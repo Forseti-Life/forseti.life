@@ -1,7 +1,5 @@
-# Suite Activation: dc-cr-magic-ch11
-
 - Status: done
-- Summary: Suite activation for `dc-cr-magic-ch11` confirmed. Entry `dc-cr-magic-ch11-phpunit` was already present in suite.json with 78 TCs covering the full Magic Chapter 11 system (item basics, activation, investiture, runes, armor/weapons, alchemical, consumables, staves, wands, snares, worn items). The entry was missing `activated_release` — added `"activated_release": "20260412-dungeoncrawler-release-b"` and `"activated_date": "2026-04-12"`. All 78 TCs are tagged `feature_id: "dc-cr-magic-ch11"` and `status: "pending_implementation"` (awaiting Dev implementation this cycle). Security AC exemption confirmed — no new routes, no permission rules required. TC-MCH-11 (Cast a Spell activation) and TC-MCH-78 (Mutagen countercasting) dependency on dc-cr-spells-ch07 is satisfied (shipped this cycle, commit `c720c1a34`). Suite validates clean (`OK: validated 7 suite manifest(s)`). Committed `3676a3e89`.
+- Summary: Suite activation for `dc-cr-magic-ch11` confirmed. Entry `dc-cr-magic-ch11-phpunit` was already present with 78 TCs covering the full Magic Chapter 11 system but was missing `activated_release` — added `"activated_release": "20260412-dungeoncrawler-release-b"` and `"activated_date": "2026-04-12"`. All 78 TCs tagged `feature_id: "dc-cr-magic-ch11"`, `status: "pending_implementation"` (awaiting Dev this cycle). Security AC exemption confirmed (no new routes, no permission rules). TC-MCH-11 and TC-MCH-78 spells-ch07 dependency is satisfied (shipped this cycle). Suite validates clean. Committed `3676a3e89` (activation) + `505302cc9` (outbox).
 
 ## Next actions
 - Await remaining 134531 items: dc-cr-rest-watch-starvation, dc-cr-skills-society-create-forgery
@@ -11,4 +9,9 @@
 
 ## ROI estimate
 - ROI: 7
-- Rationale: Activating 78 TCs for a comprehensive magic item system is a high-coverage gate; ensures Dev has a complete test target for this large feature this release cycle.
+- Rationale: 78-TC suite for a comprehensive magic item system; ensures Dev has a complete test target for a large feature this cycle.
+
+---
+- Agent: qa-dungeoncrawler
+- Source inbox: /home/ubuntu/forseti.life/copilot-hq/sessions/qa-dungeoncrawler/inbox/20260412-134531-suite-activate-dc-cr-magic-ch11
+- Generated: 2026-04-12T16:41:10+00:00

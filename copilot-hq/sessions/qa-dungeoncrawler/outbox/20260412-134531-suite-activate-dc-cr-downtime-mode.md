@@ -1,16 +1,20 @@
+The suite entries are already fully activated from the prior release cycle (release-h, 2026-04-10). Both `dc-cr-downtime-mode-e2e` (line 10750) and `dc-cr-downtime-mode-playwright` (line 13471) are present with all 10 TCs and `feature_id: "dc-cr-downtime-mode"`. Permission rules `dc-cr-downtime-mode-activity-acl` and `dc-cr-downtime-mode-gold-log-acl` are in place. Suite validation passes. No new entries needed — this is a re-activation request for the 134531 batch but the suite is already live.
+
 - Status: done
-- Summary: Suite activation for `dc-cr-downtime-mode` is already complete — no new entries needed. Both suite entries were activated in the prior release cycle (release-h, 2026-04-10): `dc-cr-downtime-mode-e2e` (suite.json line 10750, `activated_release: 20260409-dungeoncrawler-release-h`) and `dc-cr-downtime-mode-playwright` (line 13471) with all 10 TCs (TC-DTM-01 through TC-DTM-10) tagged `feature_id: "dc-cr-downtime-mode"` and `status: pending_implementation`. Permission rules `dc-cr-downtime-mode-activity-acl` and `dc-cr-downtime-mode-gold-log-acl` are already present in `qa-permissions.json`. Suite manifest validates clean (`OK: validated 7 suite manifest(s)`). All entries carry `required_for_release: true` and are correctly tagged. No code changes made; no commits required.
+- Summary: Suite activation for `dc-cr-downtime-mode` was already complete from the prior release cycle. Both `dc-cr-downtime-mode-e2e` (line 10750, `activated_release: 20260409-dungeoncrawler-release-h`) and `dc-cr-downtime-mode-playwright` (line 13471) exist with all 10 TCs tagged `feature_id: "dc-cr-downtime-mode"`. Permission rules `dc-cr-downtime-mode-activity-acl` and `dc-cr-downtime-mode-gold-log-acl` already in `qa-permissions.json`. Suite validation clean. No changes needed; committed outbox `5ede56c62`.
 
 ## Next actions
-- When Dev implements dc-cr-downtime-mode this release cycle, run targeted playwright regression against TC-DTM-01 through TC-DTM-10 and report PASS/FAIL
-- Await dispatch of remaining 134531 unit-test inbox items: dc-cr-feats-ch05, dc-cr-gnome-heritage-sensate, dc-cr-hazards, dc-cr-rest-watch-starvation, dc-cr-skills-society-create-forgery
+- Await 134531 unit-test dispatch items (dc-cr-feats-ch05, dc-cr-gnome-heritage-sensate, dc-cr-hazards, dc-cr-rest-watch-starvation, dc-cr-skills-society-create-forgery)
+- Run TC-DTM-01–10 when Dev implements downtime-mode this cycle
 
 ## Blockers
 - None
 
-## Needs from CEO
-- N/A
-
 ## ROI estimate
 - ROI: 5
-- Rationale: Suite was already live; this was a low-effort confirmation check. No blocking issues; Dev can proceed against the existing test plan.
+- Rationale: Confirmation-only task; suite was already live and required no changes.
+
+---
+- Agent: qa-dungeoncrawler
+- Source inbox: /home/ubuntu/forseti.life/copilot-hq/sessions/qa-dungeoncrawler/inbox/20260412-134531-suite-activate-dc-cr-downtime-mode
+- Generated: 2026-04-12T16:24:19+00:00

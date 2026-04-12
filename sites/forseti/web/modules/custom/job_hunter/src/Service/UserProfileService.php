@@ -336,31 +336,125 @@ class UserProfileService {
    *   TRUE if the field is completed, FALSE otherwise.
    */
   protected function isJobSeekerFieldCompleted($jobSeekerData, $field_name) {
-    // Map field names to database column names
-    $field_mapping = [
-      'field_resume_file' => 'resume_node_id',
-      'field_work_authorization' => 'work_authorization',
-      'field_professional_summary' => 'professional_summary',
-      'field_skills_summary' => 'skills',
-      'field_experience_years' => 'experience_years',
-      'field_education_level' => 'education_level',
-      'field_remote_preference' => 'remote_preference',
-      'field_linkedin_url' => 'linkedin_url',
-      'field_salary_expectation_min' => 'salary_expectation',
-      'field_available_start_date' => 'availability',
-      'field_portfolio_url' => 'portfolio_url',
-      'field_github_url' => 'github_url',
-      'field_certifications' => 'certifications',
-    ];
-    
-    if (!isset($field_mapping[$field_name])) {
-      return false;
+    $consolidated = [];
+    if (!empty($jobSeekerData->consolidated_profile_json)) {
+      $decoded = json_decode((string) $jobSeekerData->consolidated_profile_json, TRUE);
+      $consolidated = is_array($decoded) ? $decoded : [];
     }
-    
-    $db_field = $field_mapping[$field_name];
-    $value = $jobSeekerData->$db_field ?? null;
-    
-    return !empty($value);
+
+    $contact = is_array($consolidated['contact_info'] ?? NULL) ? $consolidated['contact_info'] : [];
+    $websites = is_array($contact['websites'] ?? NULL) ? $contact['websites'] : [];
+    $preferences = is_array($consolidated['job_search_preferences'] ?? NULL) ? $consolidated['job_search_preferences'] : [];
+    $education = is_array($consolidated['education'] ?? NULL) ? $consolidated['education'] : [];
+    $technical_expertise = $consolidated['technical_expertise'] ?? [];
+
+    $website_urls = [
+      'linkedin' => '',
+      'github' => '',
+      'portfolio' => '',
+      'personal' => '',
+    ];
+    foreach ($websites as $site) {
+      if (!is_array($site)) {
+        continue;
+      }
+      $type = strtolower(trim((string) ($site['type'] ?? '')));
+      $url = trim((string) ($site['url'] ?? ''));
+      if ($url === '') {
+        continue;
+      }
+      if ($type !== '' && isset($website_urls[$type]) && $website_urls[$type] === '') {
+        $website_urls[$type] = $url;
+      }
+      if ($website_urls['linkedin'] === '' && stripos($url, 'linkedin.com') !== FALSE) {
+        $website_urls['linkedin'] = $url;
+      }
+      if ($website_urls['github'] === '' && stripos($url, 'github.com') !== FALSE) {
+        $website_urls['github'] = $url;
+      }
+    }
+
+    $technical_skills_present = FALSE;
+    if (is_array($technical_expertise)) {
+      foreach ($technical_expertise as $entry) {
+        if (is_array($entry) && (!empty($entry['skills']) || !empty($entry['name']) || !empty($entry['category']))) {
+          $technical_skills_present = TRUE;
+          break;
+        }
+      }
+    }
+
+    switch ($field_name) {
+      case 'field_resume_file':
+        if (!empty($jobSeekerData->resume_node_id)) {
+          return TRUE;
+        }
+        if (!empty($jobSeekerData->id)) {
+          $resume_count = (int) \Drupal::database()->select('jobhunter_job_seeker_resumes', 'r')
+            ->condition('r.job_seeker_id', (int) $jobSeekerData->id)
+            ->countQuery()
+            ->execute()
+            ->fetchField();
+          return $resume_count > 0;
+        }
+        return FALSE;
+
+      case 'field_work_authorization':
+        return !empty($jobSeekerData->age_18_or_older);
+
+      case 'field_professional_summary':
+        return !empty($jobSeekerData->professional_summary)
+          || !empty($consolidated['executive_profile'])
+          || !empty($contact['headline']);
+
+      case 'field_skills_summary':
+        return !empty($jobSeekerData->skills) || $technical_skills_present;
+
+      case 'field_experience_years':
+        return !empty($jobSeekerData->experience_years)
+          || preg_match('/\b\d+\+?\s*years\b/i', (string) ($consolidated['executive_profile'] ?? '')) === 1
+          || !empty($consolidated['professional_experience'])
+          || !empty($consolidated['early_career']['positions']);
+
+      case 'field_education_level':
+        return !empty($jobSeekerData->education_level)
+          || !empty($education)
+          || !empty($contact['credentials']);
+
+      case 'field_remote_preference':
+        return !empty($jobSeekerData->remote_preference) || !empty($preferences['remote_preference']);
+
+      case 'field_linkedin_url':
+        return !empty($jobSeekerData->linkedin_url)
+          || !empty($contact['linkedin'])
+          || !empty($website_urls['linkedin']);
+
+      case 'field_salary_expectation_min':
+        return !empty($jobSeekerData->salary_min)
+          || !empty($preferences['salary_expectation_min'])
+          || !empty($preferences['salary_expectation']);
+
+      case 'field_available_start_date':
+        return !empty($jobSeekerData->available_start_date)
+          || !empty($preferences['available_start_date'])
+          || !empty($preferences['available_start']);
+
+      case 'field_portfolio_url':
+        return !empty($jobSeekerData->portfolio_url)
+          || !empty($contact['portfolio'])
+          || !empty($website_urls['portfolio'])
+          || !empty($website_urls['personal']);
+
+      case 'field_github_url':
+        return !empty($jobSeekerData->github_url)
+          || !empty($contact['github'])
+          || !empty($website_urls['github']);
+
+      case 'field_certifications':
+        return !empty($jobSeekerData->certifications) || !empty($contact['credentials']);
+    }
+
+    return FALSE;
   }
 
   /**

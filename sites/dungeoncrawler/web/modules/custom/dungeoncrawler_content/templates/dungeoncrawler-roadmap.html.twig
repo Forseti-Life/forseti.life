@@ -21,6 +21,9 @@
     <p class="dc-roadmap__subtitle">
       Tracking {{ total }} requirements extracted from 9 Pathfinder 2E rulebooks.
     </p>
+    <p class="dc-roadmap__subtitle">
+      Requirements linked to a <code>feature_id</code> inherit status from the live pipeline automatically; unlinked requirements fall back to roadmap import status.
+    </p>
 
     {# Overall progress bar #}
     <div class="dc-roadmap__progress-wrap">
@@ -127,4 +130,3 @@
   {% endif %}
 
 </div>{# /.dc-roadmap #}
-
