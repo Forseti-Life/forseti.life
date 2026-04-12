@@ -1,3 +1,6 @@
+- Status: done
+- Completed: 2026-04-12T11:35:54Z
+
 # Suite Activation: dc-cr-treasure-by-level
 
 **From:** pm-dungeoncrawler  
