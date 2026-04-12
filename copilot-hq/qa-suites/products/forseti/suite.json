@@ -3390,6 +3390,222 @@
       ],
       "required_for_release": true,
       "notes": "User A has min_salary=100000; user B has min_salary=50000. Each must see only their own value. DB query for uid_B must return 50000."
+    },
+    {
+      "id": "forseti-jobhunter-resume-version-labeling-tc1-schema-migration",
+      "label": "TC-1: Schema migration \u2014 version_label, version_notes, source_resume_id columns exist post-drush-updb",
+      "type": "infrastructure",
+      "feature_id": "forseti-jobhunter-resume-version-labeling",
+      "command": "drush sql:query \"SHOW COLUMNS FROM jobhunter_job_seeker_resumes LIKE 'version%'\" 2>/dev/null",
+      "artifacts": [
+        "/tmp/qa-forseti-resume-version-tc1.log"
+      ],
+      "required_for_release": true,
+      "notes": "After drush updb: SHOW COLUMNS ... LIKE 'version%' returns 2 rows. SHOW COLUMNS FROM jobhunter_applications LIKE 'source_resume_id' returns 1 row."
+    },
+    {
+      "id": "forseti-jobhunter-resume-version-labeling-tc2-save-version-label-smoke",
+      "label": "TC-2: Save version_label via resume edit form (smoke) \u2014 DB updated",
+      "type": "functional",
+      "feature_id": "forseti-jobhunter-resume-version-labeling",
+      "command": "drush sql:query \"SELECT version_label FROM jobhunter_job_seeker_resumes WHERE id=<N> AND uid=<uid>\" 2>/dev/null",
+      "artifacts": [
+        "/tmp/qa-forseti-resume-version-tc2.log"
+      ],
+      "required_for_release": true,
+      "notes": "Submit edit form with version_label='Tech Lead v2'. DB must show 'Tech Lead v2'."
+    },
+    {
+      "id": "forseti-jobhunter-resume-version-labeling-tc3-resume-list-shows-labels",
+      "label": "TC-3: /jobhunter/resume/list page displays version labels",
+      "type": "functional",
+      "feature_id": "forseti-jobhunter-resume-version-labeling",
+      "command": "curl -s -b \"$FORSETI_COOKIE_AUTHENTICATED\" https://forseti.life/jobhunter/resume/list | grep -c 'Tech Lead v2'",
+      "artifacts": [
+        "/tmp/qa-forseti-resume-version-tc3.log"
+      ],
+      "required_for_release": true,
+      "notes": "Expect HTTP 200; page contains 'Tech Lead v2' next to labeled resume. Grep count >= 1."
+    },
+    {
+      "id": "forseti-jobhunter-resume-version-labeling-tc4-link-resume-to-application",
+      "label": "TC-4: Link resume to application \u2014 source_resume_id stored on application row",
+      "type": "functional",
+      "feature_id": "forseti-jobhunter-resume-version-labeling",
+      "command": "drush sql:query \"SELECT source_resume_id FROM jobhunter_applications WHERE id=10 AND uid=<uid>\" 2>/dev/null",
+      "artifacts": [
+        "/tmp/qa-forseti-resume-version-tc4.log"
+      ],
+      "required_for_release": true,
+      "notes": "Edit application and select resume id=5 as 'Resume used'. DB must show source_resume_id=5."
+    },
+    {
+      "id": "forseti-jobhunter-resume-version-labeling-tc5-application-detail-shows-resume-label",
+      "label": "TC-5: Application detail page shows linked resume version label",
+      "type": "functional",
+      "feature_id": "forseti-jobhunter-resume-version-labeling",
+      "command": "curl -s -b \"$FORSETI_COOKIE_AUTHENTICATED\" https://forseti.life/jobhunter/application/10 | grep -c 'Tech Lead v2'",
+      "artifacts": [
+        "/tmp/qa-forseti-resume-version-tc5.log"
+      ],
+      "required_for_release": true,
+      "notes": "Application with source_resume_id=5 and resume 5 labeled 'Tech Lead v2'. Page must contain that label."
+    },
+    {
+      "id": "forseti-jobhunter-resume-version-labeling-tc6-null-version-label-graceful",
+      "label": "TC-6: NULL version_label (unlabeled resume) renders gracefully \u2014 no PHP warning",
+      "type": "functional",
+      "feature_id": "forseti-jobhunter-resume-version-labeling",
+      "command": "curl -s -o /dev/null -w \"%{http_code}\" -b \"$FORSETI_COOKIE_AUTHENTICATED\" https://forseti.life/jobhunter/resume/list",
+      "artifacts": [
+        "/tmp/qa-forseti-resume-version-tc6.log"
+      ],
+      "required_for_release": true,
+      "notes": "Resume with no version_label (NULL). Page must return HTTP 200 with no Drupal error messages or PHP warnings."
+    },
+    {
+      "id": "forseti-jobhunter-resume-version-labeling-tc7-cross-user-source-resume-ownership",
+      "label": "TC-7: Ownership check \u2014 user A cannot assign user B resume as source_resume_id",
+      "type": "security",
+      "feature_id": "forseti-jobhunter-resume-version-labeling",
+      "command": "drush sql:query \"SELECT source_resume_id FROM jobhunter_applications WHERE uid=<uid_A>\" 2>/dev/null",
+      "artifacts": [
+        "/tmp/qa-forseti-resume-version-tc7.log"
+      ],
+      "required_for_release": true,
+      "notes": "User A submits application edit with source_resume_id=99 (belongs to user B). Expect 403; source_resume_id must NOT be updated to 99."
+    },
+    {
+      "id": "forseti-jobhunter-resume-version-labeling-tc8-csrf-required-on-resume-edit",
+      "label": "TC-8: Authenticated POST to resume edit without CSRF token returns 403",
+      "type": "security",
+      "feature_id": "forseti-jobhunter-resume-version-labeling",
+      "command": "curl -s -o /dev/null -w \"%{http_code}\" -X POST -b \"$FORSETI_COOKIE_AUTHENTICATED\" https://forseti.life/jobhunter/resume/<id>/edit",
+      "artifacts": [
+        "/tmp/qa-forseti-resume-version-tc8.log"
+      ],
+      "required_for_release": true,
+      "notes": "POST without X-CSRF-Token header must return 403. Tests CSRF protection on resume edit route."
+    },
+    {
+      "id": "forseti-jobhunter-resume-version-labeling-tc9-version-notes-xss-sanitization",
+      "label": "TC-9: version_notes XSS \u2014 script tag stripped, page does not execute script",
+      "type": "security",
+      "feature_id": "forseti-jobhunter-resume-version-labeling",
+      "command": "drush sql:query \"SELECT version_notes FROM jobhunter_job_seeker_resumes WHERE uid=<uid> ORDER BY id DESC LIMIT 1\" 2>/dev/null",
+      "artifacts": [
+        "/tmp/qa-forseti-resume-version-tc9.log"
+      ],
+      "required_for_release": true,
+      "notes": "Submit version_notes='<script>alert(\"xss\")</script>'. DB must not store raw <script> tag; rendered page must not execute JS."
+    },
+    {
+      "id": "forseti-jobhunter-resume-version-labeling-tc1-schema-migration",
+      "label": "TC-1: Schema migration \u2014 version_label, version_notes, source_resume_id columns exist after drush updb",
+      "type": "infrastructure",
+      "feature_id": "forseti-jobhunter-resume-version-labeling",
+      "command": "drush sql:query \"SHOW COLUMNS FROM jobhunter_job_seeker_resumes LIKE 'version%'\" 2>/dev/null && drush sql:query \"SHOW COLUMNS FROM jobhunter_applications LIKE 'source_resume_id'\" 2>/dev/null",
+      "artifacts": [
+        "/tmp/qa-forseti-resume-version-tc1.log"
+      ],
+      "required_for_release": true,
+      "notes": "Expect 2 rows from SHOW COLUMNS on resumes (version_label, version_notes) and 1 row from applications (source_resume_id)."
+    },
+    {
+      "id": "forseti-jobhunter-resume-version-labeling-tc2-save-version-label-smoke",
+      "label": "TC-2: Save version_label via resume edit form (smoke)",
+      "type": "functional",
+      "feature_id": "forseti-jobhunter-resume-version-labeling",
+      "command": "drush sql:query \"SELECT version_label FROM jobhunter_job_seeker_resumes WHERE id=<N> AND uid=<uid>\" 2>/dev/null",
+      "artifacts": [
+        "/tmp/qa-forseti-resume-version-tc2.log"
+      ],
+      "required_for_release": true,
+      "notes": "Submit resume edit form with version_label='Tech Lead v2'. DB must show 'Tech Lead v2'."
+    },
+    {
+      "id": "forseti-jobhunter-resume-version-labeling-tc3-resume-list-shows-labels",
+      "label": "TC-3: Resume list page /jobhunter/resume/list shows version labels",
+      "type": "functional",
+      "feature_id": "forseti-jobhunter-resume-version-labeling",
+      "command": "curl -s -b \"$FORSETI_COOKIE_AUTHENTICATED\" https://forseti.life/jobhunter/resume/list | grep -c 'Tech Lead v2'",
+      "artifacts": [
+        "/tmp/qa-forseti-resume-version-tc3.log"
+      ],
+      "required_for_release": true,
+      "notes": "Expect HTTP 200; page contains 'Tech Lead v2' label next to the resume. Grep count >= 1."
+    },
+    {
+      "id": "forseti-jobhunter-resume-version-labeling-tc4-link-resume-to-application",
+      "label": "TC-4: Link resume to application \u2014 source_resume_id saved on application row",
+      "type": "functional",
+      "feature_id": "forseti-jobhunter-resume-version-labeling",
+      "command": "drush sql:query \"SELECT source_resume_id FROM jobhunter_applications WHERE id=10 AND uid=<uid>\" 2>/dev/null",
+      "artifacts": [
+        "/tmp/qa-forseti-resume-version-tc4.log"
+      ],
+      "required_for_release": true,
+      "notes": "Edit application id=10, select resume id=5. DB must show source_resume_id=5."
+    },
+    {
+      "id": "forseti-jobhunter-resume-version-labeling-tc5-application-detail-shows-resume-label",
+      "label": "TC-5: Application detail page shows linked resume version label",
+      "type": "functional",
+      "feature_id": "forseti-jobhunter-resume-version-labeling",
+      "command": "curl -s -b \"$FORSETI_COOKIE_AUTHENTICATED\" https://forseti.life/jobhunter/application/10 | grep -c 'Tech Lead v2'",
+      "artifacts": [
+        "/tmp/qa-forseti-resume-version-tc5.log"
+      ],
+      "required_for_release": true,
+      "notes": "Application id=10 with source_resume_id=5; resume 5 has version_label='Tech Lead v2'. Application detail must show that label."
+    },
+    {
+      "id": "forseti-jobhunter-resume-version-labeling-tc6-null-version-label-graceful",
+      "label": "TC-6: NULL version_label (unlabeled resume) renders gracefully \u2014 no PHP warning",
+      "type": "functional",
+      "feature_id": "forseti-jobhunter-resume-version-labeling",
+      "command": "curl -s -b \"$FORSETI_COOKIE_AUTHENTICATED\" https://forseti.life/jobhunter/resume/list | grep -c 'Warning\\|Notice\\|Fatal'",
+      "artifacts": [
+        "/tmp/qa-forseti-resume-version-tc6.log"
+      ],
+      "required_for_release": true,
+      "notes": "Resume with NULL version_label must render without PHP errors. Grep count of error strings must be 0."
+    },
+    {
+      "id": "forseti-jobhunter-resume-version-labeling-tc7-cross-user-resume-ownership",
+      "label": "TC-7: source_resume_id ownership check \u2014 user A cannot assign user B resume to their application",
+      "type": "security",
+      "feature_id": "forseti-jobhunter-resume-version-labeling",
+      "command": "drush sql:query \"SELECT source_resume_id FROM jobhunter_applications WHERE uid=<uid_A>\" 2>/dev/null",
+      "artifacts": [
+        "/tmp/qa-forseti-resume-version-tc7.log"
+      ],
+      "required_for_release": true,
+      "notes": "User A submitting source_resume_id=99 (owned by user B) must return 403. DB must not show 99 for uid_A."
+    },
+    {
+      "id": "forseti-jobhunter-resume-version-labeling-tc8-csrf-required-on-resume-edit",
+      "label": "TC-8: CSRF required on resume edit POST",
+      "type": "security",
+      "feature_id": "forseti-jobhunter-resume-version-labeling",
+      "command": "curl -s -o /dev/null -w \"%{http_code}\" -X POST -b \"$FORSETI_COOKIE_AUTHENTICATED\" https://forseti.life/jobhunter/resume/<N>/edit",
+      "artifacts": [
+        "/tmp/qa-forseti-resume-version-tc8.log"
+      ],
+      "required_for_release": true,
+      "notes": "POST without X-CSRF-Token header must return 403."
+    },
+    {
+      "id": "forseti-jobhunter-resume-version-labeling-tc9-version-notes-xss-sanitization",
+      "label": "TC-9: version_notes XSS \u2014 script tag stripped, page does not execute injected JS",
+      "type": "security",
+      "feature_id": "forseti-jobhunter-resume-version-labeling",
+      "command": "drush sql:query \"SELECT version_notes FROM jobhunter_job_seeker_resumes WHERE uid=<uid> ORDER BY id DESC LIMIT 1\" 2>/dev/null",
+      "artifacts": [
+        "/tmp/qa-forseti-resume-version-tc9.log"
+      ],
+      "required_for_release": true,
+      "notes": "Submit version_notes='<script>alert(\"xss\")</script>'. DB must not contain raw <script> tag. Rendered page must not execute JS."
     }
   ],
   "_schema_notes": [
