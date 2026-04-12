@@ -2,7 +2,7 @@
 
 ## Coverage summary
 - AC items: 7 (3 happy path, 2 edge cases, 2 failure modes)
-- Test cases: 5 (TC-AAC-01-05)
+- Test cases: 6 (TC-AAC-01–06)
 - Suites: playwright (character creation, familiar management)
 - Security: AC exemption granted (existing familiar routes only)
 
@@ -36,4 +36,10 @@
 - Description: Submit a familiar type not in the catalog.
 - Suite: playwright/familiar
 - Expected: server rejects invalid familiar assignment
-- AC: Failure Modes-1, Failure Modes-2
+- AC: Failure Modes-2
+
+## TC-AAC-06 — No familiar granted without feat
+- Description: Gnome character who has NOT taken Animal Accomplice completes character creation.
+- Suite: playwright/character-creation
+- Expected: no familiar record is created via this feat path
+- AC: Failure Modes-1
