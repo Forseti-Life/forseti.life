@@ -13466,6 +13466,99 @@
           "required_for_release": true
         }
       ]
+    },
+    {
+      "id": "dc-cr-downtime-mode-playwright",
+      "label": "Downtime Mode \u2014 time scale (days), Earn Income (gold per day + crit fail fired), retraining (1 week/feat), crafting (formula/tools prereq, 4-day baseline, Alchemist free items), Subsist, Treat Disease, business income, server-validated gold/build mutations, audit logging",
+      "type": "playwright",
+      "feature_id": "dc-cr-downtime-mode",
+      "command": "npx playwright test --grep downtime-mode tests/dungeoncrawler/",
+      "artifacts": [
+        "sessions/qa-dungeoncrawler/artifacts/dc-cr-downtime-mode/playwright-results.xml"
+      ],
+      "required_for_release": true,
+      "test_cases": [
+        {
+          "id": "TC-DTM-01",
+          "label": "Downtime time scale: time_unit=days; character allocates days to activities; day count stored per activity instance",
+          "feature_id": "dc-cr-downtime-mode",
+          "required_for_release": true,
+          "status": "pending_implementation",
+          "suite_context": "playwright/downtime"
+        },
+        {
+          "id": "TC-DTM-02",
+          "label": "Earn Income: gold per day = table_lookup(task_level, check_result_tier); daily gold applied on success",
+          "feature_id": "dc-cr-downtime-mode",
+          "required_for_release": true,
+          "status": "pending_implementation",
+          "suite_context": "playwright/downtime"
+        },
+        {
+          "id": "TC-DTM-03",
+          "label": "Earn Income failure: fail \u2192 gold += 0; critical failure \u2192 1-week task cooldown (cannot use same task for 7 days)",
+          "feature_id": "dc-cr-downtime-mode",
+          "required_for_release": true,
+          "status": "pending_implementation",
+          "suite_context": "playwright/downtime"
+        },
+        {
+          "id": "TC-DTM-04",
+          "label": "Retraining: retraining_days_required = 7; on completion old feat removed and new feat added; skill increase same cost",
+          "feature_id": "dc-cr-downtime-mode",
+          "required_for_release": true,
+          "status": "pending_implementation",
+          "suite_context": "playwright/downtime"
+        },
+        {
+          "id": "TC-DTM-05",
+          "label": "Crafting downtime: prereq validation (formula + tools + rank); 4-day baseline \u2192 half price; Alchemist infused reagents = 0 gold cost",
+          "feature_id": "dc-cr-downtime-mode",
+          "required_for_release": true,
+          "status": "pending_implementation",
+          "suite_context": "playwright/downtime"
+        },
+        {
+          "id": "TC-DTM-06",
+          "label": "Subsist: Survival or Society check vs. environment DC; success \u2192 living expenses covered",
+          "feature_id": "dc-cr-downtime-mode",
+          "required_for_release": true,
+          "status": "pending_implementation",
+          "suite_context": "playwright/downtime"
+        },
+        {
+          "id": "TC-DTM-07",
+          "label": "Treat Disease downtime: Medicine check; success \u2192 disease.stage -= 1; failure \u2192 no change",
+          "feature_id": "dc-cr-downtime-mode",
+          "required_for_release": true,
+          "status": "pending_implementation",
+          "suite_context": "playwright/downtime"
+        },
+        {
+          "id": "TC-DTM-08",
+          "label": "Business income: income = table_lookup by skill result; correct skill applied per activity type",
+          "feature_id": "dc-cr-downtime-mode",
+          "required_for_release": true,
+          "status": "pending_implementation",
+          "suite_context": "playwright/downtime"
+        },
+        {
+          "id": "TC-DTM-09",
+          "label": "Security: gold mutations (earn income, crafting cost, subsist) server-validated and audit-logged; no client-side bypass",
+          "feature_id": "dc-cr-downtime-mode",
+          "required_for_release": true,
+          "status": "pending_implementation",
+          "suite_context": "playwright/downtime"
+        },
+        {
+          "id": "TC-DTM-10",
+          "label": "Security: retraining build mutations server-validated; invalid retraining (missing prereq days, wrong state) rejected with 422",
+          "feature_id": "dc-cr-downtime-mode",
+          "required_for_release": true,
+          "status": "pending_implementation",
+          "suite_context": "playwright/downtime"
+        }
+      ]
     }
   ],
   "_schema_notes": [

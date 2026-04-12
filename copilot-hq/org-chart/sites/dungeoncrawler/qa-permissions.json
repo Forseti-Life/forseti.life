@@ -1489,6 +1489,34 @@
         "dc_playwright_player": "allow",
         "dc_playwright_admin": "allow"
       }
+    },
+    {
+      "id": "dc-cr-downtime-mode-activity-acl",
+      "feature_id": "dc-cr-downtime-mode",
+      "path_regex": "^/api/character/[^/]+/downtime(/.*)?$",
+      "notes": "Downtime activity endpoints (earn income, retraining, crafting, subsist, treat disease, business). Auth required; scoped to character owner. Anon denied. TC-DTM-09, TC-DTM-10.",
+      "expect": {
+        "anon": "deny",
+        "authenticated": "allow",
+        "content_editor": "allow",
+        "administrator": "allow",
+        "dc_playwright_player": "allow",
+        "dc_playwright_admin": "allow"
+      }
+    },
+    {
+      "id": "dc-cr-downtime-mode-gold-log-acl",
+      "feature_id": "dc-cr-downtime-mode",
+      "path_regex": "^/api/character/[^/]+/downtime/audit-log$",
+      "notes": "Downtime audit log read. Auth required; campaign GM and character owner only. Anon denied. TC-DTM-09.",
+      "expect": {
+        "anon": "deny",
+        "authenticated": "allow",
+        "content_editor": "allow",
+        "administrator": "allow",
+        "dc_playwright_player": "allow",
+        "dc_playwright_admin": "allow"
+      }
     }
   ]
 }
