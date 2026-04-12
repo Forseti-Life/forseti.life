@@ -220,6 +220,12 @@ class ExplorationPhaseHandler implements PhaseHandlerInterface {
       'etch_rune',
       // REQ 2468–2473: Transfer rune between items.
       'transfer_rune',
+      // REQ 1730: Sense Direction [Exploration, free] — Survival (Wis).
+      'sense_direction',
+      // REQ 1733: Cover Tracks [Exploration, Trained] — Survival (Wis).
+      'cover_tracks',
+      // REQ 1734–1737: Track [Exploration, Trained] — Survival (Wis).
+      'track',
     ];
   }
 
@@ -1287,6 +1293,186 @@ class ExplorationPhaseHandler implements PhaseHandlerInterface {
 
         $result = ['entertained' => $entertained, 'degree' => $degree, 'roll' => $total, 'dc' => $dc];
         $events[] = GameEventLogger::buildEvent('perform', 'exploration', $actor_id, $result);
+        break;
+      }
+
+      // -----------------------------------------------------------------------
+      // REQ 1730: Sense Direction [Exploration, free activity] — Survival (Wis)
+      // No check in clear conditions; DC 15 base; +10 supernatural darkness/fog;
+      // +5 featureless planes. Crit Success also returns distance estimate.
+      // -----------------------------------------------------------------------
+      case 'sense_direction': {
+        $condition = $params['condition'] ?? 'clear';
+
+        // No check required in normal conditions.
+        if ($condition === 'clear') {
+          $result = [
+            'direction_known' => TRUE,
+            'distance_estimate' => FALSE,
+            'degree' => 'auto_success',
+            'dc' => NULL,
+            'condition' => $condition,
+          ];
+          $events[] = GameEventLogger::buildEvent('sense_direction', 'exploration', $actor_id, $result);
+          break;
+        }
+
+        $dc_base    = 15;
+        $dc_mods    = ['supernatural' => 10, 'featureless_plane' => 5];
+        $dc_sd      = $dc_base + ($dc_mods[$condition] ?? 0);
+        $survival   = (int) ($params['survival_bonus'] ?? $params['skill_bonus'] ?? 0);
+        $d20_sd     = $this->numberGenerationService->rollPathfinderDie(20);
+        $total_sd   = $d20_sd + $survival;
+        $degree_sd  = $this->calculateDegreeOfSuccess($total_sd, $dc_sd, $d20_sd);
+
+        $direction_known   = in_array($degree_sd, ['success', 'critical_success'], TRUE);
+        $distance_estimate = ($degree_sd === 'critical_success');
+
+        $result = [
+          'direction_known'   => $direction_known,
+          'distance_estimate' => $distance_estimate,
+          'degree'            => $degree_sd,
+          'dc'                => $dc_sd,
+          'roll'              => $total_sd,
+          'condition'         => $condition,
+        ];
+        $events[] = GameEventLogger::buildEvent('sense_direction', 'exploration', $actor_id, $result);
+        break;
+      }
+
+      // -----------------------------------------------------------------------
+      // REQ 1733: Cover Tracks [Exploration, Trained] — Survival (Wis)
+      // Character moves at half speed; sets a cover_tracks flag on the entity
+      // with a Survival DC (10 + survival_bonus) for pursuers.
+      // -----------------------------------------------------------------------
+      case 'cover_tracks': {
+        $proficiency_rank_ct = (int) ($params['proficiency_rank'] ?? 0);
+        if ($proficiency_rank_ct < 1) {
+          return [
+            'success' => FALSE,
+            'result'  => ['error' => 'Cover Tracks requires at least Trained proficiency in Survival.'],
+            'mutations' => [], 'events' => [], 'phase_transition' => NULL, 'narration' => NULL,
+          ];
+        }
+
+        $survival_ct = (int) ($params['survival_bonus'] ?? $params['skill_bonus'] ?? 0);
+        // DC for pursuers = 10 + survival_bonus (standard "set DC" rule).
+        $pursuer_dc_ct = 10 + $survival_ct;
+
+        // Record the covered-tracks flag on the actor's entity state.
+        if (!isset($game_state['entity_states'][$actor_id])) {
+          $game_state['entity_states'][$actor_id] = [];
+        }
+        $game_state['entity_states'][$actor_id]['tracks_covered']    = TRUE;
+        $game_state['entity_states'][$actor_id]['tracks_pursuer_dc'] = $pursuer_dc_ct;
+
+        // Movement is at half speed this exploration turn.
+        $this->advanceExplorationTime($game_state, 20);
+
+        $result = [
+          'tracks_covered' => TRUE,
+          'pursuer_dc'     => $pursuer_dc_ct,
+        ];
+        $events[] = GameEventLogger::buildEvent('cover_tracks', 'exploration', $actor_id, $result);
+        break;
+      }
+
+      // -----------------------------------------------------------------------
+      // REQ 1734–1737: Track [Exploration, Trained] — Survival (Wis)
+      // DC from terrain × trail-age matrix.
+      // Crit Success: follow at full speed + reveal next waypoint + bonus detail.
+      // Success: follow at half speed + reveal next waypoint.
+      // Failure: no progress; may retry in same area.
+      // Crit Failure: trail permanently lost for this tracker.
+      // -----------------------------------------------------------------------
+      case 'track': {
+        $proficiency_rank_tr = (int) ($params['proficiency_rank'] ?? 0);
+        if ($proficiency_rank_tr < 1) {
+          return [
+            'success' => FALSE,
+            'result'  => ['error' => 'Track requires at least Trained proficiency in Survival.'],
+            'mutations' => [], 'events' => [], 'phase_transition' => NULL, 'narration' => NULL,
+          ];
+        }
+
+        $trail_id_tr = $params['trail_id'] ?? ($target_id ?? 'trail_unknown');
+
+        // Block retry on a permanently-lost trail (crit fail recorded).
+        if (!empty($game_state['track_lost'][$actor_id . ':' . $trail_id_tr])) {
+          return [
+            'success' => FALSE,
+            'result'  => ['error' => 'Trail permanently lost; cannot retry this specific track.'],
+            'mutations' => [], 'events' => [], 'phase_transition' => NULL, 'narration' => NULL,
+          ];
+        }
+
+        // Cover Tracks override: use the pursuer_dc if set.
+        if (!empty($params['cover_tracks_pursuer_dc'])) {
+          $dc_tr = (int) $params['cover_tracks_pursuer_dc'];
+        }
+        else {
+          // Trail-age base DCs.
+          $age_dc = [
+            'recent'  => 15,   // < 1 hour
+            'today'   => 20,   // < 1 day
+            'week'    => 25,   // < 1 week
+            'old'     => 30,   // 1 week +
+          ];
+          // Terrain modifiers.
+          $terrain_mod = [
+            'forest'  => 2,
+            'desert'  => 5,
+            'urban'   => 5,
+            'default' => 0,
+          ];
+          $age_tr     = $params['trail_age'] ?? 'today';
+          $terrain_tr = $params['terrain'] ?? 'default';
+          $dc_tr = ($age_dc[$age_tr] ?? $age_dc['today'])
+                 + ($terrain_mod[$terrain_tr] ?? $terrain_mod['default']);
+        }
+
+        $survival_tr = (int) ($params['survival_bonus'] ?? $params['skill_bonus'] ?? 0);
+        $d20_tr      = $this->numberGenerationService->rollPathfinderDie(20);
+        $total_tr    = $d20_tr + $survival_tr;
+        $degree_tr   = $this->calculateDegreeOfSuccess($total_tr, $dc_tr, $d20_tr);
+
+        $progress_tr      = FALSE;
+        $full_speed_tr    = FALSE;
+        $bonus_detail_tr  = NULL;
+
+        switch ($degree_tr) {
+          case 'critical_success':
+            $progress_tr   = TRUE;
+            $full_speed_tr = TRUE;
+            $bonus_detail_tr = $params['bonus_trail_detail'] ?? NULL;
+            break;
+
+          case 'success':
+            $progress_tr   = TRUE;
+            $full_speed_tr = FALSE;
+            break;
+
+          case 'failure':
+            // No progress; retry allowed.
+            break;
+
+          case 'critical_failure':
+            // Trail permanently lost for this tracker.
+            $game_state['track_lost'][$actor_id . ':' . $trail_id_tr] = TRUE;
+            break;
+        }
+
+        $result = [
+          'degree'       => $degree_tr,
+          'progress'     => $progress_tr,
+          'full_speed'   => $full_speed_tr,
+          'bonus_detail' => $bonus_detail_tr,
+          'dc'           => $dc_tr,
+          'roll'         => $total_tr,
+          'trail_id'     => $trail_id_tr,
+          'next_waypoint' => $progress_tr ? ($params['next_waypoint'] ?? NULL) : NULL,
+        ];
+        $events[] = GameEventLogger::buildEvent('track', 'exploration', $actor_id, ['degree' => $degree_tr, 'trail_id' => $trail_id_tr, 'progress' => $progress_tr]);
         break;
       }
         return [
