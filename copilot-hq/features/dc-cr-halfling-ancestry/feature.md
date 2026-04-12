@@ -3,7 +3,7 @@
 - Work item id: dc-cr-halfling-ancestry
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: ready
+- Status: in_progress
 - Release: (set by PM at activation)
 - Priority: P2
 - PM owner: pm-dungeoncrawler
