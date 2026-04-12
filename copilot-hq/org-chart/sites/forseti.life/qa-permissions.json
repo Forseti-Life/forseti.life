@@ -1026,6 +1026,39 @@
         "authenticated": "200",
         "admin": "200"
       }
+    },
+    {
+      "id": "forseti-jobhunter-contact-referral-tracker-contacts-list",
+      "feature_id": "forseti-jobhunter-contact-referral-tracker",
+      "path_regex": "^/jobhunter/contacts$",
+      "notes": "Added for feature forseti-jobhunter-contact-referral-tracker. Per-user contact list view. Auth required.",
+      "expect": {
+        "anon": "403",
+        "authenticated": "200",
+        "admin": "200"
+      }
+    },
+    {
+      "id": "forseti-jobhunter-contact-referral-tracker-contact-add-edit",
+      "feature_id": "forseti-jobhunter-contact-referral-tracker",
+      "path_regex": "^/jobhunter/contacts/(add|\\d+/edit)$",
+      "notes": "Added for feature forseti-jobhunter-contact-referral-tracker. Contact add/edit form (GET). Auth required.",
+      "expect": {
+        "anon": "403",
+        "authenticated": "200",
+        "admin": "200"
+      }
+    },
+    {
+      "id": "forseti-jobhunter-contact-referral-tracker-contact-job-link",
+      "feature_id": "forseti-jobhunter-contact-referral-tracker",
+      "path_regex": "^/jobhunter/contacts/\\d+/link$",
+      "notes": "Added for feature forseti-jobhunter-contact-referral-tracker. Link contact to saved job (POST, CSRF required). Auth required.",
+      "expect": {
+        "anon": "403",
+        "authenticated": "200",
+        "admin": "200"
+      }
     }
   ]
 }

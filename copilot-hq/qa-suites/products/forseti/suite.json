@@ -3378,6 +3378,86 @@
       ],
       "required_for_release": true,
       "notes": "Submit version_notes='<script>alert(\"xss\")</script>'. DB must not store raw <script> tag; rendered page must not execute JS."
+    },
+    {
+      "id": "forseti-jobhunter-contact-referral-tracker-tc1-contacts-page-smoke",
+      "label": "TC-1: Contacts page renders HTTP 200 for authenticated user",
+      "type": "functional",
+      "feature_id": "forseti-jobhunter-contact-referral-tracker",
+      "command": "curl -s -o /dev/null -w \"%{http_code}\" -b \"$FORSETI_COOKIE_AUTHENTICATED\" https://forseti.life/jobhunter/contacts",
+      "artifacts": ["/tmp/qa-forseti-contact-referral-tc1.log"],
+      "required_for_release": true,
+      "notes": "GET /jobhunter/contacts with auth cookie. Expected: 200."
+    },
+    {
+      "id": "forseti-jobhunter-contact-referral-tracker-tc2-add-contact-creates-db-row",
+      "label": "TC-2: Add contact creates row in jobhunter_contacts with full_name, company_name, referral_status",
+      "type": "functional",
+      "feature_id": "forseti-jobhunter-contact-referral-tracker",
+      "command": "drush sql:query \"SELECT full_name, company_name, referral_status FROM jobhunter_contacts WHERE uid=<uid> ORDER BY created DESC LIMIT 1\" 2>/dev/null",
+      "artifacts": ["/tmp/qa-forseti-contact-referral-tc2.log"],
+      "required_for_release": true,
+      "notes": "Submit add-contact form with full name, company name, relationship type, referral status. Verify DB row exists with correct field values."
+    },
+    {
+      "id": "forseti-jobhunter-contact-referral-tracker-tc3-edit-contact-no-duplication",
+      "label": "TC-3: Edit contact updates row without creating duplicate",
+      "type": "functional",
+      "feature_id": "forseti-jobhunter-contact-referral-tracker",
+      "command": "drush sql:query \"SELECT COUNT(*) FROM jobhunter_contacts WHERE id=<contact_id> AND uid=<uid>\" 2>/dev/null",
+      "artifacts": ["/tmp/qa-forseti-contact-referral-tc3.log"],
+      "required_for_release": true,
+      "notes": "Edit an existing contact (change a field). COUNT(*) for that contact id must remain 1. Verify updated field value via separate SELECT."
+    },
+    {
+      "id": "forseti-jobhunter-contact-referral-tracker-tc4-link-contact-to-saved-job",
+      "label": "TC-4: Linking contact to saved job creates association and surfaces on job detail",
+      "type": "functional",
+      "feature_id": "forseti-jobhunter-contact-referral-tracker",
+      "command": "drush sql:query \"SELECT contact_id, job_id FROM jobhunter_contact_job_links WHERE uid=<uid> AND contact_id=<contact_id> AND job_id=<job_id>\" 2>/dev/null",
+      "artifacts": ["/tmp/qa-forseti-contact-referral-tc4.log"],
+      "required_for_release": true,
+      "notes": "Link an existing contact to a saved job. Verify row in jobhunter_contact_job_links and that the saved-job detail page shows referral text for that contact."
+    },
+    {
+      "id": "forseti-jobhunter-contact-referral-tracker-tc5-cross-user-isolation",
+      "label": "TC-5: Cross-user isolation — user B cannot see user A contacts",
+      "type": "security",
+      "feature_id": "forseti-jobhunter-contact-referral-tracker",
+      "command": "drush sql:query \"SELECT COUNT(*) FROM jobhunter_contacts WHERE uid=<uid_b>\" 2>/dev/null",
+      "artifacts": ["/tmp/qa-forseti-contact-referral-tc5.log"],
+      "required_for_release": true,
+      "notes": "User B (no contacts) visits /jobhunter/contacts. Response must show zero contacts. DB query for uid_b must return 0 rows. No user A data visible."
+    },
+    {
+      "id": "forseti-jobhunter-contact-referral-tracker-tc6-linkedin-url-validation",
+      "label": "TC-6: LinkedIn URL validation rejects javascript: URLs",
+      "type": "security",
+      "feature_id": "forseti-jobhunter-contact-referral-tracker",
+      "command": "curl -s -o /dev/null -w \"%{http_code}\" -X POST -b \"$FORSETI_COOKIE_AUTHENTICATED\" -d \"name=Test&linkedin_url=javascript:alert(1)&_token=$(drush p:token)\" https://forseti.life/jobhunter/contacts/save",
+      "artifacts": ["/tmp/qa-forseti-contact-referral-tc6.log"],
+      "required_for_release": true,
+      "notes": "POST a javascript: LinkedIn URL. Expected: 422 or redirect with error message. Verify DB does not store malicious URL via SELECT linkedin_url FROM jobhunter_contacts WHERE uid=<uid> ORDER BY id DESC LIMIT 1."
+    },
+    {
+      "id": "forseti-jobhunter-contact-referral-tracker-tc7-unauthenticated-access-blocked",
+      "label": "TC-7: Unauthenticated access to /jobhunter/contacts returns 403",
+      "type": "security",
+      "feature_id": "forseti-jobhunter-contact-referral-tracker",
+      "command": "curl -s -o /dev/null -w \"%{http_code}\" https://forseti.life/jobhunter/contacts",
+      "artifacts": ["/tmp/qa-forseti-contact-referral-tc7.log"],
+      "required_for_release": true,
+      "notes": "GET /jobhunter/contacts without session cookie. Expected: 403. Auth gate must block anonymous access."
+    },
+    {
+      "id": "forseti-jobhunter-contact-referral-tracker-tc8-csrf-required-on-save",
+      "label": "TC-8: CSRF token required on POST save route",
+      "type": "security",
+      "feature_id": "forseti-jobhunter-contact-referral-tracker",
+      "command": "curl -s -o /dev/null -w \"%{http_code}\" -X POST -b \"$FORSETI_COOKIE_AUTHENTICATED\" https://forseti.life/jobhunter/contacts/save",
+      "artifacts": ["/tmp/qa-forseti-contact-referral-tc8.log"],
+      "required_for_release": true,
+      "notes": "POST to /jobhunter/contacts/save without X-CSRF-Token or _token param. Expected: 403. Validates _csrf_token: 'TRUE' split-route requirement."
     }
   ],
   "_schema_notes": [
