@@ -292,6 +292,10 @@ class ContentRegistry {
       case 'trap':
         $errors = array_merge($errors, $this->validateTrap($content_data));
         break;
+
+      case 'hazard':
+        $errors = array_merge($errors, $this->validateHazard($content_data));
+        break;
     }
     
     return [
@@ -420,6 +424,45 @@ class ContentRegistry {
       $errors[] = 'Trap must have numeric disable_dc';
     }
     
+    return $errors;
+  }
+
+  /**
+   * Validate hazard-specific fields.
+   *
+   * @param array $data
+   *   Hazard data.
+   *
+   * @return array
+   *   Array of validation errors.
+   */
+  protected function validateHazard(array $data): array {
+    $errors = [];
+
+    if (!isset($data['stealth_dc']) || !is_numeric($data['stealth_dc'])) {
+      $errors[] = 'Hazard must have numeric stealth_dc';
+    }
+
+    // Disable DC may be nested under disable.dc or flat disable_dc.
+    $disable_dc = $data['disable']['dc'] ?? $data['disable_dc'] ?? NULL;
+    if (!isset($disable_dc) || !is_numeric($disable_dc)) {
+      $errors[] = 'Hazard must have numeric disable DC (disable.dc or disable_dc)';
+    }
+
+    $valid_complexity = ['simple', 'complex'];
+    if (isset($data['complexity']) && !in_array($data['complexity'], $valid_complexity, TRUE)) {
+      $errors[] = 'Hazard complexity must be "simple" or "complex"';
+    }
+
+    if (!empty($data['is_magical'])) {
+      if (!isset($data['spell_level']) || !is_numeric($data['spell_level'])) {
+        $errors[] = 'Magical hazard must have numeric spell_level';
+      }
+      if (!isset($data['counteract_dc']) || !is_numeric($data['counteract_dc'])) {
+        $errors[] = 'Magical hazard must have numeric counteract_dc';
+      }
+    }
+
     return $errors;
   }
 

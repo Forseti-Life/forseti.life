@@ -104,6 +104,11 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
    */
   protected ?MovementResolverService $movementResolver;
 
+  /**
+   * @var \Drupal\dungeoncrawler_content\Service\HazardService
+   */
+  protected HazardService $hazardService;
+
   public function __construct(
     Connection $database,
     LoggerChannelFactoryInterface $logger_factory,
@@ -121,7 +126,8 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
     ConfigFactoryInterface $config_factory,
     NpcPsychologyService $psychology_service = NULL,
     ?NarrationEngine $narration_engine = NULL,
-    ?MovementResolverService $movement_resolver = NULL
+    ?MovementResolverService $movement_resolver = NULL,
+    ?HazardService $hazard_service = NULL
   ) {
     $this->database = $database;
     $this->logger = $logger_factory->get('dungeoncrawler');
@@ -140,6 +146,7 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
     $this->psychologyService = $psychology_service ?? new NpcPsychologyService($database, $logger_factory);
     $this->narrationEngine = $narration_engine;
     $this->movementResolver = $movement_resolver;
+    $this->hazardService = $hazard_service ?? new HazardService($number_generation_service);
   }
 
   /**
@@ -244,6 +251,10 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
       'command_animal',
       // REQ 1706: Performance — Perform (encounter variant, 1 action).
       'perform',
+      // REQ 2373–2396: Hazard actions [encounter-phase].
+      'disable_hazard',
+      'attack_hazard',
+      'counteract_hazard',
     ];
   }
 
@@ -1931,6 +1942,90 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
         $game_state['turn']['actions_remaining'] = max(0, ($game_state['turn']['actions_remaining'] ?? 0) - 2);
         $result = ['degree' => $degree_pl, 'unlocked' => $unlocked, 'jammed' => $jammed, 'lock_quality' => $lock_quality_pl, 'used_tools' => $has_tools_pl, 'secret' => TRUE];
         $events[] = GameEventLogger::buildEvent('pick_lock', 'encounter', $actor_id, ['lock_id' => $lock_id_pl, 'lock_quality' => $lock_quality_pl, 'degree' => $degree_pl, 'jammed' => $jammed, 'round' => $game_state['round'] ?? NULL]);
+        break;
+      }
+
+      // -----------------------------------------------------------------------
+      // REQ 2373–2396: Hazard actions [encounter-phase].
+      // -----------------------------------------------------------------------
+      case 'disable_hazard': {
+        $hazard_id_dh = $params['hazard_id'] ?? NULL;
+        if (!$hazard_id_dh) {
+          return ['success' => FALSE, 'result' => ['error' => 'hazard_id required.'], 'mutations' => [], 'events' => [], 'phase_transition' => NULL, 'narration' => NULL];
+        }
+        $hazard_ref_dh = &$this->hazardService->findHazardByInstanceId($dungeon_data, $hazard_id_dh);
+        if ($hazard_ref_dh === NULL) {
+          return ['success' => FALSE, 'result' => ['error' => 'Hazard not found.'], 'mutations' => [], 'events' => [], 'phase_transition' => NULL, 'narration' => NULL];
+        }
+        $skill_rank_dh = (int) ($params['skill_proficiency_rank'] ?? 0);
+        $skill_bonus_dh = (int) ($params['skill_bonus'] ?? 0);
+        $disable_result_dh = $this->hazardService->disableHazard($hazard_ref_dh, $skill_rank_dh, $skill_bonus_dh);
+        $xp_dh = 0;
+        if (!empty($disable_result_dh['disabled'])) {
+          $xp_dh = $this->hazardService->awardHazardXp($hazard_ref_dh, $game_state);
+        }
+        $complexity_dh = $hazard_ref_dh['complexity'] ?? 'simple';
+        $phase_transition_dh = NULL;
+        if (!empty($disable_result_dh['triggered']) && $complexity_dh === 'complex') {
+          $initiative_dh = $this->hazardService->rollComplexHazardInitiative($hazard_ref_dh);
+          $phase_transition_dh = ['type' => 'encounter_continue', 'hazard_initiative' => $initiative_dh, 'hazard_id' => $hazard_id_dh];
+        }
+        $game_state['turn']['actions_remaining'] = max(0, ($game_state['turn']['actions_remaining'] ?? 0) - 2);
+        $result = array_merge($disable_result_dh, ['xp_awarded' => $xp_dh, 'hazard_id' => $hazard_id_dh]);
+        $events[] = GameEventLogger::buildEvent('disable_hazard', 'encounter', $actor_id, ['hazard_id' => $hazard_id_dh, 'degree' => $disable_result_dh['degree'], 'disabled' => $disable_result_dh['disabled'], 'triggered' => $disable_result_dh['triggered'] ?? FALSE, 'round' => $game_state['round'] ?? NULL]);
+        $phase_transition = $phase_transition_dh;
+        break;
+      }
+
+      case 'attack_hazard': {
+        $hazard_id_ah = $params['hazard_id'] ?? NULL;
+        if (!$hazard_id_ah) {
+          return ['success' => FALSE, 'result' => ['error' => 'hazard_id required.'], 'mutations' => [], 'events' => [], 'phase_transition' => NULL, 'narration' => NULL];
+        }
+        $hazard_ref_ah = &$this->hazardService->findHazardByInstanceId($dungeon_data, $hazard_id_ah);
+        if ($hazard_ref_ah === NULL) {
+          return ['success' => FALSE, 'result' => ['error' => 'Hazard not found.'], 'mutations' => [], 'events' => [], 'phase_transition' => NULL, 'narration' => NULL];
+        }
+        $damage_amount_ah = (int) ($params['damage'] ?? 0);
+        $damage_type_ah = $params['damage_type'] ?? 'bludgeoning';
+        $damage_result_ah = $this->hazardService->applyDamageToHazard($hazard_ref_ah, $damage_amount_ah, $damage_type_ah);
+        $xp_ah = 0;
+        if (!empty($damage_result_ah['disabled'])) {
+          $xp_ah = $this->hazardService->awardHazardXp($hazard_ref_ah, $game_state);
+        }
+        $complexity_ah = $hazard_ref_ah['complexity'] ?? 'simple';
+        $phase_transition_ah = NULL;
+        if (!empty($damage_result_ah['triggered']) && $complexity_ah === 'complex') {
+          $initiative_ah = $this->hazardService->rollComplexHazardInitiative($hazard_ref_ah);
+          $phase_transition_ah = ['type' => 'encounter_continue', 'hazard_initiative' => $initiative_ah, 'hazard_id' => $hazard_id_ah];
+        }
+        $action_cost_ah = (int) ($params['action_cost'] ?? 1);
+        $game_state['turn']['actions_remaining'] = max(0, ($game_state['turn']['actions_remaining'] ?? 0) - $action_cost_ah);
+        $result = array_merge($damage_result_ah, ['xp_awarded' => $xp_ah, 'hazard_id' => $hazard_id_ah]);
+        $events[] = GameEventLogger::buildEvent('attack_hazard', 'encounter', $actor_id, ['hazard_id' => $hazard_id_ah, 'damage' => $damage_amount_ah, 'triggered' => $damage_result_ah['triggered'] ?? FALSE, 'disabled' => $damage_result_ah['disabled'] ?? FALSE, 'round' => $game_state['round'] ?? NULL]);
+        $phase_transition = $phase_transition_ah;
+        break;
+      }
+
+      case 'counteract_hazard': {
+        $hazard_id_ch = $params['hazard_id'] ?? NULL;
+        if (!$hazard_id_ch) {
+          return ['success' => FALSE, 'result' => ['error' => 'hazard_id required.'], 'mutations' => [], 'events' => [], 'phase_transition' => NULL, 'narration' => NULL];
+        }
+        $hazard_ref_ch = &$this->hazardService->findHazardByInstanceId($dungeon_data, $hazard_id_ch);
+        if ($hazard_ref_ch === NULL) {
+          return ['success' => FALSE, 'result' => ['error' => 'Hazard not found.'], 'mutations' => [], 'events' => [], 'phase_transition' => NULL, 'narration' => NULL];
+        }
+        $counteract_level_ch = (int) ($params['counteract_level'] ?? 0);
+        $counteract_bonus_ch = (int) ($params['counteract_bonus'] ?? 0);
+        $counteract_result_ch = $this->hazardService->counteractMagicalHazard($hazard_ref_ch, $counteract_level_ch, $counteract_bonus_ch);
+        $xp_ch = 0;
+        if (!empty($counteract_result_ch['counteracted'])) {
+          $xp_ch = $this->hazardService->awardHazardXp($hazard_ref_ch, $game_state);
+        }
+        $game_state['turn']['actions_remaining'] = max(0, ($game_state['turn']['actions_remaining'] ?? 0) - 2);
+        $result = array_merge($counteract_result_ch, ['xp_awarded' => $xp_ch, 'hazard_id' => $hazard_id_ch]);
+        $events[] = GameEventLogger::buildEvent('counteract_hazard', 'encounter', $actor_id, ['hazard_id' => $hazard_id_ch, 'degree' => $counteract_result_ch['degree'], 'counteracted' => $counteract_result_ch['counteracted'] ?? FALSE, 'round' => $game_state['round'] ?? NULL]);
         break;
       }
 

@@ -452,6 +452,12 @@ services:
     tags:
       - {name: event_subscriber}
 
+  # Hazard system (REQs 2373–2396)
+  dungeoncrawler_content.hazard_service:
+    class: Drupal\dungeoncrawler_content\Service\HazardService
+    arguments:
+      - '@dungeoncrawler_content.number_generation'
+
   # Game Coordinator Engine Services
   dungeoncrawler_content.game_event_logger:
     class: Drupal\dungeoncrawler_content\Service\GameEventLogger
@@ -470,6 +476,7 @@ services:
       - '@dungeoncrawler_content.ai_gm'
       - '@dungeoncrawler_content.narration_engine'
       - '@dungeoncrawler_content.knowledge_acquisition'
+      - '@dungeoncrawler_content.hazard_service'
 
   dungeoncrawler_content.encounter_phase_handler:
     class: Drupal\dungeoncrawler_content\Service\EncounterPhaseHandler
@@ -491,6 +498,7 @@ services:
       - '@dungeoncrawler_content.npc_psychology_service'
       - '@dungeoncrawler_content.narration_engine'
       - '@dungeoncrawler_content.movement_resolver'
+      - '@dungeoncrawler_content.hazard_service'
 
   dungeoncrawler_content.crafting:
     class: Drupal\dungeoncrawler_content\Service\CraftingService

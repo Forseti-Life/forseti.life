@@ -89,6 +89,11 @@ class ExplorationPhaseHandler implements PhaseHandlerInterface {
   protected KnowledgeAcquisitionService $knowledgeAcquisition;
 
   /**
+   * @var \Drupal\dungeoncrawler_content\Service\HazardService
+   */
+  protected HazardService $hazardService;
+
+  /**
    * Constructs an ExplorationPhaseHandler.
    */
   public function __construct(
@@ -100,7 +105,8 @@ class ExplorationPhaseHandler implements PhaseHandlerInterface {
     NumberGenerationService $number_generation_service,
     AiGmService $ai_gm_service,
     ?NarrationEngine $narration_engine = NULL,
-    ?KnowledgeAcquisitionService $knowledge_acquisition = NULL
+    ?KnowledgeAcquisitionService $knowledge_acquisition = NULL,
+    ?HazardService $hazard_service = NULL
   ) {
     $this->database = $database;
     $this->logger = $logger_factory->get('dungeoncrawler');
@@ -118,6 +124,7 @@ class ExplorationPhaseHandler implements PhaseHandlerInterface {
         new LearnASpellService(new DcAdjustmentService()),
         new DcAdjustmentService()
       );
+    $this->hazardService = $hazard_service ?? new HazardService($number_generation_service);
   }
 
   /**
@@ -170,6 +177,12 @@ class ExplorationPhaseHandler implements PhaseHandlerInterface {
       'command_animal',
       // REQ 1706: Performance — Perform (exploration variant).
       'perform',
+      // REQ 2384–2388: Disable a Device (hazard-targeting).
+      'disable_hazard',
+      // REQ 2393–2394: Counteract a magical hazard (exploration phase).
+      'counteract_hazard',
+      // REQ 2392: Attack a hazard to destroy it.
+      'attack_hazard',
     ];
   }
 
@@ -882,7 +895,108 @@ class ExplorationPhaseHandler implements PhaseHandlerInterface {
       }
 
       // -----------------------------------------------------------------------
-      // REQ 1706: Perform [Exploration, immediate, Performance]
+      // REQ 2384–2388: Disable a Hazard [2 actions, skill vs disable_dc]
+      // -----------------------------------------------------------------------
+      case 'disable_hazard': {
+        $hazard_id = $params['hazard_id'] ?? NULL;
+        if (!$hazard_id) {
+          return ['success' => FALSE, 'result' => ['error' => 'disable_hazard requires params.hazard_id.'], 'mutations' => [], 'events' => [], 'phase_transition' => NULL, 'narration' => NULL];
+        }
+        $hazard_ref = &$this->hazardService->findHazardByInstanceId($hazard_id, $dungeon_data);
+        if (!$hazard_ref) {
+          return ['success' => FALSE, 'result' => ['error' => "Hazard '$hazard_id' not found."], 'mutations' => [], 'events' => [], 'phase_transition' => NULL, 'narration' => NULL];
+        }
+        $skill_bonus = (int) ($params['skill_bonus'] ?? 0);
+        $skill_rank  = (int) ($params['skill_proficiency_rank'] ?? 0);
+        $disable_result = $this->hazardService->disableHazard($hazard_ref, $skill_bonus, $skill_rank, $params);
+
+        if ($disable_result['blocked']) {
+          return ['success' => FALSE, 'result' => ['error' => $disable_result['blocked_reason']], 'mutations' => [], 'events' => [], 'phase_transition' => NULL, 'narration' => NULL];
+        }
+
+        // Award XP if disabled.
+        $xp_awarded = 0;
+        if ($disable_result['disabled']) {
+          $party_level = (int) ($game_state['party_level'] ?? 1);
+          $xp_awarded = $this->hazardService->awardHazardXp($game_state, $hazard_ref, $party_level);
+        }
+        // Complex hazard trigger may start encounter.
+        if ($disable_result['triggered'] && ($hazard_ref['complexity'] ?? 'simple') === 'complex') {
+          $phase_transition = ['from' => 'exploration', 'to' => 'encounter', 'reason' => sprintf('%s triggered!', $hazard_ref['name'] ?? $hazard_id)];
+        }
+
+        $result = $disable_result + ['xp_awarded' => $xp_awarded];
+        $events[] = GameEventLogger::buildEvent('disable_hazard', 'exploration', $actor_id, ['hazard_id' => $hazard_id, 'degree' => $disable_result['degree'], 'disabled' => $disable_result['disabled']]);
+        $this->persistDungeonData($campaign_id, $dungeon_data);
+        break;
+      }
+
+      // -----------------------------------------------------------------------
+      // REQ 2393–2394: Counteract a Magical Hazard
+      // -----------------------------------------------------------------------
+      case 'counteract_hazard': {
+        $hazard_id = $params['hazard_id'] ?? NULL;
+        if (!$hazard_id) {
+          return ['success' => FALSE, 'result' => ['error' => 'counteract_hazard requires params.hazard_id.'], 'mutations' => [], 'events' => [], 'phase_transition' => NULL, 'narration' => NULL];
+        }
+        $hazard_ref = &$this->hazardService->findHazardByInstanceId($hazard_id, $dungeon_data);
+        if (!$hazard_ref) {
+          return ['success' => FALSE, 'result' => ['error' => "Hazard '$hazard_id' not found."], 'mutations' => [], 'events' => [], 'phase_transition' => NULL, 'narration' => NULL];
+        }
+
+        $d20_ct = $this->numberGenerationService->rollPathfinderDie(20);
+        $total_ct = $d20_ct + (int) ($params['skill_bonus'] ?? 0);
+        $counteract_level = (int) ($params['counteract_level'] ?? 1);
+
+        $ct_result = $this->hazardService->counteractMagicalHazard($hazard_ref, $counteract_level, $total_ct, $d20_ct);
+        if ($ct_result['blocked']) {
+          return ['success' => FALSE, 'result' => ['error' => $ct_result['blocked_reason']], 'mutations' => [], 'events' => [], 'phase_transition' => NULL, 'narration' => NULL];
+        }
+
+        $xp_awarded = 0;
+        if ($ct_result['counteracted']) {
+          $party_level = (int) ($game_state['party_level'] ?? 1);
+          $xp_awarded = $this->hazardService->awardHazardXp($game_state, $hazard_ref, $party_level);
+        }
+
+        $result = $ct_result + ['roll' => $d20_ct, 'total' => $total_ct, 'xp_awarded' => $xp_awarded];
+        $events[] = GameEventLogger::buildEvent('counteract_hazard', 'exploration', $actor_id, ['hazard_id' => $hazard_id, 'degree' => $ct_result['degree']]);
+        $this->persistDungeonData($campaign_id, $dungeon_data);
+        break;
+      }
+
+      // -----------------------------------------------------------------------
+      // REQ 2390–2392: Attack a Hazard (Destroy it via HP damage)
+      // -----------------------------------------------------------------------
+      case 'attack_hazard': {
+        $hazard_id = $params['hazard_id'] ?? NULL;
+        if (!$hazard_id) {
+          return ['success' => FALSE, 'result' => ['error' => 'attack_hazard requires params.hazard_id.'], 'mutations' => [], 'events' => [], 'phase_transition' => NULL, 'narration' => NULL];
+        }
+        $hazard_ref = &$this->hazardService->findHazardByInstanceId($hazard_id, $dungeon_data);
+        if (!$hazard_ref) {
+          return ['success' => FALSE, 'result' => ['error' => "Hazard '$hazard_id' not found."], 'mutations' => [], 'events' => [], 'phase_transition' => NULL, 'narration' => NULL];
+        }
+
+        $raw_damage = (int) ($params['damage'] ?? 0);
+        $dmg_result = $this->hazardService->applyDamageToHazard($hazard_ref, $raw_damage);
+
+        $xp_awarded = 0;
+        if ($dmg_result['destroyed']) {
+          $party_level = (int) ($game_state['party_level'] ?? 1);
+          $xp_awarded = $this->hazardService->awardHazardXp($game_state, $hazard_ref, $party_level);
+        }
+        if ($dmg_result['triggered'] && ($hazard_ref['complexity'] ?? 'simple') === 'complex') {
+          $phase_transition = ['from' => 'exploration', 'to' => 'encounter', 'reason' => sprintf('%s triggered!', $hazard_ref['name'] ?? $hazard_id)];
+        }
+
+        $result = $dmg_result + ['xp_awarded' => $xp_awarded];
+        $events[] = GameEventLogger::buildEvent('attack_hazard', 'exploration', $actor_id, ['hazard_id' => $hazard_id, 'damage' => $raw_damage, 'destroyed' => $dmg_result['destroyed']]);
+        $this->persistDungeonData($campaign_id, $dungeon_data);
+        break;
+      }
+
+
       // Entertain an audience or attempt to earn tips.
       // -----------------------------------------------------------------------
       case 'perform': {
@@ -1080,6 +1194,72 @@ class ExplorationPhaseHandler implements PhaseHandlerInterface {
 
     $result['mutations'] = $mutations;
 
+    // REQ 2374: Auto-secret Perception vs stealth_dc for non-min-prof hazards on movement.
+    // REQ 2377: Passive hazards trigger if undetected on entry.
+    $is_searching = ($activity === 'search');
+    $perception_bonus_hz = (int) ($entity['stats']['perception'] ?? ($entity['state']['skills']['perception'] ?? 0));
+    $perception_rank_hz = 1; // Default Trained; caller should pass actual rank in params.
+    if (isset($params['perception_proficiency_rank'])) {
+      $perception_rank_hz = (int) $params['perception_proficiency_rank'];
+    }
+
+    $room_hazards = $this->hazardService->getRoomHazards($dungeon_data);
+    $hazard_events = [];
+    foreach ($room_hazards as $hazard_snapshot) {
+      $hazard_id = $hazard_snapshot['instance_id'] ?? $hazard_snapshot['id'] ?? NULL;
+      if (!$hazard_id) {
+        continue;
+      }
+      $hazard_ref = &$this->hazardService->findHazardByInstanceId($hazard_id, $dungeon_data);
+      if (!$hazard_ref) {
+        continue;
+      }
+      if (!empty($hazard_ref['state']['detected'])) {
+        continue;
+      }
+
+      // Auto-detect roll.
+      $detect = $this->hazardService->rollHazardDetection(
+        $hazard_ref,
+        $perception_bonus_hz,
+        $perception_rank_hz,
+        $is_searching
+      );
+      if ($detect['detected']) {
+        $this->hazardService->markDetected($hazard_ref);
+        $hazard_events[] = ['type' => 'hazard_detected', 'instance_id' => $hazard_id, 'name' => $hazard_ref['name'] ?? $hazard_id, 'roll' => $detect['roll'], 'total' => $detect['total'], 'dc' => $detect['dc']];
+      }
+      elseif (!$detect['blocked'] && ($hazard_ref['trigger']['type'] ?? 'passive') === 'passive') {
+        // REQ 2377: Passive undetected hazard triggers.
+        $trigger = $this->hazardService->triggerHazard($hazard_ref);
+        if ($trigger['triggered']) {
+          $hazard_events[] = ['type' => 'hazard_triggered', 'instance_id' => $hazard_id, 'name' => $hazard_ref['name'] ?? $hazard_id, 'effect' => $trigger['effect']];
+        }
+      }
+    }
+    if (!empty($hazard_events)) {
+      $result['hazard_events'] = $hazard_events;
+    }
+
+    // REQ AC: Detect Magic activity reveals magical hazards on movement (no proficiency gate).
+    if ($activity === 'detect_magic') {
+      foreach ($this->hazardService->getRoomHazards($dungeon_data) as $hazard_snapshot) {
+        $hazard_id = $hazard_snapshot['instance_id'] ?? $hazard_snapshot['id'] ?? NULL;
+        if (!$hazard_id) {
+          continue;
+        }
+        $hazard_ref = &$this->hazardService->findHazardByInstanceId($hazard_id, $dungeon_data);
+        if (!$hazard_ref || empty($hazard_ref['is_magical']) || !empty($hazard_ref['state']['detected'])) {
+          continue;
+        }
+        $this->hazardService->markDetected($hazard_ref);
+        $hazard_events[] = ['type' => 'magical_hazard_revealed', 'instance_id' => $hazard_id, 'name' => $hazard_ref['name'] ?? $hazard_id, 'via' => 'detect_magic'];
+      }
+      if (!empty($hazard_events)) {
+        $result['hazard_events'] = $hazard_events;
+      }
+    }
+
     // Persist to DB.
     $this->persistDungeonData($campaign_id, $dungeon_data);
 
@@ -1167,7 +1347,8 @@ class ExplorationPhaseHandler implements PhaseHandlerInterface {
    */
   protected function processSearch(string $actor_id, array $params, array &$game_state, array &$dungeon_data, int $campaign_id): array {
     // Roll Perception check using server-authoritative dice.
-    $perception_bonus = $params['perception_bonus'] ?? 0;
+    $perception_bonus = (int) ($params['perception_bonus'] ?? 0);
+    $perception_rank = (int) ($params['perception_proficiency_rank'] ?? 1);
     $roll_result = $this->numberGenerationService->rollPathfinderDie(20);
     $total = $roll_result + $perception_bonus;
 
@@ -1179,18 +1360,51 @@ class ExplorationPhaseHandler implements PhaseHandlerInterface {
 
     $discoveries = [];
     // Reveal hidden entities based on degree of success.
-    if (in_array($degree, ['critical_success', 'success'])) {
+    if (in_array($degree, ['critical_success', 'success'], TRUE)) {
       $discoveries = $this->revealHiddenEntities($dungeon_data, $degree === 'critical_success');
     }
 
+    // REQ 2375: While Searching, also check for min-proficiency hazards that
+    // a passive walk-through check would not attempt.
+    $hazard_events = [];
+    foreach ($this->hazardService->getRoomHazards($dungeon_data) as $hazard_snapshot) {
+      $hazard_id = $hazard_snapshot['instance_id'] ?? $hazard_snapshot['id'] ?? NULL;
+      if (!$hazard_id) {
+        continue;
+      }
+      $hazard_ref = &$this->hazardService->findHazardByInstanceId($hazard_id, $dungeon_data);
+      if (!$hazard_ref || !empty($hazard_ref['state']['detected'])) {
+        continue;
+      }
+      $detect = $this->hazardService->rollHazardDetection(
+        $hazard_ref,
+        $perception_bonus,
+        $perception_rank,
+        TRUE // is_searching = TRUE
+      );
+      if ($detect['detected']) {
+        $this->hazardService->markDetected($hazard_ref);
+        $hazard_events[] = [
+          'type'        => 'hazard_detected',
+          'instance_id' => $hazard_id,
+          'name'        => $hazard_ref['name'] ?? $hazard_id,
+          'roll'        => $detect['roll'],
+          'total'       => $detect['total'],
+          'dc'          => $detect['dc'],
+        ];
+        $discoveries[] = ['instance_id' => $hazard_id, 'name' => $hazard_ref['name'] ?? $hazard_id];
+      }
+    }
+
     return [
-      'searched' => TRUE,
-      'roll' => $roll_result,
-      'total' => $total,
-      'dc' => $search_dc,
-      'degree' => $degree,
-      'discoveries' => $discoveries,
-      'mutations' => [],
+      'searched'     => TRUE,
+      'roll'         => $roll_result,
+      'total'        => $total,
+      'dc'           => $search_dc,
+      'degree'       => $degree,
+      'discoveries'  => $discoveries,
+      'hazard_events' => $hazard_events,
+      'mutations'    => [],
     ];
   }
 
