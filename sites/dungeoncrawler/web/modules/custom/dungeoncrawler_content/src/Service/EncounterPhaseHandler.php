@@ -1623,6 +1623,19 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
         }
 
         $stealth_bonus_h = (int) ($params['stealth_bonus'] ?? 0);
+        // REQ dc-cr-gnome-heritage-chameleon: Chameleon Gnome +2 circumstance bonus to
+        // Stealth when terrain color matches character coloration. PF2e rule: circumstance
+        // bonuses don't stack; only the highest applies.
+        $chameleon_bonus_h = 0;
+        if (($params['heritage'] ?? '') === 'chameleon') {
+          $terrain_color_h = $params['terrain_color_tag'] ?? '';
+          $char_color_h    = $params['coloration_tag'] ?? '';
+          if ($terrain_color_h !== '' && $char_color_h !== '' && $terrain_color_h === $char_color_h) {
+            $existing_circumstance_h = (int) ($params['circumstance_bonus'] ?? 0);
+            $chameleon_bonus_h = max(0, 2 - $existing_circumstance_h);
+            $stealth_bonus_h += $chameleon_bonus_h;
+          }
+        }
         $observer_ids_h = $params['observer_ids'] ?? [];
         $perception_dcs_h = $params['perception_dcs'] ?? [];
 
@@ -1649,7 +1662,7 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
         }
 
         $game_state['turn']['actions_remaining'] = max(0, ($game_state['turn']['actions_remaining'] ?? 0) - 1);
-        $result = ['hide_results' => $hide_results, 'observer_count' => count($observer_ids_h), 'secret' => TRUE];
+        $result = ['hide_results' => $hide_results, 'observer_count' => count($observer_ids_h), 'secret' => TRUE, 'chameleon_bonus_applied' => $chameleon_bonus_h > 0 ? $chameleon_bonus_h : NULL];
         $events[] = GameEventLogger::buildEvent('hide', 'encounter', $actor_id, ['observer_count' => count($observer_ids_h), 'round' => $game_state['round'] ?? NULL]);
         break;
       }
@@ -1690,6 +1703,17 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
         }
 
         $stealth_bonus_sn = (int) ($params['stealth_bonus'] ?? 0);
+        // REQ dc-cr-gnome-heritage-chameleon: Apply chameleon +2 circumstance bonus if terrain matches.
+        $chameleon_bonus_sn = 0;
+        if (($params['heritage'] ?? '') === 'chameleon') {
+          $terrain_color_sn = $params['terrain_color_tag'] ?? '';
+          $char_color_sn    = $params['coloration_tag'] ?? '';
+          if ($terrain_color_sn !== '' && $char_color_sn !== '' && $terrain_color_sn === $char_color_sn) {
+            $existing_circumstance_sn = (int) ($params['circumstance_bonus'] ?? 0);
+            $chameleon_bonus_sn = max(0, 2 - $existing_circumstance_sn);
+            $stealth_bonus_sn += $chameleon_bonus_sn;
+          }
+        }
         $perception_dcs_sn = $params['perception_dcs'] ?? [];
 
         $sneak_results = [];
@@ -1717,7 +1741,7 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
         }
 
         $game_state['turn']['actions_remaining'] = max(0, ($game_state['turn']['actions_remaining'] ?? 0) - 1);
-        $result = ['sneak_results' => $sneak_results, 'half_speed' => $half_speed_sn, 'secret' => TRUE];
+        $result = ['sneak_results' => $sneak_results, 'half_speed' => $half_speed_sn, 'secret' => TRUE, 'chameleon_bonus_applied' => $chameleon_bonus_sn > 0 ? $chameleon_bonus_sn : NULL];
         $events[] = GameEventLogger::buildEvent('sneak', 'encounter', $actor_id, ['observer_count' => count($observer_ids_sn), 'round' => $game_state['round'] ?? NULL]);
         break;
       }
@@ -2586,6 +2610,27 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
         $game_state['turn']['actions_remaining'] = max(0, ($game_state['turn']['actions_remaining'] ?? 3) - 1);
         $result = ['balanced' => $balanced, 'degree' => $degree, 'roll' => $total, 'dc' => $dc];
         $events[] = GameEventLogger::buildEvent('balance', 'encounter', $actor_id, $result);
+        break;
+      }
+
+      // -----------------------------------------------------------------------
+      // REQ dc-cr-gnome-heritage-chameleon: Minor Color Shift [1 action]
+      // Chameleon Gnome only. Instantly updates coloration_tag to match current terrain,
+      // enabling the +2 circumstance bonus to Stealth checks in matching terrain.
+      // -----------------------------------------------------------------------
+      case 'minor_color_shift': {
+        if (($params['heritage'] ?? '') !== 'chameleon') {
+          return ['success' => FALSE, 'result' => ['error' => 'Minor Color Shift requires Chameleon Gnome heritage.'], 'mutations' => [], 'events' => [], 'phase_transition' => NULL, 'narration' => NULL];
+        }
+        $terrain_color_mcs = trim($params['terrain_color_tag'] ?? '');
+        if ($terrain_color_mcs === '') {
+          return ['success' => FALSE, 'result' => ['error' => 'terrain_color_tag is required.'], 'mutations' => [], 'events' => [], 'phase_transition' => NULL, 'narration' => NULL];
+        }
+        // Update coloration_tag so subsequent Hide/Sneak checks can apply the bonus.
+        $mutations[] = ['type' => 'char_state', 'key' => 'coloration_tag', 'value' => $terrain_color_mcs];
+        $game_state['turn']['actions_remaining'] = max(0, ($game_state['turn']['actions_remaining'] ?? 0) - 1);
+        $result = ['coloration_tag' => $terrain_color_mcs, 'action_cost' => 1];
+        $events[] = GameEventLogger::buildEvent('minor_color_shift', 'encounter', $actor_id, ['new_coloration' => $terrain_color_mcs, 'round' => $game_state['round'] ?? NULL]);
         break;
       }
 

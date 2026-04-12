@@ -472,6 +472,24 @@ class DowntimePhaseHandler implements PhaseHandlerInterface {
         break;
       }
 
+      // -----------------------------------------------------------------------
+      // REQ dc-cr-gnome-heritage-chameleon: Dramatic Color Shift [Downtime, ~1 hour]
+      // Chameleon Gnome only. Updates coloration_tag on char state to match target terrain.
+      // -----------------------------------------------------------------------
+      case 'dramatic_color_shift': {
+        if (($params['heritage'] ?? '') !== 'chameleon') {
+          return ['success' => FALSE, 'result' => ['error' => 'Dramatic Color Shift requires Chameleon Gnome heritage.'], 'mutations' => [], 'events' => [], 'phase_transition' => NULL, 'narration' => NULL];
+        }
+        $new_terrain_color = trim($params['target_terrain_color'] ?? '');
+        if ($new_terrain_color === '') {
+          return ['success' => FALSE, 'result' => ['error' => 'target_terrain_color is required.'], 'mutations' => [], 'events' => [], 'phase_transition' => NULL, 'narration' => NULL];
+        }
+        $mutations[] = ['type' => 'char_state', 'key' => 'coloration_tag', 'value' => $new_terrain_color];
+        $result = ['coloration_tag' => $new_terrain_color, 'duration' => 'up to 1 hour'];
+        $events[] = GameEventLogger::buildEvent('dramatic_color_shift', 'downtime', $actor_id, ['new_coloration' => $new_terrain_color]);
+        break;
+      }
+
       default:
         return [
           'success' => FALSE,
