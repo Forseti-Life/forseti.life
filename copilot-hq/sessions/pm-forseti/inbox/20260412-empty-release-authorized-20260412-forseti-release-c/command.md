@@ -38,3 +38,5 @@ bash scripts/pm-scope-activate.sh forseti 20260412-forseti-release-d
 - `sessions/pm-forseti/artifacts/release-signoffs/20260412-forseti-release-c.md` exists
 - `release-signoff-status.sh 20260412-forseti-release-c` shows signoff confirmed
 - Outbox written: `Status: done`
+- Agent: pm-forseti
+- Status: pending

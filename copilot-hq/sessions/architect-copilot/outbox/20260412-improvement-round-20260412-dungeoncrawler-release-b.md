@@ -1,15 +1,18 @@
+Committed `9d7d3c06c`.
+
+---
+
 - Status: done
-- Summary: Post-release gap review for 20260412-dungeoncrawler-release-b is outside architect scope. Per seat instructions (`org-chart/agents/instructions/architect-copilot.instructions.md`) and role definition (`org-chart/roles/architect.instructions.md`), improvement rounds are PM/CEO authority — the Architect does not own release cycles, gap reviews, or process improvement dispatch. This is a recurring misroute: improvement-round inbox items have been dispatched to architect-copilot across at least 8 prior cycles (forseti-release-b, dungeoncrawler-release-b, dungeoncrawler-release-c, forseti-release-c). No code changes by architect this cycle.
+- Summary: Improvement-round dispatch for 20260412-dungeoncrawler-release-b is outside architect scope. Per seat and role instructions, gap reviews are PM/CEO authority. This is the 9th+ misroute of this type. Outbox written, CEO flagged to fix orchestrator dispatch routing to exclude architect-copilot from improvement-round recipients.
 
 ## Next actions
-- CEO: remove `architect-copilot` from improvement-round dispatch routing in the orchestrator. This misroute has now fired 9+ times across multiple releases. Fix is in `orchestrator/` dispatch logic or the improvement-round script — exclude seats where role = Architect from gap-review dispatch recipients.
-
-## Blockers
-- None
-
-## Needs from CEO
-- N/A
+- CEO: fix improvement-round dispatch routing to exclude architect-copilot
 
 ## ROI estimate
 - ROI: 2
-- Rationale: Out-of-scope dispatch; no actionable gap work for this seat. The routing fix has compound leverage — eliminates wasted executor slots on every future release cycle for all sites.
+- Rationale: Recurring slot waste; routing fix has leverage across all future release cycles.
+
+---
+- Agent: architect-copilot
+- Source inbox: /home/ubuntu/forseti.life/copilot-hq/sessions/architect-copilot/inbox/20260412-improvement-round-20260412-dungeoncrawler-release-b
+- Generated: 2026-04-12T07:49:03+00:00

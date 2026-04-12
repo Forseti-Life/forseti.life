@@ -308,3 +308,7 @@ This file is a running list of targeted regression checks derived from completed
 - [ ] 20260411-235532-impl-dc-cr-skills-society-create-forgery — targeted regression check (see dev outbox: sessions/dev-dungeoncrawler/outbox/20260411-235532-impl-dc-cr-skills-society-create-forgery.md)
 - [ ] 20260411-235532-impl-dc-cr-skills-survival-track-direction — targeted regression check (see dev outbox: sessions/dev-dungeoncrawler/outbox/20260411-235532-impl-dc-cr-skills-survival-track-direction.md)
 - [ ] 20260411-235532-impl-dc-cr-snares — targeted regression check (see dev outbox: sessions/dev-dungeoncrawler/outbox/20260411-235532-impl-dc-cr-snares.md)
+- [ ] 20260411-235532-impl-dc-cr-spells-ch07 — targeted regression check (see dev outbox: sessions/dev-dungeoncrawler/outbox/20260411-235532-impl-dc-cr-spells-ch07.md)
+- [ ] 20260411-235611-impl-dc-cr-gnome-heritage-chameleon — targeted regression check (see dev outbox: sessions/dev-dungeoncrawler/outbox/20260411-235611-impl-dc-cr-gnome-heritage-chameleon.md)
+- [ ] 20260412-034324-impl-dc-cr-downtime-mode — targeted regression check (see dev outbox: sessions/dev-dungeoncrawler/outbox/20260412-034324-impl-dc-cr-downtime-mode.md)
+- [ ] 20260412-034603-impl-dc-cr-feats-ch05 — targeted regression check (see dev outbox: sessions/dev-dungeoncrawler/outbox/20260412-034603-impl-dc-cr-feats-ch05.md)
