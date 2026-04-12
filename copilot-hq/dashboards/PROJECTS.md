@@ -50,15 +50,15 @@ That page is rendered from this file. CEO and architect seats must treat the roa
 
 **Scope:** Persistent assistant experience, conversation memory, model integration, and shared AI capability across Forseti products.
 
-**Current state:** Production foundation is in place. No standalone 2026 delivery initiative is currently open; work is being carried as a shared platform capability inside Forseti releases.
+**Current state:** All foundation features shipped (user-chat, history-browser, export, job-suggestions, service-db-refactor, service-refactor, debug-gate, tailoring-feedback). Next slice defined: **Local LLM / Provider Selection** (`forseti-ai-local-llm-provider-selection`, Status: ready, Release: 20260412-forseti-release-e). Aligns with org mission to decentralize services — adds Ollama self-hosted provider option alongside OpenAI, with per-user provider preference and org-default admin config.
 
-**Last scoped release:** `20260410-forseti-release-f`
+**Last scoped release:** `20260412-forseti-release-e`
 
 **Progress SLA:** 7 days without release-scoped work or a PM re-baseline/grooming update = breach
 
-**Next step:** When the next dedicated AI Conversation slice is defined, add it here as a delivery project and queue the corresponding PM/Dev/QA work.
+**Next step:** Activate `forseti-ai-local-llm-provider-selection` in release-e when in_progress count drops below 10 (currently 7/10). BA grooming dispatch queued.
 
-**Queue status:** `pm-forseti` inbox item queued on 2026-04-12: `20260412-proj005-next-slice-ai-conversation`
+**Queue status:** ba-forseti AC brief queued 2026-04-12: `20260412-ai-local-llm-provider-ac-brief`
 
 ---
 
