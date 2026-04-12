@@ -214,6 +214,16 @@ class DowntimePhaseHandler implements PhaseHandlerInterface {
 
       case 'earn_income':
         $result = $this->processEarnIncome($actor_id, $params, $game_state, $campaign_id);
+        if (isset($result['success']) && $result['success'] === FALSE) {
+          return [
+            'success'          => FALSE,
+            'result'           => $result,
+            'mutations'        => [],
+            'events'           => [],
+            'phase_transition' => NULL,
+            'narration'        => NULL,
+          ];
+        }
         $events[] = GameEventLogger::buildEvent($type, 'downtime', $actor_id, [
           'task_level'  => $params['task_level'] ?? NULL,
           'skill'       => $params['skill'] ?? NULL,
@@ -307,6 +317,16 @@ class DowntimePhaseHandler implements PhaseHandlerInterface {
       // -----------------------------------------------------------------------
       case 'treat_disease':
         $result = $this->processTreatDisease($actor_id, $params, $game_state);
+        if (isset($result['success']) && $result['success'] === FALSE) {
+          return [
+            'success'          => FALSE,
+            'result'           => $result,
+            'mutations'        => [],
+            'events'           => [],
+            'phase_transition' => NULL,
+            'narration'        => NULL,
+          ];
+        }
         $events[] = GameEventLogger::buildEvent('treat_disease', 'downtime', $actor_id, [
           'affliction_id' => $params['affliction_id'] ?? NULL,
           'degree'        => $params['degree'] ?? NULL,
@@ -319,6 +339,16 @@ class DowntimePhaseHandler implements PhaseHandlerInterface {
       // -----------------------------------------------------------------------
       case 'run_business':
         $result = $this->processRunBusiness($actor_id, $params, $game_state, $campaign_id);
+        if (isset($result['success']) && $result['success'] === FALSE) {
+          return [
+            'success'          => FALSE,
+            'result'           => $result,
+            'mutations'        => [],
+            'events'           => [],
+            'phase_transition' => NULL,
+            'narration'        => NULL,
+          ];
+        }
         $events[] = GameEventLogger::buildEvent('run_business', 'downtime', $actor_id, [
           'skill'      => $params['skill'] ?? NULL,
           'task_level' => $params['task_level'] ?? NULL,

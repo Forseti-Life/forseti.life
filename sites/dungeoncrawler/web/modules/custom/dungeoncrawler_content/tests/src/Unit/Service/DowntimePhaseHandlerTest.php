@@ -9,6 +9,7 @@ use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use Psr\Log\LoggerInterface;
 use Drupal\dungeoncrawler_content\Service\CharacterStateService;
 use Drupal\dungeoncrawler_content\Service\CraftingService;
+use Drupal\dungeoncrawler_content\Service\NpcPsychologyService;
 
 /**
  * Tests for DowntimePhaseHandler service.
@@ -39,8 +40,9 @@ class DowntimePhaseHandlerTest extends UnitTestCase {
     $lf->method('get')->willReturn($logger);
     $css    = $this->createMock(CharacterStateService::class);
     $craft  = $this->createMock(CraftingService::class);
+    $npc    = $this->createMock(NpcPsychologyService::class);
 
-    $this->handler = new DowntimePhaseHandler($db, $lf, $css, $craft);
+    $this->handler = new DowntimePhaseHandler($db, $lf, $css, $craft, $npc);
   }
 
   // ---------------------------------------------------------------------------
@@ -117,8 +119,9 @@ class DowntimePhaseHandlerTest extends UnitTestCase {
     $lf->method('get')->willReturn($this->createMock(LoggerInterface::class));
     $css    = $this->createMock(CharacterStateService::class);
     $craft  = $this->createMock(CraftingService::class);
+    $npc    = $this->createMock(NpcPsychologyService::class);
 
-    $handler = new DowntimePhaseHandler($db, $lf, $css, $craft);
+    $handler = new DowntimePhaseHandler($db, $lf, $css, $craft, $npc);
 
     $game_state = $this->makeGameState();
     $intent = [
@@ -170,8 +173,9 @@ class DowntimePhaseHandlerTest extends UnitTestCase {
     $lf->method('get')->willReturn($this->createMock(LoggerInterface::class));
     $css   = $this->createMock(CharacterStateService::class);
     $craft = $this->createMock(CraftingService::class);
+    $npc   = $this->createMock(NpcPsychologyService::class);
 
-    $handler = new DowntimePhaseHandler($db, $lf, $css, $craft);
+    $handler = new DowntimePhaseHandler($db, $lf, $css, $craft, $npc);
 
     $game_state = $this->makeGameState();
     $intent = [
@@ -221,8 +225,9 @@ class DowntimePhaseHandlerTest extends UnitTestCase {
     $lf->method('get')->willReturn($this->createMock(LoggerInterface::class));
     $css   = $this->createMock(CharacterStateService::class);
     $craft = $this->createMock(CraftingService::class);
+    $npc   = $this->createMock(NpcPsychologyService::class);
 
-    $handler = new DowntimePhaseHandler($db, $lf, $css, $craft);
+    $handler = new DowntimePhaseHandler($db, $lf, $css, $craft, $npc);
 
     $game_state = $this->makeGameState();
     $intent = [
@@ -359,8 +364,9 @@ class DowntimePhaseHandlerTest extends UnitTestCase {
     $lf->method('get')->willReturn($this->createMock(LoggerInterface::class));
     $css   = $this->createMock(CharacterStateService::class);
     $craft = $this->createMock(CraftingService::class);
+    $npc   = $this->createMock(NpcPsychologyService::class);
 
-    $handler = new DowntimePhaseHandler($db, $lf, $css, $craft);
+    $handler = new DowntimePhaseHandler($db, $lf, $css, $craft, $npc);
 
     $game_state = $this->makeGameState();
     $intent = [
@@ -381,6 +387,212 @@ class DowntimePhaseHandlerTest extends UnitTestCase {
     $this->assertTrue($response['success']);
     $this->assertSame(270, $response['result']['earned_cp']); // 90 × 3.
     $this->assertSame(3, $response['result']['days_elapsed']);
+  }
+
+  // ---------------------------------------------------------------------------
+  // AC-005: subsist
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Subsist success covers living expenses with no penalty.
+   */
+  public function testSubsistSuccessCoversCost(): void {
+    $handler    = $this->handler;
+    $game_state = $this->makeGameState();
+    $intent = [
+      'type'   => 'subsist',
+      'actor'  => NULL,
+      'params' => [
+        'skill'       => 'survival',
+        'degree'      => 'success',
+        'environment' => 'settled_town',
+      ],
+    ];
+
+    $dd = [];
+    $response = $handler->processIntent($intent, $game_state, $dd, 42);
+
+    $this->assertTrue($response['success']);
+    $this->assertTrue($response['result']['covered']);
+    $this->assertSame(0, $response['result']['penalty_cp']);
+    $this->assertSame(0, $response['result']['extra_covered']);
+  }
+
+  /**
+   * Subsist critical success covers self AND one extra person.
+   */
+  public function testSubsistCritSuccessCoversExtra(): void {
+    $handler    = $this->handler;
+    $game_state = $this->makeGameState();
+    $intent = [
+      'type'   => 'subsist',
+      'actor'  => NULL,
+      'params' => [
+        'skill'       => 'survival',
+        'degree'      => 'critical_success',
+        'environment' => 'settled_town',
+      ],
+    ];
+
+    $dd = [];
+    $response = $handler->processIntent($intent, $game_state, $dd, 42);
+
+    $this->assertTrue($response['success']);
+    $this->assertTrue($response['result']['covered']);
+    $this->assertSame(1, $response['result']['extra_covered']);
+  }
+
+  /**
+   * Subsist failure returns covered=false with 10 cp penalty.
+   */
+  public function testSubsistFailurePenalizesTenCp(): void {
+    $handler    = $this->handler;
+    $game_state = $this->makeGameState();
+    $intent = [
+      'type'   => 'subsist',
+      'actor'  => NULL,
+      'params' => [
+        'skill'       => 'survival',
+        'degree'      => 'failure',
+        'environment' => 'settled_town',
+      ],
+    ];
+
+    $dd = [];
+    $response = $handler->processIntent($intent, $game_state, $dd, 42);
+
+    $this->assertTrue($response['success']);
+    $this->assertFalse($response['result']['covered']);
+    $this->assertSame(10, $response['result']['penalty_cp']);
+  }
+
+  // ---------------------------------------------------------------------------
+  // AC-005: treat_disease
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Treat disease success reduces affliction stage by 1.
+   */
+  public function testTreatDiseaseSuccessReducesStage(): void {
+    $stmt = $this->createMock(\Drupal\Core\Database\StatementInterface::class);
+    $stmt->method('fetchAssoc')->willReturn([
+      'id'             => 7,
+      'current_stage'  => 3,
+      'max_stage'      => 5,
+      'affliction_type' => 'disease',
+    ]);
+
+    $select = $this->createMock(\Drupal\Core\Database\Query\Select::class);
+    $select->method('fields')->willReturnSelf();
+    $select->method('condition')->willReturnSelf();
+    $select->method('execute')->willReturn($stmt);
+
+    $update = $this->createMock(\Drupal\Core\Database\Query\Update::class);
+    $update->method('fields')->willReturnSelf();
+    $update->method('condition')->willReturnSelf();
+    $update->method('execute')->willReturn(1);
+
+    $db = $this->createMock(Connection::class);
+    $db->method('select')->willReturn($select);
+    $db->method('update')->willReturn($update);
+
+    $lf    = $this->createMock(LoggerChannelFactoryInterface::class);
+    $lf->method('get')->willReturn($this->createMock(LoggerInterface::class));
+    $css   = $this->createMock(CharacterStateService::class);
+    $craft = $this->createMock(CraftingService::class);
+    $npc   = $this->createMock(NpcPsychologyService::class);
+
+    $handler    = new DowntimePhaseHandler($db, $lf, $css, $craft, $npc);
+    $game_state = $this->makeGameState();
+    $intent = [
+      'type'   => 'treat_disease',
+      'actor'  => NULL,
+      'params' => [
+        'affliction_id' => 7,
+        'degree'        => 'success',
+      ],
+    ];
+
+    $dd = [];
+    $response = $handler->processIntent($intent, $game_state, $dd, 42);
+
+    $this->assertTrue($response['success']);
+    $this->assertSame(3, $response['result']['old_stage']);
+    $this->assertSame(2, $response['result']['new_stage']);
+    $this->assertFalse($response['result']['cured']);
+  }
+
+  /**
+   * Treat disease with missing affliction_id returns error.
+   */
+  public function testTreatDiseaseMissingAfflictionIdReturnsError(): void {
+    $handler    = $this->handler;
+    $game_state = $this->makeGameState();
+    $intent = [
+      'type'   => 'treat_disease',
+      'actor'  => NULL,
+      'params' => [],
+    ];
+
+    $dd = [];
+    $response = $handler->processIntent($intent, $game_state, $dd, 42);
+
+    $this->assertFalse($response['success']);
+    $this->assertSame('missing_affliction_id', $response['result']['error']);
+  }
+
+  // ---------------------------------------------------------------------------
+  // AC-005: run_business
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Run business success returns earned_cp with activity=run_business.
+   */
+  public function testRunBusinessSuccessEarnsIncome(): void {
+    $char_data = json_encode(['currency' => ['pp' => 0, 'gp' => 0, 'sp' => 0, 'cp' => 0]]);
+    $stmt = $this->createMock(\Drupal\Core\Database\StatementInterface::class);
+    $stmt->method('fetchAssoc')->willReturn(['character_data' => $char_data]);
+
+    $select = $this->createMock(\Drupal\Core\Database\Query\Select::class);
+    $select->method('fields')->willReturnSelf();
+    $select->method('condition')->willReturnSelf();
+    $select->method('execute')->willReturn($stmt);
+
+    $update = $this->createMock(\Drupal\Core\Database\Query\Update::class);
+    $update->method('fields')->willReturnSelf();
+    $update->method('condition')->willReturnSelf();
+    $update->method('execute')->willReturn(1);
+
+    $db = $this->createMock(Connection::class);
+    $db->method('select')->willReturn($select);
+    $db->method('update')->willReturn($update);
+
+    $lf    = $this->createMock(LoggerChannelFactoryInterface::class);
+    $lf->method('get')->willReturn($this->createMock(LoggerInterface::class));
+    $css   = $this->createMock(CharacterStateService::class);
+    $craft = $this->createMock(CraftingService::class);
+    $npc   = $this->createMock(NpcPsychologyService::class);
+
+    $handler    = new DowntimePhaseHandler($db, $lf, $css, $craft, $npc);
+    $game_state = $this->makeGameState();
+    $intent = [
+      'type'   => 'run_business',
+      'actor'  => 'char-001',
+      'params' => [
+        'skill'            => 'crafting',
+        'proficiency_rank' => 1,
+        'task_level'       => 3,
+        'degree'           => 'success',
+        'days'             => 1,
+      ],
+    ];
+
+    $dd = [];
+    $response = $handler->processIntent($intent, $game_state, $dd, 42);
+
+    $this->assertTrue($response['success']);
+    $this->assertSame('run_business', $response['result']['activity']);
+    $this->assertGreaterThan(0, $response['result']['earned_cp']);
   }
 
 }
