@@ -3,7 +3,7 @@
 - Work item id: dc-cr-downtime-mode
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: in_progress
+- Status: ready
 - Priority: P1
 - Release: 
 20260412-dungeoncrawler-release-b

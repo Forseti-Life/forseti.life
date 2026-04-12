@@ -3,7 +3,7 @@
 - Work item id: dc-cr-hazards
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: in_progress
+- Status: ready
 - Priority: P2
 - Release: 
 20260412-dungeoncrawler-release-b

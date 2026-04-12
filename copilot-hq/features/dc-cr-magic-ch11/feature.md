@@ -3,7 +3,7 @@
 - Work item id: dc-cr-magic-ch11
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: in_progress
+- Status: ready
 - Release: 
 20260412-dungeoncrawler-release-b
 - PM owner: pm-dungeoncrawler

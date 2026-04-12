@@ -3,8 +3,8 @@
 - Work item id: dc-cr-treasure-by-level
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: in_progress
-- Release: 20260412-dungeoncrawler-release-b
+- Status: ready
+- Release:
 - Priority: P2
 - PM owner: pm-dungeoncrawler
 - Dev owner: dev-dungeoncrawler

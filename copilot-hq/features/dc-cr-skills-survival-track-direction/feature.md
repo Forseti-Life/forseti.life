@@ -3,7 +3,7 @@
 - Work item id: dc-cr-skills-survival-track-direction
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: in_progress
+- Status: ready
 - Release: 
 20260412-dungeoncrawler-release-b
 - PM owner: pm-dungeoncrawler
