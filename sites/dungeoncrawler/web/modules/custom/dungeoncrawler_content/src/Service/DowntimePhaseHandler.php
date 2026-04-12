@@ -87,6 +87,10 @@ class DowntimePhaseHandler implements PhaseHandlerInterface {
       'coerce',
       // REQ 1705–1708: Performance Earn Income (downtime).
       'perform',
+      // AC-005: Subsist, Treat Disease, Run Business.
+      'subsist',
+      'treat_disease',
+      'run_business',
     ];
   }
 
@@ -229,13 +233,50 @@ class DowntimePhaseHandler implements PhaseHandlerInterface {
         ]);
         break;
 
-      // -----------------------------------------------------------------------
       // REQ 1705–1708: Perform [Downtime — Earn Income via Performance]
       // Routes to earn_income logic with skill = 'performance'.
       // -----------------------------------------------------------------------
       case 'perform':
         $result = $this->processEarnIncome($actor_id, array_merge($params, ['skill' => 'performance']), $game_state, $campaign_id);
         $events[] = GameEventLogger::buildEvent('perform', 'downtime', $actor_id, [
+          'task_level' => $params['task_level'] ?? NULL,
+          'degree'     => $params['degree'] ?? NULL,
+          'earned_cp'  => $result['earned_cp'] ?? 0,
+        ]);
+        break;
+
+      // -----------------------------------------------------------------------
+      // AC-005: Subsist [Downtime, 1 day, Survival or Society]
+      // Check vs environment DC to cover living expenses.
+      // -----------------------------------------------------------------------
+      case 'subsist':
+        $result = $this->processSubsist($actor_id, $params, $game_state);
+        $events[] = GameEventLogger::buildEvent('subsist', 'downtime', $actor_id, [
+          'skill'  => $params['skill'] ?? NULL,
+          'degree' => $params['degree'] ?? NULL,
+        ]);
+        break;
+
+      // -----------------------------------------------------------------------
+      // AC-005: Treat Disease [Downtime, 1 day, Medicine]
+      // Reduces disease stage on success.
+      // -----------------------------------------------------------------------
+      case 'treat_disease':
+        $result = $this->processTreatDisease($actor_id, $params, $game_state);
+        $events[] = GameEventLogger::buildEvent('treat_disease', 'downtime', $actor_id, [
+          'affliction_id' => $params['affliction_id'] ?? NULL,
+          'degree'        => $params['degree'] ?? NULL,
+        ]);
+        break;
+
+      // -----------------------------------------------------------------------
+      // AC-005: Run Business / Crafts for Sale [Downtime]
+      // Routes to earn_income logic with the provided skill and table.
+      // -----------------------------------------------------------------------
+      case 'run_business':
+        $result = $this->processRunBusiness($actor_id, $params, $game_state, $campaign_id);
+        $events[] = GameEventLogger::buildEvent('run_business', 'downtime', $actor_id, [
+          'skill'      => $params['skill'] ?? NULL,
           'task_level' => $params['task_level'] ?? NULL,
           'degree'     => $params['degree'] ?? NULL,
           'earned_cp'  => $result['earned_cp'] ?? 0,
@@ -965,6 +1006,227 @@ class DowntimePhaseHandler implements PhaseHandlerInterface {
       'immune'          => FALSE,
     ];
   }
+
+  // =========================================================================
+  // AC-005: Other Downtime Activities.
+  // =========================================================================
+
+  /**
+   * PF2e CRB Subsist environment DCs by settlement type.
+   * CRB Table 5-2 (Downtime Activities — Subsist).
+   *
+   * Keys: environment type string → DC.
+   */
+  private const SUBSIST_DC = [
+    'thriving_city' => 10,
+    'settled_town'  => 12,
+    'rural_area'    => 14,
+    'wilderness'    => 16,
+    'extreme'       => 20,
+  ];
+
+  /**
+   * Processes the Subsist downtime action (AC-005).
+   *
+   * Characters make a Survival or Society check vs the local environment DC
+   * to cover their living expenses for a day (or fail and pay 1 sp).
+   *
+   * Params:
+   *   - skill (string):        'survival' | 'society' (default 'survival').
+   *   - degree (string):       critical_success | success | failure | critical_failure.
+   *   - environment (string):  Key from SUBSIST_DC table (default 'settled_town').
+   *
+   * @param string|null $actor_id
+   * @param array       $params
+   * @param array       $game_state  Modified by reference (days_elapsed +1).
+   *
+   * @return array  Result with keys: success, degree, skill, environment, dc, covered, penalty_cp.
+   */
+  protected function processSubsist(?string $actor_id, array $params, array &$game_state): array {
+    $skill       = in_array($params['skill'] ?? '', ['survival', 'society'], TRUE) ? $params['skill'] : 'survival';
+    $degree      = $params['degree'] ?? 'failure';
+    $environment = $params['environment'] ?? 'settled_town';
+
+    $dc = self::SUBSIST_DC[$environment] ?? self::SUBSIST_DC['settled_town'];
+
+    if (!isset($game_state['downtime'])) {
+      $game_state['downtime'] = [];
+    }
+    $game_state['downtime']['days_elapsed'] = ($game_state['downtime']['days_elapsed'] ?? 0) + 1;
+
+    switch ($degree) {
+      case 'critical_success':
+        // CRB: crit success provides enough food/shelter for self AND one other.
+        return [
+          'success'     => TRUE,
+          'degree'      => $degree,
+          'skill'       => $skill,
+          'environment' => $environment,
+          'dc'          => $dc,
+          'covered'     => TRUE,
+          'extra_covered' => 1,
+          'penalty_cp'  => 0,
+          'days_elapsed' => $game_state['downtime']['days_elapsed'],
+        ];
+
+      case 'success':
+        return [
+          'success'     => TRUE,
+          'degree'      => $degree,
+          'skill'       => $skill,
+          'environment' => $environment,
+          'dc'          => $dc,
+          'covered'     => TRUE,
+          'extra_covered' => 0,
+          'penalty_cp'  => 0,
+          'days_elapsed' => $game_state['downtime']['days_elapsed'],
+        ];
+
+      case 'failure':
+        // CRB: failure = must pay 1 sp (= 10 cp) for subsistence.
+        return [
+          'success'     => TRUE,
+          'degree'      => $degree,
+          'skill'       => $skill,
+          'environment' => $environment,
+          'dc'          => $dc,
+          'covered'     => FALSE,
+          'extra_covered' => 0,
+          'penalty_cp'  => 10,
+          'days_elapsed' => $game_state['downtime']['days_elapsed'],
+        ];
+
+      case 'critical_failure':
+        // CRB: crit failure = starving / no shelter. Fatigued condition applied.
+        $game_state['downtime']['subsist_crit_fail_days'] = ($game_state['downtime']['subsist_crit_fail_days'] ?? 0) + 1;
+        return [
+          'success'       => TRUE,
+          'degree'        => $degree,
+          'skill'         => $skill,
+          'environment'   => $environment,
+          'dc'            => $dc,
+          'covered'       => FALSE,
+          'extra_covered' => 0,
+          'penalty_cp'    => 0,
+          'fatigued'      => TRUE,
+          'message'       => 'Critical failure: character goes without food/shelter. Fatigue applied.',
+          'days_elapsed'  => $game_state['downtime']['days_elapsed'],
+        ];
+
+      default:
+        return ['success' => FALSE, 'error' => 'invalid_degree', 'message' => "Invalid degree: {$degree}."];
+    }
+  }
+
+  /**
+   * Processes the Treat Disease downtime action (AC-005).
+   *
+   * A character with Medicine training attempts to reduce the current stage
+   * of a disease (tracked in combat_afflictions table).
+   *
+   * Degrees (CRB Treat Disease):
+   *   - critical_success: reduce stage by 2.
+   *   - success:          reduce stage by 1.
+   *   - failure:          no change.
+   *   - critical_failure: increase stage by 1.
+   *
+   * Params:
+   *   - affliction_id (int):  ID in the combat_afflictions table.
+   *   - degree (string):      critical_success | success | failure | critical_failure.
+   *
+   * @param string|null $actor_id
+   * @param array       $params
+   * @param array       $game_state  Modified by reference (days_elapsed +1).
+   *
+   * @return array  Result with keys: success, old_stage, new_stage, degree, cured.
+   */
+  protected function processTreatDisease(?string $actor_id, array $params, array &$game_state): array {
+    $affliction_id = isset($params['affliction_id']) ? (int) $params['affliction_id'] : NULL;
+    $degree        = $params['degree'] ?? 'failure';
+
+    if (!isset($game_state['downtime'])) {
+      $game_state['downtime'] = [];
+    }
+    $game_state['downtime']['days_elapsed'] = ($game_state['downtime']['days_elapsed'] ?? 0) + 1;
+
+    if ($affliction_id === NULL) {
+      return ['success' => FALSE, 'error' => 'missing_affliction_id', 'message' => 'affliction_id param required.'];
+    }
+
+    $row = $this->database->select('combat_afflictions', 'a')
+      ->fields('a', ['id', 'current_stage', 'max_stage', 'affliction_type'])
+      ->condition('id', $affliction_id)
+      ->execute()
+      ->fetchAssoc();
+
+    if (!$row) {
+      return ['success' => FALSE, 'error' => 'affliction_not_found', 'message' => "Affliction {$affliction_id} not found."];
+    }
+    if ($row['affliction_type'] !== 'disease') {
+      return ['success' => FALSE, 'error' => 'not_a_disease', 'message' => "Affliction {$affliction_id} is not a disease."];
+    }
+
+    $old_stage = (int) $row['current_stage'];
+    $max_stage = (int) $row['max_stage'];
+
+    $stage_delta = match ($degree) {
+      'critical_success' => -2,
+      'success'          => -1,
+      'failure'          =>  0,
+      'critical_failure' => +1,
+      default            => NULL,
+    };
+
+    if ($stage_delta === NULL) {
+      return ['success' => FALSE, 'error' => 'invalid_degree', 'message' => "Invalid degree: {$degree}."];
+    }
+
+    $new_stage = max(0, min($max_stage, $old_stage + $stage_delta));
+    $cured     = ($new_stage === 0);
+
+    $this->database->update('combat_afflictions')
+      ->fields(['current_stage' => $new_stage])
+      ->condition('id', $affliction_id)
+      ->execute();
+
+    return [
+      'success'       => TRUE,
+      'affliction_id' => $affliction_id,
+      'degree'        => $degree,
+      'old_stage'     => $old_stage,
+      'new_stage'     => $new_stage,
+      'cured'         => $cured,
+      'days_elapsed'  => $game_state['downtime']['days_elapsed'],
+    ];
+  }
+
+  /**
+   * Processes Run Business / Crafts for Sale downtime action (AC-005).
+   *
+   * Routes to processEarnIncome using the provided skill (Crafting, Lore,
+   * Performance, etc.) and task level. The income calculation uses the same
+   * Earn Income table (CRB Table 4-2).
+   *
+   * Params: same as earn_income (skill, proficiency_rank, task_level, degree, days).
+   *
+   * @param string|null $actor_id
+   * @param array       $params
+   * @param array       $game_state  Modified by reference.
+   * @param int         $campaign_id
+   *
+   * @return array  Result with earned_cp, earned_gp, activity: 'run_business'.
+   */
+  protected function processRunBusiness(?string $actor_id, array $params, array &$game_state, int $campaign_id): array {
+    // Default to 'crafting' for a business that sells crafted goods.
+    $params['skill'] = $params['skill'] ?? 'crafting';
+    $result = $this->processEarnIncome($actor_id, $params, $game_state, $campaign_id);
+    $result['activity'] = 'run_business';
+    return $result;
+  }
+
+  // =========================================================================
+  // Currency helper.
+  // =========================================================================
 
   /**
    * Adds copper pieces to a character's currency (REQ 2326).
