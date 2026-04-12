@@ -1,20 +1,78 @@
 # Projects Registry
 
-Central list of multi-release initiatives across all products.
+Authoritative list of active **product lines** and **delivery projects** across the org.
+
+The live authority page is:
+
+- `https://forseti.life/roadmap`
+
+That page is rendered from this file. CEO and architect seats must treat the roadmap page + this backing file as the single source of truth for what is on the active project list.
 
 **Owned by:** ceo-copilot-2  
 **Update cadence:** when a project is created, advanced, or closed  
-**Format:** one row per project in the registry table; full spec in the project's section below
+**Format:** one numbered portfolio registry. Every active item on the live roadmap page must have a `PROJ-*` ID. Use the `Type` column to distinguish long-lived product tracks from execution initiatives.
 
 ---
 
 ## Registry
 
-| ID | Name | Product | Status | Priority | Lead | Started |
-|---|---|---|---|---|---|---|
-| PROJ-001 | LangGraph Console UI | forseti.life | in_progress | P1 | pm-forseti | 2026-04-05 |
-| PROJ-002 | QA Suite Completeness | forseti.life | in_progress | P2 | pm-forseti / qa-forseti | 2026-04-09 |
-| PROJ-003 | DungeonCrawler Roadmap Completion | dungeoncrawler | in_progress | P1 | pm-dungeoncrawler | 2026-03-01 |
+| ID | Name | Type | Product | Status | Priority | Lead | Started |
+|---|---|---|---|---|---|---|---|
+| PROJ-004 | Job Hunter | product line | forseti.life | active_buildout | P1 | pm-forseti | 2026-04-12 |
+| PROJ-005 | AI Conversation | product line | forseti.life | foundation_in_place | P1 | pm-forseti | 2026-04-12 |
+| PROJ-006 | Community Safety | product line | forseti.life | public_platform_track | P2 | pm-forseti | 2026-04-12 |
+| PROJ-007 | Dungeoncrawler Product Track | product line | dungeoncrawler | separate_product_site | P1 | pm-dungeoncrawler | 2026-04-12 |
+| PROJ-001 | LangGraph Console UI | delivery project | forseti.life | in_progress | P1 | pm-forseti | 2026-04-05 |
+| PROJ-002 | QA Suite Completeness | delivery project | forseti.life | in_progress | P2 | pm-forseti / qa-forseti | 2026-04-09 |
+| PROJ-003 | DungeonCrawler Roadmap Completion | delivery project | dungeoncrawler | in_progress | P1 | pm-dungeoncrawler | 2026-03-01 |
+
+---
+
+## PROJ-004 — Job Hunter
+
+**Scope:** Forseti's job-seeking platform covering resume intake, discovery, application prep, submission support, and tracking.
+
+**Current state:** Active Forseti release-e scope candidates already exist (`forseti-jobhunter-contact-referral-tracker`, `forseti-jobhunter-resume-version-tracker`) and PM now has a Stage 0 scope-activation item queued.
+
+**Next step:** PM should activate release-e scope or explicitly re-baseline the current Forseti release.
+
+**Queue status:** `pm-forseti` inbox item queued on 2026-04-12: `20260412-scope-activate-20260412-forseti-release-e`
+
+---
+
+## PROJ-005 — AI Conversation
+
+**Scope:** Persistent assistant experience, conversation memory, model integration, and shared AI capability across Forseti products.
+
+**Current state:** Production foundation is in place. No standalone 2026 delivery initiative is currently open; work is being carried as a shared platform capability inside Forseti releases.
+
+**Next step:** When the next dedicated AI Conversation slice is defined, add it here as a delivery project and queue the corresponding PM/Dev/QA work.
+
+**Queue status:** no dedicated project inbox item currently queued
+
+---
+
+## PROJ-006 — Community Safety
+
+**Scope:** Public safety content, maps, alerts, community participation, and member-support tooling.
+
+**Current state:** The public-facing safety track remains part of the roadmap, but no dedicated 2026 delivery initiative is currently active in the portfolio registry.
+
+**Next step:** PM should decide whether to open a dedicated 2026 Community Safety delivery project or keep this as background product-line maintenance.
+
+**Queue status:** no dedicated project inbox item currently queued
+
+---
+
+## PROJ-007 — Dungeoncrawler Product Track
+
+**Scope:** The dedicated Dungeoncrawler product line, separate site, and its long-lived PF2E implementation program.
+
+**Current state:** Separate product site with its own release engine, roadmap, and active delivery queue.
+
+**Next step:** Use the dedicated Dungeoncrawler roadmap and the active release-e / release-f queue for current execution details.
+
+**Queue status:** active items already queued for `pm-dungeoncrawler`, `dev-dungeoncrawler`, and `qa-dungeoncrawler`
 
 ---
 
@@ -23,17 +81,29 @@ Central list of multi-release initiatives across all products.
 **Roadmap:** `features/forseti-langgraph-ui/roadmap.md`  
 **Scope:** Build the full Copilot HQ control-plane console UI on forseti.life — telemetry, agent monitoring, session management, release controls, and eval scorecards wired to live orchestrator tick data.
 
-See roadmap file for full release-by-release breakdown. Currently mid-Phase 1c.
+**Current state (2026-04-12):** All foundation slices are shipped: telemetry foundation, console stubs (7 routes), context enrichment, Agent Tracker Core (`forseti-copilot-agent-tracker`), Console Build/Test sections (ahead of schedule), and Release Control Panel (read-only). Active release `20260412-forseti-release-e` carries the next slice: Run + Session panel wiring (`features/forseti-langgraph-console-run-session/feature.md`, Status: ready).
+
+**Next step:** ba-forseti to elaborate AC, then dev-forseti to implement Run/Session wiring in forseti-release-e.
+
+**Queue status:** Roadmap reconciled 2026-04-12. Feature stub created. BA dispatch queued.
 
 ---
 
 ## PROJ-002 — QA Suite Completeness
+
+**Scope:** Build repeatable, executable QA coverage for shipped Forseti features and clean up stale suite shells so release verification is durable, automatable, and auditable.
 
 **Status:** in_progress  
 **Priority:** P2  
 **Lead:** pm-forseti (dispatch), qa-forseti (execution)  
 **Scope product:** forseti.life  
 **Suite manifest:** `qa-suites/products/forseti/suite.json`
+
+**Current state:** The originally dispatched fill/retire/auth-unblock features are now all marked `shipped` in the backlog (`forseti-qa-suite-fill-*`, `forseti-qa-suite-retire-stale`, `forseti-qa-e2e-auth-pipeline`). The project registry is stale and needs a closeout review against the success criteria.
+
+**Next step:** PM should run a closeout audit: confirm whether the shipped work satisfies the project success metrics, then either mark the project complete or dispatch the remaining gap as a new follow-on project.
+
+**Queue status:** `pm-forseti` inbox item queued on 2026-04-12: `20260412-proj002-closeout-qa-suite`
 
 ### Problem
 
@@ -194,7 +264,11 @@ Root cause: `FORSETI_COOKIE_AUTHENTICATED` env var is never set in automation be
 **Roadmap audit runbook:** `runbooks/roadmap-audit.md`  
 **Scope:** Systematically implement all `pending` requirements in `dc_requirements` table until every requirement is either `implemented` or has a `feature_id` pointing to an active pipeline feature.
 
-Current status: Core ruleset is broadly implemented and the live release engine is now aligned to `20260412-dungeoncrawler-release-d`. The prior scoped batch, `20260412-dungeoncrawler-release-b`, was closed empty and deferred back to `ready`; the active release has 8 deliverables currently `in_progress` (`dc-cr-downtime-mode`, `dc-cr-feats-ch05`, `dc-cr-gnome-heritage-sensate`, `dc-cr-gnome-heritage-umbral`, `dc-cr-hazards`, `dc-cr-magic-ch11`, `dc-cr-rest-watch-starvation`, `dc-cr-skills-society-create-forgery`). `dc-cr-gnome-heritage-chameleon` remains a stale carry-over `in_progress` item from `20260411-coordinated-release-next` and does not count as a release-d deliverable. Remaining roadmap focus areas are movement gaps (GAP-2234/2235/2239-2242), hero point dead letter (GAP-2280/2281), exploration mode gaps (GAP-2290/2292), GM tools, and later APG class work.
+Current status: The public roadmap now derives requirement state from the live pipeline, and the release-cycle drift defect has been fixed. `20260412-dungeoncrawler-release-e` is the active runtime release with 5 scoped features in progress, while `20260412-dungeoncrawler-release-f` is groomed as the next wave. PM, Dev, and QA all have active queue items for release-e / release-f work, so the project currently has no queue gap.
+
+**Next step:** let release-e execution continue, watch for Gate 2 on the 5 active features, and then promote release-f only after the coordinated push/post-push handoff completes.
+
+**Queue status:** active items already queued for `pm-dungeoncrawler`, `dev-dungeoncrawler`, and `qa-dungeoncrawler`
 
 See `runbooks/roadmap-audit.md` for full query protocol and per-chapter status.
 

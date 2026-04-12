@@ -16,11 +16,12 @@
 | 20260405-forseti-release-c | **shipped** | LangGraph Telemetry Foundation | Telemetry schema fix, dashboard path fix, feature progress auto-refresh |
 | 20260405-forseti-release-c (Phase 1b) | **shipped** | Console Stubs Scaffold | 7-section console route structure + LangGraphConsoleStubController |
 | 20260408-forseti-release-d (Phase 1c) | **shipped** | LangGraph UI Context Enrichment | Workflow Registry, context banners, key terms glossaries on all 15 pages; Live/Stub status per console subsection |
-| 20260408-forseti-release-d | **in-flight** | Agent Tracker Core + Schema | copilot_agent_tracker DB + telemetry API + admin dashboard UI |
-| forseti-release-e | **planned** | Console Wiring — Run + Session | Wire Run/Session panels to live orchestrator tick data |
+| 20260408-forseti-release-d | **shipped** | Agent Tracker Core + Schema | copilot_agent_tracker DB + telemetry API + admin dashboard UI |
+| 20260411-coordinated-release | **shipped** | Console Build + Test Sections | State schema visualization, node topology, test/eval scorecards (ahead of schedule) |
+| 20260411-forseti-release-b | **shipped** | Release Control Panel (read-only) | Release panel wired to release state files and PM signoff data |
+| 20260412-forseti-release-e | **in-flight** | Console Wiring — Run + Session | Wire Run/Session panels to live orchestrator tick data |
 | forseti-release-f | **planned** | Console Wiring — Observe + Feature Progress | Node traces, metrics, drift detection wired to tick stream |
-| forseti-release-g | **planned** | Console Build + Test Sections | State schema visualization, node topology, test/eval scorecards |
-| forseti-release-h | **planned** | Release Control Panel | Graph version management, promotion flow, canary controls (with strong auth gates) |
+| forseti-release-h | **planned** | Release Control Panel (mutations) | Graph version management, promotion flow, canary controls (with strong auth gates) |
 
 ---
 
@@ -73,32 +74,45 @@
 ## In-Flight
 
 ### forseti-release-d — Agent Tracker Core (`forseti-copilot-agent-tracker`)
-**Status:** in-flight (release started 2026-04-08T12:53:31Z)
+**Status:** shipped (release 20260412-forseti-release-d)
 **Priority:** P1
 **Theme:** Deliver the actual agent tracking DB and telemetry API that underpins the dashboard
 
 | Item | Status | Notes |
 |---|---|---|
-| Telemetry POST endpoint `/api/copilot-agent-tracker/event` | pending | Token-auth, input validation, CSRF-exempt API route |
-| `copilot_agent_tracker_agents` DB table | pending | Upsert on POST; agent_id, status, current_action, last_seen |
-| `copilot_agent_tracker_events` DB table | pending | Append-only event log; PII-free; no raw chat content |
-| Admin agent list view | pending | AC-HP-01: list with id, last status, last action, last-seen |
-| Admin agent detail view | pending | AC-HP-02: sanitized event stream |
-| Permission: `administer copilot agent tracker` | pending | All admin routes require this; anonymous → 302 to login |
-| CSRF guards on state-changing endpoints | pending | POST endpoints require token or token-auth header |
+| Telemetry POST endpoint `/api/copilot-agent-tracker/event` | shipped | Token-auth, input validation, CSRF-exempt API route |
+| `copilot_agent_tracker_agents` DB table | shipped | Upsert on POST; agent_id, status, current_action, last_seen |
+| `copilot_agent_tracker_events` DB table | shipped | Append-only event log; PII-free; no raw chat content |
+| Admin agent list view | shipped | AC-HP-01: list with id, last status, last action, last-seen |
+| Admin agent detail view | shipped | AC-HP-02: sanitized event stream |
+| Permission: `administer copilot agent tracker` | shipped | All admin routes require this; anonymous → 302 to login |
+| CSRF guards on state-changing endpoints | shipped | POST endpoints require token or token-auth header |
 
-**Acceptance criteria:** `features/forseti-copilot-agent-tracker/01-acceptance-criteria.md` (30 AC rows)
-**Test plan:** `features/forseti-copilot-agent-tracker/03-test-plan.md` (30 test rows)
-**Gate 2 readiness:** grooming complete as of 2026-04-08
+**Feature file:** `features/forseti-copilot-agent-tracker/feature.md` — Status: shipped
 
 ---
 
-## Planned
+### forseti-langgraph-console-build-sections + forseti-langgraph-console-test-sections
+**Status:** shipped (20260411-coordinated-release — ahead of roadmap schedule)
+**Feature files:** `features/forseti-langgraph-console-build-sections/feature.md`, `features/forseti-langgraph-console-test-sections/feature.md`
+
+---
+
+### forseti-langgraph-console-release-panel
+**Status:** shipped (20260411-forseti-release-b — read-only release observability panel)
+**Feature file:** `features/forseti-langgraph-console-release-panel/feature.md`
+
+---
+
+## In-Flight (forseti-release-e active)
 
 ### forseti-release-e — Console Wiring: Run + Session Panels
+**Status:** in-flight (release `20260412-forseti-release-e` started 2026-04-12)
 **Theme:** Replace stub placeholders in Run and Session sections with live data from the orchestrator tick stream
 
-**Scope (proposed):**
+**Feature:** `features/forseti-langgraph-console-run-session/feature.md`
+
+**Scope:**
 | Console Section | Subsection | Live Data Source |
 |---|---|---|
 | Run | Threads & Runs | `langgraph-ticks.jsonl` — active run IDs, thread IDs, status |
@@ -109,6 +123,10 @@
 
 **Deps:** forseti-release-d shipped (agent tracker tables exist)
 **Key risk:** Read-only access to `langgraph-ticks.jsonl` from PHP — confirm `COPILOT_HQ_ROOT` env available in web context
+
+---
+
+## Planned
 
 ---
 
