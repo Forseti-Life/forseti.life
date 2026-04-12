@@ -66,15 +66,15 @@ That page is rendered from this file. CEO and architect seats must treat the roa
 
 **Scope:** Public safety content, maps, alerts, community participation, and member-support tooling.
 
-**Current state:** The public-facing safety track remains part of the roadmap, but no dedicated 2026 delivery initiative is currently active in the portfolio registry.
+**Current state:** Foundation modules `amisafe` (crime map + H3 analytics, `/amisafe`) and `safety_calculator` (per-user risk scoring, `/safety-calculator`) are production-complete and provide data-consumption tools. No community data-contribution capability exists. Next slice defined: **Community Incident Report** (`forseti-community-incident-report`, Status: ready, Release: 20260412-forseti-release-f). Adds authenticated user-submitted safety observations, public listing at `/community-reports`, and a toggleable AmISafe map layer — advancing the "community-managed" mission. Not queued in release-e (already 7/10 in_progress; this is P2). BA AC grooming dispatched.
 
-**Last scoped release:** none recorded in current registry
+**Last scoped release:** `20260412-forseti-release-f` (planned; not yet activated)
 
 **Progress SLA:** 7 days without release-scoped work or a PM re-baseline/grooming update = breach
 
-**Next step:** PM should decide whether to open a dedicated 2026 Community Safety delivery project or keep this as background product-line maintenance.
+**Next step:** BA grooms `forseti-community-incident-report` AC in release-f cycle. PM activates when release-e closes and release-f opens.
 
-**Queue status:** `pm-forseti` inbox item queued on 2026-04-12: `20260412-proj006-next-slice-community-safety`
+**Queue status:** ba-forseti AC brief queued 2026-04-12: `20260412-community-incident-report-ac-brief`
 
 ---
 
