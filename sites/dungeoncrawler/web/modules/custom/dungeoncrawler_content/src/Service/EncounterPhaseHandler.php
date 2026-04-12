@@ -3915,6 +3915,23 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
     // stealth_dcs: assoc array of target_id → DC; defaults to 15 if not provided.
     $stealth_dcs = $params['stealth_dcs'] ?? [];
 
+    // AC-001–004: Sensate Gnome scent range + wind modifier.
+    // scent_ft: base scent range of the actor (0 = no scent sense).
+    // target_distances: optional assoc array of target_id → distance_ft for range check.
+    $base_scent_ft = (int) ($params['scent_ft'] ?? 0);
+    $target_distances = $params['target_distances'] ?? [];
+    $effective_scent_ft = $base_scent_ft;
+    if ($base_scent_ft > 0) {
+      $wind_direction = $game_state['environment']['wind_direction'] ?? 'neutral';
+      if ($wind_direction === 'downwind') {
+        $effective_scent_ft = $base_scent_ft * 2;
+      }
+      elseif ($wind_direction === 'upwind') {
+        $effective_scent_ft = (int) round($base_scent_ft / 2);
+      }
+      // neutral: no change.
+    }
+
     if (!isset($game_state['visibility'])) {
       $game_state['visibility'] = [];
     }
@@ -3925,11 +3942,21 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
     $seek_results = [];
     foreach ($target_ids as $tid) {
       $stealth_dc = (int) ($stealth_dcs[$tid] ?? 15);
+      $current = $game_state['visibility'][$actor_id][$tid] ?? 'undetected';
+
+      // +2 circumstance bonus when actor has scent and target is undetected and within scent range.
+      $roll_perception = $perception_bonus;
+      if ($effective_scent_ft > 0 && $current === 'undetected') {
+        $target_dist = isset($target_distances[$tid]) ? (int) $target_distances[$tid] : NULL;
+        if ($target_dist === NULL || $target_dist <= $effective_scent_ft) {
+          $roll_perception += 2;
+        }
+      }
+
       $d20 = $this->numberGenerationService->rollPathfinderDie(20);
-      $total = $d20 + $perception_bonus;
+      $total = $d20 + $roll_perception;
       $degree = $this->combatCalculator->calculateDegreeOfSuccess($total, $stealth_dc, $d20);
 
-      $current = $game_state['visibility'][$actor_id][$tid] ?? 'undetected';
       $new_visibility = $current;
 
       // REQ 2208: detection rules.

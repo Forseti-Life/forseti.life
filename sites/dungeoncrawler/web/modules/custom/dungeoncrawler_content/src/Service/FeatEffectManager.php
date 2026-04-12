@@ -1285,6 +1285,27 @@ class FeatEffectManager {
       }
     }
 
+    // Heritage-derived senses and bonuses.
+    // Processed after feats so feat-granted duplicates are de-duped cleanly.
+    $heritage_id = $character_data['heritage'] ?? '';
+    switch ($heritage_id) {
+      case 'sensate':
+        // AC: Sensate Gnome — imprecise scent 30 ft base; wind modifiers apply.
+        $this->addSense(
+          $effects,
+          'imprecise-scent',
+          'Imprecise Scent',
+          'Detect creatures by smell. Narrows position to a square; does not pinpoint. Range 30 ft base (60 ft downwind, 15 ft upwind).',
+          [
+            'precision'      => 'imprecise',
+            'base_range'     => 30,
+            'wind_modifiers' => ['downwind' => 60, 'upwind' => 15, 'neutral' => 30],
+          ]
+        );
+        $effects['notes'][] = 'Sensate Gnome: imprecise scent (30 ft base; 60 ft downwind, 15 ft upwind). +2 circumstance to Perception to locate undetected creatures within scent range.';
+        break;
+    }
+
     $computed_speed = $base_speed + (int) ($effects['derived_adjustments']['speed_bonus'] ?? 0);
     $speed_override = $effects['derived_adjustments']['speed_override'];
     if (is_int($speed_override) && $speed_override > $computed_speed) {
@@ -1301,13 +1322,17 @@ class FeatEffectManager {
 
   /**
    * Add a unique sense entry.
+   *
+   * @param array $extra
+   *   Optional additional fields merged into the sense entry (e.g., precision,
+   *   base_range, wind_modifiers).
    */
-  private function addSense(array &$effects, string $id, string $name, string $description): void {
-    $effects['senses'][$id] = [
+  private function addSense(array &$effects, string $id, string $name, string $description, array $extra = []): void {
+    $effects['senses'][$id] = array_merge([
       'id' => $id,
       'name' => $name,
       'description' => $description,
-    ];
+    ], $extra);
     $effects['senses'] = array_values($effects['senses']);
   }
 
