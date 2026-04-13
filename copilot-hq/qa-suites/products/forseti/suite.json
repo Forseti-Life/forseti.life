@@ -3987,6 +3987,118 @@
       ],
       "required_for_release": true,
       "notes": "POST to /jobhunter/contacts/save without X-CSRF-Token or _token param. Expected: 403. Validates _csrf_token: 'TRUE' split-route requirement."
+    },
+    {
+      "id": "forseti-jobhunter-application-analytics-smoke",
+      "label": "Analytics page renders 200 for authenticated user at /jobhunter/analytics",
+      "type": "functional",
+      "feature_id": "forseti-jobhunter-application-analytics",
+      "command": "curl -s -o /dev/null -w \"%{http_code}\" -b \"$FORSETI_COOKIE_AUTHENTICATED\" https://forseti.life/jobhunter/analytics | grep -q 200",
+      "artifacts": [
+        "sessions/qa-forseti/artifacts/forseti-jobhunter-application-analytics-results.json"
+      ],
+      "required_for_release": true
+    },
+    {
+      "id": "forseti-jobhunter-application-analytics-funnel-counts",
+      "label": "Funnel stage counts on analytics page match DB status counts for current user",
+      "type": "functional",
+      "feature_id": "forseti-jobhunter-application-analytics",
+      "command": "bash scripts/qa-run-suite.sh forseti-jobhunter-application-analytics-funnel-counts",
+      "artifacts": [
+        "sessions/qa-forseti/artifacts/analytics-funnel-counts.json"
+      ],
+      "required_for_release": true,
+      "test_cases": [
+        {
+          "id": "TC-2",
+          "description": "Funnel counts match saved-job statuses in DB",
+          "manual_verification": "drush sql:query \"SELECT status, COUNT(*) FROM jobhunter_saved_jobs WHERE uid=<uid> GROUP BY status\" and compare to rendered page"
+        }
+      ]
+    },
+    {
+      "id": "forseti-jobhunter-application-analytics-source-breakdown",
+      "label": "Source breakdown on analytics page matches per-source DB counts for current user",
+      "type": "functional",
+      "feature_id": "forseti-jobhunter-application-analytics",
+      "command": "bash scripts/qa-run-suite.sh forseti-jobhunter-application-analytics-source-breakdown",
+      "artifacts": [
+        "sessions/qa-forseti/artifacts/analytics-source-breakdown.json"
+      ],
+      "required_for_release": true,
+      "test_cases": [
+        {
+          "id": "TC-3",
+          "description": "Source row counts match DB GROUP BY source for the authenticated user",
+          "manual_verification": "drush sql:query \"SELECT source, COUNT(*) FROM jobhunter_saved_jobs WHERE uid=<uid> GROUP BY source\""
+        }
+      ]
+    },
+    {
+      "id": "forseti-jobhunter-application-analytics-empty-state",
+      "label": "Analytics page renders empty-state for user with zero saved jobs (no PHP warnings)",
+      "type": "functional",
+      "feature_id": "forseti-jobhunter-application-analytics",
+      "command": "bash scripts/qa-run-suite.sh forseti-jobhunter-application-analytics-empty-state",
+      "artifacts": [
+        "sessions/qa-forseti/artifacts/forseti-jobhunter-application-analytics-results.json"
+      ],
+      "required_for_release": true,
+      "test_cases": [
+        {
+          "id": "TC-4",
+          "description": "Empty-state prompt shown for user with no saved jobs; no new watchdog errors",
+          "manual_verification": "Inspect response for empty-state copy and check watchdog for new errors"
+        }
+      ]
+    },
+    {
+      "id": "forseti-jobhunter-application-analytics-cross-user-isolation",
+      "label": "Each user's analytics shows only their own data (cross-user data isolation)",
+      "type": "security",
+      "feature_id": "forseti-jobhunter-application-analytics",
+      "command": "bash scripts/qa-run-suite.sh forseti-jobhunter-application-analytics-cross-user-isolation",
+      "artifacts": [
+        "sessions/qa-forseti/artifacts/forseti-jobhunter-application-analytics-results.json"
+      ],
+      "required_for_release": true,
+      "test_cases": [
+        {
+          "id": "TC-5",
+          "description": "Users A and B each see only their own totals; rendered counts match per-user DB queries",
+          "manual_verification": "Compare rendered counts for two test users against per-user DB queries"
+        }
+      ]
+    },
+    {
+      "id": "forseti-jobhunter-application-analytics-anon-403",
+      "label": "Unauthenticated GET /jobhunter/analytics returns 403 or redirect",
+      "type": "security",
+      "feature_id": "forseti-jobhunter-application-analytics",
+      "command": "curl -s -o /dev/null -w \"%{http_code}\" https://forseti.life/jobhunter/analytics | grep -Eq '^(403|302)'",
+      "artifacts": [
+        "sessions/qa-forseti/artifacts/forseti-jobhunter-application-analytics-results.json"
+      ],
+      "required_for_release": true
+    },
+    {
+      "id": "forseti-jobhunter-application-analytics-no-raw-text",
+      "label": "Analytics page shows only aggregate values; no raw notes or resume content rendered",
+      "type": "security",
+      "feature_id": "forseti-jobhunter-application-analytics",
+      "command": "bash scripts/qa-run-suite.sh forseti-jobhunter-application-analytics-no-raw-text",
+      "artifacts": [
+        "sessions/qa-forseti/artifacts/forseti-jobhunter-application-analytics-results.json"
+      ],
+      "required_for_release": true,
+      "test_cases": [
+        {
+          "id": "TC-7",
+          "description": "HTML response contains no known note text or resume fragments; aggregate values only",
+          "manual_verification": "Inspect rendered HTML for absence of raw notes/resume content"
+        }
+      ]
     }
   ],
   "_schema_notes": [

@@ -1070,6 +1070,18 @@
         "authenticated": "200",
         "admin": "200"
       }
+    },
+    {
+      "id": "forseti-jobhunter-application-analytics-dashboard",
+      "feature_id": "forseti-jobhunter-application-analytics",
+      "path_regex": "^/jobhunter/analytics$",
+      "notes": "Analytics dashboard \u2014 requires authentication. Added for feature forseti-jobhunter-application-analytics.",
+      "expect": {
+        "anon": "403",
+        "authenticated": "200",
+        "content_editor": "200",
+        "administrator": "200"
+      }
     }
   ]
 }
