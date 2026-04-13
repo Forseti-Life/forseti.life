@@ -21,11 +21,16 @@ run encounters, explore dungeons, and campaign over time.
 - **Codebase**: `/home/ubuntu/forseti.life/sites/dungeoncrawler/web/modules/custom/dungeoncrawler_content/`
 - **Drush commands**: `dungeoncrawler:roadmap-set-status`, `dungeoncrawler:import-requirements`
 
-### Implementation status (2026-04-07 baseline)
-- **Core ch09 (combat rules)**: ~238/242 implemented ✅
-- **Core ch03 (classes)**: 3/907 implemented — no class-specific services exist
-- **Most other chapters**: 0% — feature pipeline needed
-- **Total**: ~241 implemented, ~2,556 pending out of 2,797 requirements
+### Implementation status (2026-04-13 live)
+- **Implemented**: 2,033 requirements
+- **In-progress (DB)**: 674 requirements
+- **Pending (no feature stub)**: 698 requirements
+- **Total**: 3,405 requirements tracked
+- **Largest pending gaps**: `core/ch02` Ancestries & Backgrounds (371 pending — no feature stub), `core/ch01` Introduction (237 pending — no feature stub)
+- See `PROJECTS.md` PROJ-007 for current pipeline details.
+
+### Batch-activation lesson (2026-04-13)
+Activating 10 features in one batch fills the release cap immediately, triggering auto-close before dev/QA can run. Activate in batches of 3–5 max per release cycle to allow dev/QA time to complete before the cap fires.
 
 ### Source of truth for requirements
 The `dc_requirements` MySQL table (database: `dungeoncrawler`) is the canonical list —

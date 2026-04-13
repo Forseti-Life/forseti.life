@@ -23,7 +23,7 @@ That page is rendered from this file. CEO and architect seats must treat the roa
 | PROJ-004 | Job Hunter | product line | forseti.life | active_buildout | P1 | pm-forseti | 2026-04-12 |
 | PROJ-005 | AI Conversation | product line | forseti.life | foundation_in_place | P1 | pm-forseti | 2026-04-12 |
 | PROJ-006 | Community Safety | product line | forseti.life | public_platform_track | P2 | pm-forseti | 2026-04-12 |
-| PROJ-007 | Dungeoncrawler Product Track | product line | dungeoncrawler | separate_product_site | P1 | pm-dungeoncrawler | 2026-04-12 |
+| PROJ-007 | Dungeoncrawler Product Track | product line | dungeoncrawler | separate_product_site | P1 | pm-dungeoncrawler | 2026-04-13 |
 | PROJ-001 | LangGraph Console UI | delivery project | forseti.life | in_progress | P1 | pm-forseti | 2026-04-05 |
 | PROJ-002 | QA Suite Completeness | delivery project | forseti.life | in_progress | P2 | pm-forseti / qa-forseti | 2026-04-09 |
 | PROJ-003 | DungeonCrawler Roadmap Completion | delivery project | dungeoncrawler | in_progress | P1 | pm-dungeoncrawler | 2026-03-01 |
@@ -80,17 +80,24 @@ That page is rendered from this file. CEO and architect seats must treat the roa
 
 ## PROJ-007 — Dungeoncrawler Product Track
 
-**Scope:** The dedicated Dungeoncrawler product line, separate site, and its long-lived PF2E implementation program.
+**Scope:** The dedicated Dungeoncrawler product line, separate site, and its long-lived PF2E implementation program. Long-term mission: implement all PF2E rulebook requirements currently tracked in `dc_requirements` MySQL table (2033 implemented, 674 in_progress, 698 pending as of 2026-04-13).
 
-**Current state:** Separate product site with its own release engine, roadmap, and active delivery queue.
+**Current state (2026-04-13):** Active release `20260412-dungeoncrawler-release-i` (opened 2026-04-13T01:31). 14 features in_progress in dev/QA pipeline (gnome heritage sensate/umbral/chameleon, hazards, magic ch11, skills/feats/spells clusters, rest/downtime, snares, treasure, GMG hazards). 23 features at `ready` status awaiting activation: 10 gnome feat cluster (animal-accomplice, burrow-elocutionist, first-world-adept, first-world-magic, gnome-heritage-fey-touched/wellspring, gnome-obsession, gnome-weapon-expertise/familiarity/specialist), 4 goblin feats (ancestry, very-sneaky, weapon-familiarity, weapon-frenzy), halfling cluster (halfling-ancestry, heritage-gutsy, heritage-hillock, keen-eyes, vivacious-conduit), and GMG features (gods-magic, npc-gallery, running-guide, subsystems).
 
-**Last scoped release:** `20260412-dungeoncrawler-release-e`
+**DB requirement gaps (pipeline coverage missing):**
+- `core/ch01` (Chapter 1: Introduction) — 237 pending, no feature stub; covers fundamental rules display and character creation flow
+- `core/ch02` (Chapter 2: Ancestries & Backgrounds) — 371 pending, no feature stub; covers the ancestry/background data model and character creation enforcement (separate from the ancestry feat content already in pipeline)
+- `gng` (Guns & Gears, 5 chapters) — 30 pending, no feature stub
+- `som` (Secrets of Magic, 5 chapters) — 30 pending, no feature stub
+- `b2/b3` (Bestiary 2 & 3) — 24 pending, stubs exist in audit TSV as `blocked`
+
+**Last scoped release:** `20260412-dungeoncrawler-release-i` (active; 0 features activated yet)
 
 **Progress SLA:** 7 days without release-scoped work or a PM re-baseline/grooming update = breach
 
-**Next step:** Use the dedicated Dungeoncrawler roadmap and the active release-e / release-f queue for current execution details.
+**Next step:** Activate ready features for release-i (10-feature cap; activate gnome feat cluster first as it is the deepest groomed batch). After dev/QA cycle completes, queue BA decomposition for `core/ch01` and `core/ch02` — these are the largest unaddressed pending gaps (608 requirements combined).
 
-**Queue status:** active items already queued for `pm-dungeoncrawler`, `dev-dungeoncrawler`, and `qa-dungeoncrawler`
+**Queue status:** 14 features in dev/QA pipeline (release-e/f/g); 23 features `ready` for release-i activation; BA decomposition for core/ch01 and core/ch02 not yet dispatched (next major roadmap gap to close).
 
 ---
 
@@ -304,4 +311,4 @@ See `runbooks/roadmap-audit.md` for full query protocol and per-chapter status.
 
 ---
 
-*Last updated: 2026-04-13 by pm-forseti (roadmap process refresh)*
+*Last updated: 2026-04-13 by pm-dungeoncrawler (PROJ-007 roadmap process refresh — DB gap analysis, ready pool + active pipeline reconciled)*
