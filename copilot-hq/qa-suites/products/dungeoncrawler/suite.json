@@ -16078,6 +16078,120 @@
       "required_for_release": true
     }
   ],
+  "dc-cr-gnome-obsession": [
+    {
+      "id": "dc-cr-gnome-obsession-feat-availability-lore-selection",
+      "label": "Gnome Obsession available in feat picker; Lore selector accepts Lore skills only",
+      "type": "e2e",
+      "feature_id": "dc-cr-gnome-obsession",
+      "command": "npx playwright test --grep \"dc-cr-gnome-obsession-availability\" --project=character-creation",
+      "artifacts": ["playwright-report/dc-cr-gnome-obsession-feat-availability-lore-selection.html"],
+      "suite_context": "playwright/character-creation",
+      "status": "pending_implementation",
+      "required_for_release": true
+    },
+    {
+      "id": "dc-cr-gnome-obsession-level-2-expert-upgrade",
+      "label": "At level 2 chosen Lore and background Lore (if any) upgrade to expert",
+      "type": "e2e",
+      "feature_id": "dc-cr-gnome-obsession",
+      "command": "npx playwright test --grep \"dc-cr-gnome-obsession-level-2\" --project=level-up",
+      "artifacts": ["playwright-report/dc-cr-gnome-obsession-level-2-expert-upgrade.html"],
+      "suite_context": "playwright/level-up",
+      "status": "pending_implementation",
+      "required_for_release": true
+    },
+    {
+      "id": "dc-cr-gnome-obsession-level-7-master-upgrade",
+      "label": "At level 7 tracked Lore skills upgrade to master",
+      "type": "e2e",
+      "feature_id": "dc-cr-gnome-obsession",
+      "command": "npx playwright test --grep \"dc-cr-gnome-obsession-level-7\" --project=level-up",
+      "artifacts": ["playwright-report/dc-cr-gnome-obsession-level-7-master-upgrade.html"],
+      "suite_context": "playwright/level-up",
+      "status": "pending_implementation",
+      "required_for_release": true
+    },
+    {
+      "id": "dc-cr-gnome-obsession-level-15-legendary-upgrade",
+      "label": "At level 15 tracked Lore skills upgrade to legendary",
+      "type": "e2e",
+      "feature_id": "dc-cr-gnome-obsession",
+      "command": "npx playwright test --grep \"dc-cr-gnome-obsession-level-15\" --project=level-up",
+      "artifacts": ["playwright-report/dc-cr-gnome-obsession-level-15-legendary-upgrade.html"],
+      "suite_context": "playwright/level-up",
+      "status": "pending_implementation",
+      "required_for_release": true
+    },
+    {
+      "id": "dc-cr-gnome-obsession-no-off-schedule-upgrades",
+      "label": "No extra proficiency increase from feat at non-milestone levels (not 2, 7, or 15)",
+      "type": "e2e",
+      "feature_id": "dc-cr-gnome-obsession",
+      "command": "npx playwright test --grep \"dc-cr-gnome-obsession-no-off-schedule\" --project=level-up",
+      "artifacts": ["playwright-report/dc-cr-gnome-obsession-no-off-schedule-upgrades.html"],
+      "suite_context": "playwright/level-up",
+      "status": "pending_implementation",
+      "required_for_release": true
+    }
+  ],
+  "dc-cr-gnome-obsession": [
+    {
+      "id": "dc-cr-gnome-obsession-feat-availability-lore-selection",
+      "label": "Gnome Obsession feat available; Lore selector accepts Lore skills only",
+      "type": "e2e",
+      "feature_id": "dc-cr-gnome-obsession",
+      "command": "npx playwright test --grep \"dc-cr-gnome-obsession-feat-lore\" --project=character-creation",
+      "artifacts": ["playwright-report/dc-cr-gnome-obsession-feat-availability-lore-selection.html"],
+      "suite_context": "playwright/character-creation",
+      "status": "pending_implementation",
+      "required_for_release": true
+    },
+    {
+      "id": "dc-cr-gnome-obsession-level-2-expert-upgrade",
+      "label": "At level 2: chosen Lore and background Lore (if any) upgrade to expert",
+      "type": "e2e",
+      "feature_id": "dc-cr-gnome-obsession",
+      "command": "npx playwright test --grep \"dc-cr-gnome-obsession-level-2\" --project=level-up",
+      "artifacts": ["playwright-report/dc-cr-gnome-obsession-level-2-expert-upgrade.html"],
+      "suite_context": "playwright/level-up",
+      "status": "pending_implementation",
+      "required_for_release": true
+    },
+    {
+      "id": "dc-cr-gnome-obsession-level-7-master-upgrade",
+      "label": "At level 7: tracked Lore skills upgrade to master",
+      "type": "e2e",
+      "feature_id": "dc-cr-gnome-obsession",
+      "command": "npx playwright test --grep \"dc-cr-gnome-obsession-level-7\" --project=level-up",
+      "artifacts": ["playwright-report/dc-cr-gnome-obsession-level-7-master-upgrade.html"],
+      "suite_context": "playwright/level-up",
+      "status": "pending_implementation",
+      "required_for_release": true
+    },
+    {
+      "id": "dc-cr-gnome-obsession-level-15-legendary-upgrade",
+      "label": "At level 15: tracked Lore skills upgrade to legendary",
+      "type": "e2e",
+      "feature_id": "dc-cr-gnome-obsession",
+      "command": "npx playwright test --grep \"dc-cr-gnome-obsession-level-15\" --project=level-up",
+      "artifacts": ["playwright-report/dc-cr-gnome-obsession-level-15-legendary-upgrade.html"],
+      "suite_context": "playwright/level-up",
+      "status": "pending_implementation",
+      "required_for_release": true
+    },
+    {
+      "id": "dc-cr-gnome-obsession-no-off-schedule-upgrades",
+      "label": "Non-milestone level-ups produce no extra Lore proficiency increase from the feat",
+      "type": "e2e",
+      "feature_id": "dc-cr-gnome-obsession",
+      "command": "npx playwright test --grep \"dc-cr-gnome-obsession-no-off-schedule\" --project=level-up",
+      "artifacts": ["playwright-report/dc-cr-gnome-obsession-no-off-schedule-upgrades.html"],
+      "suite_context": "playwright/level-up",
+      "status": "pending_implementation",
+      "required_for_release": true
+    }
+  ],
   "dc-cr-gnome-heritage-wellspring": [
     {
       "id": "dc-cr-gnome-heritage-wellspring-tradition-selection-stored",
