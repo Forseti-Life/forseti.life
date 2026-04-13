@@ -16078,6 +16078,63 @@
       "required_for_release": true
     }
   ],
+  "dc-cr-gnome-weapon-expertise": [
+    {
+      "id": "dc-cr-gnome-weapon-expertise-prerequisite-gate",
+      "label": "Gnome Weapon Expertise feat locked before Gnome Weapon Familiarity; selectable after prerequisite present",
+      "type": "e2e",
+      "feature_id": "dc-cr-gnome-weapon-expertise",
+      "command": "npx playwright test --grep \"dc-cr-gnome-weapon-expertise-prereq\" --project=feat-progression",
+      "artifacts": ["playwright-report/dc-cr-gnome-weapon-expertise-prerequisite-gate.html"],
+      "suite_context": "playwright/feat-progression",
+      "status": "pending_implementation",
+      "required_for_release": true
+    },
+    {
+      "id": "dc-cr-gnome-weapon-expertise-expert-cascade-glaive-kukri",
+      "label": "Expert class proficiency cascades to glaive and kukri",
+      "type": "e2e",
+      "feature_id": "dc-cr-gnome-weapon-expertise",
+      "command": "npx playwright test --grep \"dc-cr-gnome-weapon-expertise-cascade-glaive-kukri\" --project=level-up",
+      "artifacts": ["playwright-report/dc-cr-gnome-weapon-expertise-expert-cascade-glaive-kukri.html"],
+      "suite_context": "playwright/level-up",
+      "status": "pending_implementation",
+      "required_for_release": true
+    },
+    {
+      "id": "dc-cr-gnome-weapon-expertise-trained-gnome-weapons-cascade",
+      "label": "Trained gnome weapons rise to match class-granted proficiency rank",
+      "type": "e2e",
+      "feature_id": "dc-cr-gnome-weapon-expertise",
+      "command": "npx playwright test --grep \"dc-cr-gnome-weapon-expertise-trained-cascade\" --project=level-up",
+      "artifacts": ["playwright-report/dc-cr-gnome-weapon-expertise-trained-gnome-weapons-cascade.html"],
+      "suite_context": "playwright/level-up",
+      "status": "pending_implementation",
+      "required_for_release": true
+    },
+    {
+      "id": "dc-cr-gnome-weapon-expertise-later-class-upgrades-cascade",
+      "label": "Subsequent master/legendary class upgrades continue to cascade to gnome weapons",
+      "type": "e2e",
+      "feature_id": "dc-cr-gnome-weapon-expertise",
+      "command": "npx playwright test --grep \"dc-cr-gnome-weapon-expertise-later-upgrades\" --project=level-up",
+      "artifacts": ["playwright-report/dc-cr-gnome-weapon-expertise-later-class-upgrades-cascade.html"],
+      "suite_context": "playwright/level-up",
+      "status": "pending_implementation",
+      "required_for_release": true
+    },
+    {
+      "id": "dc-cr-gnome-weapon-expertise-non-class-change-no-trigger",
+      "label": "Non-class proficiency edit does not trigger cascade",
+      "type": "e2e",
+      "feature_id": "dc-cr-gnome-weapon-expertise",
+      "command": "npx playwright test --grep \"dc-cr-gnome-weapon-expertise-no-non-class-trigger\" --project=level-up",
+      "artifacts": ["playwright-report/dc-cr-gnome-weapon-expertise-non-class-change-no-trigger.html"],
+      "suite_context": "playwright/level-up",
+      "status": "pending_implementation",
+      "required_for_release": true
+    }
+  ],
   "dc-cr-gnome-obsession": [
     {
       "id": "dc-cr-gnome-obsession-feat-availability-lore-selection",
