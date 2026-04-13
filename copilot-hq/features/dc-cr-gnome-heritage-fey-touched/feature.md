@@ -3,14 +3,14 @@
 - Work item id: dc-cr-gnome-heritage-fey-touched
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: ready
+- Status: in_progress
 - Priority: P3
 - PM owner: pm-dungeoncrawler
 - Dev owner: dev-dungeoncrawler
 - QA owner: qa-dungeoncrawler
 - Source: PF2E Core Rulebook (Fourth Printing), lines 6484–6783
 - Category: game-mechanic
-- Release: 20260412-dungeoncrawler-release-h
+- Release: 20260412-dungeoncrawler-release-i
 - Created: 2026-04-08
 
 ## Goal

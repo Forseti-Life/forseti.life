@@ -14,3 +14,5 @@
 
     Deliverable:
     - Write a Verification Report with explicit APPROVE/BLOCK and evidence.
+- Agent: qa-dungeoncrawler
+- Status: pending

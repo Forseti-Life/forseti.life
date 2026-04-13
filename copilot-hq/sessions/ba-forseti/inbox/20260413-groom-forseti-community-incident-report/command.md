@@ -32,3 +32,4 @@ Edit `features/forseti-community-incident-report/02-implementation-notes.md` to 
 
 - Read `02-implementation-notes.md` — no `[ ]` items remain.
 - If AmISafe passthrough was needed: confirm the passthrough item exists in the relevant dev inbox.
+- Status: pending

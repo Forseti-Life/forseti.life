@@ -150,3 +150,5 @@ The feature is in scope; Dev will implement it this release. Tests must be live 
 
 ## Security acceptance criteria
 - Security AC exemption: game-mechanic heritage; no new routes or user-facing input beyond character creation
+- Agent: qa-dungeoncrawler
+- Status: pending
