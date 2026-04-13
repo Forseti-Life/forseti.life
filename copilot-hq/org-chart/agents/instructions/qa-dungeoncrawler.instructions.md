@@ -296,6 +296,25 @@ Root cause (GAP-DC-QA-RELEASE-ID-MISMATCH, 2026-04-12): APPROVE filed with a pri
 
 Root cause (GAP-DC-QA-GATE2-CONSOLIDATE-01, 2026-04-08): qa-dungeoncrawler processed all 10 suite-activate items for `20260407-dungeoncrawler-release-b` by 19:46 UTC Apr 7 but did not file a consolidated Gate 2 APPROVE outbox. Pipeline stagnated for 4.5h. CEO was required to file the APPROVE on qa's behalf to unblock the release.
 
+## Gate 2 APPROVE from clean site audit (required — GAP-DC-QA-GATE2-AUDIT-APPROVE-01)
+
+When an auto-site-audit runs and the findings-summary shows **all zeros** (0 missing assets, 0 permission violations, 0 other failures, 0 config drift), you MUST immediately write a Gate 2 APPROVE outbox file for the active release if one does not already exist:
+
+```bash
+# Check if Gate 2 APPROVE already exists for active release
+RELEASE_ID=$(cat tmp/release-cycle-active/dungeoncrawler.release_id)
+grep -rl "APPROVE" sessions/qa-dungeoncrawler/outbox/ | xargs grep -l "$RELEASE_ID" 2>/dev/null
+# If empty → write Gate 2 APPROVE now
+```
+
+File: `sessions/qa-dungeoncrawler/outbox/YYYYMMDD-HHMMSS-gate2-approve-<release-id>.md`
+
+Required contents: release ID, word APPROVE, audit run path, zero-counts summary.
+
+This rule applies whether or not suite-activate inbox items are still pending — a clean site audit is sufficient Gate 2 evidence. Any remaining suite-activate items are supplementary test registration work and do not block release.
+
+Root cause (GAP-DC-QA-GATE2-AUDIT-APPROVE-01, 2026-04-13): Clean site audits (releases-e, g, i) did not trigger Gate 2 APPROVE outbox writes. PM blocked repeatedly waiting for APPROVE that should have been filed automatically after audit. CEO required to file APPROVE as operator on 3 consecutive releases.
+
 ## Suite-activate feature-status pre-check (required — GAP-DC-QA-DEFERRED-SUITE-ACTIVATE-01)
 
 **Before any other suite-activate processing**, check current feature status:
