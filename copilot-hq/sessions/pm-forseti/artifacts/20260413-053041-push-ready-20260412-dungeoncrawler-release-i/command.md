@@ -1,3 +1,6 @@
+- Status: done
+- Completed: 2026-04-13T05:36:28Z
+
 # Push ready: 20260412-dungeoncrawler-release-i
 
 All required PM signoffs recorded for coordinated release `20260412-dungeoncrawler-release-i`.
