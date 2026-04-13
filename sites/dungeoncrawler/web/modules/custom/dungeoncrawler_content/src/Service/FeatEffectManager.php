@@ -325,13 +325,14 @@ class FeatEffectManager {
           break;
 
         case 'burrow-elocutionist':
+          $effects['derived_adjustments']['flags']['speak_with_burrowing_creatures'] = TRUE;
           $effects['available_actions']['at_will'][] = [
             'id' => 'burrow-elocutionist',
             'name' => 'Burrow Elocutionist',
             'action_cost' => 1,
-            'description' => 'Communicate effectively through subterranean and enclosed terrain conditions.',
+            'description' => 'Speak with a burrowing creature (badger, mole, rabbit, rat, etc.) and receive an answer you can understand. Applies only to creatures with the burrowing trait; does not grant general animal language fluency.',
           ];
-          $effects['notes'][] = 'Burrow Elocutionist: grants at-will subterranean communication utility.';
+          $effects['notes'][] = 'Burrow Elocutionist: can ask questions of and receive answers from burrowing creatures (burrowing trait only; does not make them friendly).';
           $effects['applied_feats'][] = $feat_id;
           break;
 
