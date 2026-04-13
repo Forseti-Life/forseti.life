@@ -4237,6 +4237,108 @@
           "description": "Anon GET /jobhunter/my-jobs \u2192 403/redirect; POST follow-up save without CSRF token \u2192 403"
         }
       ]
+    },
+    {
+      "id": "forseti-jobhunter-interview-outcome-tracker-form-renders",
+      "label": "Interview round form renders on saved-job detail for authenticated user",
+      "type": "functional",
+      "feature_id": "forseti-jobhunter-interview-outcome-tracker",
+      "command": "bash scripts/qa-run-suite.sh forseti-jobhunter-interview-outcome-tracker-form-renders",
+      "artifacts": [
+        "sessions/qa-forseti/artifacts/forseti-jobhunter-interview-outcome-tracker-results.json"
+      ],
+      "required_for_release": true,
+      "test_cases": [
+        {
+          "id": "TC-1",
+          "description": "Saved-job detail page shows Add Interview Round form control"
+        }
+      ]
+    },
+    {
+      "id": "forseti-jobhunter-interview-outcome-tracker-save-inserts-row",
+      "label": "Saving new interview round inserts a row into jobhunter_interview_rounds",
+      "type": "functional",
+      "feature_id": "forseti-jobhunter-interview-outcome-tracker",
+      "command": "bash scripts/qa-run-suite.sh forseti-jobhunter-interview-outcome-tracker-save-inserts-row",
+      "artifacts": [
+        "sessions/qa-forseti/artifacts/forseti-jobhunter-interview-outcome-tracker-results.json"
+      ],
+      "required_for_release": true,
+      "test_cases": [
+        {
+          "id": "TC-2",
+          "description": "AJAX POST with round_type=phone_screen, outcome=pending inserts 1 row for uid+saved_job_id"
+        }
+      ]
+    },
+    {
+      "id": "forseti-jobhunter-interview-outcome-tracker-chronological-order",
+      "label": "Interview round log renders in ascending conducted_date order",
+      "type": "functional",
+      "feature_id": "forseti-jobhunter-interview-outcome-tracker",
+      "command": "bash scripts/qa-run-suite.sh forseti-jobhunter-interview-outcome-tracker-chronological-order",
+      "artifacts": [
+        "sessions/qa-forseti/artifacts/forseti-jobhunter-interview-outcome-tracker-results.json"
+      ],
+      "required_for_release": true,
+      "test_cases": [
+        {
+          "id": "TC-3",
+          "description": "Multiple rounds with different dates render in ascending conducted_date order"
+        }
+      ]
+    },
+    {
+      "id": "forseti-jobhunter-interview-outcome-tracker-update-no-duplicate",
+      "label": "Updating an existing interview round does not create a duplicate row",
+      "type": "functional",
+      "feature_id": "forseti-jobhunter-interview-outcome-tracker",
+      "command": "bash scripts/qa-run-suite.sh forseti-jobhunter-interview-outcome-tracker-update-no-duplicate",
+      "artifacts": [
+        "sessions/qa-forseti/artifacts/forseti-jobhunter-interview-outcome-tracker-results.json"
+      ],
+      "required_for_release": true,
+      "test_cases": [
+        {
+          "id": "TC-4",
+          "description": "Update outcome from pending to passed; SELECT COUNT(*) remains 1 for that round_id"
+        }
+      ]
+    },
+    {
+      "id": "forseti-jobhunter-interview-outcome-tracker-cross-user-isolation",
+      "label": "User B sees no interview rounds from User A for the same saved_job_id",
+      "type": "security",
+      "feature_id": "forseti-jobhunter-interview-outcome-tracker",
+      "command": "bash scripts/qa-run-suite.sh forseti-jobhunter-interview-outcome-tracker-cross-user-isolation",
+      "artifacts": [
+        "sessions/qa-forseti/artifacts/forseti-jobhunter-interview-outcome-tracker-results.json"
+      ],
+      "required_for_release": true,
+      "test_cases": [
+        {
+          "id": "TC-5",
+          "description": "SELECT * FROM jobhunter_interview_rounds WHERE saved_job_id=X AND uid=uid_B returns 0 rows when only uid_A has rounds"
+        }
+      ]
+    },
+    {
+      "id": "forseti-jobhunter-interview-outcome-tracker-anon-csrf-blocked",
+      "label": "Unauthenticated access and CSRF-missing POST are blocked on interview-round routes",
+      "type": "security",
+      "feature_id": "forseti-jobhunter-interview-outcome-tracker",
+      "command": "curl -s -o /dev/null -w \"%{http_code}\" https://forseti.life/jobhunter/saved-jobs | grep -Eq '^(403|302)'",
+      "artifacts": [
+        "sessions/qa-forseti/artifacts/forseti-jobhunter-interview-outcome-tracker-results.json"
+      ],
+      "required_for_release": true,
+      "test_cases": [
+        {
+          "id": "TC-6",
+          "description": "Anon GET saved-job detail returns 403/redirect; POST without CSRF token returns 403"
+        }
+      ]
     }
   ],
   "_schema_notes": [

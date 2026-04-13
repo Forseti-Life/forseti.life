@@ -1106,6 +1106,30 @@
         "content_editor": "ignore",
         "administrator": "ignore"
       }
+    },
+    {
+      "id": "forseti-jobhunter-interview-outcome-tracker-saved-jobs",
+      "feature_id": "forseti-jobhunter-interview-outcome-tracker",
+      "path_regex": "^/jobhunter/saved-jobs(/[0-9]+)?$",
+      "notes": "Saved-job list and detail \u2014 requires authentication; interview round form lives here. Added for feature forseti-jobhunter-interview-outcome-tracker.",
+      "expect": {
+        "anon": "403",
+        "authenticated": "200",
+        "content_editor": "200",
+        "administrator": "200"
+      }
+    },
+    {
+      "id": "forseti-jobhunter-interview-outcome-tracker-round-save",
+      "feature_id": "forseti-jobhunter-interview-outcome-tracker",
+      "path_regex": "^/jobhunter/interview-round/[0-9]+/save$",
+      "notes": "CSRF-protected AJAX POST to save/update interview round. Anon should be 403; authenticated POST with valid token only. Added for feature forseti-jobhunter-interview-outcome-tracker.",
+      "expect": {
+        "anon": "403",
+        "authenticated": "ignore",
+        "content_editor": "ignore",
+        "administrator": "ignore"
+      }
     }
   ]
 }
