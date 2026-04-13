@@ -17,6 +17,9 @@ reporting_chain:
   - from: "ceo-copilot"
     to: "pm-*"
     responsibility: "PMs own module-level scope + acceptance criteria; maintain active queues for subordinates."
+  - from: "ceo-copilot"
+    to: "accountant-*"
+    responsibility: "Finance operations, expenditure tracking, vendor billing reconciliation, and cost reporting for leadership."
   - from: "pm-*"
     to: "ba-*"
     responsibility: "Requirements, analysis, documentation, status reporting."
@@ -34,6 +37,7 @@ roles:
   - business-analyst
   - tester
   - security-analyst
+  - accountant
 
 websites:
   - infrastructure
@@ -69,6 +73,7 @@ agents:
   - sec-analyst-forseti
   - sec-analyst-dungeoncrawler
   - sec-analyst-forseti-agent-tracker
+  - accountant-forseti
   - dev-forseti
   - dev-dungeoncrawler
   - qa-forseti

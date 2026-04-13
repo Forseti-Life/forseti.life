@@ -688,6 +688,7 @@ class ApplicationSubmissionController extends ControllerBase {
       '#default_salary_max' => $defaults['salary_max'],
       '#default_employment_type' => $defaults['employment_type'],
       '#default_relocation' => $defaults['relocation'],
+      '#default_sources' => $defaults['sources'],
       '#has_google_cloud' => $api_status['google_cloud'],
       '#has_adzuna' => $api_status['adzuna'],
       '#has_usajobs' => $api_status['usajobs'],
@@ -1012,12 +1013,12 @@ class ApplicationSubmissionController extends ControllerBase {
       'relocation_willing' => $request->query->get('relocation_willing', ''),
       'page' => $request->query->get('page', 1),
       'next_page_token' => $request->query->get('next_page_token', ''),
+      '_explicit_sources' => $request->query->has('sources') || $request->query->has('sources_submitted'),
+      '_explicit_salary_min' => $request->query->has('salary_min'),
+      '_explicit_remote_preference' => $request->query->has('remote_preference'),
     ];
 
-    // Ensure sources is an array with default
-    if (empty($search_params['sources'])) {
-      $search_params['sources'] = ['forseti'];
-    }
+    $search_params = $this->searchAggregator->normalizeSearchParameters($search_params);
 
     $this->getLogger('job_hunter')->info('🔍 Controller: Delegating search to SearchAggregatorService with @count sources', [
       '@count' => count($search_params['sources']),

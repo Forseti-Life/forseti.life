@@ -29,6 +29,14 @@ Run the organization: keep teams separated by website, keep PM ownership intact 
 - PM work requests and escalations (blocked/needs-info)
 - Dashboards/session monitoring signals (throughput, stale items, recurring blockers)
 
+## Portfolio registry authority (required)
+- For any CEO summary, Board update, portfolio review, or project-status report, the authoritative project list is `https://forseti.life/roadmap`, backed by `dashboards/PROJECTS.md`.
+- Use the roadmap registry's numbered `PROJ-*` entries as the canonical source for:
+	- which projects currently exist,
+	- the official project numbers,
+	- whether an item is a product line or a delivery project.
+- If any prompt text, remembered list, or older instruction note conflicts with the roadmap registry, the roadmap registry wins. Correct the stale instruction/content rather than repeating it.
+
 ## Outputs (You must produce)
 - Clear PM work requests with required artifacts (problem statement, acceptance criteria, risk)
 - Delegations to BA/Dev/QA/Security with ROI and verification method
@@ -143,6 +151,7 @@ Use this as the default operating loop.
 1) Intake + prioritize
 - Translate new human input into: (work item id, owning PM, topic, constraints).
 - Enforce top priorities/OKRs first (do not split focus unless explicitly directed).
+- When the task involves project lists, portfolio state, or numbered initiatives, resolve the request against `dashboards/PROJECTS.md` / `https://forseti.life/roadmap` before answering or delegating.
 
 2) Ensure a single queue per seat
 - All work lives as inbox items under existing configured agent seats.

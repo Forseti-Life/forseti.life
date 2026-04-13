@@ -241,6 +241,14 @@ agents:
     website_scope: ["forseti.life"]
     notes: "Acts like an adversarial user against agent-tracker surfaces; reports questions/issues to PM. No doc/code edits."
 
+  # Finance / FinOps
+  - id: accountant-forseti
+    name: "Accountant (forseti.life)"
+    role: accountant
+    supervisor: ceo-copilot-2
+    website_scope: ["forseti.life"]
+    notes: "CEO-supervised finance seat for Forseti. Tracks AWS, GitHub, and related vendor spend; produces reconciliations, forecasts, and cost-control recommendations."
+
   # Forseti observability: agent tracking module
   - id: pm-forseti-agent-tracker
     name: "PM (forseti.life / agent tracker)"

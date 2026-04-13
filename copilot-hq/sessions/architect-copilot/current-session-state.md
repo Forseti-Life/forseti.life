@@ -1,17 +1,18 @@
 # Architect Session State — architect-copilot
 
 > **Rolling file. Overwrite this at the end of each working session (and briefly before starting each task).**
-> Last updated: 2026-04-12 after agent capacity alignment
+> Last updated: 2026-04-13 after Job Hunter preferences wiring
 
 ---
 
 ## Currently Working On
 
-Completed the Forseti roadmap subpage launch:
-- kept the synced `/roadmap` index backed by `dashboards/PROJECTS.md`,
-- added individual public roadmap subpages for the Forseti project-registry
-  entries,
-- and preserved the Dungeoncrawler roadmap as an external redirect target.
+Completed the Job Hunter job-board preferences follow-through:
+- saved job-board source/filter preferences now feed the live search flow when
+  the current request does not explicitly override them,
+- `/jobhunter/preferences` now exists as the canonical preferences entrypoint,
+- and the discovery UI now pre-checks sources from saved preferences instead of
+  drifting from live search behavior.
 
 ---
 
@@ -25,6 +26,29 @@ Completed the Forseti roadmap subpage launch:
 ---
 
 ## What Was Last Worked On
+
+**2026-04-13 — Job Hunter preferences/search wiring**
+
+- Fixed the gap where saved `jobhunter_source_preferences` rows were not being
+  applied to live job searches.
+- Added search-parameter normalization in `SearchAggregatorService` so saved
+  sources, minimum salary, and remote preference apply only when the current
+  request does not explicitly override them.
+- Added a hidden `sources_submitted` marker on the job discovery form so an
+  intentional "no sources checked" submit is not mistaken for "use saved
+  defaults."
+- Updated discovery-page defaults so source checkboxes reflect saved
+  preferences instead of always defaulting to the old hardcoded selections.
+- Added canonical routes:
+  - `/jobhunter/preferences`
+  - `/jobhunter/preferences/save`
+  while keeping the legacy `/jobhunter/preferences/sources` routes for
+  compatibility.
+- Replaced stale source-preference keys (`linkedin`, `indeed`, `glassdoor`,
+  `ziprecruiter`) with the live search-source keys (`forseti`, `serpapi`,
+  `adzuna`, `usajobs`) in the preferences UI.
+- Added focused unit coverage for saved-preference normalization and rebuilt the
+  live Drupal cache from `/var/www/html/forseti`.
 
 **2026-04-12 — HQ active-agent capacity alignment**
 

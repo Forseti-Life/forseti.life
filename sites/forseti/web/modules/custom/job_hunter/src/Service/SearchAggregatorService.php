@@ -28,6 +28,18 @@ class SearchAggregatorService {
   ];
 
   /**
+   * Search source keys supported by the live job discovery UI.
+   *
+   * @var string[]
+   */
+  protected const SUPPORTED_SEARCH_SOURCES = [
+    'forseti',
+    'serpapi',
+    'adzuna',
+    'usajobs',
+  ];
+
+  /**
    * The database connection.
    *
    * @var \Drupal\Core\Database\Connection
@@ -124,6 +136,64 @@ class SearchAggregatorService {
   }
 
   /**
+   * Applies saved per-user search preferences when the request does not
+   * explicitly override them.
+   *
+   * Special keys prefixed with "_" are internal controller hints and are
+   * removed from the returned parameter array.
+   *
+   * @param array $params
+   *   Raw search parameters.
+   *
+   * @return array
+   *   Normalized search parameters.
+   */
+  public function normalizeSearchParameters(array $params): array {
+    $explicit_sources = !empty($params['_explicit_sources']);
+    $explicit_salary_min = !empty($params['_explicit_salary_min']);
+    $explicit_remote_preference = !empty($params['_explicit_remote_preference']);
+
+    $params['sources'] = $this->normalizeSourceList((array) ($params['sources'] ?? []));
+
+    if ($this->currentUser->isAuthenticated()) {
+      $preferences = $this->loadSourcePreferencesForUser((int) $this->currentUser->id());
+
+      if (!$explicit_sources && empty($params['sources']) && !empty($preferences['sources_enabled'])) {
+        $params['sources'] = $preferences['sources_enabled'];
+      }
+
+      if (
+        !$explicit_salary_min &&
+        (($params['salary_min'] ?? '') === '' || ($params['salary_min'] ?? NULL) === NULL) &&
+        $preferences['min_salary'] !== NULL
+      ) {
+        $params['salary_min'] = $preferences['min_salary'];
+      }
+
+      if (
+        !$explicit_remote_preference &&
+        (($params['remote_preference'] ?? '') === '' || ($params['remote_preference'] ?? NULL) === NULL)
+      ) {
+        $params['remote_preference'] = $preferences['remote_preference'];
+      }
+    }
+
+    if (!$explicit_sources && empty($params['sources'])) {
+      $params['sources'] = ['forseti'];
+    }
+
+    $params['remote_preference'] = $this->normalizeRemotePreference((string) ($params['remote_preference'] ?? ''));
+
+    unset(
+      $params['_explicit_sources'],
+      $params['_explicit_salary_min'],
+      $params['_explicit_remote_preference']
+    );
+
+    return $params;
+  }
+
+  /**
    * Search for jobs across multiple sources.
    *
    * @param array $params
@@ -150,6 +220,7 @@ class SearchAggregatorService {
    *   - pagination: Pagination metadata (for sources that support it)
    */
   public function searchJobs(array $params): array {
+    $params = $this->normalizeSearchParameters($params);
     $sources = $params['sources'] ?? ['forseti'];
     $all_results = [];
     $pagination_metadata = [];
@@ -216,6 +287,109 @@ class SearchAggregatorService {
       'diagnostics' => $diagnostics,
       'pagination' => $pagination_metadata,
     ];
+  }
+
+  /**
+   * Loads stored source preferences for a user.
+   *
+   * @param int $uid
+   *   The user ID.
+   *
+   * @return array{
+   *   sources_enabled: string[],
+   *   min_salary: int|null,
+   *   remote_preference: string
+   * }
+   *   Stored preference values normalized for live search.
+   */
+  protected function loadSourcePreferencesForUser(int $uid): array {
+    try {
+      $row = $this->database->select('jobhunter_source_preferences', 'sp')
+        ->fields('sp', ['sources_enabled', 'min_salary', 'remote_preference'])
+        ->condition('uid', $uid)
+        ->execute()
+        ->fetchObject();
+    }
+    catch (\Exception $e) {
+      $this->logger->error('❌ Failed to load source preferences for uid @uid: @error', [
+        '@uid' => $uid,
+        '@error' => $e->getMessage(),
+      ]);
+      $row = NULL;
+    }
+
+    if (!$row) {
+      return [
+        'sources_enabled' => [],
+        'min_salary' => NULL,
+        'remote_preference' => '',
+      ];
+    }
+
+    $decoded_sources = [];
+    if (!empty($row->sources_enabled)) {
+      $decoded = json_decode($row->sources_enabled, TRUE);
+      if (is_array($decoded)) {
+        $decoded_sources = $decoded;
+      }
+    }
+
+    $normalized_sources = $this->normalizeSourceList($decoded_sources);
+    if (!empty($decoded_sources) && empty($normalized_sources)) {
+      $normalized_sources = ['forseti'];
+    }
+
+    return [
+      'sources_enabled' => $normalized_sources,
+      'min_salary' => $row->min_salary !== NULL ? (int) $row->min_salary : NULL,
+      'remote_preference' => $this->normalizeRemotePreference((string) ($row->remote_preference ?? '')),
+    ];
+  }
+
+  /**
+   * Keeps only supported search source keys while preserving order.
+   *
+   * @param array $sources
+   *   Candidate source list.
+   *
+   * @return string[]
+   *   Valid source keys.
+   */
+  protected function normalizeSourceList(array $sources): array {
+    $normalized = [];
+    foreach ($sources as $source) {
+      $source = strtolower(trim((string) $source));
+      if ($source === '' || !in_array($source, self::SUPPORTED_SEARCH_SOURCES, TRUE)) {
+        continue;
+      }
+      if (!in_array($source, $normalized, TRUE)) {
+        $normalized[] = $source;
+      }
+    }
+    return $normalized;
+  }
+
+  /**
+   * Normalizes remote preference values for live search consumers.
+   *
+   * @param string $remote_preference
+   *   Stored or requested remote preference value.
+   *
+   * @return string
+   *   One of: "", "remote", "hybrid", "onsite".
+   */
+  protected function normalizeRemotePreference(string $remote_preference): string {
+    $remote_preference = strtolower(trim($remote_preference));
+
+    if ($remote_preference === 'remote_only') {
+      return 'remote';
+    }
+
+    if (!in_array($remote_preference, ['remote', 'hybrid', 'onsite'], TRUE)) {
+      return '';
+    }
+
+    return $remote_preference;
   }
 
   /**

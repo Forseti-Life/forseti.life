@@ -18,6 +18,7 @@ graph TD
   PM --> DEV[dev-*\nEngineering / Implementation]
   PM --> QA[qa-*\nQA / Verification]
 
+  CEO --> ACCT[accountant-*\nAccounting / FinOps]
   CEO --> SEC[sec-analyst*\nSecurity Analysts (per team)]
 
   BA --> AC[Acceptance criteria\nDocs + status]

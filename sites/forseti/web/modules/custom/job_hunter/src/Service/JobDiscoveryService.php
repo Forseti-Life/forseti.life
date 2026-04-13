@@ -96,6 +96,7 @@ class JobDiscoveryService {
       'salary_max' => '',
       'employment_type' => '',
       'relocation' => '',
+      'sources' => ['forseti'],
     ];
 
     try {
@@ -156,6 +157,17 @@ class JobDiscoveryService {
       $this->getLogger()->error('Error loading profile for search: @error', [
         '@error' => $e->getMessage(),
       ]);
+    }
+
+    $source_preferences = $this->getSourcePreferences((int) $this->currentUser->id());
+    if (!empty($source_preferences['sources_enabled']) || $source_preferences['has_row']) {
+      $defaults['sources'] = $source_preferences['sources_enabled'];
+    }
+    if ($source_preferences['min_salary'] !== NULL) {
+      $defaults['salary_min'] = $source_preferences['min_salary'];
+    }
+    if ($source_preferences['remote_preference'] !== '') {
+      $defaults['remote_pref'] = $source_preferences['remote_preference'];
     }
 
     return $defaults;
@@ -581,6 +593,7 @@ class JobDiscoveryService {
    *   The user ID.
    *
    * @return array{
+   *   has_row: bool,
    *   sources_enabled: string[],
    *   min_salary: int|null,
    *   remote_preference: string,
@@ -604,27 +617,46 @@ class JobDiscoveryService {
     }
 
     if (!$row) {
-      // No preferences saved — default: all sources enabled.
+      // No preferences saved — preserve the live discovery default.
       return [
-        'sources_enabled'    => ['linkedin', 'indeed', 'glassdoor', 'ziprecruiter'],
+        'has_row'            => FALSE,
+        'sources_enabled'    => ['forseti'],
         'min_salary'         => NULL,
-        'remote_preference'  => 'any',
+        'remote_preference'  => '',
         'location_radius_km' => NULL,
       ];
     }
 
     $sources = [];
+    $decoded = [];
     if (!empty($row->sources_enabled)) {
       $decoded = json_decode($row->sources_enabled, TRUE);
       if (is_array($decoded)) {
-        $sources = $decoded;
+        foreach ($decoded as $source) {
+          $source = strtolower(trim((string) $source));
+          if (in_array($source, ['forseti', 'serpapi', 'adzuna', 'usajobs'], TRUE) && !in_array($source, $sources, TRUE)) {
+            $sources[] = $source;
+          }
+        }
       }
+    }
+    if (!empty($decoded) && empty($sources)) {
+      $sources = ['forseti'];
+    }
+
+    $remote_preference = (string) ($row->remote_preference ?? 'any');
+    if ($remote_preference === 'remote_only') {
+      $remote_preference = 'remote';
+    }
+    elseif (!in_array($remote_preference, ['remote', 'hybrid', 'onsite'], TRUE)) {
+      $remote_preference = '';
     }
 
     return [
+      'has_row'            => TRUE,
       'sources_enabled'    => $sources,
       'min_salary'         => $row->min_salary !== NULL ? (int) $row->min_salary : NULL,
-      'remote_preference'  => (string) ($row->remote_preference ?? 'any'),
+      'remote_preference'  => $remote_preference,
       'location_radius_km' => $row->location_radius_km !== NULL ? (int) $row->location_radius_km : NULL,
     ];
   }

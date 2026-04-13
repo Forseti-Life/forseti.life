@@ -1602,6 +1602,29 @@ job_hunter.contact_job_link_save:
     contact_id: \d+
 
 # Job-board Source Preferences — form (GET)
+job_hunter.preferences:
+  path: '/jobhunter/preferences'
+  defaults:
+    _controller: '\Drupal\job_hunter\Controller\CompanyController::sourcePreferencesForm'
+    _title: 'Job Board Preferences'
+  methods: [GET]
+  requirements:
+    _permission: 'access job hunter'
+    _user_is_logged_in: 'TRUE'
+
+# Job-board Source Preferences — save (POST, CSRF split-route)
+job_hunter.preferences_save:
+  path: '/jobhunter/preferences/save'
+  defaults:
+    _controller: '\Drupal\job_hunter\Controller\CompanyController::sourcePreferencesSave'
+    _title: 'Save Source Preferences'
+  methods: [POST]
+  requirements:
+    _permission: 'access job hunter'
+    _user_is_logged_in: 'TRUE'
+    _csrf_token: 'TRUE'
+
+# Legacy preferences routes kept for compatibility.
 job_hunter.source_preferences:
   path: '/jobhunter/preferences/sources'
   defaults:

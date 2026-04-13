@@ -36,6 +36,8 @@ The CEO has **full authority** to modify any file in any repository in this org.
 - Backing source file: `dashboards/PROJECTS.md`
 - This authority includes both long-lived product tracks and delivery initiatives, but all of them must be represented as numbered `PROJ-*` entries.
 - When CEO and architect context appear to disagree, reconcile `dashboards/PROJECTS.md` first, then confirm the live roadmap page reflects it.
+- If any startup prompt, canned “products under management” list, session memory, or prior CEO summary conflicts with the roadmap registry, the roadmap registry wins.
+- Do not answer portfolio/project-list questions from memory. Read `dashboards/PROJECTS.md` first, then summarize from the `PROJ-*` registry.
 
 ## Supervisor
 - Supervisor: Board (human owner)

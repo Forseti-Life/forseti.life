@@ -11,6 +11,7 @@
  * - default_salary_max: Maximum salary expectation
  * - default_employment_type: Preferred employment type
  * - default_relocation: Willingness to relocate
+ * - default_sources: Default enabled search sources
  * - has_google_cloud: Boolean, Google Cloud credentials configured
  * - has_adzuna: Boolean, Adzuna credentials configured
  * - has_usajobs: Boolean, USAJobs credentials configured
@@ -51,6 +52,7 @@
   {# Search Form #}
   <div class="job-search-form">
     <form id="unified-job-search" method="GET" action="/jobhunter/job-discovery/search">
+      <input type="hidden" name="sources_submitted" value="1">
       <div class="search-form-container">
         
         {# Primary Search Row #}
@@ -109,19 +111,19 @@
             </label>
             <div class="checkbox-group">
               <label class="checkbox-label">
-                <input type="checkbox" name="sources[]" value="forseti" checked>
+                <input type="checkbox" name="sources[]" value="forseti" {{ 'forseti' in default_sources ? 'checked' : '' }}>
                 <span>{{ 'Forseti Jobs'|t }}</span>
               </label>
               <label class="checkbox-label{{ has_serpapi ? '' : ' disabled' }}">
-                <input type="checkbox" name="sources[]" value="serpapi" {{ has_serpapi ? '' : 'disabled' }}>
+                <input type="checkbox" name="sources[]" value="serpapi" {{ 'serpapi' in default_sources ? 'checked' : '' }} {{ has_serpapi ? '' : 'disabled' }}>
                 <span>{{ has_serpapi ? 'Google Jobs (Via SerpAPI)'|t : 'Google Jobs (Configure SerpAPI)'|t }}</span>
               </label>
               <label class="checkbox-label{{ has_adzuna ? '' : ' disabled' }}">
-                <input type="checkbox" name="sources[]" value="adzuna" {{ has_adzuna ? '' : 'disabled' }}>
+                <input type="checkbox" name="sources[]" value="adzuna" {{ 'adzuna' in default_sources ? 'checked' : '' }} {{ has_adzuna ? '' : 'disabled' }}>
                 <span>{{ has_adzuna ? 'Adzuna (Indeed/Monster/etc.)'|t : 'Adzuna (Configure API)'|t }}</span>
               </label>
               <label class="checkbox-label{{ has_usajobs ? '' : ' disabled' }}">
-                <input type="checkbox" name="sources[]" value="usajobs" {{ has_usajobs ? '' : 'disabled' }}>
+                <input type="checkbox" name="sources[]" value="usajobs" {{ 'usajobs' in default_sources ? 'checked' : '' }} {{ has_usajobs ? '' : 'disabled' }}>
                 <span>{{ has_usajobs ? 'USAJobs (Government)'|t : 'USAJobs (Configure API)'|t }}</span>
               </label>
             </div>

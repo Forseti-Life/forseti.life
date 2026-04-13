@@ -4339,15 +4339,25 @@ HTML;
   /**
    * Valid job-board source keys for SEC-4 allowlist.
    */
-  const VALID_SOURCE_KEYS = ['linkedin', 'indeed', 'glassdoor', 'ziprecruiter'];
+  const VALID_SOURCE_KEYS = ['forseti', 'serpapi', 'adzuna', 'usajobs'];
+
+  /**
+   * Labels for supported job-board preference source keys.
+   */
+  const SOURCE_KEY_LABELS = [
+    'forseti' => 'Forseti Jobs',
+    'serpapi' => 'Google Jobs (SerpAPI)',
+    'adzuna' => 'Adzuna',
+    'usajobs' => 'USAJobs',
+  ];
 
   /**
    * Valid remote preference values.
    */
-  const VALID_REMOTE_PREFS = ['any', 'remote_only', 'hybrid', 'onsite'];
+  const VALID_REMOTE_PREFS = ['any', 'remote', 'hybrid', 'onsite'];
 
   /**
-   * Renders the job-board source preferences form at /jobhunter/preferences/sources.
+   * Renders the job-board source preferences form at /jobhunter/preferences.
    */
   public function sourcePreferencesForm(): array {
     $uid = (int) $this->currentUser->id();
@@ -4366,31 +4376,38 @@ HTML;
       $prefs = NULL;
     }
 
-    $enabled_sources = [];
+    $enabled_sources = ['forseti'];
     if ($prefs && !empty($prefs->sources_enabled)) {
       $decoded = json_decode($prefs->sources_enabled, TRUE);
       if (is_array($decoded)) {
-        $enabled_sources = $decoded;
+        $enabled_sources = array_values(array_filter(array_map(
+          static fn($source) => strtolower(trim((string) $source)),
+          $decoded
+        ), static fn($source) => in_array($source, self::VALID_SOURCE_KEYS, TRUE)));
+        if (!empty($decoded) && empty($enabled_sources)) {
+          $enabled_sources = ['forseti'];
+        }
       }
     }
     $f_min_salary = $prefs ? (int) ($prefs->min_salary ?? 0) : 0;
-    $f_remote     = $prefs ? htmlspecialchars((string) ($prefs->remote_preference ?? 'any')) : 'any';
+    $f_remote_raw = $prefs ? (string) ($prefs->remote_preference ?? 'any') : 'any';
+    $f_remote = $f_remote_raw === 'remote_only' ? 'remote' : htmlspecialchars($f_remote_raw);
     $f_radius     = $prefs ? (int) ($prefs->location_radius_km ?? 0) : 0;
 
-    $save_url  = Url::fromRoute('job_hunter.source_preferences_save')->toString();
-    $csrf_token = \Drupal::csrfToken()->get('jobhunter/preferences/sources/save');
+    $save_url  = Url::fromRoute('job_hunter.preferences_save')->toString();
+    $csrf_token = \Drupal::csrfToken()->get('jobhunter/preferences/save');
 
     $source_checkboxes = '';
     foreach (self::VALID_SOURCE_KEYS as $key) {
       $checked = in_array($key, $enabled_sources, TRUE) ? ' checked' : '';
-      $label = ucfirst($key);
+      $label = self::SOURCE_KEY_LABELS[$key] ?? ucfirst($key);
       $source_checkboxes .= '<label class="source-checkbox-label">'
         . '<input type="checkbox" name="sources_enabled[]" value="' . htmlspecialchars($key) . '"' . $checked . '> '
         . $label . '</label> ';
     }
 
     $remote_options = '';
-    $remote_labels = ['any' => 'Any', 'remote_only' => 'Remote Only', 'hybrid' => 'Hybrid', 'onsite' => 'On-site'];
+    $remote_labels = ['any' => 'Any', 'remote' => 'Remote Only', 'hybrid' => 'Hybrid', 'onsite' => 'On-site'];
     foreach ($remote_labels as $val => $lbl) {
       $sel = ($f_remote === $val) ? ' selected' : '';
       $remote_options .= '<option value="' . htmlspecialchars($val) . '"' . $sel . '>' . $lbl . '</option>';

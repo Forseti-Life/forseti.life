@@ -28,6 +28,8 @@ Role scope (release-cycle based):
   - what is already queued,
   - and which PM owns the item.
 - For products represented in the HQ portfolio registry, keep `dashboards/PROJECTS.md` synchronized with actual execution state.
+- For Forseti portfolio reporting, the authoritative project list and project numbers are the live roadmap at `https://forseti.life/roadmap`, backed by `dashboards/PROJECTS.md`.
+- Do not maintain or repeat a competing active-project list when it conflicts with the roadmap registry; update the registry instead.
 - For products with a separate product-local roadmap, keep that roadmap current and ensure any HQ summary entry stays aligned with it.
 - Roadmap entries must not stop at vague intent. PM must decompose roadmap work into concrete follow-through:
   - active delivery projects,

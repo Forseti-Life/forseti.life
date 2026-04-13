@@ -89,6 +89,16 @@ Every work request must be actionable and include:
 - **Verification method** (tests, commands, URL, screenshots)
 - **Time bounds** (if a deadline is relevant)
 
+## Portfolio/project list authority (required)
+- When summarizing, triaging, or reporting the active project list for Forseti portfolio work, the authority is the live roadmap at `https://forseti.life/roadmap`.
+- The backing source file for that roadmap is `dashboards/PROJECTS.md`.
+- Treat the roadmap page + `dashboards/PROJECTS.md` as the single source of truth for:
+	- active portfolio items,
+	- project numbering (`PROJ-*`),
+	- whether an item is a product line or delivery project.
+- Do **not** rely on stale prompt text, ad hoc “products under management” lists, or session memory when they conflict with the roadmap registry.
+- If you find a mismatch between operating instructions/context and the roadmap registry, reconcile `dashboards/PROJECTS.md` or escalate to the owning seat instead of repeating the stale list.
+
 ## Content autonomy (default: empowered)
 All roles are empowered to create and edit **content** as they identify a need.
 
