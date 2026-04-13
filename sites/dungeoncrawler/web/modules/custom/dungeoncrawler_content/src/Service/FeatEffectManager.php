@@ -1388,68 +1388,6 @@ class FeatEffectManager {
         $effects['notes'][] = 'Umbral Gnome: darkvision (supersedes Low-Light Vision; no duplicate if already possessed).';
         break;
 
-      case 'wellspring':
-        // AC: Wellspring Gnome — choose one non-primal tradition (arcane/divine/occult);
-        // gain one at-will cantrip from that tradition; all gnome ancestry feat primal
-        // innate spells automatically override to the wellspring_tradition.
-        $ws_tradition = strtolower(trim(
-          $character_data['wellspring_tradition'] ?? ($character_data['basicInfo']['wellspring_tradition'] ?? '')
-        ));
-        $valid_ws_traditions = ['arcane', 'divine', 'occult'];
-
-        if ($ws_tradition === '' || !in_array($ws_tradition, $valid_ws_traditions, TRUE)) {
-          // Tradition not yet chosen; issue selection grant (primal is excluded).
-          $effects['selection_grants'][] = [
-            'source_feat' => 'wellspring',
-            'selection_type' => 'wellspring_tradition_choice',
-            'count' => 1,
-            'status' => 'pending_choice',
-            'options' => $valid_ws_traditions,
-            'description' => 'Choose one magical tradition for Wellspring Gnome: arcane, divine, or occult (primal not available).',
-          ];
-          $ws_tradition = 'arcane';
-        }
-
-        $ws_cantrip = $this->resolveFeatSelectionValue($character_data, 'wellspring', ['selected_cantrip', 'cantrip', 'spell_id']);
-
-        if ($ws_cantrip === NULL) {
-          $this->addSelectionGrant(
-            $effects,
-            'wellspring',
-            'wellspring_cantrip',
-            1,
-            'Select one cantrip from your chosen Wellspring tradition (' . $ws_tradition . ') spell list.'
-          );
-        }
-
-        $effects['spell_augments']['innate_spells'][] = [
-          'id' => 'wellspring',
-          'name' => 'Wellspring Gnome Cantrip',
-          'casting' => 'at_will',
-          'tradition' => $ws_tradition,
-          'spell_id' => $ws_cantrip,
-          'heightened' => 'ceil(level/2)',
-          'description' => $ws_cantrip
-            ? ('Innate at-will ' . $ws_tradition . ' cantrip: ' . $ws_cantrip . '. Heightened to ceil(level/2). All gnome ancestry feat primal spells override to ' . $ws_tradition . '.')
-            : 'One innate at-will cantrip from your wellspring tradition (selection pending). Heightened to ceil(level/2).',
-        ];
-
-        $effects['available_actions']['at_will'][] = [
-          'id' => 'wellspring-cast',
-          'name' => 'Cast Wellspring Cantrip',
-          'action_cost' => 2,
-          'description' => $ws_cantrip
-            ? ('Cast ' . $ws_cantrip . ' as an innate ' . $ws_tradition . ' cantrip at will.')
-            : 'Cast your selected Wellspring innate cantrip.',
-        ];
-
-        // Flag for downstream consumers: gnome ancestry feat innate spells
-        // must use wellspring_tradition instead of primal.
-        $effects['derived_adjustments']['flags']['wellspring_tradition_override'] = $ws_tradition;
-
-        $effects['notes'][] = 'Wellspring Gnome: ' . $ws_tradition . ' tradition; at-will cantrip (heightened ceil(level/2)); all gnome ancestry primal innate spells override to ' . $ws_tradition . '.';
-        break;
-
       case 'fey-touched':
         // AC: Fey-Touched Gnome — gains fey trait; at-will primal cantrip;
         // 1/day 10-min concentrate to swap the cantrip; heightened ceil(level/2).
