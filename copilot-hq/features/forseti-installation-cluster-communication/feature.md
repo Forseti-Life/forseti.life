@@ -11,7 +11,7 @@
 
 Forseti installations currently operate as isolated deployments. This feature introduces secure installation-to-installation cluster communication so one Forseti instance can discover, trust, and exchange signed messages with another Forseti instance. The goal is to establish the communication and governance layer first, so future federation features can build on a stable cross-installation contract instead of ad hoc integrations.
 
-The larger vision is a **community resource mesh**: Forseti systems should be able to identify community needs and share commodity resources while preserving local autonomy. The initial focus is **agent expertise** and **institutional-management services**; compute and storage are future-state extensions.
+The larger vision is a **community resource mesh**: Forseti systems should be able to identify community needs and share commodity resources while preserving local autonomy. The initial focus is **agent expertise** and **institutional-management services**; compute and storage are future-state extensions. Trust in that mesh is not only technical. Peer installations should affirm adherence to the core Forseti mission and operating values as part of onboarding.
 
 ## Goal
 
@@ -26,15 +26,22 @@ Allow any Forseti installation to register trusted peer installations and exchan
 - AC-5: Outbound cluster messages use a standard message envelope with message type, sender installation id, timestamp, nonce, signature, and payload.
 - AC-6: Admin UI shows configured peers, last successful handshake, and last message status.
 - AC-7: Replay protection and signature validation are enforced so stale or tampered messages are rejected.
+- AC-8: Trusted peers can publish a machine-readable catalog of offered agent and institutional-service capabilities.
+- AC-9: Trusted peers can submit structured service requests and receive explicit accept, reject, defer, and completion status updates.
+- AC-10: Export policy controls determine which service categories may leave the local installation and whether human approval is required.
+- AC-11: Peer onboarding captures a signed mission-and-values attestation, and operators can review whether a peer remains aligned before elevating trust.
 
 ## Definition of done
 
 - Core AC pass in a local two-installation test setup.
 - Secrets and trust material are stored in active config, environment, or private files rather than public synced config.
 - One end-to-end peer handshake and one signed message exchange are demonstrated successfully.
+- One end-to-end capability advertisement and one service-request workflow are demonstrated successfully.
 
 ## Notes
 
 - Start with communication and trust primitives, not full data replication.
 - Favor Drupal-native HTTP client, route/controller patterns, and queue/logging primitives.
 - The first practical use case can be health/status exchange, remote announcement, cross-installation suggestion relay, shared agent capacity, or institutional-service advertisement.
+- The MVP should treat operator approval and export policy as first-class controls rather than assuming all trusted peers may request all services.
+- Handshake trust should verify both technical legitimacy and declared adherence to the Forseti mission, so the mesh remains values-aligned as it grows.

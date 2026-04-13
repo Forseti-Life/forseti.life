@@ -191,6 +191,9 @@ Define the MVP around a small set of explicit objects:
   - display_name
   - public_key
   - trust_status
+  - trust_tier
+  - mission_attestation_version
+  - mission_alignment_status
   - capabilities_version
   - last_handshake_at
 
@@ -201,6 +204,7 @@ Define the MVP around a small set of explicit objects:
   - name
   - description
   - availability_status
+  - export_policy
   - routing_constraints
 
 - **PeerNeed**
@@ -230,8 +234,19 @@ Define the MVP around a small set of explicit objects:
   - request_type
   - requested_capability
   - requested_outcome
+  - request_context
+  - review_requirement
   - status (`requested`, `accepted`, `deferred`, `rejected`, `completed`, `cancelled`)
   - audit_ref
+
+- **ExportPolicyRule**
+  - rule_id
+  - scope (`category`, `capability`, `peer`)
+  - scope_ref
+  - export_level (`local_only`, `trusted_peers`, `approval_required`)
+  - allowed_trust_tiers
+  - requires_human_review
+  - updated_at
 
 ## Integration points
 
@@ -301,14 +316,84 @@ The mesh should be built around a small number of repeatable processes:
    - detect degraded peers
    - suppress routing to unavailable peers
 
+## Trust tiers and governance model
+
+Use simple operator-visible trust tiers rather than a binary trusted/untrusted flag:
+
+- **pending_review**
+  - handshake succeeded, but no service exchange is allowed yet
+- **verified**
+  - peer may receive status, capability, and need traffic allowed by export policy
+- **operational_partner**
+  - peer may participate in approved service-request flows for shared operations
+- **suspended**
+  - peer record retained, but all exchange blocked except explicit admin review
+
+This lets the MVP model real governance without introducing a heavy PKI or automatic transitive trust.
+
+## Mission and values attestation
+
+Because the mesh is intended to preserve the Forseti mission across autonomous installations, handshake should include a values-alignment step in addition to cryptographic verification.
+
+Each installation should publish and sign a compact attestation that includes:
+
+- mission statement version the node affirms
+- operating-values/profile version
+- attestation timestamp
+- installation identity
+- optional operator note or public description of local governance posture
+
+The local operator should be able to record one of:
+
+- **aligned**
+- **needs_review**
+- **not_aligned**
+
+Cryptographic handshake can succeed while mission alignment remains `needs_review`; in that case the peer should not be elevated beyond `pending_review`.
+
+## Service categories for the MVP
+
+The first release should keep service categories narrow and legible:
+
+- **Agent expertise**
+  - research support
+  - backlog shaping
+  - analysis/review assistance
+  - domain-specialized agent availability
+
+- **Institutional-management services**
+  - policy review
+  - release coordination
+  - documentation/governance support
+  - operational triage and escalation support
+
+Compute and storage should remain out of scope for the first delivery except as future schema-extension points.
+
+## Service-request contract
+
+The service-request payload should be explicit enough for routing, audit, and human review:
+
+- request id
+- requesting installation
+- requested capability id or category
+- requested outcome
+- priority
+- business context / reason
+- data sensitivity declaration
+- approval requirement
+- desired response window
+- status timeline entries
+
+For the MVP, prefer structured JSON fields over freeform blobs so approvals and reporting stay queryable.
+
 ## Trust bootstrap flow
 
 Suggested first-pass trust flow:
 
 1. Admin registers peer base URL and expected installation metadata.
-2. Local installation generates a handshake request signed with its installation key.
-3. Remote installation validates the request and responds with signed peer identity and capability summary.
-4. Local installation stores peer public key and marks trust state as `verified` or `pending_review`.
+2. Local installation generates a handshake request signed with its installation key and includes its current mission/value attestation.
+3. Remote installation validates the request and responds with signed peer identity, capability summary, and its own mission/value attestation.
+4. Local installation stores peer public key, attestation details, and marks trust state as `verified` or `pending_review`.
 5. Only verified peers can exchange service requests and capability/need updates.
 
 This keeps the bootstrap explicit and admin-visible rather than fully automatic.
@@ -355,6 +440,29 @@ For the MVP, prefer:
 - explicit operator override
 - no automatic forwarding chains between multiple peers
 
+Recommended routing order:
+
+1. Check whether the request is allowed to leave the local installation.
+2. Check whether the capability can be satisfied locally.
+3. Evaluate eligible verified peers against trust tier, availability, and policy.
+4. Route to one selected peer or present approval options to an operator.
+5. Record the final routing decision and reasoning in the audit trail.
+
+## Operator surfaces
+
+The MVP admin UX should expose a small number of decisive views:
+
+- **Peer registry**
+  - identity, trust tier, handshake status, last seen, suspend/enable controls
+- **Capability catalog**
+  - local capabilities, exported capabilities, peer-advertised capabilities, export policy
+- **Need and request queue**
+  - outstanding needs, inbound requests, outbound requests, approval-required requests
+- **Cluster audit view**
+  - signed message history, failures, replay rejections, request lifecycle timeline
+
+This keeps the mesh understandable for operators instead of burying governance inside logs or raw entities.
+
 ## MVP implementation phases
 
 ### Phase A — mesh identity and trust
@@ -380,6 +488,11 @@ For the MVP, prefer:
 - decision workflow
 - audit/status timeline
 - first real shared-agent and institutional-service flows
+
+### Phase E — operator optimization
+- approval queue and export policy controls
+- request templates for common institutional workflows
+- service analytics for demand, fulfillment, and peer reliability
 
 ## Architectural cautions
 
