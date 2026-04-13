@@ -600,18 +600,51 @@ class FeatEffectManager {
           break;
 
         case 'first-world-magic':
+          $selected_cantrip = $this->resolveFeatSelectionValue($character_data, 'first-world-magic', ['selected_cantrip', 'cantrip', 'spell_id']);
+
+          if ($selected_cantrip === NULL) {
+            $this->addSelectionGrant(
+              $effects,
+              'first-world-magic',
+              'first_world_magic_cantrip',
+              1,
+              'Select one cantrip from the primal spell list for First World Magic.'
+            );
+          }
+
+          // Wellspring Gnome override: tradition becomes character's wellspring_tradition.
+          $heritage_raw = strtolower(trim($character_data['heritage'] ?? ($character_data['basicInfo']['heritage'] ?? '')));
+          if ($heritage_raw === 'wellspring') {
+            $tradition = strtolower(trim(
+              $character_data['wellspring_tradition'] ?? ($character_data['basicInfo']['wellspring_tradition'] ?? 'primal')
+            ));
+          }
+          else {
+            $tradition = 'primal';
+          }
+
           $effects['spell_augments']['innate_spells'][] = [
             'id' => 'first-world-magic',
             'name' => 'First World Magic',
             'casting' => 'at_will',
-            'description' => 'One extra innate primal cantrip.',
+            'tradition' => $tradition,
+            'spell_id' => $selected_cantrip,
+            'heightened' => 'ceil(level/2)',
+            'description' => $selected_cantrip
+              ? ('Innate at-will ' . $tradition . ' cantrip: ' . $selected_cantrip . '. Fixed at acquisition; heightened to ceil(level/2).')
+              : 'One primal innate at-will cantrip (selection pending). Heightened to ceil(level/2).',
           ];
           $effects['available_actions']['at_will'][] = [
             'id' => 'first-world-magic-cast',
             'name' => 'Cast First World Cantrip',
             'action_cost' => 2,
-            'description' => 'Cast your selected first world innate cantrip.',
+            'description' => $selected_cantrip
+              ? ('Cast ' . $selected_cantrip . ' as an innate ' . $tradition . ' cantrip at will.')
+              : 'Cast your selected first world innate cantrip.',
           ];
+          $effects['notes'][] = $selected_cantrip
+            ? ('First World Magic: ' . $selected_cantrip . ' (' . $tradition . ', at will, fixed, heightened to ceil(level/2)).')
+            : 'First World Magic: pending cantrip selection from primal spell list.';
           $effects['applied_feats'][] = $feat_id;
           break;
 
