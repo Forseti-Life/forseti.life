@@ -1,55 +1,33 @@
 # Implementation Notes: forseti-jobhunter-application-analytics
 
 - Feature: forseti-jobhunter-application-analytics
-- Author: ba-forseti
-- Date: 2026-04-12
-- Status: draft for dev-forseti
+- Author: ba-forseti / dev-forseti
+- Date: 2026-04-13
+- Status: implemented — commit 7607c362a
 
 ## Approach
 
-Build a read-only analytics page on top of existing Job Hunter status data
-instead of adding new persistence. Prefer a small controller/service pair:
+Route `job_hunter.analytics` (GET `/jobhunter/analytics`) already existed in routing.yml pointing to `ApplicationSubmissionController::analytics()` as a TODO stub. Implemented the method fully; no new routes, services, or tables required.
 
-1. Add route `/jobhunter/analytics` requiring authenticated access.
-2. Create an analytics query helper/service that aggregates:
-   - total saved jobs / applications
-   - funnel counts by status from `jobhunter_saved_jobs`
-   - response-rate by source from `jobhunter_saved_jobs`
-   - optional interview-stage enrichment from `jobhunter_interview_rounds`
-   - weekly activity buckets from application or saved-job timestamps
-3. Render a Twig template with simple markup sections:
-   - `analytics-summary`
-   - `analytics-funnel`
-   - `source-breakdown`
-   - `weekly-activity`
-   - `analytics-empty-state`
+Query strategy — all queries uid-scoped (SEC-3/SEC-4):
 
-## Data model notes
+1. Early empty-state check: COUNT from `jobhunter_saved_jobs WHERE uid AND archived=0`. If 0 → return empty-state render array pointing to discover page (AC-5).
+2. Funnel: JOIN `jobhunter_saved_jobs` → `jobhunter_job_requirements` ON `sj.job_id = jr.id`; GROUP BY `jr.application_status`. Canonical stage order defined as a `$funnel_stages` map; unknown statuses appended at end.
+3. Response rate: counted statuses from funnel_raw — `interview_scheduled`, `interview_completed`, `offer`, `accepted`, `rejected`, `confirmed` = "responded". `response_rate = responded / total_applied × 100`.
+4. Source breakdown (AC-3): same JOIN; GROUP BY `jr.source`; output total/applied/responded per source; per-source response rate computed in PHP.
+5. Weekly activity: `YEARWEEK(FROM_UNIXTIME(sj.created), 3)` GROUP BY ISO week, last 8 weeks. Simple inline-CSS bar chart.
 
-- Primary source should be `jobhunter_saved_jobs` because status and source
-  already live there.
-- `jobhunter_applications` can provide application dates / submission counts if
-  the saved-jobs table is missing an equivalent date.
-- `jobhunter_interview_rounds` is optional enrichment only. If the table does
-  not exist yet, the dashboard should still render using saved-job statuses.
-- No new tables are required for this feature.
+Rendering: `wrapWithNavigation()` render array pattern (consistent with rest of controller). Inline CSS for bars — no JS or chart lib required.
 
-## Funnel mapping
+## Data model notes (actual, post-investigation)
 
-Dev should define a deterministic mapping from saved-job status values to funnel
-buckets. Use the existing status vocabulary in the module first; only normalize
-for display labels in the controller/view layer.
+- `application_status` lives on `jobhunter_job_requirements`, not `jobhunter_saved_jobs`. Join is required.
+- `source` also on `jobhunter_job_requirements`.
+- `jobhunter_saved_jobs` columns: id, uid, job_id, created, updated, archived, deadline_date, follow_up_date.
+- `jobhunter_interview_rounds` has `saved_job_id` (not job_id), `round_type`, `uid`. Not used in v1 analytics; gracefully absent.
+- No new tables added.
 
-Recommended buckets:
-- applied
-- phone screen
-- technical
-- offer
-- accepted
-- rejected
-
-If multiple raw statuses map to one display bucket, keep the mapping in one
-helper method so QA can verify it.
+## Funnel mapping (implemented)
 
 ## UI / rendering notes
 
@@ -62,9 +40,12 @@ helper method so QA can verify it.
 ## Verification targets
 
 ```bash
-curl -s -b "$FORSETI_COOKIE_AUTHENTICATED" https://forseti.life/jobhunter/analytics
-drush sql:query "SELECT status, COUNT(*) FROM jobhunter_saved_jobs WHERE uid=<uid> GROUP BY status"
-drush sql:query "SELECT source, COUNT(*) FROM jobhunter_saved_jobs WHERE uid=<uid> GROUP BY source"
+# Verify page renders (requires auth cookie)
+curl -s -b "$FORSETI_COOKIE_AUTHENTICATED" https://forseti.life/jobhunter/analytics | grep -E 'analytics-funnel|response-rate|source-breakdown'
+
+# Actual queries for data validation
+drush sql:query "SELECT jr.application_status, COUNT(*) FROM jobhunter_saved_jobs sj JOIN jobhunter_job_requirements jr ON sj.job_id=jr.id WHERE sj.uid=<uid> AND sj.archived=0 GROUP BY jr.application_status"
+drush sql:query "SELECT jr.source, COUNT(*) FROM jobhunter_saved_jobs sj JOIN jobhunter_job_requirements jr ON sj.job_id=jr.id WHERE sj.uid=<uid> AND sj.archived=0 GROUP BY jr.source"
 ```
 
 ## Cross-site sync
@@ -73,8 +54,7 @@ drush sql:query "SELECT source, COUNT(*) FROM jobhunter_saved_jobs WHERE uid=<ui
 
 ## Risks / notes
 
-- Avoid hard-coding status strings in multiple places; centralize the display
-  mapping.
-- Prefer graceful degradation if `jobhunter_interview_rounds` is absent or empty.
-- This feature depends on Step-5 tracking data being stable, but it can ship
-  with partial data as long as the page is accurate about what it is counting.
+- `application_status` and `source` are on `jobhunter_job_requirements`; the JOIN is required. BA notes referencing `jobhunter_saved_jobs` directly for these fields were inaccurate.
+- `jobhunter_interview_rounds` not used in v1 — graceful absence.
+- No hard-coded strings scattered: funnel mapping is a single `$funnel_stages` PHP array in `analytics()`.
+- Pre-existing cron errors (`unknown column 'external_source'`) in watchdog are unrelated to this feature; flagged as a separate issue for dev-forseti backlog.
