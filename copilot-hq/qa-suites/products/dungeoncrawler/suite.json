@@ -16078,6 +16078,96 @@
       "required_for_release": true
     }
   ],
+  "dc-cr-gnome-heritage-wellspring": [
+    {
+      "id": "dc-cr-gnome-heritage-wellspring-tradition-selection-stored",
+      "label": "Player chooses arcane, divine, or occult tradition; stored as character.wellspring_tradition",
+      "type": "e2e",
+      "feature_id": "dc-cr-gnome-heritage-wellspring",
+      "command": "npx playwright test --grep \"dc-cr-gnome-heritage-wellspring-tradition-stored\" --project=character-creation",
+      "artifacts": ["playwright-report/dc-cr-gnome-heritage-wellspring-tradition-selection-stored.html"],
+      "suite_context": "playwright/character-creation",
+      "status": "pending_implementation",
+      "required_for_release": true
+    },
+    {
+      "id": "dc-cr-gnome-heritage-wellspring-primal-not-available",
+      "label": "Primal is absent from tradition options; only arcane, divine, occult are offered",
+      "type": "e2e",
+      "feature_id": "dc-cr-gnome-heritage-wellspring",
+      "command": "npx playwright test --grep \"dc-cr-gnome-heritage-wellspring-primal-absent\" --project=character-creation",
+      "artifacts": ["playwright-report/dc-cr-gnome-heritage-wellspring-primal-not-available.html"],
+      "suite_context": "playwright/character-creation",
+      "status": "pending_implementation",
+      "required_for_release": true
+    },
+    {
+      "id": "dc-cr-gnome-heritage-wellspring-cantrip-stored-at-will",
+      "label": "Cantrip from chosen wellspring tradition stored as at-will innate spell with correct tradition tag",
+      "type": "e2e",
+      "feature_id": "dc-cr-gnome-heritage-wellspring",
+      "command": "npx playwright test --grep \"dc-cr-gnome-heritage-wellspring-cantrip-stored\" --project=character-creation",
+      "artifacts": ["playwright-report/dc-cr-gnome-heritage-wellspring-cantrip-stored-at-will.html"],
+      "suite_context": "playwright/character-creation",
+      "status": "pending_implementation",
+      "required_for_release": true
+    },
+    {
+      "id": "dc-cr-gnome-heritage-wellspring-cantrip-heightened",
+      "label": "Cantrip spell level equals ceil(character_level / 2); verified at levels 1 and 7",
+      "type": "e2e",
+      "feature_id": "dc-cr-gnome-heritage-wellspring",
+      "command": "npx playwright test --grep \"dc-cr-gnome-heritage-wellspring-cantrip-heightened\" --project=character-creation",
+      "artifacts": ["playwright-report/dc-cr-gnome-heritage-wellspring-cantrip-heightened.html"],
+      "suite_context": "playwright/character-creation",
+      "status": "pending_implementation",
+      "required_for_release": true
+    },
+    {
+      "id": "dc-cr-gnome-heritage-wellspring-cantrip-at-will",
+      "label": "Wellspring cantrip has no per-day use cap; casting does not decrement a use counter",
+      "type": "e2e",
+      "feature_id": "dc-cr-gnome-heritage-wellspring",
+      "command": "npx playwright test --grep \"dc-cr-gnome-heritage-wellspring-at-will\" --project=encounter",
+      "artifacts": ["playwright-report/dc-cr-gnome-heritage-wellspring-cantrip-at-will.html"],
+      "suite_context": "playwright/encounter",
+      "status": "pending_implementation",
+      "required_for_release": true
+    },
+    {
+      "id": "dc-cr-gnome-heritage-wellspring-first-world-magic-override",
+      "label": "First World Magic innate spell tradition overridden to wellspring_tradition when Wellspring heritage active",
+      "type": "e2e",
+      "feature_id": "dc-cr-gnome-heritage-wellspring",
+      "command": "npx playwright test --grep \"dc-cr-gnome-heritage-wellspring-fwm-override\" --project=character-creation",
+      "artifacts": ["playwright-report/dc-cr-gnome-heritage-wellspring-first-world-magic-override.html"],
+      "suite_context": "playwright/character-creation",
+      "status": "pending_implementation",
+      "required_for_release": true
+    },
+    {
+      "id": "dc-cr-gnome-heritage-wellspring-override-all-gnome-primal",
+      "label": "All gnome ancestry feat innate spells with tradition=primal are overridden to wellspring_tradition",
+      "type": "e2e",
+      "feature_id": "dc-cr-gnome-heritage-wellspring",
+      "command": "npx playwright test --grep \"dc-cr-gnome-heritage-wellspring-override-all\" --project=character-creation",
+      "artifacts": ["playwright-report/dc-cr-gnome-heritage-wellspring-override-all-gnome-primal.html"],
+      "suite_context": "playwright/character-creation",
+      "status": "pending_implementation",
+      "required_for_release": true
+    },
+    {
+      "id": "dc-cr-gnome-heritage-wellspring-override-not-class-spells",
+      "label": "Tradition override is scoped to gnome ancestry feat innate spells only; class spells retain original tradition",
+      "type": "e2e",
+      "feature_id": "dc-cr-gnome-heritage-wellspring",
+      "command": "npx playwright test --grep \"dc-cr-gnome-heritage-wellspring-override-scope\" --project=character-creation",
+      "artifacts": ["playwright-report/dc-cr-gnome-heritage-wellspring-override-not-class-spells.html"],
+      "suite_context": "playwright/character-creation",
+      "status": "pending_implementation",
+      "required_for_release": true
+    }
+  ],
   "dc-cr-gnome-heritage-fey-touched": [
     {
       "id": "dc-cr-gnome-heritage-fey-touched-fey-trait-added",
