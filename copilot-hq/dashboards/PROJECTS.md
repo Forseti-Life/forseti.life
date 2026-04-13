@@ -83,7 +83,7 @@ That page is rendered from this file. CEO and architect seats must treat the roa
 
 **Scope:** The dedicated Dungeoncrawler product line, separate site, and its long-lived PF2E implementation program. Long-term mission: implement all PF2E rulebook requirements currently tracked in `dc_requirements` MySQL table (2033 implemented, 674 in_progress, 698 pending as of 2026-04-13).
 
-**Current state (2026-04-13):** Active release `20260412-dungeoncrawler-release-i` (opened 2026-04-13T01:31). 14 features in_progress in dev/QA pipeline (gnome heritage sensate/umbral/chameleon, hazards, magic ch11, skills/feats/spells clusters, rest/downtime, snares, treasure, GMG hazards). 23 features at `ready` status awaiting activation: 10 gnome feat cluster (animal-accomplice, burrow-elocutionist, first-world-adept, first-world-magic, gnome-heritage-fey-touched/wellspring, gnome-obsession, gnome-weapon-expertise/familiarity/specialist), 4 goblin feats (ancestry, very-sneaky, weapon-familiarity, weapon-frenzy), halfling cluster (halfling-ancestry, heritage-gutsy, heritage-hillock, keen-eyes, vivacious-conduit), and GMG features (gods-magic, npc-gallery, running-guide, subsystems).
+**Current state (2026-04-13):** Active release `20260412-dungeoncrawler-release-i` (opened 2026-04-13T01:31). 14 features in_progress in dev/QA pipeline (gnome heritage sensate/umbral/chameleon, hazards, magic ch11, skills/feats/spells clusters, rest/downtime, snares, treasure, GMG hazards). 28 features at `ready` status awaiting activation: 10 gnome feat cluster (animal-accomplice, burrow-elocutionist, first-world-adept, first-world-magic, gnome-heritage-fey-touched/wellspring, gnome-obsession, gnome-weapon-expertise/familiarity/specialist), 4 goblin feats (ancestry, very-sneaky, weapon-familiarity, weapon-frenzy), halfling cluster (halfling-ancestry, heritage-gutsy, heritage-hillock, keen-eyes, vivacious-conduit), GMG features (gods-magic, npc-gallery, running-guide, subsystems), and a newly groomed 5-feature UI modernization cluster: `dc-ui-map-first-player-shell`, `dc-ui-encounter-party-rail`, `dc-ui-scene-layer-contract`, `dc-ui-token-readability`, `dc-ui-sidebar-drawers`.
 
 **DB requirement gaps (pipeline coverage missing):**
 - `core/ch01` (Chapter 1: Introduction) — 237 pending, no feature stub; covers fundamental rules display and character creation flow
@@ -96,9 +96,9 @@ That page is rendered from this file. CEO and architect seats must treat the roa
 
 **Progress SLA:** 7 days without release-scoped work or a PM re-baseline/grooming update = breach
 
-**Next step:** Activate ready features for release-i (10-feature cap; activate gnome feat cluster first as it is the deepest groomed batch). After dev/QA cycle completes, queue BA decomposition for `core/ch01` and `core/ch02` — these are the largest unaddressed pending gaps (608 requirements combined).
+**Next step:** Activate ready features for release-i (10-feature cap; activate gnome feat cluster first as it is the deepest groomed batch). In parallel, preserve the new UI modernization cluster as the next product-quality grooming tranche, with sequencing `dc-ui-map-first-player-shell` → `dc-ui-encounter-party-rail` + `dc-ui-scene-layer-contract` → `dc-ui-token-readability` → `dc-ui-sidebar-drawers`. After current release pressure eases, queue BA decomposition for `core/ch01` and `core/ch02` — these remain the largest unaddressed rules-content gaps (608 requirements combined).
 
-**Queue status:** 14 features in dev/QA pipeline (release-e/f/g); 23 features `ready` for release-i activation; BA decomposition for core/ch01 and core/ch02 not yet dispatched (next major roadmap gap to close).
+**Queue status:** 14 features in dev/QA pipeline (release-e/f/g); 28 features `ready` for future activation, including 5 newly groomed UI modernization features; BA decomposition for core/ch01 and core/ch02 not yet dispatched (next major roadmap gap to close).
 
 ---
 

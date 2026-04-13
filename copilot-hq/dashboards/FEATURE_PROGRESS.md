@@ -1,6 +1,6 @@
 # Feature Progress
 
-Generated: 2026-04-13T15:54:39Z
+Generated: 2026-04-13T15:59:24Z
 
 | Work item | Website | Module | Status | Priority | PM | Dev | QA |
 |-----------|---------|--------|--------|----------|----|-----|----|
@@ -149,6 +149,11 @@ Generated: 2026-04-13T15:54:39Z
 | dc-gng-guns-gears | dungeoncrawler | dungeoncrawler_content | deferred | P3 |  |  |  |
 | dc-home-suggestion-notice | dungeoncrawler.life | dungeoncrawler_content (home page / front page block) | done | P2 |  |  |  |
 | dc-som-secrets-of-magic | dungeoncrawler | dungeoncrawler_content | deferred | P3 |  |  |  |
+| dc-ui-encounter-party-rail | dungeoncrawler | dungeoncrawler_content | ready | P1 |  |  |  |
+| dc-ui-map-first-player-shell | dungeoncrawler | dungeoncrawler_content | ready | P1 |  |  |  |
+| dc-ui-scene-layer-contract | dungeoncrawler | dungeoncrawler_content | ready | P1 |  |  |  |
+| dc-ui-sidebar-drawers | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
+| dc-ui-token-readability | dungeoncrawler | dungeoncrawler_content | ready | P1 |  |  |  |
 | forseti-agent-tracker-dashboard-controller-db-extraction | forseti.life | copilot_agent_tracker | shipped | P2 |  |  |  |
 | forseti-agent-tracker-payload-size-limit | forseti.life | copilot_agent_tracker | shipped | P2 |  |  |  |
 | forseti-ai-conversation-export | forseti.life | ai_conversation | shipped | medium |  |  |  |
