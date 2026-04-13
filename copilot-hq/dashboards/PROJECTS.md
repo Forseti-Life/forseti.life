@@ -66,15 +66,15 @@ That page is rendered from this file. CEO and architect seats must treat the roa
 
 **Scope:** Public safety content, maps, alerts, community participation, and member-support tooling.
 
-**Current state:** Foundation modules `amisafe` (crime map + H3 analytics, `/amisafe`) and `safety_calculator` (per-user risk scoring, `/safety-calculator`) are production-complete and provide data-consumption tools. No community data-contribution capability exists. Next slice defined: **Community Incident Report** (`forseti-community-incident-report`, Status: ready, Release: 20260412-forseti-release-f). Adds authenticated user-submitted safety observations, public listing at `/community-reports`, and a toggleable AmISafe map layer — advancing the "community-managed" mission. Not queued in release-e (already 7/10 in_progress; this is P2). BA AC grooming dispatched.
+**Current state (2026-04-13):** Foundation modules `amisafe` and `safety_calculator` are production-complete. Next slice fully groomed: **Community Incident Report** (`forseti-community-incident-report`, Status: ready, Release: 20260412-forseti-release-h targeted). AC, impl notes stub, and test plan created 2026-04-13. BA dispatched to complete impl notes (6 outstanding items including AmISafe JS integration approach). Feature is not yet activated in release-h (4 features already in_progress; will activate in next cycle unless slot opens).
 
-**Last scoped release:** `20260412-forseti-release-f` (planned; not yet activated)
+**Last scoped release:** `20260412-forseti-release-h` (targeted; not yet activated — pending BA impl notes + release slot)
 
 **Progress SLA:** 7 days without release-scoped work or a PM re-baseline/grooming update = breach
 
-**Next step:** BA grooms `forseti-community-incident-report` AC in release-f cycle. PM activates when release-e closes and release-f opens.
+**Next step:** ba-forseti to complete `02-implementation-notes.md` (AmISafe JS integration, taxonomy terms, form class approach). PM activates in next available release cycle after BA grooming is complete.
 
-**Queue status:** ba-forseti AC brief queued 2026-04-12: `20260412-community-incident-report-ac-brief`
+**Queue status:** ba-forseti grooming dispatch: `sessions/ba-forseti/inbox/20260413-groom-forseti-community-incident-report/` (ROI 25)
 
 ---
 
@@ -99,15 +99,15 @@ That page is rendered from this file. CEO and architect seats must treat the roa
 **Roadmap:** `features/forseti-langgraph-ui/roadmap.md`  
 **Scope:** Build the full Copilot HQ control-plane console UI on forseti.life — telemetry, agent monitoring, session management, release controls, and eval scorecards wired to live orchestrator tick data.
 
-**Current state (2026-04-12):** All foundation slices are shipped: telemetry foundation, console stubs (7 routes), context enrichment, Agent Tracker Core (`forseti-copilot-agent-tracker`), Console Build/Test sections (ahead of schedule), and Release Control Panel (read-only). Active release `20260412-forseti-release-e` carries the next slice: Run + Session panel wiring (`features/forseti-langgraph-console-run-session/feature.md`, Status: ready).
+**Current state (2026-04-13):** All foundation slices are shipped: telemetry foundation, console stubs (7 routes), context enrichment, Agent Tracker Core, Console Build/Test sections, and Release Control Panel (read-only). Active release `20260412-forseti-release-h` carries the next slice: Run + Session panel wiring (`features/forseti-langgraph-console-run-session/`, Status: ready). Artifact naming corrected (renamed to standard `01-acceptance-criteria.md`, `02-implementation-notes.md`); `03-test-plan.md` created by PM 2026-04-13. BA dispatched to confirm 4 implementation details before dev activation.
 
-**Last scoped release:** `20260412-forseti-release-e`
+**Last scoped release:** `20260412-forseti-release-h` (targeted; not yet activated — pending BA confirmation)
 
 **Progress SLA:** 7 days without release-scoped work or a PM re-baseline/grooming update = breach
 
-**Next step:** ba-forseti to elaborate AC, then dev-forseti to implement Run/Session wiring in forseti-release-e.
+**Next step:** ba-forseti to confirm AC-3 glob pattern, AC-2 truncation placement, AC-7 warning banner condition, and AC-5 Session Health placement. PM activates after BA confirmation.
 
-**Queue status:** Roadmap reconciled 2026-04-12. Feature stub created. BA dispatch queued.
+**Queue status:** ba-forseti grooming dispatch: `sessions/ba-forseti/inbox/20260413-groom-forseti-langgraph-console-run-session/` (ROI 40)
 
 ---
 
@@ -121,15 +121,15 @@ That page is rendered from this file. CEO and architect seats must treat the roa
 **Scope product:** forseti.life  
 **Suite manifest:** `qa-suites/products/forseti/suite.json`
 
-**Current state (2026-04-12 closeout audit):** Phase 1 (triage) is complete — the 6 PROJ-002 features shipped represent the triage classification work: 52 fill, 18 retire, 18 defer, 4 keep-as-is against the 94 suites that existed at triage time. However, Phase 2 (actually writing `test_cases` into `suite.json`) has NOT started. As of 2026-04-12, `suite.json` has **252 suites, only 2 with `test_cases`** (15 total). The suite count grew from 94 → 252 due to new feature suites added in releases since triage. The core problem (no executable regression tests) persists.
+**Current state (2026-04-13):** Phase 1 (triage) complete. Phase 2 (suite fill) dispatched to qa-forseti inbox `20260413-004107-suite-activate-*` items (4 release-h suites activated) and Phase 2 fill dispatch confirmed as `20260412-proj002-phase2-suite-fill` (check qa-forseti inbox — if not present, re-dispatch is needed). `suite.json` has 252 suites with 2 populated. Core problem (no executable regression tests) persists; Phase 2 fill work is the active priority.
 
-**Last scoped release:** `20260412-forseti-release-e`
+**Last scoped release:** `20260412-forseti-release-h`
 
 **Progress SLA:** 7 days without release-scoped work or a PM re-baseline/grooming update = breach
 
-**Next step:** qa-forseti: execute Phase 2 — fill `test_cases` for the 52 priority suites identified in the triage report (`sessions/qa-forseti/artifacts/proj002-suite-triage/triage-report.md`), starting with the 27 CEO pre-classified `fill` candidates. Target: ≥2 test_cases per suite, sourced from existing QA outbox verification commands.
+**Next step:** qa-forseti to execute Phase 2 fill for the 52 priority suites from the triage report (`sessions/qa-forseti/artifacts/proj002-suite-triage/triage-report.md`). Target ≥2 test_cases per fill suite.
 
-**Queue status:** qa-forseti Phase 2 dispatch queued 2026-04-12: `20260412-proj002-phase2-suite-fill`
+**Queue status:** Phase 2 dispatch: `sessions/qa-forseti/inbox/20260412-proj002-phase2-suite-fill/` (verify exists)
 
 ### Problem
 
@@ -304,4 +304,4 @@ See `runbooks/roadmap-audit.md` for full query protocol and per-chapter status.
 
 ---
 
-*Last updated: 2026-04-12 by ceo-copilot-2*
+*Last updated: 2026-04-13 by pm-forseti (roadmap process refresh)*
