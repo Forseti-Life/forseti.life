@@ -1732,7 +1732,132 @@ class CompanyController extends ControllerBase {
       ];
     }
 
-    // AC-3: Contacts linked to this job (via jobhunter_contact_job_links) + company-name match contacts.
+    // Offer Details section — visible when job status is 'offered' and job is saved.
+    if ($saved_job && (string) ($job->status ?? '') === 'offered' && $this->database->schema()->tableExists('jobhunter_offers')) {
+      $saved_job_id = (int) $saved_job->id;
+      $existing_offer = $this->database->select('jobhunter_offers', 'o')
+        ->fields('o')
+        ->condition('o.uid', $uid)
+        ->condition('o.saved_job_id', $saved_job_id)
+        ->execute()
+        ->fetchObject();
+
+      $offer_save_url   = Url::fromRoute('job_hunter.offer_save', ['job_id' => (int) $job_id])->toString();
+      $offer_save_token = \Drupal::csrfToken()->get('jobhunter/jobs/' . (int) $job_id . '/offer/save');
+
+      $f_salary   = htmlspecialchars((string) ($existing_offer->base_salary ?? ''));
+      $f_equity   = htmlspecialchars((string) ($existing_offer->equity_summary ?? ''));
+      $f_benefits = htmlspecialchars((string) ($existing_offer->benefits_summary ?? ''));
+      $f_deadline = htmlspecialchars((string) ($existing_offer->response_deadline ?? ''));
+      $f_notes    = htmlspecialchars((string) ($existing_offer->notes ?? ''));
+      $offers_url = Url::fromRoute('job_hunter.offers')->toString();
+
+      $content['offer_details'] = [
+        '#type' => 'container',
+        '#attributes' => ['class' => ['offer-details-section']],
+        '#markup' => '<h3>Offer Details</h3>'
+          . '<p class="offer-details-intro">Record this offer below. Compare all active offers at <a href="' . htmlspecialchars($offers_url) . '">My Offers</a>.</p>'
+          . '<div class="offer-details-form">'
+          . '<div class="offer-field-row"><label for="offer-base-salary">Base Salary ($)</label>'
+          . '<input type="number" id="offer-base-salary" min="0" max="9999999" value="' . $f_salary . '" placeholder="Optional"></div>'
+          . '<div class="offer-field-row"><label for="offer-equity">Equity / Bonus Summary</label>'
+          . '<input type="text" id="offer-equity" maxlength="2000" value="' . $f_equity . '" placeholder="Optional"></div>'
+          . '<div class="offer-field-row"><label for="offer-benefits">Benefits Summary</label>'
+          . '<input type="text" id="offer-benefits" maxlength="2000" value="' . $f_benefits . '" placeholder="Optional"></div>'
+          . '<div class="offer-field-row"><label for="offer-deadline">Response Deadline</label>'
+          . '<input type="date" id="offer-deadline" value="' . $f_deadline . '"></div>'
+          . '<div class="offer-field-row"><label for="offer-notes">Notes</label>'
+          . '<textarea id="offer-notes" rows="4" maxlength="2000" placeholder="Optional">' . $f_notes . '</textarea></div>'
+          . '<div class="offer-actions">'
+          . '<button type="button" class="button button--primary btn-offer-save" data-save-url="' . $offer_save_url . '" data-token="' . htmlspecialchars($offer_save_token, ENT_QUOTES) . '">Save Offer Details</button>'
+          . '<div id="offer-status-msg"></div>'
+          . '</div>'
+          . '</div>',
+      ];
+
+      $content['#attached']['html_head'][] = [
+        [
+          '#tag' => 'style',
+          '#value' => '
+            .offer-details-section { margin-top: 24px; padding: 20px; background: #f0fdf4; border-radius: 8px; border-left: 4px solid #22c55e; }
+            .offer-details-section h3 { margin: 0 0 10px 0; color: #333; }
+            .offer-details-intro { margin: 0 0 14px 0; }
+            .offer-details-form { background: #fff; border: 1px solid #bbf7d0; border-radius: 8px; padding: 16px; }
+            .offer-field-row { display: flex; flex-direction: column; gap: 4px; margin-bottom: 14px; }
+            .offer-field-row label { font-weight: 600; color: #555; font-size: 0.9em; }
+            .offer-field-row input[type="text"],
+            .offer-field-row input[type="number"],
+            .offer-field-row input[type="date"],
+            .offer-field-row textarea { width: 100%; max-width: 480px; padding: 8px 10px; border: 1px solid #d1d5db; border-radius: 4px; font-size: 0.95em; }
+            .offer-actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 4px; }
+            #offer-status-msg { font-size: 0.9em; padding: 8px 12px; border-radius: 4px; display: none; }
+            #offer-status-msg.success { display: block; background: #d1fae5; color: #065f46; }
+            #offer-status-msg.error { display: block; background: #fee2e2; color: #991b1b; }
+          ',
+        ],
+        'offer_details_styles',
+      ];
+
+      $content['#attached']['html_head'][] = [
+        [
+          '#tag' => 'script',
+          '#value' => '
+(function() {
+  var saveBtn = document.querySelector(".btn-offer-save");
+  if (!saveBtn) { return; }
+  var statusEl = document.getElementById("offer-status-msg");
+
+  function setStatus(cls, msg) {
+    if (!statusEl) { return; }
+    statusEl.className = cls;
+    statusEl.textContent = msg;
+    if (cls === "success") { setTimeout(function() { statusEl.className = ""; statusEl.textContent = ""; }, 4000); }
+  }
+
+  saveBtn.addEventListener("click", function() {
+    var salary = document.getElementById("offer-base-salary").value.trim();
+    var equity = document.getElementById("offer-equity").value.trim();
+    var benefits = document.getElementById("offer-benefits").value.trim();
+    var deadline = document.getElementById("offer-deadline").value.trim();
+    var notes = document.getElementById("offer-notes").value.trim();
+
+    saveBtn.disabled = true;
+    saveBtn.textContent = "Saving\u2026";
+
+    var payload = {
+      base_salary: salary !== "" ? parseInt(salary, 10) : null,
+      equity_summary: equity,
+      benefits_summary: benefits,
+      response_deadline: deadline,
+      notes: notes
+    };
+
+    var url = saveBtn.getAttribute("data-save-url") + "?token=" + encodeURIComponent(saveBtn.getAttribute("data-token"));
+    fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      saveBtn.disabled = false;
+      saveBtn.textContent = "Save Offer Details";
+      if (data.error) { setStatus("error", data.error); }
+      else { setStatus("success", "Offer details saved."); }
+    })
+    .catch(function() {
+      saveBtn.disabled = false;
+      saveBtn.textContent = "Save Offer Details";
+      setStatus("error", "Network error. Please try again.");
+    });
+  });
+})();
+          ',
+        ],
+        'offer_details_js',
+      ];
+    }
+
     try {
       $uid = (int) $current_user->id();
 
@@ -4764,6 +4889,97 @@ HTML;
       ]);
       return new \Symfony\Component\HttpFoundation\JsonResponse(['error' => 'Save failed.'], 500);
     }
+  }
+
+  /**
+   * Create or update offer details for a saved job (POST, CSRF-protected).
+   *
+   * @param int $job_id
+   *   The jobhunter_job_requirements ID.
+   */
+  public function offerSave($job_id): JsonResponse {
+    if (!$this->database->schema()->tableExists('jobhunter_offers')) {
+      return new JsonResponse(['error' => 'Offer tracking not available.'], 503);
+    }
+
+    $uid     = (int) $this->currentUser->id();
+    $job_id  = (int) $job_id;
+    $request = $this->requestStack->getCurrentRequest();
+
+    // SEC-3: ownership check.
+    $saved_job = $this->loadOwnedSavedJob($uid, $job_id);
+    if (!$saved_job) {
+      return new JsonResponse(['error' => 'Access denied.'], 403);
+    }
+    $saved_job_id = (int) $saved_job->id;
+
+    $body = json_decode((string) $request->getContent(), TRUE) ?? [];
+
+    // Validate and sanitize inputs.
+    $base_salary_raw = $body['base_salary'] ?? NULL;
+    $base_salary = ($base_salary_raw !== NULL && $base_salary_raw !== '') ? (int) $base_salary_raw : NULL;
+    if ($base_salary !== NULL && ($base_salary < 0 || $base_salary > 9999999)) {
+      return new JsonResponse(['error' => 'Base salary must be between 0 and 9,999,999.'], 422);
+    }
+
+    $equity_summary   = strip_tags((string) ($body['equity_summary'] ?? ''));
+    $benefits_summary = strip_tags((string) ($body['benefits_summary'] ?? ''));
+    $response_deadline = preg_replace('/[^0-9\-]/', '', (string) ($body['response_deadline'] ?? ''));
+    $notes_raw        = (string) ($body['notes'] ?? '');
+
+    foreach (['equity_summary' => $equity_summary, 'benefits_summary' => $benefits_summary, 'notes' => $notes_raw] as $field => $val) {
+      if (mb_strlen($val) > 2000) {
+        return new JsonResponse(['error' => ucfirst(str_replace('_', ' ', $field)) . ' may not exceed 2000 characters.'], 400);
+      }
+    }
+    $notes = strip_tags($notes_raw);
+
+    $now = time();
+
+    $existing_id = $this->database->select('jobhunter_offers', 'o')
+      ->fields('o', ['id'])
+      ->condition('o.uid', $uid)
+      ->condition('o.saved_job_id', $saved_job_id)
+      ->execute()
+      ->fetchField();
+
+    if ($existing_id) {
+      $this->database->update('jobhunter_offers')
+        ->fields([
+          'base_salary'       => $base_salary,
+          'equity_summary'    => $equity_summary ?: NULL,
+          'benefits_summary'  => $benefits_summary ?: NULL,
+          'response_deadline' => $response_deadline ?: NULL,
+          'notes'             => $notes ?: NULL,
+          'changed'           => $now,
+        ])
+        ->condition('uid', $uid)
+        ->condition('saved_job_id', $saved_job_id)
+        ->execute();
+    }
+    else {
+      $this->database->insert('jobhunter_offers')
+        ->fields([
+          'uid'               => $uid,
+          'saved_job_id'      => $saved_job_id,
+          'base_salary'       => $base_salary,
+          'equity_summary'    => $equity_summary ?: NULL,
+          'benefits_summary'  => $benefits_summary ?: NULL,
+          'response_deadline' => $response_deadline ?: NULL,
+          'notes'             => $notes ?: NULL,
+          'created'           => $now,
+          'changed'           => $now,
+        ])
+        ->execute();
+    }
+
+    // SEC-5: log only uid and saved_job_id, never salary/notes values.
+    $this->getLogger('job_hunter')->info('Offer details saved: uid=@uid saved_job_id=@sjid', [
+      '@uid'  => $uid,
+      '@sjid' => $saved_job_id,
+    ]);
+
+    return new JsonResponse(['message' => 'Offer details saved.'], 200);
   }
 
 }

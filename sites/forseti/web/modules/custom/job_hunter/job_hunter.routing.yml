@@ -1661,3 +1661,27 @@ job_hunter.resume_source_save:
     _user_is_logged_in: 'TRUE'
     _csrf_token: 'TRUE'
     job_id: \d+
+
+# Offer Comparison Page (GET)
+job_hunter.offers:
+  path: '/jobhunter/offers'
+  defaults:
+    _controller: '\Drupal\job_hunter\Controller\ApplicationSubmissionController::offersPage'
+    _title: 'My Offers'
+  methods: [GET]
+  requirements:
+    _permission: 'access job hunter'
+    _user_is_logged_in: 'TRUE'
+
+# Offer Save — create or update offer details (POST, CSRF split-route)
+job_hunter.offer_save:
+  path: '/jobhunter/jobs/{job_id}/offer/save'
+  defaults:
+    _controller: '\Drupal\job_hunter\Controller\CompanyController::offerSave'
+    _title: 'Save Offer'
+  methods: [POST]
+  requirements:
+    _permission: 'access job hunter'
+    _user_is_logged_in: 'TRUE'
+    _csrf_token: 'TRUE'
+    job_id: \d+

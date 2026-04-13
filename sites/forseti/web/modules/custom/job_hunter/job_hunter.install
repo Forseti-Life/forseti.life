@@ -3429,3 +3429,34 @@ function job_hunter_update_9057() {
 
   return t('Added submitted_resume_id and submitted_resume_type to jobhunter_applications; migrated existing source_resume_id data.');
 }
+
+/**
+ * Create jobhunter_offers table for offer tracking.
+ */
+function job_hunter_update_9058() {
+  $schema = \Drupal::database()->schema();
+  if ($schema->tableExists('jobhunter_offers')) {
+    return t('jobhunter_offers already exists.');
+  }
+  $schema->createTable('jobhunter_offers', [
+    'description' => 'Offer details per user per saved job.',
+    'fields' => [
+      'id'               => ['type' => 'serial', 'unsigned' => TRUE, 'not null' => TRUE],
+      'uid'              => ['type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0],
+      'saved_job_id'     => ['type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE],
+      'base_salary'      => ['type' => 'int', 'size' => 'normal', 'not null' => FALSE, 'default' => NULL],
+      'equity_summary'   => ['type' => 'text', 'size' => 'medium', 'not null' => FALSE],
+      'benefits_summary' => ['type' => 'text', 'size' => 'medium', 'not null' => FALSE],
+      'response_deadline' => ['type' => 'varchar', 'length' => 10, 'not null' => FALSE, 'default' => NULL],
+      'notes'            => ['type' => 'text', 'size' => 'medium', 'not null' => FALSE],
+      'created'          => ['type' => 'int', 'not null' => TRUE, 'default' => 0],
+      'changed'          => ['type' => 'int', 'not null' => TRUE, 'default' => 0],
+    ],
+    'primary key' => ['id'],
+    'unique keys' => ['uid_saved_job' => ['uid', 'saved_job_id']],
+    'indexes' => [
+      'uid' => ['uid'],
+    ],
+  ]);
+  return t('Created jobhunter_offers table for offer tracking.');
+}

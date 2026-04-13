@@ -2344,4 +2344,145 @@ HTML;
     return max(0, min(100, $raw));
   }
 
+  /**
+   * Offer comparison page at /jobhunter/offers.
+   *
+   * Shows all active offers for the current user (AC-2, AC-3).
+   */
+  public function offersPage(): array {
+    $uid = (int) $this->currentUser()->id();
+    $db  = \Drupal::database();
+
+    $content = [];
+
+    if (!$db->schema()->tableExists('jobhunter_offers')) {
+      $content['notice'] = ['#markup' => '<p>Offer tracking is not yet available.</p>'];
+      return $this->wrapWithNavigation($content);
+    }
+
+    // Load all offers for this user, joined with saved_jobs + job_requirements.
+    $rows = $db->select('jobhunter_offers', 'o')
+      ->fields('o')
+      ->condition('o.uid', $uid)
+      ->orderBy('o.response_deadline', 'ASC')
+      ->orderBy('o.created', 'ASC')
+      ->execute()
+      ->fetchAll();
+
+    $company_name_field = \Drupal::database()->schema()->fieldExists('jobhunter_companies', 'name') ? 'name' : 'company_name';
+
+    // Enrich each offer row with job/company data.
+    $offers = [];
+    foreach ($rows as $row) {
+      $job_data = $db->select('jobhunter_saved_jobs', 'sj')
+        ->fields('sj', ['job_id'])
+        ->condition('sj.uid', $uid)
+        ->condition('sj.id', (int) $row->saved_job_id)
+        ->execute()
+        ->fetchObject();
+
+      if (!$job_data) {
+        continue;
+      }
+      $job_id = (int) $job_data->job_id;
+
+      $jr = $db->select('jobhunter_job_requirements', 'j')
+        ->fields('j', ['id', 'job_title', 'company_id'])
+        ->condition('j.id', $job_id)
+        ->execute()
+        ->fetchObject();
+
+      if (!$jr) {
+        continue;
+      }
+
+      // Resolve company name.
+      $company_name = '';
+      if ($jr->company_id) {
+        $company_row = $db->select('jobhunter_companies', 'c')
+          ->fields('c', [$company_name_field])
+          ->condition('c.id', (int) $jr->company_id)
+          ->execute()
+          ->fetchObject();
+        if ($company_row) {
+          $company_name = (string) ($company_row->{$company_name_field} ?? '');
+        }
+      }
+
+      $detail_url = Url::fromRoute('job_hunter.job_view', ['job_id' => $job_id])->toString();
+
+      $offers[] = [
+        'company'    => $company_name,
+        'role'       => (string) ($jr->job_title ?? ''),
+        'salary'     => $row->base_salary !== NULL ? '$' . number_format((int) $row->base_salary) : '—',
+        'equity'     => (string) ($row->equity_summary ?? ''),
+        'deadline'   => (string) ($row->response_deadline ?? ''),
+        'notes'      => (string) ($row->notes ?? ''),
+        'detail_url' => $detail_url,
+        'job_id'     => $job_id,
+      ];
+    }
+
+    $count = count($offers);
+
+    $heading = '<h2>My Offers</h2>';
+    if ($count === 0) {
+      $body = '<p class="offers-empty-state">You currently have 0 active offers. When a saved job status is set to <strong>Offered</strong>, the Offer Details form appears on that job\'s detail view.</p>';
+    }
+    elseif ($count === 1) {
+      $body = '<p class="offers-single-note">You currently have 1 active offer. Add another to compare.</p>';
+      $body .= $this->buildOffersTable($offers);
+    }
+    else {
+      $body = '<p class="offers-count-note">You currently have ' . $count . ' active offers.</p>';
+      $body .= $this->buildOffersTable($offers);
+    }
+
+    $content['offers'] = [
+      '#type' => 'container',
+      '#attributes' => ['class' => ['offers-page']],
+      '#markup' => $heading . $body,
+    ];
+
+    $content['#attached']['html_head'][] = [
+      [
+        '#tag' => 'style',
+        '#value' => '
+          .offers-page { max-width: 1100px; margin: 0 auto; padding: 16px; }
+          .offers-page h2 { margin-bottom: 14px; }
+          .offers-empty-state, .offers-single-note, .offers-count-note { color: #555; margin-bottom: 18px; }
+          .offers-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+          .offers-table th, .offers-table td { padding: 10px 14px; border-bottom: 1px solid #e5e7eb; text-align: left; vertical-align: top; }
+          .offers-table th { background: #f9fafb; font-weight: 600; font-size: 0.9em; }
+          .offers-table td.offers-salary { font-weight: 700; color: #065f46; }
+          .offers-table a { color: #2563eb; }
+        ',
+      ],
+      'offers_page_styles',
+    ];
+
+    return $this->wrapWithNavigation($content);
+  }
+
+  /**
+   * Build the HTML comparison table for offers.
+   */
+  private function buildOffersTable(array $offers): string {
+    $html = '<table class="offers-table"><thead><tr>'
+      . '<th>Company</th><th>Role</th><th>Base Salary</th><th>Equity / Bonus</th><th>Response Deadline</th><th></th>'
+      . '</tr></thead><tbody>';
+    foreach ($offers as $o) {
+      $html .= '<tr>'
+        . '<td>' . htmlspecialchars($o['company']) . '</td>'
+        . '<td>' . htmlspecialchars($o['role']) . '</td>'
+        . '<td class="offers-salary">' . htmlspecialchars($o['salary']) . '</td>'
+        . '<td>' . htmlspecialchars($o['equity']) . '</td>'
+        . '<td>' . htmlspecialchars($o['deadline']) . '</td>'
+        . '<td><a href="' . htmlspecialchars($o['detail_url']) . '">View Details</a></td>'
+        . '</tr>';
+    }
+    $html .= '</tbody></table>';
+    return $html;
+  }
+
 }
