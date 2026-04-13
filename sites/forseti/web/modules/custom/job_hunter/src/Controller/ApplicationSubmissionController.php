@@ -2053,27 +2053,209 @@ HTML;
    *   A renderable array for the analytics page.
    */
   public function analytics() {
+    $uid = (int) $this->currentUser()->id();
+    $db  = \Drupal::database();
+
+    // ── Aggregate data (SEC-3: all queries scoped to $uid) ──────────────────
+
+    // Total saved jobs for this user (join saved_jobs → job_requirements).
+    $saved_count = (int) $db->query(
+      "SELECT COUNT(*) FROM {jobhunter_saved_jobs} sj WHERE sj.uid = :uid AND sj.archived = 0",
+      [':uid' => $uid]
+    )->fetchField();
+
+    // AC-5: empty state.
+    if ($saved_count === 0) {
+      $discover_url = \Drupal\Core\Url::fromRoute('job_hunter.discover')->toString();
+      $content = [
+        '#type' => 'container',
+        '#attributes' => ['class' => ['analytics-page']],
+        'header' => ['#type' => 'html_tag', '#tag' => 'h1', '#value' => '📊 Analytics'],
+        'empty' => [
+          '#type' => 'html_tag',
+          '#tag' => 'div',
+          '#attributes' => ['class' => ['analytics-empty-state']],
+          '#markup' => '<p>You haven\'t saved any jobs yet. <a href="' . htmlspecialchars($discover_url) . '">Start discovering jobs</a> to see your analytics here.</p>',
+        ],
+      ];
+      return $this->wrapWithNavigation($content);
+    }
+
+    // Stage funnel: group by application_status on joined job_requirements.
+    $funnel_raw = $db->query(
+      "SELECT jr.application_status AS stage, COUNT(*) AS cnt
+       FROM {jobhunter_saved_jobs} sj
+       JOIN {jobhunter_job_requirements} jr ON sj.job_id = jr.id
+       WHERE sj.uid = :uid AND sj.archived = 0
+       GROUP BY jr.application_status",
+      [':uid' => $uid]
+    )->fetchAllKeyed();
+
+    // Canonical funnel order (maps DB values to display labels).
+    $funnel_stages = [
+      'not_applied'          => 'Not Applied',
+      'submitted'            => 'Applied',
+      'manual_completed'     => 'Applied (Manual)',
+      'confirmed'            => 'Confirmed',
+      'interview_scheduled'  => 'Interview Scheduled',
+      'interview_completed'  => 'Interview Completed',
+      'offer'                => 'Offer',
+      'accepted'             => 'Accepted',
+      'rejected'             => 'Rejected',
+      'closed'               => 'Closed',
+    ];
+
+    // Build funnel rows (only show stages that have data + ordered above).
+    $funnel_counts = [];
+    foreach ($funnel_stages as $key => $label) {
+      if (isset($funnel_raw[$key]) && (int) $funnel_raw[$key] > 0) {
+        $funnel_counts[$key] = ['label' => $label, 'count' => (int) $funnel_raw[$key]];
+      }
+    }
+    // Append any unknown statuses at end.
+    foreach ($funnel_raw as $stage => $cnt) {
+      if (!isset($funnel_stages[$stage]) && (int) $cnt > 0) {
+        $funnel_counts[$stage] = ['label' => ucwords(str_replace('_', ' ', $stage)), 'count' => (int) $cnt];
+      }
+    }
+
+    // Total applied count (any status beyond not_applied).
+    $total_applied = 0;
+    $responded_stages = ['interview_scheduled', 'interview_completed', 'offer', 'accepted', 'rejected', 'confirmed'];
+    $responded_count  = 0;
+    foreach ($funnel_raw as $stage => $cnt) {
+      if ($stage !== 'not_applied') {
+        $total_applied += (int) $cnt;
+      }
+      if (in_array($stage, $responded_stages, TRUE)) {
+        $responded_count += (int) $cnt;
+      }
+    }
+    $response_rate = $total_applied > 0 ? round(($responded_count / $total_applied) * 100, 1) : 0;
+
+    // AC-3: source breakdown — per source: total saved, total applied, response rate.
+    $source_rows = $db->query(
+      "SELECT jr.source,
+              COUNT(*) AS total,
+              SUM(CASE WHEN jr.application_status != 'not_applied' THEN 1 ELSE 0 END) AS applied,
+              SUM(CASE WHEN jr.application_status IN ('interview_scheduled','interview_completed','offer','accepted','rejected','confirmed') THEN 1 ELSE 0 END) AS responded
+       FROM {jobhunter_saved_jobs} sj
+       JOIN {jobhunter_job_requirements} jr ON sj.job_id = jr.id
+       WHERE sj.uid = :uid AND sj.archived = 0
+       GROUP BY jr.source",
+      [':uid' => $uid]
+    )->fetchAll();
+
+    // Weekly activity: count saved jobs created per calendar week (last 8 weeks).
+    $eight_weeks_ago = strtotime('-8 weeks');
+    $weekly_raw = $db->query(
+      "SELECT YEARWEEK(FROM_UNIXTIME(sj.created), 3) AS yw, COUNT(*) AS cnt
+       FROM {jobhunter_saved_jobs} sj
+       WHERE sj.uid = :uid AND sj.created >= :cutoff
+       GROUP BY yw ORDER BY yw ASC",
+      [':uid' => $uid, ':cutoff' => $eight_weeks_ago]
+    )->fetchAllKeyed();
+
+    // ── Build HTML ───────────────────────────────────────────────────────────
+
+    // Funnel table.
+    $funnel_rows_html = '';
+    $max_count = max(array_column($funnel_counts, 'count') ?: [1]);
+    foreach ($funnel_counts as $row) {
+      $bar_pct = (int) round(($row['count'] / $max_count) * 100);
+      $funnel_rows_html .= '<tr>
+        <td style="padding:6px 12px;white-space:nowrap;">' . htmlspecialchars($row['label']) . '</td>
+        <td style="padding:6px 12px;width:60%;">
+          <div style="background:#e2e8f0;border-radius:4px;height:18px;position:relative;">
+            <div style="background:#4299e1;height:18px;width:' . $bar_pct . '%;border-radius:4px;"></div>
+          </div>
+        </td>
+        <td style="padding:6px 12px;text-align:right;font-weight:bold;">' . $row['count'] . '</td>
+      </tr>';
+    }
+
+    // Source breakdown table.
+    $source_html = '';
+    foreach ($source_rows as $row) {
+      $src_label = htmlspecialchars(ucwords(str_replace('_', ' ', $row->source ?? 'unknown')));
+      $src_rate  = $row->applied > 0 ? round(($row->responded / $row->applied) * 100, 1) : 0;
+      $source_html .= '<tr>
+        <td style="padding:6px 12px;">' . $src_label . '</td>
+        <td style="padding:6px 12px;text-align:center;">' . (int) $row->total . '</td>
+        <td style="padding:6px 12px;text-align:center;">' . (int) $row->applied . '</td>
+        <td style="padding:6px 12px;text-align:center;">' . $src_rate . '%</td>
+      </tr>';
+    }
+
+    // Weekly activity (simple bar chart using inline CSS).
+    $weekly_html = '';
+    if (!empty($weekly_raw)) {
+      $max_wk = max($weekly_raw) ?: 1;
+      foreach ($weekly_raw as $yw => $cnt) {
+        $bar_h = (int) round(((int) $cnt / $max_wk) * 60);
+        $year  = (int) substr((string) $yw, 0, 4);
+        $week  = (int) substr((string) $yw, 4);
+        $weekly_html .= '<div style="display:inline-block;text-align:center;margin:0 4px;vertical-align:bottom;">
+          <div style="background:#48bb78;width:28px;height:' . $bar_h . 'px;border-radius:3px 3px 0 0;margin:0 auto;"></div>
+          <div style="font-size:0.75em;color:#718096;margin-top:3px;">' . $cnt . '</div>
+          <div style="font-size:0.7em;color:#a0aec0;">W' . $week . '</div>
+        </div>';
+      }
+    }
+    else {
+      $weekly_html = '<p style="color:#718096;font-style:italic;">No activity in the last 8 weeks.</p>';
+    }
+
     $content = [
       '#type' => 'container',
       '#attributes' => ['class' => ['analytics-page']],
-      'header' => [
-        '#type' => 'html_tag',
-        '#tag' => 'h1',
-        '#value' => '📊 Analytics & Optimization',
-      ],
-      'description' => [
-        '#type' => 'html_tag',
-        '#tag' => 'p',
-        '#value' => 'Measure success rates, identify patterns, and optimize your job search strategy.',
-      ],
-      'todo' => [
-        '#type' => 'html_tag',
-        '#tag' => 'div',
-        '#attributes' => ['class' => ['alert', 'alert-warning']],
-        '#value' => '<strong>TODO:</strong> Implement analytics dashboard with success metrics.',
-      ],
+      '#markup' => '
+<h1 style="margin-bottom:6px;">📊 Analytics</h1>
+
+<!-- Summary stats -->
+<div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:24px;">
+  <div style="background:#ebf8ff;border-radius:8px;padding:16px 24px;min-width:130px;text-align:center;">
+    <div style="font-size:2em;font-weight:bold;color:#2b6cb0;">' . $saved_count . '</div>
+    <div style="color:#4a5568;font-size:0.9em;">Jobs Saved</div>
+  </div>
+  <div style="background:#f0fff4;border-radius:8px;padding:16px 24px;min-width:130px;text-align:center;">
+    <div style="font-size:2em;font-weight:bold;color:#276749;">' . $total_applied . '</div>
+    <div style="color:#4a5568;font-size:0.9em;">Applications Submitted</div>
+  </div>
+  <div class="response-rate" style="background:#fffaf0;border-radius:8px;padding:16px 24px;min-width:130px;text-align:center;">
+    <div style="font-size:2em;font-weight:bold;color:#c05621;">' . $response_rate . '%</div>
+    <div style="color:#4a5568;font-size:0.9em;">Response Rate</div>
+  </div>
+</div>
+
+<!-- Stage funnel -->
+<div class="analytics-funnel" style="background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:20px;margin-bottom:24px;">
+  <h3 style="margin:0 0 14px 0;">📈 Application Funnel</h3>
+  <table style="width:100%;border-collapse:collapse;">' . $funnel_rows_html . '</table>
+</div>
+
+<!-- Source breakdown -->
+<div class="source-breakdown" style="background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:20px;margin-bottom:24px;">
+  <h3 style="margin:0 0 14px 0;">🔍 Response Rate by Source</h3>
+  <table style="width:100%;border-collapse:collapse;">
+    <thead><tr style="border-bottom:1px solid #e2e8f0;">
+      <th style="text-align:left;padding:6px 12px;">Source</th>
+      <th style="text-align:center;padding:6px 12px;">Saved</th>
+      <th style="text-align:center;padding:6px 12px;">Applied</th>
+      <th style="text-align:center;padding:6px 12px;">Response Rate</th>
+    </tr></thead>
+    <tbody>' . $source_html . '</tbody>
+  </table>
+</div>
+
+<!-- Weekly activity -->
+<div style="background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:20px;">
+  <h3 style="margin:0 0 14px 0;">📅 Weekly Activity (last 8 weeks)</h3>
+  <div style="display:flex;align-items:flex-end;gap:0;min-height:80px;">' . $weekly_html . '</div>
+</div>
+',
     ];
-    
+
     return $this->wrapWithNavigation($content);
   }
 

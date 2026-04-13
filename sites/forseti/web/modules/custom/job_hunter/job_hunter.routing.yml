@@ -657,8 +657,10 @@ job_hunter.analytics:
   defaults:
     _controller: '\Drupal\job_hunter\Controller\ApplicationSubmissionController::analytics'
     _title: 'Analytics & Optimization'
+  methods: [GET]
   requirements:
     _permission: 'access job hunter'
+    _user_is_logged_in: 'TRUE'
 
 # Add/Import Companies
 job_hunter.bulk_import_companies:
