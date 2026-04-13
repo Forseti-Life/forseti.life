@@ -1387,6 +1387,67 @@ class FeatEffectManager {
         ));
         $effects['notes'][] = 'Umbral Gnome: darkvision (supersedes Low-Light Vision; no duplicate if already possessed).';
         break;
+
+      case 'fey-touched':
+        // AC: Fey-Touched Gnome — gains fey trait; at-will primal cantrip;
+        // 1/day 10-min concentrate to swap the cantrip; heightened ceil(level/2).
+        $effects['derived_adjustments']['flags']['has_fey_trait'] = TRUE;
+
+        $fey_cantrip = $this->resolveFeatSelectionValue($character_data, 'fey-touched', ['selected_cantrip', 'cantrip', 'spell_id']);
+
+        if ($fey_cantrip === NULL) {
+          $this->addSelectionGrant(
+            $effects,
+            'fey-touched',
+            'fey_touched_cantrip',
+            1,
+            'Select one cantrip from the primal spell list for Fey-Touched Gnome.'
+          );
+        }
+
+        // Wellspring Gnome also active: use that tradition rather than primal.
+        $fey_heritage_raw = strtolower(trim($character_data['heritage'] ?? ($character_data['basicInfo']['heritage'] ?? '')));
+        if ($fey_heritage_raw === 'wellspring') {
+          $fey_tradition = strtolower(trim(
+            $character_data['wellspring_tradition'] ?? ($character_data['basicInfo']['wellspring_tradition'] ?? 'primal')
+          ));
+        }
+        else {
+          $fey_tradition = 'primal';
+        }
+
+        $effects['spell_augments']['innate_spells'][] = [
+          'id' => 'fey-touched',
+          'name' => 'Fey-Touched Cantrip',
+          'casting' => 'at_will',
+          'tradition' => $fey_tradition,
+          'spell_id' => $fey_cantrip,
+          'heightened' => 'ceil(level/2)',
+          'swappable' => TRUE,
+          'description' => $fey_cantrip
+            ? ('Innate at-will ' . $fey_tradition . ' cantrip: ' . $fey_cantrip . '. Heightened to ceil(level/2). Swappable 1/day.')
+            : 'One primal innate at-will cantrip (selection pending). Heightened to ceil(level/2). Swappable 1/day.',
+        ];
+
+        $effects['available_actions']['at_will'][] = [
+          'id' => 'fey-touched-cast',
+          'name' => 'Cast Fey-Touched Cantrip',
+          'action_cost' => 2,
+          'description' => 'Cast your selected Fey-Touched innate cantrip at will.',
+        ];
+
+        $fey_swap_used = (int) ($character_data['feat_resources']['fey-touched-cantrip-swap']['used'] ?? 0);
+        $this->addLongRestLimitedAction(
+          $effects,
+          'fey-touched-cantrip-swap',
+          'Swap Fey-Touched Cantrip',
+          '10-minute concentrated activity. Swap your Fey-Touched innate cantrip for any other cantrip on the primal spell list. Resets on long rest.',
+          1,
+          $fey_swap_used
+        );
+
+        $effects['notes'][] = 'Fey-Touched Gnome: gains fey trait; at-will primal cantrip (heightened ceil(level/2)); 1/day 10-min concentrate to swap cantrip.';
+        break;
     }
 
     $computed_speed = $base_speed + (int) ($effects['derived_adjustments']['speed_bonus'] ?? 0);
