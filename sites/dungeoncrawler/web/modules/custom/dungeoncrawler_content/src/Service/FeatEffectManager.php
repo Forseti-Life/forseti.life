@@ -615,6 +615,46 @@ class FeatEffectManager {
           $effects['applied_feats'][] = $feat_id;
           break;
 
+        case 'first-world-adept':
+          // Grants faerie fire and invisibility as 2nd-level primal innate spells, 1/day each.
+          $effects['spell_augments']['innate_spells'][] = [
+            'id' => 'first-world-adept-faerie-fire',
+            'name' => 'Faerie Fire (First World Adept)',
+            'spell_id' => 'faerie-fire',
+            'spell_level' => 2,
+            'tradition' => 'primal',
+            'casting' => '1_per_day',
+            'description' => '2nd-level primal innate spell. Once per day. Resets on daily preparation.',
+          ];
+          $effects['spell_augments']['innate_spells'][] = [
+            'id' => 'first-world-adept-invisibility',
+            'name' => 'Invisibility (First World Adept)',
+            'spell_id' => 'invisibility',
+            'spell_level' => 2,
+            'tradition' => 'primal',
+            'casting' => '1_per_day',
+            'description' => '2nd-level primal innate spell. Once per day. Resets on daily preparation.',
+          ];
+          $this->addLongRestLimitedAction(
+            $effects,
+            'first-world-adept-faerie-fire',
+            'Cast Faerie Fire (innate, 1/day)',
+            'Cast faerie fire as a 2nd-level primal innate spell. Resets on daily preparation.',
+            1,
+            (int) ($this->resolveFeatUsage($character_data, 'first-world-adept-faerie-fire') ?? 0)
+          );
+          $this->addLongRestLimitedAction(
+            $effects,
+            'first-world-adept-invisibility',
+            'Cast Invisibility (innate, 1/day)',
+            'Cast invisibility as a 2nd-level primal innate spell. Resets on daily preparation.',
+            1,
+            (int) ($this->resolveFeatUsage($character_data, 'first-world-adept-invisibility') ?? 0)
+          );
+          $effects['notes'][] = 'First World Adept: faerie fire and invisibility as 2nd-level primal innate spells (1/day each; reset on daily preparation).';
+          $effects['applied_feats'][] = $feat_id;
+          break;
+
         case 'recognize-spell':
           $effects['available_actions']['at_will'][] = [
             'id' => 'recognize-spell',

@@ -773,7 +773,51 @@ class CharacterLevelingService {
       }
     }
 
+    // Primal innate spell prerequisite (e.g. First World Adept).
+    if (!empty($feat['prerequisite_primal_innate_spell'])) {
+      if (!$this->characterHasPrimalInnateSpell($char_data)) {
+        throw new \InvalidArgumentException(
+          "Feat '{$feat_id}' requires at least one primal innate spell (from heritage or feat)", 400
+        );
+      }
+    }
+
     return $feat;
+  }
+
+  /**
+   * Returns TRUE if the character has at least one primal innate spell source.
+   *
+   * Checks: fey-touched heritage, wellspring gnome with primal tradition,
+   * first-world-magic feat, otherworldly-magic feat.
+   */
+  private function characterHasPrimalInnateSpell(array $char_data): bool {
+    $heritage = strtolower(trim(
+      $char_data['heritage'] ?? ($char_data['basicInfo']['heritage'] ?? '')
+    ));
+
+    if (in_array($heritage, ['fey-touched', 'fey_touched'], TRUE)) {
+      return TRUE;
+    }
+
+    if (in_array($heritage, ['wellspring'], TRUE)) {
+      $tradition = strtolower(trim(
+        $char_data['wellspring_tradition'] ?? ($char_data['basicInfo']['wellspring_tradition'] ?? '')
+      ));
+      if ($tradition === 'primal') {
+        return TRUE;
+      }
+    }
+
+    $primal_innate_feats = ['first-world-magic', 'otherworldly-magic'];
+    $owned_ids = array_column($char_data['features']['feats'] ?? [], 'id');
+    foreach ($primal_innate_feats as $primal_feat_id) {
+      if (in_array($primal_feat_id, $owned_ids, TRUE)) {
+        return TRUE;
+      }
+    }
+
+    return FALSE;
   }
 
 }

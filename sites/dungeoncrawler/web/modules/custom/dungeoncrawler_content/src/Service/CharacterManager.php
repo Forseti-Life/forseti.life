@@ -814,6 +814,9 @@ class CharacterManager {
         'benefit' => 'You become trained in Performance. Choose one specialization at character creation: singing, dancing, or acting. When you use Perform with your chosen specialization, you gain a +1 circumstance bonus to the check.'],
       ['id' => 'vibrant-display', 'name' => 'Vibrant Display', 'level' => 1, 'traits' => ['Gnome', 'Visual'], 'prerequisites' => '',
         'benefit' => 'You spend 2 actions to display a dazzling burst of vivid coloration. All creatures within 10 feet that can see you must attempt a Will save (DC = 10 + your Charisma modifier + your level). Failure: the creature becomes fascinated by you until the end of your next turn. Success: no effect. Creatures are then temporarily immune to this effect for 1 minute.'],
+      ['id' => 'first-world-adept', 'name' => 'First World Adept', 'level' => 9, 'traits' => ['Gnome'], 'prerequisites' => 'At least one primal innate spell',
+        'benefit' => 'You gain faerie fire and invisibility as 2nd-level primal innate spells. You can cast each of these primal innate spells once per day.',
+        'prerequisite_primal_innate_spell' => TRUE],
     ],
     'Goblin' => [
       ['id' => 'burn-it', 'name' => 'Burn It!', 'level' => 1, 'traits' => ['Goblin'], 'prerequisites' => '',
