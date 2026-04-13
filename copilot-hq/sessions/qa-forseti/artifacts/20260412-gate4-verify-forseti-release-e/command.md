@@ -1,3 +1,6 @@
+- Status: done
+- Completed: 2026-04-13T00:13:24Z
+
 # Gate 4 Post-Release Verification — 20260412-forseti-release-e
 
 `20260412-forseti-release-e` has been pushed to production (`origin/main`, `8d5723f13..63049ecbd`, 2026-04-12T23:35Z).

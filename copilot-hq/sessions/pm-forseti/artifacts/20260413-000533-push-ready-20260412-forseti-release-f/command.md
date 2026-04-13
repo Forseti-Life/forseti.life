@@ -1,3 +1,6 @@
+- Status: done
+- Completed: 2026-04-13T00:10:44Z
+
 # Push ready: 20260412-forseti-release-f
 
 All required PM signoffs recorded for coordinated release `20260412-forseti-release-f`.

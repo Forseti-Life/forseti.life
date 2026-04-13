@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-04-13T00:08:33.133929",
+  "generated_at": "2026-04-13T00:14:16.201076",
   "window_minutes": 15,
   "teams": [
     {
@@ -7,7 +7,7 @@
       "label": "Forseti",
       "site": "forseti.life",
       "window_minutes": 15,
-      "latest_run": "20260412-234913",
+      "latest_run": "20260413-001222",
       "latest_open_issues": 0,
       "resolved_last_window": 0,
       "introduced_last_window": 0,
@@ -15,20 +15,10 @@
       "workflow": {
         "dev_outbox_updates": 0,
         "dev_notify_qa_markers": 0,
-        "qa_done_markers": 0,
+        "qa_done_markers": 1,
         "handoff_signal": "weak"
       },
       "recent_deltas": [
-        {
-          "from_run": "20260411-222403",
-          "to_run": "20260411-222412",
-          "to_ts": "2026-04-11T22:24:12",
-          "prev_total": 0,
-          "cur_total": 0,
-          "resolved": 0,
-          "introduced": 0,
-          "elapsed_minutes": 0.15
-        },
         {
           "from_run": "20260411-222412",
           "to_run": "20260411-231245",
@@ -68,6 +58,16 @@
           "resolved": 0,
           "introduced": 0,
           "elapsed_minutes": 160.45
+        },
+        {
+          "from_run": "20260412-234913",
+          "to_run": "20260413-001222",
+          "to_ts": "2026-04-13T00:12:22",
+          "prev_total": 0,
+          "cur_total": 0,
+          "resolved": 0,
+          "introduced": 0,
+          "elapsed_minutes": 23.15
         }
       ]
     },
