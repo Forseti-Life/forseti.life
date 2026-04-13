@@ -15964,6 +15964,120 @@
       ]
     }
   ],
+  "dc-cr-first-world-adept": [
+    {
+      "id": "dc-cr-first-world-adept-prereq-gated",
+      "label": "First World Adept locked without primal innate spell prerequisite; selectable after prerequisite present",
+      "type": "e2e",
+      "feature_id": "dc-cr-first-world-adept",
+      "command": "npx playwright test --grep \"dc-cr-first-world-adept-prereq\" --project=feat-progression",
+      "artifacts": ["playwright-report/dc-cr-first-world-adept-prereq-gated.html"],
+      "suite_context": "playwright/feat-progression",
+      "status": "pending_implementation",
+      "required_for_release": true
+    },
+    {
+      "id": "dc-cr-first-world-adept-faerie-fire-granted",
+      "label": "Feat grants faerie fire as 2nd-level primal innate spell (uses_per_day=1)",
+      "type": "e2e",
+      "feature_id": "dc-cr-first-world-adept",
+      "command": "npx playwright test --grep \"dc-cr-first-world-adept-faerie-fire\" --project=character-sheet",
+      "artifacts": ["playwright-report/dc-cr-first-world-adept-faerie-fire-granted.html"],
+      "suite_context": "playwright/character-sheet",
+      "status": "pending_implementation",
+      "required_for_release": true
+    },
+    {
+      "id": "dc-cr-first-world-adept-invisibility-granted",
+      "label": "Feat grants invisibility as 2nd-level primal innate spell (uses_per_day=1)",
+      "type": "e2e",
+      "feature_id": "dc-cr-first-world-adept",
+      "command": "npx playwright test --grep \"dc-cr-first-world-adept-invisibility\" --project=character-sheet",
+      "artifacts": ["playwright-report/dc-cr-first-world-adept-invisibility-granted.html"],
+      "suite_context": "playwright/character-sheet",
+      "status": "pending_implementation",
+      "required_for_release": true
+    },
+    {
+      "id": "dc-cr-first-world-adept-daily-reset",
+      "label": "Both granted innate spell uses reset to 1/day on daily preparation",
+      "type": "e2e",
+      "feature_id": "dc-cr-first-world-adept",
+      "command": "npx playwright test --grep \"dc-cr-first-world-adept-daily-reset\" --project=spellcasting",
+      "artifacts": ["playwright-report/dc-cr-first-world-adept-daily-reset.html"],
+      "suite_context": "playwright/spellcasting",
+      "status": "pending_implementation",
+      "required_for_release": true
+    },
+    {
+      "id": "dc-cr-first-world-adept-non-primal-no-qualify",
+      "label": "Non-primal innate spell source alone does not satisfy primal innate spell prerequisite",
+      "type": "e2e",
+      "feature_id": "dc-cr-first-world-adept",
+      "command": "npx playwright test --grep \"dc-cr-first-world-adept-non-primal\" --project=feat-progression",
+      "artifacts": ["playwright-report/dc-cr-first-world-adept-non-primal-no-qualify.html"],
+      "suite_context": "playwright/feat-progression",
+      "status": "pending_implementation",
+      "required_for_release": true
+    }
+  ],
+  "dc-cr-first-world-adept": [
+    {
+      "id": "dc-cr-first-world-adept-prerequisite-gate",
+      "label": "First World Adept locked before primal innate spell prerequisite; selectable after prerequisite present",
+      "type": "e2e",
+      "feature_id": "dc-cr-first-world-adept",
+      "command": "npx playwright test --grep \"dc-cr-first-world-adept-prerequisite\" --project=feat-progression",
+      "artifacts": ["playwright-report/dc-cr-first-world-adept-prerequisite-gate.html"],
+      "suite_context": "playwright/feat-progression",
+      "status": "pending_implementation",
+      "required_for_release": true
+    },
+    {
+      "id": "dc-cr-first-world-adept-faerie-fire-granted",
+      "label": "Feat grants faerie fire as 2nd-level primal innate spell (1/day) on character sheet",
+      "type": "e2e",
+      "feature_id": "dc-cr-first-world-adept",
+      "command": "npx playwright test --grep \"dc-cr-first-world-adept-faerie-fire\" --project=character-sheet",
+      "artifacts": ["playwright-report/dc-cr-first-world-adept-faerie-fire-granted.html"],
+      "suite_context": "playwright/character-sheet",
+      "status": "pending_implementation",
+      "required_for_release": true
+    },
+    {
+      "id": "dc-cr-first-world-adept-invisibility-granted",
+      "label": "Feat grants invisibility as 2nd-level primal innate spell (1/day) on character sheet",
+      "type": "e2e",
+      "feature_id": "dc-cr-first-world-adept",
+      "command": "npx playwright test --grep \"dc-cr-first-world-adept-invisibility\" --project=character-sheet",
+      "artifacts": ["playwright-report/dc-cr-first-world-adept-invisibility-granted.html"],
+      "suite_context": "playwright/character-sheet",
+      "status": "pending_implementation",
+      "required_for_release": true
+    },
+    {
+      "id": "dc-cr-first-world-adept-daily-reset",
+      "label": "Both innate spell uses reset to 1/day available after daily preparation",
+      "type": "e2e",
+      "feature_id": "dc-cr-first-world-adept",
+      "command": "npx playwright test --grep \"dc-cr-first-world-adept-daily-reset\" --project=spellcasting",
+      "artifacts": ["playwright-report/dc-cr-first-world-adept-daily-reset.html"],
+      "suite_context": "playwright/spellcasting",
+      "status": "pending_implementation",
+      "required_for_release": true
+    },
+    {
+      "id": "dc-cr-first-world-adept-non-primal-no-qualify",
+      "label": "Non-primal innate spell alone does not satisfy prerequisite; feat remains unavailable",
+      "type": "e2e",
+      "feature_id": "dc-cr-first-world-adept",
+      "command": "npx playwright test --grep \"dc-cr-first-world-adept-non-primal\" --project=feat-progression",
+      "artifacts": ["playwright-report/dc-cr-first-world-adept-non-primal-no-qualify.html"],
+      "suite_context": "playwright/feat-progression",
+      "status": "pending_implementation",
+      "required_for_release": true
+    }
+  ],
   "dc-cr-burrow-elocutionist": [
     {
       "id": "dc-cr-burrow-elocutionist-feat-availability",
