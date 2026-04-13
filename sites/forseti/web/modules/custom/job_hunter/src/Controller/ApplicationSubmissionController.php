@@ -772,6 +772,7 @@ class ApplicationSubmissionController extends ControllerBase {
     $user_has_skills = !empty($user_skill_tokens);
 
     // Derive workflow_status, display fields, and match score for every job.
+    $today_str = date('Y-m-d');
     foreach ($all_jobs as $job) {
       $job->workflow_status = $this->deriveWorkflowStatus($job, $has_profile);
       $job->display_platform = !empty($job->via) ? $job->via : (!empty($job->source_platform) ? $job->source_platform : '');
@@ -780,6 +781,12 @@ class ApplicationSubmissionController extends ControllerBase {
       $job->notes_save_url = \Drupal\Core\Url::fromRoute('job_hunter.application_notes_save', ['job_id' => (int) $job->id])->toString();
       $job->notes_csrf_token = \Drupal::csrfToken()->get('jobhunter/jobs/' . (int) $job->id . '/notes/save');
       $job->match_score = $this->computeMatchScore($user_skill_tokens, $job);
+
+      // AC-2/AC-3: follow-up overdue badge — set when follow_up_date has passed
+      // and the job has not yet progressed to interview stage or beyond.
+      $fu_date = (string) ($job->follow_up_date ?? '');
+      $advanced = in_array($job->workflow_status, ['interview', 'closed'], TRUE);
+      $job->follow_up_overdue = ($fu_date !== '' && $fu_date < $today_str && !$advanced);
     }
 
     // AC-2: Apply workflow_status filter (post-derivation).

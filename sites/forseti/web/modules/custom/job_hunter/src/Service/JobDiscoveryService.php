@@ -282,7 +282,11 @@ class JobDiscoveryService {
       $query->innerJoin('jobhunter_job_requirements', 'j', 'sj.job_id = j.id');
       $query->fields('j')
         ->condition('sj.uid', $this->currentUser->id());
-      
+
+      // Include per-saved-job fields needed for follow-up and deadline display.
+      $query->addField('sj', 'follow_up_date', 'follow_up_date');
+      $query->addField('sj', 'deadline_date', 'sj_deadline_date');
+
       $query->leftJoin('jobhunter_companies', 'c', 'j.company_id = c.id');
       $query->addField('c', $company_name_field, 'company_name');
       
