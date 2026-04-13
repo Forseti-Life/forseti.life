@@ -20,6 +20,21 @@ Role scope (release-cycle based):
 - Delegate testing design/implementation to QA (tester) for all scoped features.
 - Coordinate the final push to production after gates are satisfied.
 
+## Product roadmap stewardship (required)
+- PM owns the product-shaping loop from **product line → delivery project → release-ready feature**.
+- For each active product or project line in your scope, keep its roadmap current enough that another seat can understand:
+  - what exists now,
+  - what the next slice is,
+  - what is already queued,
+  - and which PM owns the item.
+- For products represented in the HQ portfolio registry, keep `dashboards/PROJECTS.md` synchronized with actual execution state.
+- For products with a separate product-local roadmap, keep that roadmap current and ensure any HQ summary entry stays aligned with it.
+- Roadmap entries must not stop at vague intent. PM must decompose roadmap work into concrete follow-through:
+  - active delivery projects,
+  - feature backlog items under `features/<id>/feature.md`,
+  - and explicit BA / Dev / QA handoffs for the next slice.
+- If a roadmap item is effectively complete, stale, or superseded, close it or re-baseline it rather than leaving it as misleading active work.
+
 ## Continuous QA signal (required)
 - For product sites you own, you must continuously consume QA evidence from: `sessions/<qa-seat>/artifacts/auto-site-audit/latest/`.
 - Use QA evidence as release readiness signal and for scope/intent decisions.
@@ -106,6 +121,18 @@ When starting work:
 2) Produce PM artifacts (always)
 - Produce release-coordination artifacts when needed (release window, dependency notes, and cross-stream sequencing).
 - If blocked on details, still write the best-available draft and ask specific questions (needs-info).
+
+2a) Maintain roadmap + backlog fidelity (always)
+- Reconcile roadmap statements against the real shipped state, active queue, and current release posture.
+- Make sure each active product line has either:
+  - an active delivery project,
+  - a clearly defined next slice,
+  - or an explicit note that no dedicated initiative is currently open.
+- Convert roadmap intent into concrete backlog units before asking Dev/QA to execute:
+  - `features/<id>/feature.md`
+  - `01-acceptance-criteria.md`
+  - `03-test-plan.md`
+- Use BA to flesh scope, QA to design verification, and Dev to implement. PM owns the sequencing and completeness of that chain.
 
 3) Delegate explicitly
 - Create/confirm the next inbox items for BA/Dev/QA (one each), referencing the same work item.

@@ -1,6 +1,6 @@
 # Feature Progress
 
-Generated: 2026-04-13T00:38:36Z
+Generated: 2026-04-13T01:24:55Z
 
 | Work item | Website | Module | Status | Priority | PM | Dev | QA |
 |-----------|---------|--------|--------|----------|----|-----|----|
@@ -163,7 +163,7 @@ Generated: 2026-04-13T00:38:36Z
 | forseti-copilot-agent-tracker | forseti.life | copilot_agent_tracker | shipped | P1 |  |  |  |
 | forseti-csrf-fix | forseti.life | job_hunter | shipped | P0 |  |  |  |
 | forseti-csrf-post-routes-fix | forseti.life | job_hunter | shipped | P1 (security) |  |  |  |
-| forseti-jobhunter-application-analytics | forseti.life | job_hunter | ready | medium |  |  |  |
+| forseti-jobhunter-application-analytics | forseti.life | job_hunter | in_progress | medium |  |  |  |
 | forseti-jobhunter-application-controller-db-extraction | forseti.life | job_hunter | shipped | P2 |  |  |  |
 | forseti-jobhunter-application-controller-split | forseti.life | job_hunter | shipped |  |  |  |  |
 | forseti-jobhunter-application-deadline-tracker | forseti.life | job_hunter | done | high |  |  |  |
@@ -181,14 +181,14 @@ Generated: 2026-04-13T00:38:36Z
 | forseti-jobhunter-controller-refactor-phase2 | forseti.life | job_hunter | shipped | P2 |  |  |  |
 | forseti-jobhunter-cover-letter-display | forseti.life | job_hunter | shipped | high |  |  |  |
 | forseti-jobhunter-e2e-flow | forseti.life | job_hunter | shipped | P0 (ROI 1000) |  |  |  |
-| forseti-jobhunter-follow-up-reminders | forseti.life | job_hunter | ready | medium |  |  |  |
+| forseti-jobhunter-follow-up-reminders | forseti.life | job_hunter | in_progress | medium |  |  |  |
 | forseti-jobhunter-google-jobs-ux | forseti.life | job_hunter | shipped | high |  |  |  |
 | forseti-jobhunter-hook-install-fix | forseti.life | job_hunter | shipped | P1 |  |  |  |
-| forseti-jobhunter-interview-outcome-tracker | forseti.life | job_hunter | ready | high |  |  |  |
+| forseti-jobhunter-interview-outcome-tracker | forseti.life | job_hunter | in_progress | high |  |  |  |
 | forseti-jobhunter-interview-prep | forseti.life | job_hunter | shipped | high |  |  |  |
 | forseti-jobhunter-job-board-preferences | forseti.life | job_hunter | in_progress | low |  |  |  |
 | forseti-jobhunter-job-match-score | forseti.life | job_hunter | shipped | low |  |  |  |
-| forseti-jobhunter-offer-tracker | forseti.life | job_hunter | ready | high |  |  |  |
+| forseti-jobhunter-offer-tracker | forseti.life | job_hunter | in_progress | high |  |  |  |
 | forseti-jobhunter-profile | forseti.life | job_hunter | shipped | P0 |  |  |  |
 | forseti-jobhunter-profile-completeness | forseti.life | job_hunter | shipped | medium |  |  |  |
 | forseti-jobhunter-profile-form-db-extraction | forseti.life | job_hunter | shipped | P2 |  |  |  |

@@ -3,7 +3,7 @@
 - Status: ready
 - Website: forseti.life
 - Module: ai_conversation
-- Release: 20260412-forseti-release-e
+- Release: 20260412-forseti-release-h
 - Owner: pm-forseti
 - Project: PROJ-005
 

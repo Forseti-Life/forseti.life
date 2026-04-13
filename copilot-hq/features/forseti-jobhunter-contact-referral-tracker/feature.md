@@ -3,7 +3,7 @@
 - Work item id: forseti-jobhunter-contact-referral-tracker
 - Website: forseti.life
 - Module: job_hunter
-- Status: in_progress
+- Status: ready
 - Release: 20260412-forseti-release-e
 - Feature type: new-feature
 - PM owner: pm-forseti

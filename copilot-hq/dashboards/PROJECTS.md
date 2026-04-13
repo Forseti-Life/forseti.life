@@ -34,15 +34,15 @@ That page is rendered from this file. CEO and architect seats must treat the roa
 
 **Scope:** Forseti's job-seeking platform covering resume intake, discovery, application prep, submission support, and tracking.
 
-**Current state:** Active Forseti release-e scope candidates already exist (`forseti-jobhunter-contact-referral-tracker`, `forseti-jobhunter-resume-version-tracker`) and PM now has a Stage 0 scope-activation item queued.
+**Current state (2026-04-13):** Active buildout. Release-h carries 4 features in_progress: `forseti-jobhunter-interview-outcome-tracker` (high), `forseti-jobhunter-offer-tracker` (high), `forseti-jobhunter-application-analytics` (medium), `forseti-jobhunter-follow-up-reminders` (medium). Seven additional groomed features re-baselined to `ready` for future releases: `contact-tracker`, `company-interest-tracker`, `company-research-tracker`, `contact-referral-tracker`, `job-board-preferences`, `resume-version-labeling`, `resume-version-tracker`.
 
-**Last scoped release:** `20260412-forseti-release-e`
+**Last scoped release:** `20260412-forseti-release-h`
 
 **Progress SLA:** 7 days without release-scoped work or a PM re-baseline/grooming update = breach
 
-**Next step:** PM should activate release-e scope or explicitly re-baseline the current Forseti release.
+**Next step:** Await dev-forseti completion + Gate 2 QA on 4 active release-h features. After coordinated push, activate next slice from 7 queued ready features by priority.
 
-**Queue status:** `pm-forseti` inbox item queued on 2026-04-12: `20260412-scope-activate-20260412-forseti-release-e`
+**Queue status:** 4 features in_progress for `20260412-forseti-release-h`. Dev + QA inbox items dispatched 2026-04-13.
 
 ---
 
@@ -50,15 +50,15 @@ That page is rendered from this file. CEO and architect seats must treat the roa
 
 **Scope:** Persistent assistant experience, conversation memory, model integration, and shared AI capability across Forseti products.
 
-**Current state:** All foundation features shipped (user-chat, history-browser, export, job-suggestions, service-db-refactor, service-refactor, debug-gate, tailoring-feedback). Next slice defined: **Local LLM / Provider Selection** (`forseti-ai-local-llm-provider-selection`, Status: ready, Release: 20260412-forseti-release-e). Aligns with org mission to decentralize services — adds Ollama self-hosted provider option alongside OpenAI, with per-user provider preference and org-default admin config.
+**Current state (2026-04-13):** All foundation features shipped. Next slice fully groomed: **Local LLM / Provider Selection** (`forseti-ai-local-llm-provider-selection`, Status: ready, Release: 20260412-forseti-release-h). AC, impl notes stub, and test plan created 2026-04-13. BA dispatched to complete impl notes (5 outstanding items). Feature is activation-ready once BA elaboration is complete and release-h in_progress count allows.
 
-**Last scoped release:** `20260412-forseti-release-e`
+**Last scoped release:** `20260412-forseti-release-h` (targeted; not yet activated — pending BA impl notes + release slot)
 
 **Progress SLA:** 7 days without release-scoped work or a PM re-baseline/grooming update = breach
 
-**Next step:** Activate `forseti-ai-local-llm-provider-selection` in release-e when in_progress count drops below 10 (currently 7/10). BA grooming dispatch queued.
+**Next step:** ba-forseti to complete `02-implementation-notes.md` (confirm AIApiService constructor, streaming approach, config keys, user field type, OpenAI model options). PM activates in release-h or next cycle based on slot availability.
 
-**Queue status:** ba-forseti AC brief queued 2026-04-12: `20260412-ai-local-llm-provider-ac-brief`
+**Queue status:** ba-forseti grooming dispatch: `sessions/ba-forseti/inbox/20260413-groom-forseti-ai-local-llm-provider-selection/` (ROI 30)
 
 ---
 
