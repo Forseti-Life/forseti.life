@@ -1082,6 +1082,30 @@
         "content_editor": "200",
         "administrator": "200"
       }
+    },
+    {
+      "id": "forseti-jobhunter-follow-up-reminders-my-jobs",
+      "feature_id": "forseti-jobhunter-follow-up-reminders",
+      "path_regex": "^/jobhunter/my-jobs$",
+      "notes": "Job list with overdue follow-up badges \u2014 requires authentication. Added for feature forseti-jobhunter-follow-up-reminders.",
+      "expect": {
+        "anon": "403",
+        "authenticated": "200",
+        "content_editor": "200",
+        "administrator": "200"
+      }
+    },
+    {
+      "id": "forseti-jobhunter-follow-up-reminders-save",
+      "feature_id": "forseti-jobhunter-follow-up-reminders",
+      "path_regex": "^/jobhunter/follow-up/[0-9]+/save$",
+      "notes": "CSRF-protected AJAX POST to save follow-up date. GET not expected; POST requires valid CSRF token. Added for feature forseti-jobhunter-follow-up-reminders.",
+      "expect": {
+        "anon": "403",
+        "authenticated": "ignore",
+        "content_editor": "ignore",
+        "administrator": "ignore"
+      }
     }
   ]
 }

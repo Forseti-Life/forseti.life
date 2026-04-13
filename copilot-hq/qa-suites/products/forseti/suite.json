@@ -4099,6 +4099,144 @@
           "manual_verification": "Inspect rendered HTML for absence of raw notes/resume content"
         }
       ]
+    },
+    {
+      "id": "forseti-jobhunter-follow-up-reminders-field-render",
+      "label": "Follow-up date field renders on saved-job detail for authenticated user",
+      "type": "functional",
+      "feature_id": "forseti-jobhunter-follow-up-reminders",
+      "command": "bash scripts/qa-run-suite.sh forseti-jobhunter-follow-up-reminders-field-render",
+      "artifacts": [
+        "sessions/qa-forseti/artifacts/forseti-jobhunter-follow-up-reminders-results.json"
+      ],
+      "required_for_release": true,
+      "test_cases": [
+        {
+          "id": "TC-1",
+          "description": "Follow-up by control is visible on saved-job detail",
+          "manual_verification": "Inspect saved-job detail page HTML for Follow-up date picker control"
+        }
+      ]
+    },
+    {
+      "id": "forseti-jobhunter-follow-up-reminders-save-persists",
+      "label": "Follow-up date saved via AJAX POST persists in DB for the current user/job",
+      "type": "functional",
+      "feature_id": "forseti-jobhunter-follow-up-reminders",
+      "command": "bash scripts/qa-run-suite.sh forseti-jobhunter-follow-up-reminders-save-persists",
+      "artifacts": [
+        "sessions/qa-forseti/artifacts/forseti-jobhunter-follow-up-reminders-results.json"
+      ],
+      "required_for_release": true,
+      "test_cases": [
+        {
+          "id": "TC-2",
+          "description": "AJAX POST saves follow-up date; DB row/column returns saved value for correct uid+job_id",
+          "manual_verification": "drush sql:query to confirm stored date matches submitted value"
+        }
+      ]
+    },
+    {
+      "id": "forseti-jobhunter-follow-up-reminders-overdue-badge",
+      "label": "Overdue badge appears on /jobhunter/my-jobs for past-due applied job",
+      "type": "functional",
+      "feature_id": "forseti-jobhunter-follow-up-reminders",
+      "command": "curl -s -b \"$FORSETI_COOKIE_AUTHENTICATED\" https://forseti.life/jobhunter/my-jobs | grep -q 'follow-up-overdue'",
+      "artifacts": [
+        "sessions/qa-forseti/artifacts/forseti-jobhunter-follow-up-reminders-results.json"
+      ],
+      "required_for_release": true,
+      "test_cases": [
+        {
+          "id": "TC-3",
+          "description": "follow-up date = yesterday, status = applied \u2192 follow-up-overdue class/markup present in page HTML"
+        }
+      ]
+    },
+    {
+      "id": "forseti-jobhunter-follow-up-reminders-badge-clears-future",
+      "label": "Overdue badge absent when follow-up date is in the future",
+      "type": "functional",
+      "feature_id": "forseti-jobhunter-follow-up-reminders",
+      "command": "bash scripts/qa-run-suite.sh forseti-jobhunter-follow-up-reminders-badge-clears-future",
+      "artifacts": [
+        "sessions/qa-forseti/artifacts/forseti-jobhunter-follow-up-reminders-results.json"
+      ],
+      "required_for_release": true,
+      "test_cases": [
+        {
+          "id": "TC-4",
+          "description": "follow-up date = tomorrow \u2192 no overdue badge rendered on my-jobs page"
+        }
+      ]
+    },
+    {
+      "id": "forseti-jobhunter-follow-up-reminders-badge-clears-status",
+      "label": "Overdue badge clears when job status progresses past applied",
+      "type": "functional",
+      "feature_id": "forseti-jobhunter-follow-up-reminders",
+      "command": "bash scripts/qa-run-suite.sh forseti-jobhunter-follow-up-reminders-badge-clears-status",
+      "artifacts": [
+        "sessions/qa-forseti/artifacts/forseti-jobhunter-follow-up-reminders-results.json"
+      ],
+      "required_for_release": true,
+      "test_cases": [
+        {
+          "id": "TC-5",
+          "description": "Past-due date + status=phone_screen \u2192 no overdue badge rendered"
+        }
+      ]
+    },
+    {
+      "id": "forseti-jobhunter-follow-up-reminders-clear-date",
+      "label": "Clearing follow-up date sets DB value to NULL and removes badge",
+      "type": "functional",
+      "feature_id": "forseti-jobhunter-follow-up-reminders",
+      "command": "bash scripts/qa-run-suite.sh forseti-jobhunter-follow-up-reminders-clear-date",
+      "artifacts": [
+        "sessions/qa-forseti/artifacts/forseti-jobhunter-follow-up-reminders-results.json"
+      ],
+      "required_for_release": true,
+      "test_cases": [
+        {
+          "id": "TC-6",
+          "description": "Submit empty date value \u2192 storage returns NULL and my-jobs shows no badge"
+        }
+      ]
+    },
+    {
+      "id": "forseti-jobhunter-follow-up-reminders-cross-user-isolation",
+      "label": "User B sees no follow-up badges from User A on /jobhunter/my-jobs",
+      "type": "security",
+      "feature_id": "forseti-jobhunter-follow-up-reminders",
+      "command": "bash scripts/qa-run-suite.sh forseti-jobhunter-follow-up-reminders-cross-user-isolation",
+      "artifacts": [
+        "sessions/qa-forseti/artifacts/forseti-jobhunter-follow-up-reminders-results.json"
+      ],
+      "required_for_release": true,
+      "test_cases": [
+        {
+          "id": "TC-7",
+          "description": "Two users with different reminder data; each sees only their own reminders"
+        }
+      ]
+    },
+    {
+      "id": "forseti-jobhunter-follow-up-reminders-auth-csrf",
+      "label": "Unauthenticated GET blocked and POST without CSRF token returns 403",
+      "type": "security",
+      "feature_id": "forseti-jobhunter-follow-up-reminders",
+      "command": "curl -s -o /dev/null -w \"%{http_code}\" https://forseti.life/jobhunter/my-jobs | grep -Eq '^(403|302)'",
+      "artifacts": [
+        "sessions/qa-forseti/artifacts/forseti-jobhunter-follow-up-reminders-results.json"
+      ],
+      "required_for_release": true,
+      "test_cases": [
+        {
+          "id": "TC-8",
+          "description": "Anon GET /jobhunter/my-jobs \u2192 403/redirect; POST follow-up save without CSRF token \u2192 403"
+        }
+      ]
     }
   ],
   "_schema_notes": [
