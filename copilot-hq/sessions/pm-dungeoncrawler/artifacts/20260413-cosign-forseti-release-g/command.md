@@ -1,3 +1,6 @@
+- Status: done
+- Completed: 2026-04-13T00:19:37Z
+
 # Co-sign request: 20260412-forseti-release-g
 
 pm-forseti has signed forseti release-g (empty release). Coordinated release policy requires your co-sign before the official push proceeds.

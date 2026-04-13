@@ -1,3 +1,6 @@
+- Status: done
+- Completed: 2026-04-13T00:17:43Z
+
 # Gate 4: Post-release QA verification — 20260412-forseti-release-f
 
 forseti-release-f has been pushed to production (empty release — 0 features). Please run post-release production verification.
