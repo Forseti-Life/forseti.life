@@ -1,11 +1,9 @@
 {
-  "generated_at": "2026-04-13T00:21:52.011006+00:00",
+  "generated_at": "2026-04-13T00:37:58.081592+00:00",
   "parity_ok": true,
   "selected_agents": {
     "match": true,
-    "actual": [
-      "pm-forseti"
-    ]
+    "actual": []
   },
   "steps": {
     "match": true,
