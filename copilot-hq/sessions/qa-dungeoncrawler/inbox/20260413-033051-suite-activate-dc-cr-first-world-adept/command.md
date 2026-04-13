@@ -125,3 +125,5 @@ The feature is in scope; Dev will implement it this release. Tests must be live 
 
 ## Security acceptance criteria
 - Security AC exemption: ancestry feat grant only; no new route surface beyond existing character and spell flows
+- Agent: qa-dungeoncrawler
+- Status: pending

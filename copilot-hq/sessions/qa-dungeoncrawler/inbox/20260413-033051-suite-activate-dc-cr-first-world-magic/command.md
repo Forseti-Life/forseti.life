@@ -143,3 +143,5 @@ The feature is in scope; Dev will implement it this release. Tests must be live 
 
 ## Security acceptance criteria
 - Security AC exemption: game-mechanic ancestry feat; no new routes or user-facing input
+- Agent: qa-dungeoncrawler
+- Status: pending
