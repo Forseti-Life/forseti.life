@@ -16078,6 +16078,63 @@
       "required_for_release": true
     }
   ],
+  "dc-cr-gnome-weapon-familiarity": [
+    {
+      "id": "dc-cr-gnome-weapon-familiarity-feat-availability",
+      "label": "Gnome Weapon Familiarity appears in Gnome feat 1 picker",
+      "type": "e2e",
+      "feature_id": "dc-cr-gnome-weapon-familiarity",
+      "command": "npx playwright test --grep \"dc-cr-gnome-weapon-familiarity-feat-availability\" --project=character-creation",
+      "artifacts": ["playwright-report/dc-cr-gnome-weapon-familiarity-feat-availability.html"],
+      "suite_context": "playwright/character-creation",
+      "status": "pending_implementation",
+      "required_for_release": true
+    },
+    {
+      "id": "dc-cr-gnome-weapon-familiarity-glaive-kukri-proficiency",
+      "label": "Selecting feat grants trained proficiency with glaive and kukri",
+      "type": "e2e",
+      "feature_id": "dc-cr-gnome-weapon-familiarity",
+      "command": "npx playwright test --grep \"dc-cr-gnome-weapon-familiarity-glaive-kukri\" --project=character-creation",
+      "artifacts": ["playwright-report/dc-cr-gnome-weapon-familiarity-glaive-kukri-proficiency.html"],
+      "suite_context": "playwright/character-creation",
+      "status": "pending_implementation",
+      "required_for_release": true
+    },
+    {
+      "id": "dc-cr-gnome-weapon-familiarity-uncommon-gnome-weapons-unlocked",
+      "label": "Uncommon gnome weapons become accessible after feat selection",
+      "type": "e2e",
+      "feature_id": "dc-cr-gnome-weapon-familiarity",
+      "command": "npx playwright test --grep \"dc-cr-gnome-weapon-familiarity-uncommon-unlock\" --project=inventory",
+      "artifacts": ["playwright-report/dc-cr-gnome-weapon-familiarity-uncommon-gnome-weapons-unlocked.html"],
+      "suite_context": "playwright/inventory",
+      "status": "pending_implementation",
+      "required_for_release": true
+    },
+    {
+      "id": "dc-cr-gnome-weapon-familiarity-martial-gnome-as-simple",
+      "label": "Proficiency resolver treats martial gnome weapons as simple-weapon tier",
+      "type": "e2e",
+      "feature_id": "dc-cr-gnome-weapon-familiarity",
+      "command": "npx playwright test --grep \"dc-cr-gnome-weapon-familiarity-martial-remap\" --project=inventory",
+      "artifacts": ["playwright-report/dc-cr-gnome-weapon-familiarity-martial-gnome-as-simple.html"],
+      "suite_context": "playwright/inventory",
+      "status": "pending_implementation",
+      "required_for_release": true
+    },
+    {
+      "id": "dc-cr-gnome-weapon-familiarity-downstream-feat-gate",
+      "label": "Gnome Weapon Specialist and Expertise remain gated until this feat is present",
+      "type": "e2e",
+      "feature_id": "dc-cr-gnome-weapon-familiarity",
+      "command": "npx playwright test --grep \"dc-cr-gnome-weapon-familiarity-downstream-gate\" --project=feat-progression",
+      "artifacts": ["playwright-report/dc-cr-gnome-weapon-familiarity-downstream-feat-gate.html"],
+      "suite_context": "playwright/feat-progression",
+      "status": "pending_implementation",
+      "required_for_release": true
+    }
+  ],
   "dc-cr-gnome-weapon-expertise": [
     {
       "id": "dc-cr-gnome-weapon-expertise-prerequisite-gate",
