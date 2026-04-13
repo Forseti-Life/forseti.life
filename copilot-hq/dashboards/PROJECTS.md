@@ -159,13 +159,13 @@ That page is rendered from this file. CEO and architect seats must treat the roa
 
 **Scope:** Build a community resource mesh between independent Forseti installations so any installation can identify peer installations, establish trust, exchange signed messages, advertise needs and capabilities, and initially share **agent expertise** and **institutional-management services**. Compute and storage remain future-state extensions.
 
-**Current state (2026-04-13):** Project created and initial delivery feature stub opened as `forseti-installation-cluster-communication`. No implementation is active yet. The intended MVP is autonomous-peer communication plus resource-mesh primitives, not full multi-primary data replication: each installation should have a stable installation identity, a peer registry, a trust/auth model, signed request handling, capability/need advertisement, cluster message logging, and an admin view for peer status. Initial value focus is shared agent capacity and institutional-management workflows; compute and storage are intentionally deferred.
+**Current state (2026-04-13):** Project created and initial delivery feature stub opened as `forseti-installation-cluster-communication`. MVP architecture, daemon/runtime design, protocol schemas, state machines, pseudocode, and a sequenced roadmap now exist. No implementation is active yet. The intended MVP is autonomous-peer communication plus resource-mesh primitives, not full multi-primary data replication: each installation should have a stable installation identity, a peer registry, a trust/auth model, signed request handling, capability/need advertisement, cluster message logging, a standalone `forseti-meshd` backend, and a Drupal admin interface for peer status and operator decisions. Initial value focus is shared agent capacity and institutional-management workflows; compute and storage are intentionally deferred.
 
 **Last scoped release:** none yet (new strategic delivery project)
 
 **Progress SLA:** 7 days without PM/BA decomposition, MVP scope refinement, or release-slot planning = breach
 
-**Next step:** `pm-forseti` and `ba-forseti` should groom `forseti-installation-cluster-communication` into an MVP covering installation identity, trust bootstrap, message envelope, health/status exchange, admin UX, capability advertisement, need expression, and the first practical cross-installation resource-sharing use case centered on shared agents and institutional services.
+**Next step:** `pm-forseti` and `ba-forseti` should execute `90-roadmap.md` beginning with the open-source stack validation and Release A daemon-foundation slices, then dispatch dev on `forseti-meshd` scaffold, identity/key loading, and peer discovery.
 
 **Queue status:** Project registered under the CEO portfolio and paired with an initial ready feature stub. Awaiting BA elaboration and release-slot selection.
 

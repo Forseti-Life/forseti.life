@@ -1,17 +1,58 @@
 # Copilot Sessions HQ
 
-This repository is the canonical control plane for HQ agent execution, release-cycle orchestration, and session tracking across Copilot CLI, local LLMs, and Bedrock-backed assistant paths.
+`copilot-hq` is the **operations and orchestration layer** behind the Forseti autonomous development platform.
+
+It exists to make multi-agent software delivery understandable and repeatable: who owns what, how work moves, how releases are gated, and how runtime automation is started, monitored, and repaired.
+
+If you are new here, start with:
+
+1. `QUICKSTART.md`
+2. `runbooks/public-repo-positioning.md`
+3. `runbooks/orchestration.md`
+
+## What this repo does
+
+This repository is the canonical control plane for:
+
+- HQ agent execution
+- release-cycle orchestration
+- role and ownership governance
+- dashboards and project tracking
+- session/runbook-driven operational continuity
+- local-LLM and Bedrock-backed execution paths
+
+## What this repo is not
+
+- It is not the full Forseti product runtime by itself
+- It is not a public dump of live operational history
+- It is not the only code repo in the platform; product/runtime code also lives under the wider monorepo
 
 ## Principles
 - **Local sessions are not automatically committed here.** Only add/export what you intend to persist.
 - **No secrets.** Sanitize exports before committing.
 
-## Layout
+## Repo layout
 - `org-chart/` — organizational model (CEO → departments → delegated sessions)
 - `sessions/` — per-session folders (exports, summaries, artifacts)
 - `runbooks/` — how we run/close sessions consistently
 - `templates/` — standard templates for session summaries and handoffs
 - `scripts/` — helper scripts for exporting/sanitizing (optional)
+- `orchestrator/` — LangGraph runtime and execution graph
+- `dashboards/` — project, release, finance, and integration dashboards
+- `llm/` — local model catalog, routing, and download tooling
+
+## Purpose and public positioning
+
+For a clearer public-facing explanation of why this repo exists and how it relates to `forseti.life`, read:
+
+- `runbooks/public-repo-positioning.md`
+- `runbooks/private-public-dual-repo.md`
+
+## Quickstart
+
+For a practical first-read path, startup script map, and full-stack orientation, read:
+
+- `QUICKSTART.md`
 
 ## Orchestration
 See `runbooks/orchestration.md` for the current end-to-end process flow (LangGraph orchestrator + systemd runtime + publishing).

@@ -7,33 +7,31 @@
 
 ## Currently Working On
 
-Completed the next execution slice for the CEO-managed integration audit
-project:
-- added the integrations hub at `dashboards/integrations/README.md`
-- added the first machine-readable registry at
-  `dashboards/integrations/integration-registry.yaml`
-- advanced `PROJ-010` from planning into runtime-audit-ready state
+Completed an open-source documentation refinement pass after creating the first
+community-owned repo:
+- added `QUICKSTART.md`
+- updated `README.md` to be more public-friendly
+- made purpose, tech stack, and startup/runtime scripts clearer for new readers
 
 ### Current state
 
-- `dashboards/PROJECTS.md` now tracks `PROJ-010` under CEO ownership and points
-  to the runtime truth audit as the next step.
-- The inventory covers the verified external integration surfaces currently
-  visible from repo evidence.
-- The work now has the actual Phase 1 operator artifacts in place.
+- The org repo `Forseti-Life/forseti.life` now exists as a private community
+  repo with the first committed history push completed.
+- `copilot-hq/README.md` now leads with purpose and public-facing orientation.
+- `copilot-hq/QUICKSTART.md` now gives the first-read path, tech stack, and
+  script map.
 
 ### Key decisions
 
-1. Keep the project CEO-managed because it crosses products and storage planes.
-2. Centralize the operator experience before trying to centralize every storage
-   mechanism.
-3. Treat runtime-secret location as the next truth-establishing pass.
+1. Public-facing docs needed a real quickstart before broader publication work.
+2. New readers need purpose + script map immediately, not only deep runbooks.
+3. Public-readiness blockers remain security/history/candidate-gate work.
 
 ### Next actions
 
-1. Run the runtime truth audit
-2. Prioritize remediation, starting with the tracked SerpAPI secret
-3. Add per-integration runbooks once runtime truth is confirmed
+1. Continue publication-readiness work for `PROJ-009`
+2. Run runtime truth/security audit work
+3. Advance candidate packaging and history scrub
 
 ---
 

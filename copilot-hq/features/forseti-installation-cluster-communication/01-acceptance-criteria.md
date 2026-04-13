@@ -46,3 +46,9 @@
 
 ## AC-15 — Mission alignment review
 - Operators can view the latest mission-and-values attestation for each peer and must be able to withhold or downgrade trust when a peer is not aligned.
+
+## AC-16 — Staged mesh admission
+- Becoming part of the mesh is a staged process with distinct states for discovered, pending review, verified, operational partner, and suspended membership.
+
+## AC-17 — Ongoing alignment renewal
+- Mission/value attestation is renewable, versioned, and re-reviewable so long-lived peers can be revalidated when the mission profile or governance expectations evolve.

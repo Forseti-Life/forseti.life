@@ -45,3 +45,7 @@ Allow any Forseti installation to register trusted peer installations and exchan
 - The first practical use case can be health/status exchange, remote announcement, cross-installation suggestion relay, shared agent capacity, or institutional-service advertisement.
 - The MVP should treat operator approval and export policy as first-class controls rather than assuming all trusted peers may request all services.
 - Handshake trust should verify both technical legitimacy and declared adherence to the Forseti mission, so the mesh remains values-aligned as it grows.
+- Documentation structure for long-term growth is defined in `00-documentation-framework.md`.
+- The first dedicated MVP packet is split across `20-handshake-and-trust.md`, `30-policy-and-governance.md`, `40-service-catalog.md`, and `50-message-protocol.md`.
+- Hard technical requirements should follow an open-source adopt-before-build strategy; custom code should focus on Forseti-specific governance and mesh behavior.
+- Delivery sequencing for Forseti is defined in `90-roadmap.md`.

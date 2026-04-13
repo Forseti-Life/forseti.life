@@ -12,6 +12,8 @@
 
 Build this as a **Drupal-native federated node layer over HTTPS**, not as shared database clustering.
 
+Adopt an **open-source buy-before-build** posture for hard technical requirements. Search first for usable open-source components, protocols, or libraries before designing custom infrastructure, and build custom code only where Forseti-specific trust, mission, or governance behavior is the real differentiator.
+
 Recommended stack:
 
 - Per-installation identity plus **Ed25519** signing keys
@@ -350,6 +352,154 @@ The local operator should be able to record one of:
 - **not_aligned**
 
 Cryptographic handshake can succeed while mission alignment remains `needs_review`; in that case the peer should not be elevated beyond `pending_review`.
+
+## What it means to join the Forseti mesh
+
+Joining the mesh should be treated as admission into a values-governed cooperative network, not merely registration of another API client.
+
+A node is part of the mesh only when it has:
+
+1. a stable installation identity
+2. a verified signing key and reachable endpoint set
+3. a signed mission-and-values attestation
+4. an operator-reviewed trust record
+5. explicit export-policy boundaries for what it may send and receive
+
+This distinction matters: many systems can exchange messages, but only values-aligned peers should gain the ability to represent the Forseti mesh operationally.
+
+## Handshake authentication process
+
+Design the handshake as a staged admission flow rather than a single request:
+
+### Stage 0 — discovery
+- local operator enters a peer base URL or imports a well-known record
+- system fetches public metadata from `/.well-known/forseti-node`
+- peer is recorded as `discovered`, not yet trusted
+
+### Stage 1 — cryptographic challenge
+- local system sends `peer.handshake.request`
+- request includes installation id, public key fingerprint, nonce, timestamp, supported schema versions, and mission attestation
+- remote system verifies signature freshness and returns `peer.handshake.response`
+- response includes its own nonce binding, public key material, endpoint declarations, schema version, and mission attestation
+
+### Stage 2 — technical verification
+- local system verifies signature, timestamp window, nonce binding, and endpoint reachability
+- local operator sees reachability, version compatibility, and technical warnings
+- successful technical validation moves peer to `pending_review`
+
+### Stage 3 — mission alignment review
+- operator reviews the peer's declared mission version, value profile, governance note, and export posture
+- operator records `aligned`, `needs_review`, or `not_aligned`
+- peers marked `not_aligned` cannot progress into service exchange
+
+### Stage 4 — membership approval
+- operator selects trust tier and permitted service/export scope
+- peer becomes `verified` or `operational_partner`
+- first capability sync is allowed only after this step
+
+### Stage 5 — ongoing renewal
+- peers must periodically refresh status, key validity, and mission attestation
+- attestation/profile version changes trigger re-review
+- repeated delivery failures, policy violations, or mission drift can demote the peer to `suspended`
+
+## Handshake payload design
+
+For the MVP, the request and response should carry a compact but explicit payload.
+
+### `peer.handshake.request`
+- schema_version
+- sender_installation_id
+- sender_base_url
+- sender_public_key_fingerprint
+- timestamp
+- nonce
+- supported_message_types
+- supported_capability_categories
+- mission_attestation
+  - mission_version
+  - values_profile_version
+  - attested_at
+  - governance_note
+
+### `peer.handshake.response`
+- schema_version
+- responder_installation_id
+- responder_base_url
+- responder_public_key_fingerprint
+- request_nonce
+- response_nonce
+- timestamp
+- endpoint_map
+- supported_message_types
+- supported_capability_categories
+- mission_attestation
+- recommended_trust_constraints
+
+## Mesh membership states
+
+Use explicit lifecycle states so operators understand where each peer stands:
+
+- **discovered**
+  - metadata seen, but no handshake attempt completed
+- **pending_review**
+  - technical checks passed, awaiting human trust decision
+- **verified**
+  - trusted for low-risk coordination and catalog exchange
+- **operational_partner**
+  - trusted for approved service-request workflows
+- **suspended**
+  - previously admitted, now paused due to risk, drift, or failure
+- **rejected**
+  - explicitly denied admission because technical or mission requirements were not met
+
+## Soul-preservation guardrails
+
+To keep the soul of Forseti intact, the mesh needs governance rules as much as protocol rules.
+
+### 1. Mission before convenience
+- no peer gains operational trust without values attestation and operator review
+- convenience features must not bypass the alignment check
+
+### 2. Local autonomy remains primary
+- each installation decides what it exports, what it imports, and who it trusts
+- the mesh coordinates peers; it does not erase local governance
+
+### 3. Human accountability at the edges
+- high-impact requests must remain reviewable by an operator
+- every admission, demotion, and export-policy change must be auditable
+
+### 4. Explicit handling of drift
+- mission alignment is not "set and forget"
+- changed governance, changed mission profiles, or concerning behavior trigger re-review
+
+### 5. No transitive moral trust
+- if peer A trusts peer B and peer B trusts peer C, peer A does not automatically trust peer C
+- mission alignment must be reviewed directly by each local installation
+
+## Conditions for suspension or rejection
+
+The system should make it normal to protect the mesh when needed.
+
+Triggers should include:
+
+- invalid or expired signatures
+- replay or nonce abuse
+- repeated policy violations
+- refusal to refresh mission/value attestation
+- declared mission profile no longer matching the current Forseti baseline
+- operator determination that governance posture is materially misaligned
+
+## Operator decision prompts during admission
+
+The UI should guide operators through a small, repeatable set of questions:
+
+1. Is this installation technically authentic and reachable?
+2. Does it affirm the current Forseti mission/version?
+3. Does its governance note and operating posture align with our expectations?
+4. Which service categories, if any, should be exposed to this peer?
+5. Should the peer remain `verified` only, or become an `operational_partner`?
+
+This keeps admission consistent and reduces the risk of accidental trust expansion.
 
 ## Service categories for the MVP
 
