@@ -16078,6 +16078,63 @@
       "required_for_release": true
     }
   ],
+  "dc-cr-gnome-weapon-specialist": [
+    {
+      "id": "dc-cr-gnome-weapon-specialist-prerequisite-gate",
+      "label": "Gnome Weapon Specialist feat locked before Gnome Weapon Familiarity; selectable after prerequisite present",
+      "type": "e2e",
+      "feature_id": "dc-cr-gnome-weapon-specialist",
+      "command": "npx playwright test --grep \"dc-cr-gnome-weapon-specialist-prereq\" --project=feat-progression",
+      "artifacts": ["playwright-report/dc-cr-gnome-weapon-specialist-prerequisite-gate.html"],
+      "suite_context": "playwright/feat-progression",
+      "status": "pending_implementation",
+      "required_for_release": true
+    },
+    {
+      "id": "dc-cr-gnome-weapon-specialist-glaive-crit-specialization",
+      "label": "Critical hit with glaive applies glaive critical specialization effect",
+      "type": "e2e",
+      "feature_id": "dc-cr-gnome-weapon-specialist",
+      "command": "npx playwright test --grep \"dc-cr-gnome-weapon-specialist-glaive-crit\" --project=encounter",
+      "artifacts": ["playwright-report/dc-cr-gnome-weapon-specialist-glaive-crit-specialization.html"],
+      "suite_context": "playwright/encounter",
+      "status": "pending_implementation",
+      "required_for_release": true
+    },
+    {
+      "id": "dc-cr-gnome-weapon-specialist-kukri-gnome-weapon-crit",
+      "label": "Critical hit with kukri or other gnome-tagged weapon applies matching critical specialization effect",
+      "type": "e2e",
+      "feature_id": "dc-cr-gnome-weapon-specialist",
+      "command": "npx playwright test --grep \"dc-cr-gnome-weapon-specialist-kukri-gnome-crit\" --project=encounter",
+      "artifacts": ["playwright-report/dc-cr-gnome-weapon-specialist-kukri-gnome-weapon-crit.html"],
+      "suite_context": "playwright/encounter",
+      "status": "pending_implementation",
+      "required_for_release": true
+    },
+    {
+      "id": "dc-cr-gnome-weapon-specialist-non-gnome-no-trigger",
+      "label": "Critical hit with non-gnome weapon does not trigger feat specialization",
+      "type": "e2e",
+      "feature_id": "dc-cr-gnome-weapon-specialist",
+      "command": "npx playwright test --grep \"dc-cr-gnome-weapon-specialist-non-gnome-no-trigger\" --project=encounter",
+      "artifacts": ["playwright-report/dc-cr-gnome-weapon-specialist-non-gnome-no-trigger.html"],
+      "suite_context": "playwright/encounter",
+      "status": "pending_implementation",
+      "required_for_release": true
+    },
+    {
+      "id": "dc-cr-gnome-weapon-specialist-normal-hit-no-trigger",
+      "label": "Normal (non-critical) hit does not trigger feat specialization",
+      "type": "e2e",
+      "feature_id": "dc-cr-gnome-weapon-specialist",
+      "command": "npx playwright test --grep \"dc-cr-gnome-weapon-specialist-normal-hit-no-trigger\" --project=encounter",
+      "artifacts": ["playwright-report/dc-cr-gnome-weapon-specialist-normal-hit-no-trigger.html"],
+      "suite_context": "playwright/encounter",
+      "status": "pending_implementation",
+      "required_for_release": true
+    }
+  ],
   "dc-cr-gnome-weapon-familiarity": [
     {
       "id": "dc-cr-gnome-weapon-familiarity-feat-availability",
