@@ -4339,6 +4339,91 @@
           "description": "Anon GET saved-job detail returns 403/redirect; POST without CSRF token returns 403"
         }
       ]
+    },
+    {
+      "id": "forseti-jobhunter-offer-tracker-form-renders",
+      "label": "Offer details form renders on saved-job detail for jobs in offer received status",
+      "type": "functional",
+      "feature_id": "forseti-jobhunter-offer-tracker",
+      "command": "bash scripts/qa-run-suite.sh forseti-jobhunter-offer-tracker-form-renders",
+      "artifacts": [
+        "sessions/qa-forseti/artifacts/forseti-jobhunter-offer-tracker-results.json"
+      ],
+      "required_for_release": true,
+      "test_cases": [
+        {
+          "id": "TC-1",
+          "description": "Saved-job detail page shows Offer Details form control for job with status offer received"
+        }
+      ]
+    },
+    {
+      "id": "forseti-jobhunter-offer-tracker-save-creates-or-updates",
+      "label": "Saving offer details via AJAX POST creates or updates jobhunter_offers row",
+      "type": "functional",
+      "feature_id": "forseti-jobhunter-offer-tracker",
+      "command": "bash scripts/qa-run-suite.sh forseti-jobhunter-offer-tracker-save-creates-or-updates",
+      "artifacts": [
+        "sessions/qa-forseti/artifacts/forseti-jobhunter-offer-tracker-results.json"
+      ],
+      "required_for_release": true,
+      "test_cases": [
+        {
+          "id": "TC-2",
+          "description": "AJAX POST with base_salary and notes creates 1 row; repeat update leaves COUNT=1 for that uid+saved_job_id"
+        }
+      ]
+    },
+    {
+      "id": "forseti-jobhunter-offer-tracker-comparison-page",
+      "label": "Offers comparison page at /jobhunter/offers returns 200 with comparison markup or empty state",
+      "type": "functional",
+      "feature_id": "forseti-jobhunter-offer-tracker",
+      "command": "curl -s -o /dev/null -w \"%{http_code}\" -b \"$FORSETI_COOKIE_AUTHENTICATED\" https://forseti.life/jobhunter/offers | grep -qx 200",
+      "artifacts": [
+        "sessions/qa-forseti/artifacts/forseti-jobhunter-offer-tracker-results.json"
+      ],
+      "required_for_release": true,
+      "test_cases": [
+        {
+          "id": "TC-3",
+          "description": "GET /jobhunter/offers returns HTTP 200 with comparison layout or empty-state markup"
+        }
+      ]
+    },
+    {
+      "id": "forseti-jobhunter-offer-tracker-cross-user-isolation",
+      "label": "User B sees no offer data from User A at /jobhunter/offers",
+      "type": "security",
+      "feature_id": "forseti-jobhunter-offer-tracker",
+      "command": "bash scripts/qa-run-suite.sh forseti-jobhunter-offer-tracker-cross-user-isolation",
+      "artifacts": [
+        "sessions/qa-forseti/artifacts/forseti-jobhunter-offer-tracker-results.json"
+      ],
+      "required_for_release": true,
+      "test_cases": [
+        {
+          "id": "TC-4",
+          "description": "SELECT COUNT(*) FROM jobhunter_offers WHERE uid=uid_B returns 0 when only uid_A has offers; user B page shows only empty state"
+        }
+      ]
+    },
+    {
+      "id": "forseti-jobhunter-offer-tracker-anon-csrf-blocked",
+      "label": "Unauthenticated GET is blocked/redirected and CSRF-missing POST returns 403",
+      "type": "security",
+      "feature_id": "forseti-jobhunter-offer-tracker",
+      "command": "curl -s -o /dev/null -w \"%{http_code}\" https://forseti.life/jobhunter/offers | grep -Eq \"^(403|302)\"",
+      "artifacts": [
+        "sessions/qa-forseti/artifacts/forseti-jobhunter-offer-tracker-results.json"
+      ],
+      "required_for_release": true,
+      "test_cases": [
+        {
+          "id": "TC-5",
+          "description": "Anon GET /jobhunter/offers returns 403 or redirect; CSRF-missing POST to offer save returns 403"
+        }
+      ]
     }
   ],
   "_schema_notes": [

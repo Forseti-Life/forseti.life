@@ -1130,6 +1130,30 @@
         "content_editor": "ignore",
         "administrator": "ignore"
       }
+    },
+    {
+      "id": "forseti-jobhunter-offer-tracker-offers-page",
+      "feature_id": "forseti-jobhunter-offer-tracker",
+      "path_regex": "^/jobhunter/offers$",
+      "notes": "Offer comparison page \u2014 requires authentication. Added for feature forseti-jobhunter-offer-tracker.",
+      "expect": {
+        "anon": "403",
+        "authenticated": "200",
+        "content_editor": "200",
+        "administrator": "200"
+      }
+    },
+    {
+      "id": "forseti-jobhunter-offer-tracker-offer-save",
+      "feature_id": "forseti-jobhunter-offer-tracker",
+      "path_regex": "^/jobhunter/offer/[0-9]+/save$",
+      "notes": "CSRF-protected AJAX POST to save/update offer details. Anon should be 403; authenticated POST with valid CSRF token only. Added for feature forseti-jobhunter-offer-tracker.",
+      "expect": {
+        "anon": "403",
+        "authenticated": "ignore",
+        "content_editor": "ignore",
+        "administrator": "ignore"
+      }
     }
   ]
 }
