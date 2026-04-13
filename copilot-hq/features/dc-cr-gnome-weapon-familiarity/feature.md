@@ -3,7 +3,8 @@
 - Work item id: dc-cr-gnome-weapon-familiarity
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: ready
+- Status: in_progress
+- Release: 20260412-dungeoncrawler-release-h
 - Priority: P2
 - PM owner: pm-dungeoncrawler
 - Dev owner: dev-dungeoncrawler

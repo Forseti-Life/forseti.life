@@ -3,7 +3,8 @@
 - Work item id: dc-cr-gnome-weapon-expertise
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: ready
+- Status: in_progress
+- Release: 20260412-dungeoncrawler-release-h
 - Priority: P3
 - PM owner: pm-dungeoncrawler
 - Dev owner: dev-dungeoncrawler
