@@ -15964,6 +15964,52 @@
       ]
     }
   ],
+  "dc-cr-burrow-elocutionist": [
+    {
+      "id": "dc-cr-burrow-elocutionist-feat-availability",
+      "label": "Burrow Elocutionist appears in Gnome ancestry feat list and is selectable at level 1",
+      "type": "e2e",
+      "feature_id": "dc-cr-burrow-elocutionist",
+      "command": "npx playwright test --grep \"dc-cr-burrow-elocutionist\" --project=character-creation",
+      "artifacts": ["playwright-report/dc-cr-burrow-elocutionist-feat-availability.html"],
+      "suite_context": "playwright/character-creation",
+      "status": "pending_implementation",
+      "required_for_release": true
+    },
+    {
+      "id": "dc-cr-burrow-elocutionist-burrowing-dialogue",
+      "label": "Character with feat can converse with burrowing creatures; dialogue available and understandable",
+      "type": "e2e",
+      "feature_id": "dc-cr-burrow-elocutionist",
+      "command": "npx playwright test --grep \"dc-cr-burrow-elocutionist-burrowing-dialogue\" --project=exploration",
+      "artifacts": ["playwright-report/dc-cr-burrow-elocutionist-burrowing-dialogue.html"],
+      "suite_context": "playwright/exploration",
+      "status": "pending_implementation",
+      "required_for_release": true
+    },
+    {
+      "id": "dc-cr-burrow-elocutionist-non-burrowing-unaffected",
+      "label": "Non-burrowing creatures do not gain special dialogue channel from feat; effect scoped to burrowing tag only",
+      "type": "e2e",
+      "feature_id": "dc-cr-burrow-elocutionist",
+      "command": "npx playwright test --grep \"dc-cr-burrow-elocutionist-non-burrowing\" --project=exploration",
+      "artifacts": ["playwright-report/dc-cr-burrow-elocutionist-non-burrowing-unaffected.html"],
+      "suite_context": "playwright/exploration",
+      "status": "pending_implementation",
+      "required_for_release": true
+    },
+    {
+      "id": "dc-cr-burrow-elocutionist-no-feat-blocked",
+      "label": "Character without Burrow Elocutionist feat cannot use burrow-language interaction",
+      "type": "e2e",
+      "feature_id": "dc-cr-burrow-elocutionist",
+      "command": "npx playwright test --grep \"dc-cr-burrow-elocutionist-no-feat\" --project=exploration",
+      "artifacts": ["playwright-report/dc-cr-burrow-elocutionist-no-feat-blocked.html"],
+      "suite_context": "playwright/exploration",
+      "status": "pending_implementation",
+      "required_for_release": true
+    }
+  ],
   "dc-cr-animal-accomplice": [
     {
       "id": "dc-cr-animal-accomplice-feat-availability",
