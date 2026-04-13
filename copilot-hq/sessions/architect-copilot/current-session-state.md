@@ -1,19 +1,34 @@
 # Architect Session State — architect-copilot
 
 > **Rolling file. Overwrite this at the end of each working session (and briefly before starting each task).**
-> Last updated: 2026-04-13 after Job Hunter CIO LangGraph flow monitoring slice
+> Last updated: 2026-04-13 after ready-batch ATS vetting
 
 ---
 
 ## Currently Working On
 
-Completed the first monitorable LangGraph slice for the Job Hunter CIO pipeline:
+Completed the first monitorable LangGraph slice plus an expanded CIO queue:
 - `copilot_agent_tracker` LangGraph Process Flow now exposes a live
   **Job-Hunter CIO Application Flow** section backed by production Job Hunter
   tables,
 - the workflow registry now lists that CIO flow as `in_progress`,
-- and the dashboard shows exactly where the live pipeline is moving versus
-  stalled (discovery/import/queue/app-prep live; tailoring/submission blocked).
+- the import path now falls back to the live legacy `source` column when
+  `external_source` is unavailable,
+- the current CIO application batch (`job_id` 14-19) now has tailored
+  resumes plus generated PDFs, ready for human authorization without final
+  submission,
+- and a second curated batch (`job_id` 20-25) is now imported, saved, and
+  staged through Step 2 methodology discovery with `not_started` application
+  rows.
+- The Workable Playwright bridge is now implemented well enough to fill a live
+  Workable application through the final-submit screen in dry-run mode, and CIO
+  job `16` has a persisted Step 5 dry-run proof on its application record.
+- CIO job `14` is now normalized to its direct SmartRecruiters posting rather
+  than remaining in an `unknown` apply-path state.
+- CIO job `14` has now also been validated against that direct SmartRecruiters
+  posting and marked as expired-at-source, while jobs `15`, `17`, `18`, and
+  `19` now carry explicit path-vetting evidence showing stale or low-confidence
+  aggregator endpoints rather than ambiguous manual drift.
 
 ---
 
@@ -27,6 +42,64 @@ Completed the first monitorable LangGraph slice for the Job Hunter CIO pipeline:
 ---
 
 ## What Was Last Worked On
+
+**2026-04-13 — Job Hunter CIO backlog expansion**
+
+- Imported six additional curated CIO-track staging rows into canonical job
+  requirements:
+  - `20` Solar Mason
+  - `21` Resideo
+  - `22` Wind Creek Hospitality
+  - `23` GM Financial
+  - `24` City of New York
+  - `25` Ferrilli
+- Bound those six jobs to Keith via `jobhunter_saved_jobs`.
+- Discovered and persisted safe Step-2 application-path data for those six jobs
+  without submitting anything externally:
+  - created `not_started` application rows
+  - resolved apply URLs
+  - classified ATS / methodology types
+- Fixed the coupled import bug where unknown companies were defaulting to
+  `company_id = 1` (`Lincoln Investment`) instead of creating/finding the
+  correct company record.
+- Reconciled company mappings for imported CIO jobs `15-25` from the staging
+  source-of-truth so the canonical rows now reference the right employers.
+- Expanded methodology mix across the staged+ready CIO queue (`14-25`):
+  - `custom` = 5
+  - `aggregator` = 5
+  - `workable` = 1
+  - `unknown` = 1
+- Updated live state after expansion:
+  - 12 canonical CIO jobs
+  - 12 saved jobs
+  - 12 application records
+  - 6 tailored CIO resumes / PDFs ready for authorization
+  - 6 newly imported CIO jobs held in `not_started` pre-submit posture
+  - 0 confirmed submissions
+
+**2026-04-13 — Job Hunter CIO queue advancement**
+
+- Fixed `SearchAggregatorService` import compatibility so live hosts that still
+  expose `jobhunter_job_requirements.source` can import staged jobs without
+  requiring `external_source` to exist first.
+- Added focused unit coverage for that source-field fallback in
+  `SearchAggregatorServiceTest`.
+- Queued and processed tailored-resume generation for the active CIO batch:
+  job ids `14`, `15`, `16`, `17`, `18`, `19`.
+- Generated tailored resume PDFs for all six current CIO applications so they
+  now sit in a true pre-submit / approval-ready state.
+- Current vetted methodology mix in the queued batch:
+  - `custom` = 3
+  - `workable` = 1
+  - `aggregator` = 1
+  - `unknown` = 1
+- Current live state after advancement:
+  - 6 canonical CIO jobs
+  - 6 saved jobs
+  - 6 application records
+  - 6 tailored CIO resumes
+  - 6 CIO PDFs generated
+  - 0 confirmed submissions (intentionally held pending Board authorization)
 
 **2026-04-13 — Job Hunter CIO LangGraph flow monitoring**
 
@@ -47,14 +120,12 @@ Completed the first monitorable LangGraph slice for the Job Hunter CIO pipeline:
 - Added a recent canonical CIO jobs table so operators can see the latest live
   jobs, submission posture, manual-review flags, and apply targets directly from
   the LangGraph page.
-- Confirmed the live bottleneck is now explicit in the dashboard:
+- Confirmed the live bottleneck was explicit in the dashboard before queue
+  advancement:
   - 162 CIO matches discovered
   - 6 canonical CIO jobs imported
   - 6 saved jobs / 6 application records created
   - 0 tailored CIO resumes and 0 confirmed submissions
-- Captured the still-open import drift directly in the dashboard warnings:
-  `jobhunter_job_requirements` still exposes `source`, while
-  `SearchAggregatorService` import logic expects `external_source`.
 
 **2026-04-13 — Job Hunter contact tracker realignment**
 
@@ -271,12 +342,13 @@ Completed the first monitorable LangGraph slice for the Job Hunter CIO pipeline:
 No blocking bug remains for the new CIO monitoring slice itself.
 
 Current Job Hunter open threads are now:
-- fix the `source` vs `external_source` import drift so more staged CIO
-  opportunities can become canonical job requirements,
-- generate tailored CIO resume artifacts / PDFs so the monitored flow can move
-  from application-prep into submission,
-- then decide whether to add a second automation slice that advances
-  manual-review applications toward confirmed submission.
+- import more of the 154 still-staged CIO matches into canonical job
+  requirements,
+- keep discovering/vetting submission methodologies as new CIO jobs are pulled
+  in,
+- then add the authorization gate / operator workflow that advances the current
+  ready batch from PDF-ready into confirmed submission only when Board approval
+  is explicit.
 
 Release-process follow-through is still a main parallel thread:
 - PM should correct stale feature status for
@@ -333,3 +405,71 @@ Operational follow-through is still useful:
 ---
 
 ## No Pipeline Health Snapshot (architect does not run hq-status.sh)
+**2026-04-13 — Job Hunter Workable dry-run validation**
+
+- Replaced `job_hunter/playwright/platforms/workable.js` with a real handler
+  instead of the old `phase2_pending` stub.
+- The new handler now:
+  - dismisses the Workable cookie banner,
+  - opens the live application form,
+  - fills Keith's core contact/profile fields,
+  - uploads the tailored resume PDF,
+  - answers required salary and sponsorship questions,
+  - optionally seeds the first education and experience entries from the
+    consolidated profile,
+  - and honors `dry_run` so the final submit click can be withheld safely.
+- Validated the handler against the live H&H CIO Workable posting for
+  canonical job `16` using Keith's prepared application payload.
+- Result:
+  - dry run completed successfully in ~42s,
+  - pre-submit screenshot captured at `/tmp/3_pre.png`,
+  - application `id=3` now has persisted `step5_cache` proof showing the
+    Workable flow was vetted through the final-submit boundary without
+    actually submitting.
+- Practical effect:
+  - CIO job `16` is now one explicit Board authorization away from final
+    submission on its direct ATS path.
+
+**2026-04-13 — CIO apply-path normalization for SmartRecruiters**
+
+- Resolved CIO job `14` (City of Philadelphia, Deputy CIO-Chief Enterprise
+  Officer) from an unresolved / blank apply path to the live SmartRecruiters
+  posting:
+  - `https://jobs.smartrecruiters.com/CityofPhiladelphia/744000107839863-deputy-cio-chief-enterprise-officer`
+- Updated application `id=1` so its `ats_platform` is now
+  `smartrecruiters` and its metadata records the direct ATS resolution steps.
+- Practical effect:
+  - the ready batch no longer has an `unknown` methodology placeholder for job
+    `14`,
+  - and future automation work can target SmartRecruiters directly instead of
+    restarting discovery from scratch.
+
+**2026-04-13 — Ready-batch ATS vetting closure**
+
+- Replaced `job_hunter/playwright/platforms/smartrecruiters.js` with a real
+  availability-check handler that:
+  - loads direct SmartRecruiters ATS pages,
+  - detects expired postings explicitly,
+  - and returns precise manual reasons (`job_expired`,
+    `apply_form_unavailable`) instead of a generic stub response.
+- Updated `ApplicationSubmitterQueueWorker` so those expired/unavailable direct
+  ATS outcomes are treated as routine manual cases rather than escalated
+  failures.
+- Validated CIO job `14` (City of Philadelphia) against the live direct ATS
+  page:
+  - result = `job_expired`
+  - screenshot = `/tmp/1_pre.png`
+  - persisted into `metadata.step5_cache`
+- Persisted additional ready-batch path-vetting evidence:
+  - job `15` (Discovery Life Sciences): Teal page now recorded as `410 gone`
+  - job `17` (Lincoln Investment): Career.com page now recorded as `403 blocked`
+  - job `18` (Trinseo): WhatJobs page now recorded as generic search results,
+    not a direct job application page
+  - job `19` (UnitedHealth Group): JobzMall page now recorded as an aggregator
+    listing with no direct ATS found
+- Practical effect:
+  - ready batch status is now explicit rather than ambiguous:
+    - `16` = final-click-only on Workable
+    - `14` = direct ATS expired
+    - `15/17/18/19` = stale or indirect aggregator paths needing new direct
+      employer discoveries before they can advance further

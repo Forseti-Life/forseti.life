@@ -1,7 +1,7 @@
 _core:
   default_config_hash: 5PumTxmfwC29yBNZeP96x13zVCajT9T_u6qUSijO2bk
-aws_access_key_id: AKIAZNT6OWPD7ZHRUQZ2
-aws_secret_access_key: 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
+aws_access_key_id: ''
+aws_secret_access_key: ''
 aws_region: us-east-1
 aws_model: 'anthropic.claude-3-5-sonnet-20240620-v1:0'
 system_prompt: |-

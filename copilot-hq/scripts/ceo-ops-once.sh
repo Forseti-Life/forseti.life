@@ -57,6 +57,12 @@ find sessions/ceo-copilot-2/inbox -mindepth 1 -maxdepth 1 -type d -printf '%f\n'
 section "Clean-audit Gate 2 backstop"
 python3 ./scripts/gate2-clean-audit-backstop.py --source "ceo-ops-once.sh" --queue-followup || true
 
+section "Project registry link audit"
+set +e
+python3 ./scripts/project-registry-link-audit.py
+project_link_rc=$?
+set -e
+
 section "Release health"
 set +e
 ./scripts/ceo-release-health.sh
@@ -92,6 +98,10 @@ if [ "$system_rc" -ne 0 ]; then
   echo "- System health failed: review orchestration/runtime warnings and dispatch fixes to the owning seat."
 fi
 
+if [ "${project_link_rc:-0}" -ne 0 ]; then
+  echo "- Project registry link audit failed: add missing PROJ linkage so active portfolio initiatives stay visible on the roadmap."
+fi
+
 # Prioritize agent-management: ensure tracker PM/Dev/QA have work if backlog exists.
 pm_backlog=$(find sessions/pm-forseti-agent-tracker/inbox -mindepth 1 -maxdepth 1 -type d ! -name "_archived" 2>/dev/null | wc -l | awk '{print $1}')
 if [ "${pm_backlog:-0}" -gt 0 ]; then
@@ -100,13 +110,13 @@ fi
 
 echo "- If any team is intentionally deprioritized, record that in the work item update (with reason + next review time)."
 
-if [ "$release_rc" -eq 0 ] && [ "$system_rc" -eq 0 ] && [ "${blocked_count:-0}" -eq 0 ] && [ "${matrix_noncompliant_count:-0}" -eq 0 ]; then
+if [ "$release_rc" -eq 0 ] && [ "$system_rc" -eq 0 ] && [ "${project_link_rc:-0}" -eq 0 ] && [ "${blocked_count:-0}" -eq 0 ] && [ "${matrix_noncompliant_count:-0}" -eq 0 ]; then
   echo "- No CEO action required from this scheduled check."
 fi
 
 section "Idle work seeding (DISABLED)"
 echo "(skipped)"
 
-if [ "$release_rc" -ne 0 ] || [ "$system_rc" -ne 0 ]; then
+if [ "$release_rc" -ne 0 ] || [ "$system_rc" -ne 0 ] || [ "${project_link_rc:-0}" -ne 0 ]; then
   exit 1
 fi

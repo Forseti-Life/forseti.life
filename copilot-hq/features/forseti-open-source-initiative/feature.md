@@ -1,10 +1,11 @@
 # Feature: forseti-open-source-initiative
 
-status: in_progress
-owner: pm-open-source
-executive_sponsor: ceo-copilot-2
-priority: high
-target_release: tbd
+- Status: in_progress
+- Owner: pm-open-source
+- Executive sponsor: ceo-copilot-2
+- Priority: high
+- Release: tbd
+- Project: PROJ-009
 
 ## Summary
 Publish the **Forseti Autonomous Drupal Development Platform** as open source under `github.com/Forseti-Life/`. This is a full-stack system: Drupal 10/11 multi-site + AWS Bedrock AI integration + LangGraph agent orchestration that autonomously manages the entire software development lifecycle (PM → BA → Dev → QA → Release). The platform itself is the product being open sourced — not just individual modules.
@@ -21,13 +22,12 @@ Publish the **Forseti Autonomous Drupal Development Platform** as open source un
 └─────────────────────┴───────────────────────────────────┘
 ```
 
-## GitHub Org: Forseti-Life ✅ DECIDED
+## GitHub Org: Forseti-Life ✅ VERIFIED
 - Board decision: publish under `github.com/Forseti-Life/`
-- **Board action remaining:** Create org at https://github.com/organizations/new
-  - Name: `Forseti-Life` | Plan: Free | Add `keithaumiller` as Owner
-  - (API creation not available on github.com — web UI only)
+- Verified 2026-04-13 via `gh api /orgs/Forseti-Life`
+- Current follow-through: confirm final repo ownership/admin model and use the live org for publication-candidate creation
 
-## Current Readiness Snapshot (2026-04-11)
+## Current Readiness Snapshot (2026-04-13)
 
 Already completed in `copilot-hq`:
 - Public release checklist exists: `PUBLIC_REPO_PREP.md`
@@ -37,19 +37,19 @@ Already completed in `copilot-hq`:
 - Dual-repo strategy doc exists: `runbooks/private-public-dual-repo.md`
 - Public mirror helper scripts exist: `scripts/setup-public-mirror.sh`, `scripts/export-public-mirror.sh`
 - Community/legal files exist: `LICENSE`, `CODE_OF_CONDUCT.md`, `CONTRIBUTING.md`, `SECURITY.md`
+- Publication scope is now explicit: use curated mirrors / extracted repos and keep `sessions/**`, `inbox/responses/**`, `tmp/**`, `prod-config/**`, `database-exports/**`, and key material private by default
 
 Still blocking first public launch:
-- GitHub org `Forseti-Life` has not yet been created by the Board
+- Previously tracked AWS credentials in `sites/forseti/config/sync/ai_conversation.settings.yml` and `sites/dungeoncrawler/config/sync/ai_conversation.settings.yml` must be rotated externally and scrubbed from history
 - Full git history scrub/redaction is still required before any public push
-- Final publication policy for `sessions/**` still needs an explicit decision
 - Public candidate branch or curated mirror has not yet been frozen
 - Baseline validation run for publication candidate still needs to be recorded
 
 ## Immediate Next Action
 
-1. Board creates the `Forseti-Life` GitHub organization.
-2. `dev-open-source` runs Phase 1 history scrub and sensitive-data audit.
-3. `pm-open-source` converts the existing prep docs into a publication candidate gate with pass/fail evidence for the first repo to publish.
+1. `dev-open-source` rotates exposed AWS credentials and removes them from current-tree config sync, replacing them with public-safe placeholders / env-driven configuration.
+2. `dev-open-source` runs Phase 1 history scrub and sensitive-data audit across the monorepo and intended extracted repos.
+3. `pm-open-source` converts the existing prep docs into a publication candidate gate with pass/fail evidence for the first repo to publish using the curated-mirror / extracted-repo model.
 
 ## Success Criteria
 1. `forseti-platform` overview repo published with architecture and quickstart
@@ -62,9 +62,9 @@ Still blocking first public launch:
 ## Work Breakdown
 
 ### Phase 0 — Governance & Org Setup
-- [ ] Board creates `Forseti-Life` GitHub org at https://github.com/organizations/new
-- [ ] Board adds `keithaumiller` as Owner of the org
-- [ ] Confirm org exists and token has access: `GH_TOKEN=$(cat /home/ubuntu/github.token) gh api /orgs/Forseti-Life`
+- [x] Board creates `Forseti-Life` GitHub org
+- [ ] Confirm final owners/admins for the org
+- [x] Confirm org exists and token has access: `GH_TOKEN=$(cat /home/ubuntu/github.token) gh api /orgs/Forseti-Life`
 
 ### Phase 1 — Pre-Publish Security Audit
 Owner: dev-open-source, reviewed by pm-open-source

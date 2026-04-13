@@ -9,7 +9,7 @@
 - PM owner: pm-dungeoncrawler
 - Dev owner: dev-dungeoncrawler
 - QA owner: qa-dungeoncrawler
-- Depends on: dc-cr-action-economy, dc-cr-encounter-rules, dc-cr-conditions
+- Depends on: dc-ui-hexmap-thin-client, dc-cr-action-economy, dc-cr-encounter-rules, dc-cr-conditions
 - Source: 2026-04-13 Dungeoncrawler UI architecture audit
 - Category: ui-system
 - Created: 2026-04-13

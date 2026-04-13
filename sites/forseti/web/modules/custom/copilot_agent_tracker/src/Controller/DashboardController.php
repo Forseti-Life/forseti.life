@@ -1346,7 +1346,7 @@ final class DashboardController extends ControllerBase {
       [':uid' => $uid] + $title_params
     );
     $tailored_pdf_ready = $this->fetchIntQueryValue(
-      'SELECT COUNT(*) FROM {jobhunter_tailored_resumes} tr INNER JOIN {jobhunter_job_requirements} jr ON jr.id = tr.job_id WHERE tr.uid = :uid AND tr.pdf_generated = 1 AND ' . $job_title_sql,
+      'SELECT COUNT(*) FROM {jobhunter_tailored_resumes} tr INNER JOIN {jobhunter_job_requirements} jr ON jr.id = tr.job_id WHERE tr.uid = :uid AND (COALESCE(tr.pdf_generated, 0) > 0 OR COALESCE(tr.pdf_path, \'\') <> \'\') AND ' . $job_title_sql,
       [':uid' => $uid] + $title_params
     );
     $submitted = $this->fetchIntQueryValue(
@@ -1431,7 +1431,7 @@ final class DashboardController extends ControllerBase {
 
     $warnings = [];
     if ($source_field === 'source') {
-      $warnings[] = 'jobhunter_job_requirements still exposes source; SearchAggregatorService import logic is using external_source.';
+      $warnings[] = 'jobhunter_job_requirements is still using the legacy source column; compatibility fallback is active until external_source is available on this host.';
     }
     if ($tailored_resumes === 0 && $applications > 0) {
       $warnings[] = 'Application prep exists, but no tailored CIO resume artifacts have been generated yet.';

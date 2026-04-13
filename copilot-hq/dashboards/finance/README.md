@@ -11,6 +11,7 @@ This directory is the book-of-record workspace for Forseti finance reporting.
 - Separate income, expenses, cash timing, and estimates clearly
 
 ## Core artifacts
+- `current-dashboard-YYYY-MM.md` - single current-status view for the active month
 - `daily-p-and-l-YYYY-MM.md` - daily flash P&L for the active month
 - `monthly-summary-YYYY-MM.md` - CEO-facing summary for a closed month
 - `expense-ledger-YYYY-MM.md` - expense detail grouped by category and vendor
@@ -45,6 +46,7 @@ This directory is the book-of-record workspace for Forseti finance reporting.
 If a recurring line item does not fit these cleanly, add a new category deliberately and use it consistently across periods.
 
 ## Working style
+- Start with `current-dashboard-YYYY-MM.md` when you need the fastest high-level view of accounting status for the active month.
 - Keep one active `daily-p-and-l-YYYY-MM.md` for the current month and update it on each daily reconciliation pass.
 - Start new month-end artifacts from the templates.
 - Keep closed-month files immutable except for documented corrections.

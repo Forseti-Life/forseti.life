@@ -25,6 +25,7 @@ That page is rendered from this file. CEO and architect seats must treat the roa
 | PROJ-006 | Community Safety | product line | forseti.life | public_platform_track | P2 | pm-forseti | 2026-04-12 |
 | PROJ-007 | Dungeoncrawler Product Track | product line | dungeoncrawler | separate_product_site | P1 | pm-dungeoncrawler | 2026-04-13 |
 | PROJ-008 | Forseti Accounting Pipeline | delivery project | forseti.life | in_progress | P1 | accountant-forseti | 2026-04-13 |
+| PROJ-009 | Forseti Open Source Initiative | delivery project | org-wide | in_progress | P1 | pm-open-source | 2026-04-13 |
 | PROJ-001 | LangGraph Console UI | delivery project | forseti.life | in_progress | P1 | pm-forseti | 2026-04-05 |
 | PROJ-002 | QA Suite Completeness | delivery project | forseti.life | in_progress | P2 | pm-forseti / qa-forseti | 2026-04-09 |
 | PROJ-003 | DungeonCrawler Roadmap Completion | delivery project | dungeoncrawler | in_progress | P1 | pm-dungeoncrawler | 2026-03-01 |
@@ -83,7 +84,7 @@ That page is rendered from this file. CEO and architect seats must treat the roa
 
 **Scope:** The dedicated Dungeoncrawler product line, separate site, and its long-lived PF2E implementation program. Long-term mission: implement all PF2E rulebook requirements currently tracked in `dc_requirements` MySQL table (2033 implemented, 674 in_progress, 698 pending as of 2026-04-13).
 
-**Current state (2026-04-13):** Active release `20260412-dungeoncrawler-release-i` (opened 2026-04-13T01:31). 14 features in_progress in dev/QA pipeline (gnome heritage sensate/umbral/chameleon, hazards, magic ch11, skills/feats/spells clusters, rest/downtime, snares, treasure, GMG hazards). 28 features at `ready` status awaiting activation: 10 gnome feat cluster (animal-accomplice, burrow-elocutionist, first-world-adept, first-world-magic, gnome-heritage-fey-touched/wellspring, gnome-obsession, gnome-weapon-expertise/familiarity/specialist), 4 goblin feats (ancestry, very-sneaky, weapon-familiarity, weapon-frenzy), halfling cluster (halfling-ancestry, heritage-gutsy, heritage-hillock, keen-eyes, vivacious-conduit), GMG features (gods-magic, npc-gallery, running-guide, subsystems), and a newly groomed 5-feature UI modernization cluster: `dc-ui-map-first-player-shell`, `dc-ui-encounter-party-rail`, `dc-ui-scene-layer-contract`, `dc-ui-token-readability`, `dc-ui-sidebar-drawers`.
+**Current state (2026-04-13):** Active release `20260412-dungeoncrawler-release-i` (opened 2026-04-13T01:31). 14 features in_progress in dev/QA pipeline (gnome heritage sensate/umbral/chameleon, hazards, magic ch11, skills/feats/spells clusters, rest/downtime, snares, treasure, GMG hazards). 29 features at `ready` status awaiting activation: 10 gnome feat cluster (animal-accomplice, burrow-elocutionist, first-world-adept, first-world-magic, gnome-heritage-fey-touched/wellspring, gnome-obsession, gnome-weapon-expertise/familiarity/specialist), 4 goblin feats (ancestry, very-sneaky, weapon-familiarity, weapon-frenzy), halfling cluster (halfling-ancestry, heritage-gutsy, heritage-hillock, keen-eyes, vivacious-conduit), GMG features (gods-magic, npc-gallery, running-guide, subsystems), and a newly groomed 6-feature UI modernization cluster: `dc-ui-hexmap-thin-client`, `dc-ui-map-first-player-shell`, `dc-ui-encounter-party-rail`, `dc-ui-scene-layer-contract`, `dc-ui-token-readability`, `dc-ui-sidebar-drawers`.
 
 **DB requirement gaps (pipeline coverage missing):**
 - `core/ch01` (Chapter 1: Introduction) — 237 pending, no feature stub; covers fundamental rules display and character creation flow
@@ -96,9 +97,9 @@ That page is rendered from this file. CEO and architect seats must treat the roa
 
 **Progress SLA:** 7 days without release-scoped work or a PM re-baseline/grooming update = breach
 
-**Next step:** Activate ready features for release-i (10-feature cap; activate gnome feat cluster first as it is the deepest groomed batch). In parallel, preserve the new UI modernization cluster as the next product-quality grooming tranche, with sequencing `dc-ui-map-first-player-shell` → `dc-ui-encounter-party-rail` + `dc-ui-scene-layer-contract` → `dc-ui-token-readability` → `dc-ui-sidebar-drawers`. After current release pressure eases, queue BA decomposition for `core/ch01` and `core/ch02` — these remain the largest unaddressed rules-content gaps (608 requirements combined).
+**Next step:** Activate ready features for release-i (10-feature cap; activate gnome feat cluster first as it is the deepest groomed batch). In parallel, preserve the UI modernization cluster as the next product-quality grooming tranche, now sequenced `dc-ui-hexmap-thin-client` → `dc-ui-map-first-player-shell` → `dc-ui-encounter-party-rail` + `dc-ui-scene-layer-contract` → `dc-ui-token-readability` → `dc-ui-sidebar-drawers`. Hard prereqs are now explicit in the backlog: `dc-ui-hexmap-thin-client` sits ahead of encounter/token work, `dc-ui-scene-layer-contract` sits ahead of token readability, and `dc-ui-map-first-player-shell` sits ahead of drawers. After current release pressure eases, queue BA decomposition for `core/ch01` and `core/ch02` — these remain the largest unaddressed rules-content gaps (608 requirements combined).
 
-**Queue status:** 14 features in dev/QA pipeline (release-e/f/g); 28 features `ready` for future activation, including 5 newly groomed UI modernization features; BA decomposition for core/ch01 and core/ch02 not yet dispatched (next major roadmap gap to close).
+**Queue status:** 14 features in dev/QA pipeline (release-e/f/g); 29 features `ready` for future activation, including 6 newly groomed UI modernization features. Execution policy for the UI tranche: dev works through in-scope architectural issues, but must keep PM updated whenever architecture changes feature scope, sequencing, dependencies, or release sizing. BA decomposition for core/ch01 and core/ch02 not yet dispatched (next major roadmap gap to close).
 
 ---
 
@@ -108,15 +109,31 @@ That page is rendered from this file. CEO and architect seats must treat the roa
 
 **Owner / primary developer:** `accountant-forseti`
 
-**Current state (2026-04-13):** Foundation documentation is in place and the active April 2026 finance workspace has now been opened under `dashboards/finance/`, including `daily-p-and-l-2026-04.md`, `income-ledger-2026-04.md`, `expense-ledger-2026-04.md`, and `vendor-reconciliation-2026-04.md`. The project is still blocked on live source hookup: no authoritative income, expense, or cash sources have been confirmed yet, so the new April artifacts are placeholders rather than actual reported figures.
+**Current state (2026-04-13):** Foundation documentation is in place and the active April 2026 finance workspace is open under `dashboards/finance/`, including `daily-p-and-l-2026-04.md`, `income-ledger-2026-04.md`, `expense-ledger-2026-04.md`, and `vendor-reconciliation-2026-04.md`. Expense sources are now confirmed as AWS Billing and GitHub billing, and live pull attempts have been made. GitHub org billing usage for `Forseti-Life` is now reachable and returned no April usage items. The project remains blocked because AWS denied `ce:GetCostAndUsage`, GitHub fixed-charge completeness is still unconfirmed, and income/cash sources are still not confirmed. A new backlog feature, `forseti-financial-health-home`, now captures the Drupal-side institutional finance home as the next productization layer for this project.
 
 **Last scoped release:** `20260412-forseti-release-h` (operations/process foundation defined; no product feature activation yet)
 
 **Progress SLA:** 7 days without a CEO/accountant update, source-system hookup decision, or April artifact population from live sources = breach
 
-**Next step:** CEO should confirm the authoritative live income, expense, and cash sources for Forseti so `accountant-forseti` can replace the April placeholders with source-backed entries and begin daily reconciliation.
+**Next step:** CEO should unblock AWS Cost Explorer access and confirm both the GitHub fixed-charge path and the income/cash sources so `accountant-forseti` can replace the April placeholders with source-backed entries and begin daily reconciliation. In parallel, `pm-forseti` can pick up `features/forseti-financial-health-home/feature.md` from the backlog to scope the internal Drupal financial-health home.
 
-**Queue status:** Project registered in roadmap; process docs and active April finance artifacts exist; blocker is the missing live source decision for income, expenses, and cash evidence.
+**Queue status:** Process docs and active April finance artifacts exist; AWS and GitHub expense sources are selected; GitHub usage report is live and empty for April; current blockers are AWS Cost Explorer permission, GitHub fixed-charge completeness, and missing income/cash source confirmation. Backlog now includes `forseti-financial-health-home` as the Drupal financial-health surface for PROJ-008.
+
+---
+
+## PROJ-009 — Forseti Open Source Initiative
+
+**Scope:** Publish the Forseti autonomous Drupal development platform as open source under the `Forseti-Life` GitHub organization, including the platform overview repo, selected reusable component repos, contributor docs, and the release/security process needed to publish safely.
+
+**Current state (2026-04-13):** The effort is active and the `Forseti-Life` GitHub org now exists, so the governance prerequisite is no longer the blocker. Readiness assets already exist: `PUBLIC_REPO_PREP.md`, publication-readiness runbooks, public positioning docs, mirror/export scripts, and community/legal files (`LICENSE`, `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `SECURITY.md`). Publication model is now explicit: use curated mirrors / extracted repos and keep live operational artifacts private. Current-tree AWS credentials have been stripped from the tracked Drupal config sync files; the remaining critical blocker is publication security in history and candidate packaging: credential rotation, full history scrub / sensitive-data audit, candidate freeze, and validation evidence still remain.
+
+**Last scoped release:** none yet (portfolio initiative; not release-scoped to a product release)
+
+**Progress SLA:** 7 days without a PM-open-source re-baseline, dev-open-source publication audit, or Board/org-setup step = breach
+
+**Next step:** `dev-open-source` rotates the previously exposed AWS credentials and completes current-tree secret removal, then runs Phase 1 history scrub + sensitive-data audit. In parallel, `pm-open-source` applies the now-decided curated-mirror / extracted-repo policy to the first publication candidate and converts the prep docs into a publication-candidate gate with pass/fail evidence for the first public repo.
+
+**Queue status:** Governance unblock is complete (`Forseti-Life` org verified) and publication scope is now explicit (curated mirror / extracted repos; operational artifacts remain private). Publication is still blocked on credential rotation + history rewrite/scrub, candidate freeze, packaging, and final validation evidence.
 
 ---
 

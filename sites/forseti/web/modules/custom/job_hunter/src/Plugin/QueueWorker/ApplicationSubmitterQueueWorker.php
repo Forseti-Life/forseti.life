@@ -99,7 +99,7 @@ class ApplicationSubmitterQueueWorker extends QueueWorkerBase implements Contain
       } else {
         // Submission requires manual action or failed — log and mark accordingly.
         $reason = $result['reason'] ?? 'unknown';
-        $is_manual = in_array($reason, ['no_direct_ats', 'no_credentials', 'phase2_pending', 'custom_page', 'manual_required']);
+        $is_manual = in_array($reason, ['no_direct_ats', 'no_credentials', 'phase2_pending', 'custom_page', 'manual_required', 'job_expired', 'apply_form_unavailable']);
 
         $logger->warning('⚠️ Application requires manual action for user @uid, job @job_id. Reason: @reason', [
           '@uid'    => $uid,

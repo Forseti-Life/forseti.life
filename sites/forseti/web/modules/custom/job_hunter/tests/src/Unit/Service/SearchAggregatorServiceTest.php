@@ -4,6 +4,7 @@ namespace Drupal\job_hunter\Tests\Service;
 
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Database\Connection;
+use Drupal\Core\Database\Schema;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\job_hunter\Service\AdzunaApiService;
@@ -95,6 +96,22 @@ class SearchAggregatorServiceTest extends UnitTestCase {
   }
 
   /**
+   * Tests import logic falls back to the legacy source field when needed.
+   */
+  public function testImportedJobSourceFieldFallsBackToLegacySource(): void {
+    $service = $this->createServiceWithSourceFieldAvailability(FALSE);
+    $this->assertSame('source', $service->exposeImportedJobSourceField());
+  }
+
+  /**
+   * Tests import logic uses external_source when the current schema has it.
+   */
+  public function testImportedJobSourceFieldUsesExternalSourceWhenAvailable(): void {
+    $service = $this->createServiceWithSourceFieldAvailability(TRUE);
+    $this->assertSame('external_source', $service->exposeImportedJobSourceField());
+  }
+
+  /**
    * Builds the service under test with a mocked preferences row.
    *
    * @param object|null $row
@@ -139,6 +156,50 @@ class SearchAggregatorServiceTest extends UnitTestCase {
       $this->createMock(UsaJobsApiService::class),
       $this->createMock(SerpApiService::class)
     );
+  }
+
+  /**
+   * Builds the service under test with a mocked job source field presence.
+   */
+  protected function createServiceWithSourceFieldAvailability(bool $has_external_source): TestableSearchAggregatorService {
+    $schema = $this->createMock(Schema::class);
+    $schema->method('fieldExists')
+      ->willReturnCallback(static function (string $table, string $field) use ($has_external_source): bool {
+        return $table === 'jobhunter_job_requirements' && $field === 'external_source' ? $has_external_source : FALSE;
+      });
+
+    $database = $this->createMock(Connection::class);
+    $database->method('schema')->willReturn($schema);
+
+    $current_user = $this->createMock(AccountProxyInterface::class);
+    $logger = $this->createMock(LoggerInterface::class);
+    $logger_factory = $this->createMock(LoggerChannelFactoryInterface::class);
+    $logger_factory->method('get')->with('job_hunter')->willReturn($logger);
+
+    return new TestableSearchAggregatorService(
+      $database,
+      $this->createMock(ConfigFactoryInterface::class),
+      $current_user,
+      $logger_factory,
+      $this->createMock(CloudTalentSolutionService::class),
+      $this->createMock(AdzunaApiService::class),
+      $this->createMock(UsaJobsApiService::class),
+      $this->createMock(SerpApiService::class)
+    );
+  }
+
+}
+
+/**
+ * Testable subclass exposing protected SearchAggregatorService helpers.
+ */
+class TestableSearchAggregatorService extends SearchAggregatorService {
+
+  /**
+   * Exposes imported source field resolution for unit tests.
+   */
+  public function exposeImportedJobSourceField(): string {
+    return $this->getImportedJobSourceField();
   }
 
 }

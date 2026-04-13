@@ -10,14 +10,14 @@
 - Extraction date(s): `2026-04-13`
 
 ## Daily flash summary
-The April finance workspace is now open, but today's flash P&L is blocked because Forseti's authoritative live income, expense, and cash sources have not been confirmed or linked yet. Until those sources are named, the month-to-date totals below are placeholders only and should not be treated as actual zero activity.
+The April finance workspace is open and expense sources are now selected: AWS Billing and GitHub billing. The GitHub org usage pull is now working and returned no April usage items for `Forseti-Life`, but AWS Cost Explorer remains blocked and Forseti's income and cash sources still have not been confirmed. Until those issues are cleared, the month-to-date totals below are placeholders only and should not be treated as actual zero activity.
 
 ## Today
 
 | Metric | Amount | Notes |
 | --- | ---: | --- |
 | Income today | 0.00 | Placeholder only; live income source not yet confirmed. |
-| Expenses today | 0.00 | Placeholder only; live expense sources not yet confirmed. |
+| Expenses today | 0.00 | GitHub usage-based expense is source-backed at 0.00; AWS expense still blocked. |
 | Net today | 0.00 | Not authoritative while source hookup is unresolved. |
 
 ## Month to date
@@ -25,7 +25,7 @@ The April finance workspace is now open, but today's flash P&L is blocked becaus
 | Metric | Amount | Notes |
 | --- | ---: | --- |
 | Income MTD | 0.00 | Placeholder only; do not read as actual zero. |
-| Expenses MTD | 0.00 | Placeholder only; do not read as actual zero. |
+| Expenses MTD | 0.00 | Includes source-backed GitHub usage expense of 0.00; excludes blocked AWS expense. |
 | Net MTD | 0.00 | Placeholder only; blocked pending live source hookup. |
 
 ## Cash and timing notes
@@ -33,11 +33,16 @@ The April finance workspace is now open, but today's flash P&L is blocked becaus
 
 ## Open issues affecting confidence
 - Authoritative income source not yet identified in HQ artifacts.
-- Authoritative expense sources for AWS, GitHub, and other vendors not yet linked in a live monthly workflow.
+- AWS Billing is confirmed as the expense source, but the current IAM user lacks `ce:GetCostAndUsage`.
+- GitHub org billing usage is accessible and returned no April usage items, but any fixed subscription or seat billing still needs confirmation.
 - Authoritative cash evidence source not yet identified for payout and payment reconciliation.
-- See `dashboards/finance/anomaly-log.md` for the blocking control-gap entry opened on 2026-04-13.
+- See `dashboards/finance/anomaly-log.md` and `runbooks/finance/expense-pulls.md` for the current expense pull blockers.
+
+## Source-backed expense signals now available
+- GitHub org usage expense for April 2026: `0.00` as of 2026-04-13.
+- AWS expense remains unavailable pending Cost Explorer access or invoice/export evidence.
 
 ## Recommendation
-- Action: CEO should confirm the authoritative April source set for income, expenses, and cash so the accountant can replace placeholders with actual entries.
-- Why: The finance operating model is ready, but numbers are not trustworthy until they trace back to named live systems.
-- ROI: 13
+- Action: Grant AWS Cost Explorer access and confirm both the income/cash sources and whether GitHub has any fixed subscription billing outside the org usage report.
+- Why: GitHub usage-based expense is now observable, but the daily P&L still cannot become authoritative while AWS expense and the remaining source questions are unresolved.
+- ROI: 21

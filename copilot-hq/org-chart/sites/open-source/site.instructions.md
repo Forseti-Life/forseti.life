@@ -92,28 +92,27 @@ All seats with `website_scope: ["open-source"]`.
 
 ## Code roots (source of truth for extraction)
 - Monorepo: `/home/ubuntu/forseti.life/`
-- Public GitHub org target: `github.com/keithaumiller/` (or new org TBD — see decision below)
+- Public GitHub org target: `github.com/Forseti-Life/`
 
-## GitHub Org: Forseti-Life ✅ DECIDED
+## GitHub Org: Forseti-Life ✅ VERIFIED
 
 **Decision:** Publish all Tier 1 repos under `github.com/Forseti-Life/`
 
 **Rationale:** Community org signals that this belongs to the community, not an individual. Aligns with mission. Consistent with how major open source Drupal distros and AI platform projects operate.
 
-**Board action required — one-time web UI step:**
-1. Go to: https://github.com/organizations/new
-2. Organization name: `Forseti-Life`
-3. Contact email: your email
-4. Plan: Free
-5. After creation, add `keithaumiller` as Owner
-6. Confirm org exists at: https://github.com/Forseti-Life
+**Verification (2026-04-13):**
+- Org exists at `https://github.com/Forseti-Life`
+- Publication work can proceed; org creation is no longer the blocker
 
-> Note: GitHub org creation is not available via API on github.com (GitHub Enterprise only). This is the only manual step in the entire process.
-
-After Board creates the org, dev-open-source can push all prepared repos with:
+After verification, dev-open-source can push prepared repos with:
 ```bash
 GH_TOKEN=$(cat /home/ubuntu/github.token) gh repo create Forseti-Life/<repo-name> --public --source=<local-path>
 ```
+
+## Publication model (decided)
+- Use curated mirrors / extracted repos for public release.
+- Do **not** flip the private operational monorepo public.
+- Keep `sessions/**`, `inbox/responses/**`, `tmp/**`, `prod-config/**`, `database-exports/**`, and key material private unless a specific public repo needs a sanitized example copied in intentionally.
 
 ## QA posture
 - Each public repo must pass its own CI before going public.

@@ -9,6 +9,8 @@ This checklist is for preparing `copilot-sessions-hq` to be published as a publi
 
 Recommended: curated mirror if there is any uncertainty about historical data leakage.
 
+**Decision (2026-04-13):** use curated mirrors / extracted repos for public release. Do **not** flip the live operational repo public.
+
 ## 1) Security + privacy scrub (required)
 ### 1.1 Current tree scan
 - Ensure no secrets, tokens, credentials, host-specific paths, private URLs, or personal data remain in tracked files.
@@ -59,7 +61,15 @@ Decide what to do with `sessions/**` in a public repo:
 - Option B: keep only curated examples and redact the rest.
 - Option C: exclude most session artifacts and publish framework/runbooks/scripts only.
 
-Document this policy in README.
+**Decision (2026-04-13):** choose **Option C**. Keep `sessions/**`, `inbox/responses/**`, and `tmp/**` private by default. If examples are ever published, copy sanitized examples intentionally rather than exporting live operational history.
+
+Also keep these private or sanitize them before any public candidate is created:
+- `prod-config/**`
+- `database-exports/**`
+- `sites/*/keys/**`
+- credential-bearing runtime config files
+
+Document this policy in README / QUICKSTART for each public repo.
 
 ## 6) CI and baseline checks
 Before publishing, run a baseline validation set:
@@ -101,7 +111,7 @@ Staged cleanup totals at snapshot time:
 
 Remaining pre-public actions:
 - Human review of docs/scripts referencing token workflows (e.g., GitHub token sourcing).
-- Decide whether to keep any curated subset of `sessions/**` besides `sessions/README.md`.
+- Apply the decided private-only policy for `sessions/**` except where a sanitized curated example is intentionally copied into public docs/examples.
 - Run full-history scrub and rewrite/truncate history before changing visibility.
 
 ## Quick command ideas (manual runbook)

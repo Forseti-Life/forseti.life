@@ -270,6 +270,7 @@
             <th>{{ 'Job'|t }}</th>
             <th>{{ 'Company'|t }}</th>
             <th>{{ 'Platform'|t }}</th>
+            <th>{{ 'Submission Website'|t }}</th>
             <th>{{ 'Action'|t }}</th>
           </tr>
         </thead>
@@ -318,10 +319,22 @@
               <td>{{ company_name }}</td>
               <td>{{ job.display_platform|default('—') }}</td>
               <td>
+                {% if job.submission_apply_url %}
+                  <div class="operation-item">
+                    <a href="{{ job.submission_apply_url }}" target="_blank" rel="noopener">
+                      {{ job.submission_apply_option|default(job.submission_ats_platform|default('Open submission site')) }}
+                    </a>
+                  </div>
+                  <div class="operation-item">{{ job.submission_apply_url }}</div>
+                {% else %}
+                  —
+                {% endif %}
+              </td>
+              <td>
                 <form method="post"
                       action="{{ path('job_hunter.job_apply', {'job_id': job.id}, {'query': {'return_to': return_url}}) }}"
                       onsubmit="return confirm('{{ 'Submit this application now?'|t }}')">
-                  <input type="hidden" name="csrf_token" value="{{ job.apply_csrf_token }}" />
+                  <input type="hidden" name="csrf_token" value="{{ job.submit_csrf_token }}" />
                   <button type="submit" class="button button--small button--primary">{{ 'Submit Application'|t }}</button>
                 </form>
               </td>
@@ -425,7 +438,7 @@
                 {% if st in ['failed','manual_required'] %}
                   <div class="operation-item">
                     <form method="post" action="{{ path('job_hunter.job_apply', {'job_id': application.job_id}, {'query': {'return_to': return_url}}) }}" onsubmit="return confirm('{{ 'Retry this application now?'|t }}')">
-                      <input type="hidden" name="csrf_token" value="{{ application.apply_csrf_token }}" />
+                      <input type="hidden" name="csrf_token" value="{{ application.submit_csrf_token }}" />
                       <button type="submit" class="button button--small button--secondary">{{ 'Retry Automation'|t }}</button>
                     </form>
                   </div>
@@ -451,10 +464,19 @@
         </div>
         <div class="operation-item">{{ 'PDF must be generated for this requisition before submission.'|t }}</div>
       {% elseif selected_workflow_status == 'application_pending' %}
+        {% if selected_job.submission_apply_url %}
+          <div class="operation-item">
+            <strong>{{ 'Submission Website:'|t }}</strong>
+            <a href="{{ selected_job.submission_apply_url }}" target="_blank" rel="noopener">
+              {{ selected_job.submission_apply_option|default(selected_job.submission_ats_platform|default('Open submission site')) }}
+            </a>
+          </div>
+          <div class="operation-item">{{ selected_job.submission_apply_url }}</div>
+        {% endif %}
         <form method="post"
               action="{{ path('job_hunter.job_apply', {'job_id': selected_job.id}, {'query': {'return_to': return_url}}) }}"
               onsubmit="return confirm('{{ 'Submit this application now?'|t }}')">
-          <input type="hidden" name="csrf_token" value="{{ selected_job.apply_csrf_token }}" />
+          <input type="hidden" name="csrf_token" value="{{ selected_job.submit_csrf_token }}" />
           <button type="submit" class="button button--small button--primary">{{ 'Submit this Application'|t }}</button>
         </form>
       {% else %}

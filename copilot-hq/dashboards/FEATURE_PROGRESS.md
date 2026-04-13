@@ -1,6 +1,6 @@
 # Feature Progress
 
-Generated: 2026-04-13T15:59:24Z
+Generated: 2026-04-13T17:55:46Z
 
 | Work item | Website | Module | Status | Priority | PM | Dev | QA |
 |-----------|---------|--------|--------|----------|----|-----|----|
@@ -150,6 +150,7 @@ Generated: 2026-04-13T15:59:24Z
 | dc-home-suggestion-notice | dungeoncrawler.life | dungeoncrawler_content (home page / front page block) | done | P2 |  |  |  |
 | dc-som-secrets-of-magic | dungeoncrawler | dungeoncrawler_content | deferred | P3 |  |  |  |
 | dc-ui-encounter-party-rail | dungeoncrawler | dungeoncrawler_content | ready | P1 |  |  |  |
+| dc-ui-hexmap-thin-client | dungeoncrawler | dungeoncrawler_content | ready | P1 |  |  |  |
 | dc-ui-map-first-player-shell | dungeoncrawler | dungeoncrawler_content | ready | P1 |  |  |  |
 | dc-ui-scene-layer-contract | dungeoncrawler | dungeoncrawler_content | ready | P1 |  |  |  |
 | dc-ui-sidebar-drawers | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
@@ -168,6 +169,7 @@ Generated: 2026-04-13T15:59:24Z
 | forseti-copilot-agent-tracker | forseti.life | copilot_agent_tracker | shipped | P1 |  |  |  |
 | forseti-csrf-fix | forseti.life | job_hunter | shipped | P0 |  |  |  |
 | forseti-csrf-post-routes-fix | forseti.life | job_hunter | shipped | P1 (security) |  |  |  |
+| forseti-financial-health-home | forseti.life | institutional_finance (new) | ready |  |  |  |  |
 | forseti-jobhunter-application-analytics | forseti.life | job_hunter | in_progress | medium |  |  |  |
 | forseti-jobhunter-application-controller-db-extraction | forseti.life | job_hunter | shipped | P2 |  |  |  |
 | forseti-jobhunter-application-controller-split | forseti.life | job_hunter | shipped |  |  |  |  |
@@ -213,7 +215,7 @@ Generated: 2026-04-13T15:59:24Z
 | forseti-langgraph-console-run-session | forseti.life | copilot_agent_tracker | ready | P1 |  |  |  |
 | forseti-langgraph-console-test-sections | forseti.life | copilot_agent_tracker | done | high |  |  |  |
 | forseti-langgraph-ui | forseti.life | copilot_agent_tracker | shipped | P1 |  |  |  |
-| forseti-open-source-initiative |  |  |  |  |  |  |  |
+| forseti-open-source-initiative |  |  | in_progress | high |  |  |  |
 | forseti-qa-e2e-auth-pipeline | forseti.life | qa_suites | shipped | low |  |  |  |
 | forseti-qa-suite-fill-agent-tracker | forseti.life | qa_suites | shipped | medium |  |  |  |
 | forseti-qa-suite-fill-controller-extraction | forseti.life | qa_suites | shipped | medium |  |  |  |

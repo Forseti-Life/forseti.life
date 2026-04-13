@@ -777,7 +777,11 @@ class ApplicationSubmissionController extends ControllerBase {
     foreach ($all_jobs as $job) {
       $job->workflow_status = $this->deriveWorkflowStatus($job, $has_profile);
       $job->display_platform = !empty($job->via) ? $job->via : (!empty($job->source_platform) ? $job->source_platform : '');
-      $job->apply_csrf_token = \Drupal::csrfToken()->get('jobhunter/my-jobs/' . (int) $job->id . '/applied');
+      $job->submit_csrf_token = \Drupal::csrfToken()->get('jobhunter/jobs/' . (int) $job->id . '/apply');
+      $target_context = $this->loadSubmissionTargetContext($uid, $job);
+      $job->submission_apply_url = $target_context['apply_url'];
+      $job->submission_ats_platform = $target_context['ats_platform'];
+      $job->submission_apply_option = $target_context['selected_apply_option'];
       $job->notes_load_url = \Drupal\Core\Url::fromRoute('job_hunter.application_notes_load', ['job_id' => (int) $job->id])->toString();
       $job->notes_save_url = \Drupal\Core\Url::fromRoute('job_hunter.application_notes_save', ['job_id' => (int) $job->id])->toString();
       $job->notes_csrf_token = \Drupal::csrfToken()->get('jobhunter/jobs/' . (int) $job->id . '/notes/save');
@@ -961,6 +965,57 @@ class ApplicationSubmissionController extends ControllerBase {
   }
 
   /**
+   * Resolve the best-known submission destination for a saved job.
+   *
+   * @param int $uid
+   *   Current user ID.
+   * @param object $job
+   *   Job row from getSavedJobs().
+   *
+   * @return array{apply_url:string,ats_platform:string,selected_apply_option:string}
+   *   Submission target context for display and verification.
+   */
+  private function loadSubmissionTargetContext(int $uid, object $job): array {
+    $application = $this->repository->findLatestApplicationByJobAndUser($uid, (int) $job->id, [
+      'apply_url',
+      'ats_platform',
+      'selected_apply_option',
+    ]);
+
+    $apply_url = trim((string) ($application['apply_url'] ?? ''));
+    $ats_platform = trim((string) ($application['ats_platform'] ?? ''));
+    $selected_apply_option = trim((string) ($application['selected_apply_option'] ?? ''));
+
+    if ($apply_url !== '') {
+      return [
+        'apply_url' => $apply_url,
+        'ats_platform' => $ats_platform,
+        'selected_apply_option' => $selected_apply_option,
+      ];
+    }
+
+    try {
+      $resolved = \Drupal::service('job_hunter.apply_url_resolver')->resolve([
+        'apply_options' => (string) ($job->apply_options ?? ''),
+        'job_url' => (string) ($job->job_url ?? ''),
+      ]);
+
+      return [
+        'apply_url' => trim((string) ($resolved['url'] ?? '')),
+        'ats_platform' => trim((string) ($resolved['ats_platform'] ?? '')),
+        'selected_apply_option' => trim((string) ($resolved['selected_option'] ?? '')),
+      ];
+    }
+    catch (\Throwable $e) {
+      return [
+        'apply_url' => '',
+        'ats_platform' => '',
+        'selected_apply_option' => '',
+      ];
+    }
+  }
+
+  /**
    * Archive a saved job (sets status to 'archived').
    */
   public function myJobsArchive(): array {
@@ -1125,7 +1180,11 @@ class ApplicationSubmissionController extends ControllerBase {
       if ($selected_job) {
         $selected_job->workflow_status = $this->deriveWorkflowStatus($selected_job, $has_profile);
         $selected_job->display_platform = !empty($selected_job->via) ? $selected_job->via : (!empty($selected_job->source_platform) ? $selected_job->source_platform : '');
-        $selected_job->apply_csrf_token = \Drupal::csrfToken()->get('jobhunter/my-jobs/' . (int) $selected_job->id . '/applied');
+        $selected_job->submit_csrf_token = \Drupal::csrfToken()->get('jobhunter/jobs/' . (int) $selected_job->id . '/apply');
+        $target_context = $this->loadSubmissionTargetContext($uid, $selected_job);
+        $selected_job->submission_apply_url = $target_context['apply_url'];
+        $selected_job->submission_ats_platform = $target_context['ats_platform'];
+        $selected_job->submission_apply_option = $target_context['selected_apply_option'];
         $selected_workflow_status = (string) $selected_job->workflow_status;
 
         if ($selected_job->workflow_status === 'application_pending') {
@@ -1180,7 +1239,7 @@ class ApplicationSubmissionController extends ControllerBase {
         'last_attempt_outcome' => (string) ($last_attempt['outcome'] ?? ''),
         'last_attempt_error' => (string) ($last_attempt['error_message'] ?? ''),
         'last_attempt_at' => (string) ($last_attempt['attempted_at'] ?? ''),
-        'apply_csrf_token' => \Drupal::csrfToken()->get('jobhunter/my-jobs/' . (int) $application_job_id . '/applied'),
+        'submit_csrf_token' => \Drupal::csrfToken()->get('jobhunter/jobs/' . (int) $application_job_id . '/apply'),
       ];
     }
 
@@ -1213,7 +1272,7 @@ class ApplicationSubmissionController extends ControllerBase {
           'last_attempt_error' => '',
           'last_attempt_at' => '',
           'account_readiness_at' => '',
-          'apply_csrf_token' => \Drupal::csrfToken()->get('jobhunter/my-jobs/' . (int) $selected_job->id . '/applied'),
+          'submit_csrf_token' => \Drupal::csrfToken()->get('jobhunter/jobs/' . (int) $selected_job->id . '/apply'),
         ];
       }
       catch (\Exception $e) {

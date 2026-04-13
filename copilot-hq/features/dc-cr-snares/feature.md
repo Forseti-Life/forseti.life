@@ -1,10 +1,12 @@
 # Feature Brief: Snares (Core + APG)
 
+- Work item id: dc-cr-snares
 - Website: dungeoncrawler
 - Type: new
 - Module: dungeoncrawler_content
 - Priority: P2
 - Status: in_progress
+- Project: PROJ-007
 - Release: 
 20260412-dungeoncrawler-release-e
 

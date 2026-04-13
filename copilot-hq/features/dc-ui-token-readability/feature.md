@@ -9,7 +9,7 @@
 - PM owner: pm-dungeoncrawler
 - Dev owner: dev-dungeoncrawler
 - QA owner: qa-dungeoncrawler
-- Depends on: dc-ui-scene-layer-contract, dc-cr-conditions, dc-cr-encounter-rules
+- Depends on: dc-ui-hexmap-thin-client, dc-ui-scene-layer-contract, dc-cr-conditions, dc-cr-encounter-rules
 - Source: 2026-04-13 Dungeoncrawler UI architecture audit
 - Category: ui-system
 - Created: 2026-04-13

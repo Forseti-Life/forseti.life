@@ -10,6 +10,7 @@ This workflow keeps operational data safe while publishing a clean, public mirro
 ## Repositories
 - Private source (this repo): `copilot-sessions-hq`
 - Public mirror (recommended separate repo): e.g. `copilot-sessions-hq-public`
+- Program rule: use curated mirrors / extracted repos for public release; do **not** flip the private operational repo public.
 
 ## Included vs excluded in public mirror
 Public export policy is controlled by:
@@ -21,6 +22,12 @@ By default, public export excludes:
 - `inbox/responses/**`
 - virtualenvs (`**/.venv/`)
 - runtime pid/state files and local heavy model artifacts
+
+Forseti platform publication candidates should also keep these private unless intentionally sanitized for a specific public repo:
+- `prod-config/**`
+- `database-exports/**`
+- `sites/*/keys/**`
+- credential-bearing runtime config files
 
 ## One-time setup
 1) Create mirror repo location (local path).
@@ -65,6 +72,7 @@ git bundle create backups/hq-$(date +%Y%m%d-%H%M%S).bundle --all
 - Review mirror diff in full.
 - Search for obvious sensitive strings.
 - Verify no runtime/session artifacts were exported.
+- Verify no credential-bearing config sync or private key material was exported.
 - Verify docs do not expose private infrastructure details unintentionally.
 
 ## Notes

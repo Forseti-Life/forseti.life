@@ -4,7 +4,7 @@
 
 **Maintained by:** `ba-dungeoncrawler` — update this file at the end of every scan chunk (same commit as new feature stubs). Include `Category` and `Depends on` for every new row (`Depends on` may be blank if no dependencies).
 
-**Last updated:** 2026-04-13 | Active release: `20260412-dungeoncrawler-release-i` | Runtime next release pointer: `20260412-dungeoncrawler-release-b` | Total: 83
+**Last updated:** 2026-04-13 | Active release: `20260412-dungeoncrawler-release-i` | Runtime next release pointer: `20260412-dungeoncrawler-release-b` | Total: 84
 
 **Release sync note:** Treat this index as backlog/duplicate-detection inventory. Live per-feature status and release progress come from each feature's `feature.md`, `dashboards/FEATURE_PROGRESS.md`, and the runtime pointers under `tmp/release-cycle-active/`.
 
@@ -92,11 +92,12 @@
 | dc-cr-vengeful-hatred | game-mechanic | dc-cr-dwarf-ancestry, dc-cr-ancestry-feat-schedule | Vengeful Hatred: +1 circumstance bonus on attacks vs. chosen ancestry or creature type |
 | dc-cr-vivacious-conduit | game-mechanic | dc-cr-gnome-ancestry, dc-cr-ancestry-feat-schedule | Gnome Feat 9: 10-min rest heals HP = Con mod × (level/2); stacks with Treat Wounds |
 | dc-cr-xp-rewards | rule-system | dc-cr-character-leveling | XP tracking with 1,000 XP per level threshold; triggers character-leveling flow |
-| dc-ui-encounter-party-rail | ui-system | dc-cr-action-economy, dc-cr-encounter-rules, dc-cr-conditions | Rich initiative/party rail with turn, team, HP, and condition visibility |
+| dc-ui-encounter-party-rail | ui-system | dc-ui-hexmap-thin-client, dc-cr-action-economy, dc-cr-encounter-rules, dc-cr-conditions | Rich initiative/party rail with turn, team, HP, and condition visibility |
+| dc-ui-hexmap-thin-client | ui-system | dc-cr-encounter-rules, dc-cr-exploration-mode, dc-cr-session-structure, dc-cr-npc-system | Refactor hexmap into a display/chat client while gameplay authority lives on backend services |
 | dc-ui-map-first-player-shell | ui-system | dc-cr-exploration-mode, dc-cr-encounter-rules | Board-first hexmap shell that gates debug surfaces and centers active play |
 | dc-ui-scene-layer-contract | ui-system | dc-cr-tactical-grid, dc-cr-exploration-mode, dc-cr-encounter-rules | Formal Pixi render-layer stack for background, props, tokens, overlays, FX, and HUD |
 | dc-ui-sidebar-drawers | ui-system | dc-ui-map-first-player-shell | Drawer-based character/inventory/quest/inspector shell with docked support panels |
-| dc-ui-token-readability | ui-system | dc-ui-scene-layer-contract, dc-cr-conditions, dc-cr-encounter-rules | On-map team rings, HP bars, condition badges, and interaction markers for tokens |
+| dc-ui-token-readability | ui-system | dc-ui-hexmap-thin-client, dc-ui-scene-layer-contract, dc-cr-conditions, dc-cr-encounter-rules | On-map team rings, HP bars, condition badges, and interaction markers for tokens |
 
 ## New features (roadmap audit 2026-04-07)
 

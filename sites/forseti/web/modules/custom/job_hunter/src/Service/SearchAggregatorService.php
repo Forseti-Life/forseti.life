@@ -1153,6 +1153,46 @@ class SearchAggregatorService {
   }
 
   /**
+   * Returns the live source field name for imported job requirements.
+   */
+  protected function getImportedJobSourceField(): string {
+    return $this->database->schema()->fieldExists('jobhunter_job_requirements', 'external_source')
+      ? 'external_source'
+      : 'source';
+  }
+
+  /**
+   * Resolves or creates the canonical company row for an imported job.
+   */
+  protected function resolveImportedCompanyId(?string $company_name): ?int {
+    $company_name = trim((string) $company_name);
+    if ($company_name === '') {
+      return NULL;
+    }
+
+    $company_name_field = $this->database->schema()->fieldExists('jobhunter_companies', 'name') ? 'name' : 'company_name';
+    $existing_company = $this->database->select('jobhunter_companies', 'c')
+      ->fields('c', ['id'])
+      ->condition($company_name_field, $company_name)
+      ->execute()
+      ->fetchField();
+
+    if ($existing_company) {
+      return (int) $existing_company;
+    }
+
+    $now = time();
+    return (int) $this->database->insert('jobhunter_companies')
+      ->fields([
+        $company_name_field => substr($company_name, 0, 255),
+        'created' => $now,
+        'updated' => $now,
+        'active' => 1,
+      ])
+      ->execute();
+  }
+
+  /**
    * Import recent unimported external job results immediately.
    * 
    * This makes external API results immediately searchable in Forseti DB
@@ -1175,6 +1215,7 @@ class SearchAggregatorService {
       $imported = 0;
       $skipped = 0;
       $queued = 0;
+      $source_field = $this->getImportedJobSourceField();
       $parsing_queue = \Drupal::queue('job_hunter_job_posting_parsing');
 
       foreach ($results as $result) {
@@ -1212,19 +1253,7 @@ class SearchAggregatorService {
         }
 
         // Get or create company
-        $company_id = 1;
-        if (!empty($job_data['company'])) {
-          $company_name_field = $this->database->schema()->fieldExists('jobhunter_companies', 'name') ? 'name' : 'company_name';
-          $existing_company = $this->database->select('jobhunter_companies', 'c')
-            ->fields('c', ['id'])
-            ->condition($company_name_field, $job_data['company'])
-            ->execute()
-            ->fetchField();
-
-          if ($existing_company) {
-            $company_id = $existing_company;
-          }
-        }
+        $company_id = $this->resolveImportedCompanyId($job_data['company'] ?? NULL);
 
         $job_title = substr((string) ($job_data['title'] ?? 'Unknown'), 0, 255);
         $location = substr((string) ($job_data['location'] ?? 'Unknown'), 0, 255);
@@ -1248,7 +1277,7 @@ class SearchAggregatorService {
             'status' => 'active',
             'created' => time(),
             'updated' => time(),
-            'external_source' => $external_source,
+            $source_field => $external_source,
             'source_platform' => $secondary_source,
             'external_job_id' => $external_job_id,
             'job_hash' => $job_hash,
@@ -1337,6 +1366,8 @@ class SearchAggregatorService {
    *   Existing job ID when found.
    */
   protected function findExistingImportedJobId(?string $job_hash, string $external_job_id, string $job_url, string $external_source): ?int {
+    $source_field = $this->getImportedJobSourceField();
+
     if (!empty($job_hash) && $this->database->schema()->fieldExists('jobhunter_job_requirements', 'job_hash')) {
       $existing = $this->database->select('jobhunter_job_requirements', 'j')
         ->fields('j', ['id'])
@@ -1351,7 +1382,7 @@ class SearchAggregatorService {
     if ($external_job_id !== '') {
       $existing = $this->database->select('jobhunter_job_requirements', 'j')
         ->fields('j', ['id'])
-        ->condition('external_source', $external_source)
+        ->condition($source_field, $external_source)
         ->condition('external_job_id', $external_job_id)
         ->execute()
         ->fetchField();
@@ -1363,7 +1394,7 @@ class SearchAggregatorService {
     if ($job_url !== '') {
       $existing = $this->database->select('jobhunter_job_requirements', 'j')
         ->fields('j', ['id'])
-        ->condition('external_source', $external_source)
+        ->condition($source_field, $external_source)
         ->condition('job_url', $job_url)
         ->execute()
         ->fetchField();
