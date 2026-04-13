@@ -949,6 +949,12 @@ class FeatEffectManager {
           $effects['applied_feats'][] = $feat_id;
           break;
 
+        case 'gnome-weapon-specialist':
+          $effects['derived_adjustments']['flags']['gnome_weapon_specialist_crit_spec'] = TRUE;
+          $effects['notes'][] = 'Gnome Weapon Specialist: critical hits with gnome weapons (glaive, kukri, gnome-trait weapons) apply critical specialization effects.';
+          $effects['applied_feats'][] = $feat_id;
+          break;
+
         case 'gnome-weapon-expertise':
           $cascade_rank = $this->getClassWeaponExpertiseRank($character_data['class_features'] ?? []);
           if ($cascade_rank !== '') {
