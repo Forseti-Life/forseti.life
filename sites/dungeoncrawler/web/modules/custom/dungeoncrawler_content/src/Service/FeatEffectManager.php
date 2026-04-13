@@ -505,13 +505,61 @@ class FeatEffectManager {
           break;
 
         case 'gnome-obsession':
-          $effects['available_actions']['at_will'][] = [
-            'id' => 'gnome-obsession',
-            'name' => 'Gnome Obsession',
-            'action_cost' => 1,
-            'description' => 'Pursue and apply your obsession for focused exploration advantages.',
-          ];
-          $effects['notes'][] = 'Gnome Obsession: at-will obsession utility action.';
+          // AC: Gnome Obsession — choose one Lore skill; trained at selection.
+          // Level 2 → expert; level 7 → master; level 15 → legendary.
+          // Background Lore (if present) mirrors the same milestone upgrades.
+          $obs_lore = $this->resolveFeatSelectionValue($character_data, 'gnome-obsession', ['selected_lore', 'lore', 'lore_skill']);
+
+          if ($obs_lore === NULL) {
+            $this->addSelectionGrant(
+              $effects,
+              'gnome-obsession',
+              'gnome_obsession_lore_choice',
+              1,
+              'Choose one Lore skill subcategory for Gnome Obsession (e.g., "Forest Lore", "Circus Lore").'
+            );
+          }
+          else {
+            // Ensure the chosen Lore is granted as trained.
+            $this->addLoreTraining($effects, $obs_lore);
+          }
+
+          // Determine milestone rank based on current character level.
+          $obs_lore_rank = 'trained';
+          if ($level >= 15) {
+            $obs_lore_rank = 'legendary';
+          }
+          elseif ($level >= 7) {
+            $obs_lore_rank = 'master';
+          }
+          elseif ($level >= 2) {
+            $obs_lore_rank = 'expert';
+          }
+
+          // Record the obsession lore with its current proficiency rank.
+          $effects['derived_adjustments']['flags']['gnome_obsession_lore'] = $obs_lore ?? 'pending_selection';
+          $effects['derived_adjustments']['flags']['gnome_obsession_lore_rank'] = $obs_lore_rank;
+
+          // Background Lore also mirrors the same milestones (AC: edge case — if no background Lore, only chosen Lore upgrades).
+          $background_lore = (string) (
+            $character_data['background']['lore'] ??
+            $character_data['background_lore'] ??
+            ''
+          );
+          if ($background_lore !== '') {
+            $this->addLoreTraining($effects, $background_lore);
+            $effects['derived_adjustments']['flags']['gnome_obsession_background_lore'] = $background_lore;
+            $effects['derived_adjustments']['flags']['gnome_obsession_background_lore_rank'] = $obs_lore_rank;
+          }
+
+          // Notes surface both lore name and effective rank for QA.
+          $obs_note = $obs_lore
+            ? ('Gnome Obsession: ' . $obs_lore . ' → ' . $obs_lore_rank . ' (level ' . $level . ' milestone).')
+            : 'Gnome Obsession: Lore selection pending.';
+          if ($background_lore !== '') {
+            $obs_note .= ' Background Lore (' . $background_lore . ') also upgraded to ' . $obs_lore_rank . '.';
+          }
+          $effects['notes'][] = $obs_note;
           $effects['applied_feats'][] = $feat_id;
           break;
 
