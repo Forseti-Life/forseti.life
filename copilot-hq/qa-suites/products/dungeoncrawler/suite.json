@@ -15964,6 +15964,74 @@
       ]
     }
   ],
+  "dc-cr-animal-accomplice": [
+    {
+      "id": "dc-cr-animal-accomplice-feat-availability",
+      "label": "Animal Accomplice appears in Gnome feat list and is selectable at feat 1",
+      "type": "e2e",
+      "feature_id": "dc-cr-animal-accomplice",
+      "command": "npx playwright test --grep \"dc-cr-animal-accomplice\" --project=character-creation",
+      "artifacts": ["playwright-report/dc-cr-animal-accomplice-feat-availability.html"],
+      "suite_context": "playwright/character-creation",
+      "status": "pending_implementation",
+      "required_for_release": true
+    },
+    {
+      "id": "dc-cr-animal-accomplice-familiar-granted",
+      "label": "Selecting Animal Accomplice feat creates a familiar record using standard familiar rules",
+      "type": "e2e",
+      "feature_id": "dc-cr-animal-accomplice",
+      "command": "npx playwright test --grep \"dc-cr-animal-accomplice-familiar-granted\" --project=character-creation",
+      "artifacts": ["playwright-report/dc-cr-animal-accomplice-familiar-granted.html"],
+      "suite_context": "playwright/character-creation",
+      "status": "pending_implementation",
+      "required_for_release": true
+    },
+    {
+      "id": "dc-cr-animal-accomplice-familiar-type-catalog",
+      "label": "Familiar type chosen from valid catalog; invalid type rejected by selection flow",
+      "type": "e2e",
+      "feature_id": "dc-cr-animal-accomplice",
+      "command": "npx playwright test --grep \"dc-cr-animal-accomplice-familiar-type\" --project=familiar",
+      "artifacts": ["playwright-report/dc-cr-animal-accomplice-familiar-type-catalog.html"],
+      "suite_context": "playwright/familiar",
+      "status": "pending_implementation",
+      "required_for_release": true
+    },
+    {
+      "id": "dc-cr-animal-accomplice-non-spellcaster",
+      "label": "Non-spellcasting gnome character receives familiar from Animal Accomplice feat",
+      "type": "e2e",
+      "feature_id": "dc-cr-animal-accomplice",
+      "command": "npx playwright test --grep \"dc-cr-animal-accomplice-non-spellcaster\" --project=character-creation",
+      "artifacts": ["playwright-report/dc-cr-animal-accomplice-non-spellcaster.html"],
+      "suite_context": "playwright/character-creation",
+      "status": "pending_implementation",
+      "required_for_release": true
+    },
+    {
+      "id": "dc-cr-animal-accomplice-no-feat-no-familiar",
+      "label": "Gnome without Animal Accomplice feat does not gain familiar via this feat path",
+      "type": "e2e",
+      "feature_id": "dc-cr-animal-accomplice",
+      "command": "npx playwright test --grep \"dc-cr-animal-accomplice-no-feat\" --project=character-creation",
+      "artifacts": ["playwright-report/dc-cr-animal-accomplice-no-feat-no-familiar.html"],
+      "suite_context": "playwright/character-creation",
+      "status": "pending_implementation",
+      "required_for_release": true
+    },
+    {
+      "id": "dc-cr-animal-accomplice-invalid-familiar-rejected",
+      "label": "Server rejects familiar assignment with invalid/unknown familiar type",
+      "type": "e2e",
+      "feature_id": "dc-cr-animal-accomplice",
+      "command": "npx playwright test --grep \"dc-cr-animal-accomplice-invalid-familiar\" --project=familiar",
+      "artifacts": ["playwright-report/dc-cr-animal-accomplice-invalid-familiar-rejected.html"],
+      "suite_context": "playwright/familiar",
+      "status": "pending_implementation",
+      "required_for_release": true
+    }
+  ],
   "_schema_notes": [
     "Suite entries MAY include an optional 'feature_id' field when the suite was added for a specific groomed feature.",
     "feature_id links back to features/<feature_id>/ \u2014 the living requirements document.",
