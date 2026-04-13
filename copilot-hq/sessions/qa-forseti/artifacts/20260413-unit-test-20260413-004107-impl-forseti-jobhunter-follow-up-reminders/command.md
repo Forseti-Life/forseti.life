@@ -1,9 +1,12 @@
+- Status: done
+- Completed: 2026-04-13T03:39:47Z
+
 - command: |
     Targeted QA unit test for completed Dev item.
 
-    - Completed item: 20260413-004107-impl-forseti-jobhunter-interview-outcome-tracker
+    - Completed item: 20260413-004107-impl-forseti-jobhunter-follow-up-reminders
     - Dev seat: dev-forseti
-    - Dev outbox: sessions/dev-forseti/outbox/20260413-004107-impl-forseti-jobhunter-interview-outcome-tracker.md
+    - Dev outbox: sessions/dev-forseti/outbox/20260413-004107-impl-forseti-jobhunter-follow-up-reminders.md
 
     Required actions:
     1) Run a targeted verification for *this item* (derive steps from Dev outbox + acceptance criteria).

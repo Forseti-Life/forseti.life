@@ -338,3 +338,4 @@ This file is a running list of targeted regression checks derived from completed
 - [ ] 20260413-003958-impl-dc-cr-burrow-elocutionist — targeted regression check (see dev outbox: sessions/dev-dungeoncrawler/outbox/20260413-003958-impl-dc-cr-burrow-elocutionist.md)
 - [ ] 20260413-003958-impl-dc-cr-first-world-adept — targeted regression check (see dev outbox: sessions/dev-dungeoncrawler/outbox/20260413-003958-impl-dc-cr-first-world-adept.md)
 - [ ] 20260413-003958-impl-dc-cr-first-world-magic — targeted regression check (see dev outbox: sessions/dev-dungeoncrawler/outbox/20260413-003958-impl-dc-cr-first-world-magic.md)
+- [ ] 20260413-003958-impl-dc-cr-gnome-heritage-fey-touched — targeted regression check (see dev outbox: sessions/dev-dungeoncrawler/outbox/20260413-003958-impl-dc-cr-gnome-heritage-fey-touched.md)
