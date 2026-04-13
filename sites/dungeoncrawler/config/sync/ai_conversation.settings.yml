@@ -1,5 +1,11 @@
 _core:
   default_config_hash: 5PumTxmfwC29yBNZeP96x13zVCajT9T_u6qUSijO2bk
+# Public-safe default: keep synced AWS credentials blank.
+# Example placeholders:
+#   aws_access_key_id: YOUR_AWS_ACCESS_KEY_ID
+#   aws_secret_access_key: YOUR_AWS_SECRET_ACCESS_KEY
+# Set real values in active Drupal config (admin UI / DB-backed config) or via
+# environment variables AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY.
 aws_access_key_id: ''
 aws_secret_access_key: ''
 aws_region: us-east-1

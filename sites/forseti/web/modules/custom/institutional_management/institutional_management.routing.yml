@@ -14,6 +14,14 @@ institutional_management.dashboard:
   requirements:
     _permission: 'access institutional dashboard'
 
+institutional_management.financial_health:
+  path: '/internal/financial-health'
+  defaults:
+    _controller: '\Drupal\institutional_management\Controller\InstitutionalController::financialHealth'
+    _title: 'Financial Health'
+  requirements:
+    _permission: 'view institution reports'
+
 institutional_management.my_groups:
   path: '/my-groups'
   defaults:

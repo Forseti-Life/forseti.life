@@ -1,34 +1,39 @@
 # Architect Session State — architect-copilot
 
 > **Rolling file. Overwrite this at the end of each working session (and briefly before starting each task).**
-> Last updated: 2026-04-13 after ready-batch ATS vetting
+> Last updated: 2026-04-13 during Financial Health next-phase architecture
 
 ---
 
 ## Currently Working On
 
-Completed the first monitorable LangGraph slice plus an expanded CIO queue:
-- `copilot_agent_tracker` LangGraph Process Flow now exposes a live
-  **Job-Hunter CIO Application Flow** section backed by production Job Hunter
-  tables,
-- the workflow registry now lists that CIO flow as `in_progress`,
-- the import path now falls back to the live legacy `source` column when
-  `external_source` is unavailable,
-- the current CIO application batch (`job_id` 14-19) now has tailored
-  resumes plus generated PDFs, ready for human authorization without final
-  submission,
-- and a second curated batch (`job_id` 20-25) is now imported, saved, and
-  staged through Step 2 methodology discovery with `not_started` application
-  rows.
-- The Workable Playwright bridge is now implemented well enough to fill a live
-  Workable application through the final-submit screen in dry-run mode, and CIO
-  job `16` has a persisted Step 5 dry-run proof on its application record.
-- CIO job `14` is now normalized to its direct SmartRecruiters posting rather
-  than remaining in an `unknown` apply-path state.
-- CIO job `14` has now also been validated against that direct SmartRecruiters
-  posting and marked as expired-at-source, while jobs `15`, `17`, `18`, and
-  `19` now carry explicit path-vetting evidence showing stale or low-confidence
-  aggregator endpoints rather than ambiguous manual drift.
+Completed the next execution slice for the CEO-managed integration audit
+project:
+- added the integrations hub at `dashboards/integrations/README.md`
+- added the first machine-readable registry at
+  `dashboards/integrations/integration-registry.yaml`
+- advanced `PROJ-010` from planning into runtime-audit-ready state
+
+### Current state
+
+- `dashboards/PROJECTS.md` now tracks `PROJ-010` under CEO ownership and points
+  to the runtime truth audit as the next step.
+- The inventory covers the verified external integration surfaces currently
+  visible from repo evidence.
+- The work now has the actual Phase 1 operator artifacts in place.
+
+### Key decisions
+
+1. Keep the project CEO-managed because it crosses products and storage planes.
+2. Centralize the operator experience before trying to centralize every storage
+   mechanism.
+3. Treat runtime-secret location as the next truth-establishing pass.
+
+### Next actions
+
+1. Run the runtime truth audit
+2. Prioritize remediation, starting with the tracked SerpAPI secret
+3. Add per-integration runbooks once runtime truth is confirmed
 
 ---
 

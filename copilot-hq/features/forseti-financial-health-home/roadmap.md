@@ -5,6 +5,7 @@
 - Project: `PROJ-008`
 - Owner: `pm-forseti`
 - Source owner: `accountant-forseti`
+- Architecture: `features/forseti-financial-health-home/03-next-phase-architecture.md`
 
 ## Objective
 
@@ -44,7 +45,7 @@ Forseti's accounting workspace now exists and has a single current dashboard in 
 
 ### Suggested activation window
 - After current release-h in-progress work clears enough slots
-- After PM confirms whether the new module should be standalone (`institutional_finance`) or hosted in an existing internal operations/admin module
+- After PM confirms whether the MVP should remain in `institutional_management` or later split into a dedicated finance module
 - Prefer activation once AWS billing access and income/cash source decisions are at least partially resolved, so the page does not launch with only blocked values
 
 ## Delivery phases
@@ -70,7 +71,6 @@ Forseti's accounting workspace now exists and has a single current dashboard in 
 ## Dependencies
 
 ### Hard dependencies
-- PM module/ownership decision for `institutional_finance (new)` or equivalent home
 - Internal access model decision
 - Source-of-truth contract between Drupal rendering and accountant artifacts
 
@@ -88,4 +88,4 @@ Forseti's accounting workspace now exists and has a single current dashboard in 
 
 ## Recommended next action
 
-`pm-forseti` should keep this feature in the `ready` queue, confirm module ownership, and schedule it in the next Forseti release cycle that has room for non-Job-Hunter productization work.
+`pm-forseti` should track the MVP implementation now underway in `institutional_management`, keep the feature in the active queue, and decide later whether a dedicated finance module is justified after structured data feeds mature.

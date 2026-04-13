@@ -26,6 +26,8 @@ That page is rendered from this file. CEO and architect seats must treat the roa
 | PROJ-007 | Dungeoncrawler Product Track | product line | dungeoncrawler | separate_product_site | P1 | pm-dungeoncrawler | 2026-04-13 |
 | PROJ-008 | Forseti Accounting Pipeline | delivery project | forseti.life | in_progress | P1 | accountant-forseti | 2026-04-13 |
 | PROJ-009 | Forseti Open Source Initiative | delivery project | org-wide | in_progress | P1 | pm-open-source | 2026-04-13 |
+| PROJ-010 | External Integration Configuration Audit | delivery project | org-wide | in_progress | P1 | ceo-copilot-2 | 2026-04-13 |
+| PROJ-011 | Forseti Community Resource Mesh | delivery project | forseti.life | in_progress | P1 | pm-forseti | 2026-04-13 |
 | PROJ-001 | LangGraph Console UI | delivery project | forseti.life | in_progress | P1 | pm-forseti | 2026-04-05 |
 | PROJ-002 | QA Suite Completeness | delivery project | forseti.life | in_progress | P2 | pm-forseti / qa-forseti | 2026-04-09 |
 | PROJ-003 | DungeonCrawler Roadmap Completion | delivery project | dungeoncrawler | in_progress | P1 | pm-dungeoncrawler | 2026-03-01 |
@@ -134,6 +136,38 @@ That page is rendered from this file. CEO and architect seats must treat the roa
 **Next step:** `dev-open-source` rotates the previously exposed AWS credentials and completes current-tree secret removal, then runs Phase 1 history scrub + sensitive-data audit. In parallel, `pm-open-source` applies the now-decided curated-mirror / extracted-repo policy to the first publication candidate and converts the prep docs into a publication-candidate gate with pass/fail evidence for the first public repo.
 
 **Queue status:** Governance unblock is complete (`Forseti-Life` org verified) and publication scope is now explicit (curated mirror / extracted repos; operational artifacts remain private). Publication is still blocked on credential rotation + history rewrite/scrub, candidate freeze, packaging, and final validation evidence.
+
+---
+
+## PROJ-010 — External Integration Configuration Audit
+
+**Scope:** Inventory and audit how the org stores, resolves, and governs configuration for external systems used by the server stack and adjacent production operations, including APIs, cloud providers, billing systems, deploy workflows, token files, and Drupal-backed integration settings.
+
+**Current state (2026-04-13):** Project opened and first-pass inventory completed at `dashboards/integrations/server-integration-inventory-2026-04.md`. The Phase 1 operator entrypoint now exists at `dashboards/integrations/README.md`, and the first machine-readable registry now exists at `dashboards/integrations/integration-registry.yaml`. The centralization plan remains at `dashboards/integrations/centralized-integration-management-plan.md`. The current baseline confirms multiple integration storage planes already in use: Drupal sync config, active Drupal config, environment variables, local token files, and GitHub Actions secrets. Verified integration surfaces include AWS Bedrock, AWS Cost Explorer billing, GitHub billing APIs, GitHub deploy/push workflows, SerpAPI, Google Cloud Talent Solution config, Adzuna, USAJobs, Google Tag, Google social auth, reCAPTCHA, USFA NERIS, and Hugging Face model downloads. The first critical finding remains a tracked `serpapi_api_key` in `sites/forseti/config/sync/job_hunter.settings.yml`.
+
+**Last scoped release:** none yet (org-wide audit project)
+
+**Progress SLA:** 7 days without a CEO update, inventory expansion, or remediation dispatch = breach
+
+**Next step:** CEO should treat Phase 1 as established and dispatch the runtime truth audit next: confirm live active Drupal config, server env vars, token-file consumers, and workflow secret usage for every registry entry, then prioritize remediation starting with the tracked SerpAPI secret.
+
+**Queue status:** Inventory, centralization plan, operator hub, and first registry are now in place. Project is ready for CEO-managed runtime truth audit and remediation prioritization.
+
+---
+
+## PROJ-011 — Forseti Community Resource Mesh
+
+**Scope:** Build a community resource mesh between independent Forseti installations so any installation can identify peer installations, establish trust, exchange signed messages, advertise needs and capabilities, and initially share **agent expertise** and **institutional-management services**. Compute and storage remain future-state extensions.
+
+**Current state (2026-04-13):** Project created and initial delivery feature stub opened as `forseti-installation-cluster-communication`. No implementation is active yet. The intended MVP is autonomous-peer communication plus resource-mesh primitives, not full multi-primary data replication: each installation should have a stable installation identity, a peer registry, a trust/auth model, signed request handling, capability/need advertisement, cluster message logging, and an admin view for peer status. Initial value focus is shared agent capacity and institutional-management workflows; compute and storage are intentionally deferred.
+
+**Last scoped release:** none yet (new strategic delivery project)
+
+**Progress SLA:** 7 days without PM/BA decomposition, MVP scope refinement, or release-slot planning = breach
+
+**Next step:** `pm-forseti` and `ba-forseti` should groom `forseti-installation-cluster-communication` into an MVP covering installation identity, trust bootstrap, message envelope, health/status exchange, admin UX, capability advertisement, need expression, and the first practical cross-installation resource-sharing use case centered on shared agents and institutional services.
+
+**Queue status:** Project registered under the CEO portfolio and paired with an initial ready feature stub. Awaiting BA elaboration and release-slot selection.
 
 ---
 

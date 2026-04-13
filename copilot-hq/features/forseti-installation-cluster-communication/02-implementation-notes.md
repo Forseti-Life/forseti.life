@@ -1,0 +1,396 @@
+# Implementation Notes — forseti-installation-cluster-communication
+
+## Recommended MVP shape
+
+1. Define installation identity and trust material.
+2. Add peer registry and admin configuration UI.
+3. Implement signed health/handshake endpoint.
+4. Implement signed cluster message endpoint and outbound sender.
+5. Add operator-facing status/log surface.
+
+## Recommended technical foundation
+
+Build this as a **Drupal-native federated node layer over HTTPS**, not as shared database clustering.
+
+Recommended stack:
+
+- Per-installation identity plus **Ed25519** signing keys
+- Standard **HTTPS REST** endpoints between installations
+- **HTTP message signatures** or signed JSON/JWS envelopes for request authentication
+- Explicit **inbox/outbox** message flow with retries, idempotency, nonce replay protection, and operator-visible delivery results
+- Peer registry, message log, capability metadata, and nonce tracking stored in site-owned Drupal tables/entities
+
+This gives Forseti installations a secure communication substrate that works over normal web infrastructure and does not require a shared broker or shared database.
+
+Longer term, treat this substrate as the base for a **community resource mesh**: independent Forseti installations should be able to advertise and consume shared commodity resources and community services without collapsing into one shared database or one centralized control plane.
+
+Initial MVP focus:
+
+- shared **agent expertise**
+- shared **institutional-management services**
+
+Future-state extensions:
+
+- shared **compute**
+- shared **storage**
+
+## Suggested technical boundaries
+
+- New module: `sites/forseti/web/modules/custom/forseti_cluster/`
+- Keep private trust/signing material out of synced config.
+- Use Drupal HTTP client for outbound peer calls.
+- Use explicit signed JSON envelopes rather than implicit shared-state assumptions.
+- Store peer definitions, peer status, and message log metadata in site-owned entities/tables.
+
+## First use cases worth supporting
+
+- Peer reachability / health exchange
+- Cross-installation announcement broadcast
+- Cross-installation suggestion relay
+- Agent and institutional-service advertisement
+
+## Conceptual model
+
+Assume **autonomous peers** as the default relationship model: each Forseti installation owns its own users, data, policy, and uptime, but can selectively trust and communicate with other installations.
+
+Under that model, split cross-installation behavior into three lanes:
+
+### 1. Federated
+
+Use federation for things that must be understood across installation boundaries but should still remain locally governed.
+
+Examples:
+
+- installation identity and trust bootstrap
+- peer discovery / addressing
+- capability advertisement
+- resource and service advertisement
+- cross-installation commands or requests
+- portable references to shared objects, users, or workflows
+
+Federated objects should be addressable, signed, versioned, and resilient to temporary disconnects.
+
+### 2. Replicated
+
+Replicate only data that truly benefits from local copies on more than one installation.
+
+Examples:
+
+- announcement feeds
+- selected knowledge artifacts
+- approved public or community-facing content
+- narrow operational caches that improve resilience
+- optional replicated service catalogs or public capability indexes
+
+Replication should be selective, explicit, and policy-driven. Do **not** begin with full database or table replication.
+
+### 3. "How you doing" traffic
+
+Keep lightweight operational traffic separate from both federation and replication.
+
+Examples:
+
+- heartbeat / liveness
+- peer health and version
+- queue depth / backlog status
+- last successful handshake
+- maintenance mode / degraded-state notices
+
+This traffic is mostly for operator visibility and routing decisions, not business-data synchronization.
+
+## Resource-sharing model
+
+The desired ecosystem is not just peer messaging. It should let Forseti installations contribute to and draw from a shared pool of community capacity.
+
+Resource categories to design for:
+
+- **Agent expertise:** specialized seats or role capabilities that another installation can request or subscribe to
+- **Institutional services:** accounting, governance workflows, release oversight, QA capacity, knowledge curation
+- **Individual contribution:** local members or operators contributing skill, review, data, or service capacity back into the mesh
+- **Compute (future state):** background jobs, AI workloads, batch processing, scheduled automation
+- **Storage (future state):** artifact hosting, mirror storage, backups, knowledge distribution, durable shared outputs
+
+That suggests three additional concepts on top of transport:
+
+1. **Capability advertisement** — what this installation can offer
+2. **Need expression** — what this installation wants help with
+3. **Placement / routing policy** — when a request should stay local versus be offered to trusted peers
+
+## Default guidance for MVP scope
+
+For the first implementation:
+
+- **Federate:** identity, trust, handshake, capabilities, needs, and signed message delivery
+- **Replicate:** nothing by default beyond optional low-risk announcements or relay-safe public artifacts
+- **Exchange "how you doing" traffic:** yes, from day one, because it supports operator trust and peer status visibility
+
+## Relevant precedents
+
+There is no single existing system that exactly matches the Forseti Community Resource Mesh, but there are strong precedents for the individual patterns:
+
+- **ActivityPub:** precedent for inbox/outbox federation, actor identity, and signed server-to-server delivery. Good model for how independent nodes exchange versioned activities without shared storage.
+- **Matrix:** precedent for federated server-to-server communication with durable message/state exchange between autonomous homeservers. Good model for practical federation and peer trust between independent deployments.
+- **XMPP:** precedent for decentralized routing, presence, capability exchange, and extensible inter-server communication. Good model for how independent operators can participate in a common network while keeping local control.
+- **Email/SMTP-style store-and-forward:** precedent for resilient asynchronous delivery between independently run servers.
+- **Distributed volunteer/resource systems:** precedent for contributing local capacity to a wider network, even though Forseti's initial mesh is service- and expertise-oriented rather than compute-oriented.
+
+The takeaway is that Forseti should borrow:
+
+- **inbox/outbox and actor-like identity** from ActivityPub
+- **practical federated server-to-server patterns** from Matrix
+- **capability/presence thinking** from XMPP
+- **asynchronous retry-tolerant delivery** from email/store-and-forward systems
+
+## Initial architecture sequence
+
+Architect this in layers:
+
+### Layer 1 — Trust and identity
+
+- installation identity
+- installation keys
+- trusted peer registry
+- handshake and peer verification
+
+### Layer 2 — Transport
+
+- signed outbound message sender
+- signed inbound message endpoint
+- nonce/replay protection
+- delivery log, retry queue, failure handling
+
+### Layer 3 — Capability and need exchange
+
+- capability advertisement
+- need expression
+- peer status and service availability
+- operator-visible admin UI
+
+### Layer 4 — Resource coordination
+
+- request/offer matching for agent expertise
+- request/offer matching for institutional services
+- approval/routing policy for cross-installation work
+- audit trail of offered, accepted, rejected, and completed exchanges
+
+### Layer 5 — Future-state extensions
+
+- shared compute workloads
+- shared storage/mirroring
+- selective replicated catalogs or knowledge distribution
+
+This keeps the mesh grounded: identity and trust first, then transport, then service coordination, then later infrastructure pooling.
+
+## Required data structures
+
+Define the MVP around a small set of explicit objects:
+
+- **Installation**
+  - installation_id
+  - base_url
+  - display_name
+  - public_key
+  - trust_status
+  - capabilities_version
+  - last_handshake_at
+
+- **PeerCapability**
+  - capability_id
+  - installation_id
+  - category (`agent_expertise`, `institutional_service`)
+  - name
+  - description
+  - availability_status
+  - routing_constraints
+
+- **PeerNeed**
+  - need_id
+  - installation_id
+  - category
+  - requested_service
+  - priority
+  - policy_constraints
+  - requested_until
+
+- **ClusterMessage**
+  - message_id
+  - message_type
+  - sender_installation_id
+  - recipient_installation_id
+  - created_at
+  - nonce
+  - signature
+  - payload
+  - delivery_status
+
+- **ServiceRequest**
+  - request_id
+  - requesting_installation_id
+  - target_installation_id
+  - request_type
+  - requested_capability
+  - requested_outcome
+  - status (`requested`, `accepted`, `deferred`, `rejected`, `completed`, `cancelled`)
+  - audit_ref
+
+## Integration points
+
+Keep the endpoint set narrow and explicit:
+
+- `GET /.well-known/forseti-node`
+  - optional discovery metadata
+  - installation id, display name, canonical cluster endpoint URLs
+
+- `POST /forseti-cluster/handshake`
+  - peer verification and trust bootstrap
+
+- `GET /forseti-cluster/status`
+  - health/version/capability summary for trusted peers
+
+- `POST /forseti-cluster/messages`
+  - signed inbound message endpoint
+
+- `GET /forseti-cluster/capabilities`
+  - machine-readable offered capabilities
+
+- `GET /forseti-cluster/needs`
+  - machine-readable requested needs
+
+- `POST /forseti-cluster/service-request`
+  - submit a request for agent or institutional service capacity
+
+- `POST /forseti-cluster/service-request/{id}/decision`
+  - accept / reject / defer / complete transitions
+
+Additional internal integration points should include:
+
+- Drupal admin UI for peer management and trust review
+- Drupal queue workers for outbound delivery and retries
+- Drupal logging / audit views for operator visibility
+- existing agent-management and institutional workflow surfaces as future service consumers/providers
+- optional `/.well-known` metadata for discovery without requiring a central registry
+
+## Core processes
+
+The mesh should be built around a small number of repeatable processes:
+
+1. **Peer onboarding**
+   - register peer
+   - verify installation identity
+   - complete trust handshake
+   - enable or disable peer
+
+2. **Capability publishing**
+   - advertise available agent and institutional services
+   - update availability and policy constraints
+   - expose current service catalog to trusted peers
+
+3. **Need publishing**
+   - publish unmet needs
+   - express priority and policy constraints
+   - allow trusted peers to evaluate whether they can help
+
+4. **Service request lifecycle**
+   - submit request
+   - validate trust and policy
+   - accept / reject / defer
+   - report status until complete
+
+5. **Operational heartbeat**
+   - exchange health, version, and backlog signals
+   - detect degraded peers
+   - suppress routing to unavailable peers
+
+## Trust bootstrap flow
+
+Suggested first-pass trust flow:
+
+1. Admin registers peer base URL and expected installation metadata.
+2. Local installation generates a handshake request signed with its installation key.
+3. Remote installation validates the request and responds with signed peer identity and capability summary.
+4. Local installation stores peer public key and marks trust state as `verified` or `pending_review`.
+5. Only verified peers can exchange service requests and capability/need updates.
+
+This keeps the bootstrap explicit and admin-visible rather than fully automatic.
+
+## Message types for MVP
+
+Start with a small set of message types:
+
+- `peer.handshake.request`
+- `peer.handshake.response`
+- `peer.status.update`
+- `capability.advertise`
+- `need.advertise`
+- `service.request`
+- `service.response`
+- `service.status`
+- `announcement.broadcast`
+
+Each message type should have:
+
+- schema version
+- sender installation id
+- recipient or addressing scope
+- timestamp
+- nonce
+- signature
+- payload
+
+## Routing and policy model
+
+The routing question is not only "can this peer handle it?" but also "should this request leave the local installation?"
+
+Policy checks should include:
+
+- trust level of the target peer
+- service category allowed for export
+- required human approval
+- current peer availability
+- whether the request is local-only by policy
+
+For the MVP, prefer:
+
+- local-first evaluation
+- explicit operator override
+- no automatic forwarding chains between multiple peers
+
+## MVP implementation phases
+
+### Phase A — mesh identity and trust
+- installation identity entity/config
+- peer registry
+- handshake flow
+- operator trust UI
+
+### Phase B — transport and audit
+- message envelope schema
+- signed sender/receiver
+- replay protection
+- message log and retry worker
+
+### Phase C — capability and need exchange
+- capability catalog
+- need catalog
+- peer status page
+- status polling/push update flow
+
+### Phase D — service coordination
+- service request object
+- decision workflow
+- audit/status timeline
+- first real shared-agent and institutional-service flows
+
+## Architectural cautions
+
+- Do not jump straight to database replication.
+- Do not store trust secrets in public config sync.
+- Separate cluster transport concerns from higher-level business workflows.
+- Plan for clock skew, nonce storage, retries, and operator-visible failure states.
+
+## Alternatives considered
+
+- **Shared database / DB clustering:** rejected as the foundation because it creates the wrong trust boundary and couples independent installations too tightly.
+- **NATS / JetStream as the required base:** useful later for tightly controlled operator-managed cluster internals, but too heavy as a mandatory dependency for arbitrary independent Forseti installs.
+- **ActivityPub as the core transport:** useful later for public content federation, but too specialized for the initial secure installation-to-installation control and sync layer.
+- **Matrix as the core transport:** powerful for real-time communication, but too large and communication-centric for the MVP transport layer.

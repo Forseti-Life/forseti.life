@@ -48,6 +48,7 @@ permissions:
   - 'edit terms in tags'
   - 'revert all revisions'
   - 'use ai conversation'
+  - 'view institution reports'
   - 'view all revisions'
   - 'view own unpublished content'
   - 'view the administration theme'

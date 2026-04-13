@@ -1,6 +1,6 @@
 # Feature Progress
 
-Generated: 2026-04-13T17:59:45Z
+Generated: 2026-04-13T19:54:46Z
 
 | Work item | Website | Module | Status | Priority | PM | Dev | QA |
 |-----------|---------|--------|--------|----------|----|-----|----|
@@ -169,7 +169,8 @@ Generated: 2026-04-13T17:59:45Z
 | forseti-copilot-agent-tracker | forseti.life | copilot_agent_tracker | shipped | P1 |  |  |  |
 | forseti-csrf-fix | forseti.life | job_hunter | shipped | P0 |  |  |  |
 | forseti-csrf-post-routes-fix | forseti.life | job_hunter | shipped | P1 (security) |  |  |  |
-| forseti-financial-health-home | forseti.life | institutional_finance (new) | ready |  |  |  |  |
+| forseti-financial-health-home | forseti.life | institutional_management (MVP host) | in_progress |  |  |  |  |
+| forseti-installation-cluster-communication | forseti.life | forseti_cluster (new) | ready |  |  |  |  |
 | forseti-jobhunter-application-analytics | forseti.life | job_hunter | in_progress | medium |  |  |  |
 | forseti-jobhunter-application-controller-db-extraction | forseti.life | job_hunter | shipped | P2 |  |  |  |
 | forseti-jobhunter-application-controller-split | forseti.life | job_hunter | shipped |  |  |  |  |

@@ -1,13 +1,14 @@
 # Feature: forseti-financial-health-home
 
-- Status: ready
+- Status: in_progress
 - Website: forseti.life
-- Module: institutional_finance (new)
+- Module: institutional_management (MVP host)
 - Release: tbd
 - Owner: pm-forseti
 - Project: PROJ-008
 - Source: accountant-forseti proposal 2026-04-13
 - Roadmap: features/forseti-financial-health-home/roadmap.md
+- Architecture: features/forseti-financial-health-home/03-next-phase-architecture.md
 
 ## Summary
 
@@ -39,6 +40,7 @@ Give Forseti a dedicated in-product institutional finance home where leadership 
 
 - Default access model: internal-only, not public navigation.
 - Suggested data source for MVP: normalized summary derived from `dashboards/finance/current-dashboard-YYYY-MM.md`.
+- MVP host decision: ship inside `institutional_management` to avoid unnecessary new-module overhead while the feature remains read-only and internal.
 - Current real-world MVP content would show GitHub usage expense as source-backed `0.00`, AWS expense as blocked, and income/cash as blocked or unconfirmed.
 - Future versions may move from markdown-derived rendering to a structured JSON/API feed if the finance system matures beyond markdown as the book of record.
 - Related accountant artifact: `sessions/accountant-forseti/artifacts/20260413-accounting-home-proposal.md`
