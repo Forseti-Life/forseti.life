@@ -937,6 +937,15 @@ class FeatEffectManager {
 
         case 'gnome-weapon-familiarity':
           $this->addWeaponFamiliarity($effects, 'Gnome Weapons', ['glaive', 'kukri']);
+          // Upgrade the Gnome Weapons entry with uncommon access and proficiency remap flags.
+          foreach ($effects['training_grants']['weapons'] as &$weapon_entry) {
+            if (($weapon_entry['group'] ?? '') === 'Gnome Weapons') {
+              $weapon_entry['uncommon_access'] = TRUE;
+              $weapon_entry['proficiency_remap'] = ['martial' => 'simple', 'advanced' => 'martial'];
+              break;
+            }
+          }
+          unset($weapon_entry);
           $effects['applied_feats'][] = $feat_id;
           break;
 
