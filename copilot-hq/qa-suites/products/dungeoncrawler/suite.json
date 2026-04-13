@@ -16078,6 +16078,85 @@
       "required_for_release": true
     }
   ],
+  "dc-cr-first-world-magic": [
+    {
+      "id": "dc-cr-first-world-magic-feat-selectable-level-1",
+      "label": "First World Magic appears in level 1 gnome ancestry feat list",
+      "type": "e2e",
+      "feature_id": "dc-cr-first-world-magic",
+      "command": "npx playwright test --grep \"dc-cr-first-world-magic-feat-selectable\" --project=character-creation",
+      "artifacts": ["playwright-report/dc-cr-first-world-magic-feat-selectable-level-1.html"],
+      "suite_context": "playwright/character-creation",
+      "status": "pending_implementation",
+      "required_for_release": true
+    },
+    {
+      "id": "dc-cr-first-world-magic-cantrip-selected-stored",
+      "label": "Player selects primal cantrip at feat acquisition; stored as at-will innate spell with correct attributes",
+      "type": "e2e",
+      "feature_id": "dc-cr-first-world-magic",
+      "command": "npx playwright test --grep \"dc-cr-first-world-magic-cantrip-stored\" --project=character-creation",
+      "artifacts": ["playwright-report/dc-cr-first-world-magic-cantrip-selected-stored.html"],
+      "suite_context": "playwright/character-creation",
+      "status": "pending_implementation",
+      "required_for_release": true
+    },
+    {
+      "id": "dc-cr-first-world-magic-cantrip-fixed-no-swap",
+      "label": "First World Magic cantrip is fixed after acquisition; no swap action available in UI",
+      "type": "e2e",
+      "feature_id": "dc-cr-first-world-magic",
+      "command": "npx playwright test --grep \"dc-cr-first-world-magic-cantrip-fixed\" --project=character-creation",
+      "artifacts": ["playwright-report/dc-cr-first-world-magic-cantrip-fixed-no-swap.html"],
+      "suite_context": "playwright/character-creation",
+      "status": "pending_implementation",
+      "required_for_release": true
+    },
+    {
+      "id": "dc-cr-first-world-magic-cantrip-at-will-no-counter",
+      "label": "Innate cantrip has no per-day use cap; casting does not decrement a use counter",
+      "type": "e2e",
+      "feature_id": "dc-cr-first-world-magic",
+      "command": "npx playwright test --grep \"dc-cr-first-world-magic-at-will\" --project=encounter",
+      "artifacts": ["playwright-report/dc-cr-first-world-magic-cantrip-at-will-no-counter.html"],
+      "suite_context": "playwright/encounter",
+      "status": "pending_implementation",
+      "required_for_release": true
+    },
+    {
+      "id": "dc-cr-first-world-magic-cantrip-heightened-by-level",
+      "label": "Cantrip spell level equals ceil(character_level / 2); verified at levels 1, 5, and 9",
+      "type": "e2e",
+      "feature_id": "dc-cr-first-world-magic",
+      "command": "npx playwright test --grep \"dc-cr-first-world-magic-heightened\" --project=character-creation",
+      "artifacts": ["playwright-report/dc-cr-first-world-magic-cantrip-heightened-by-level.html"],
+      "suite_context": "playwright/character-creation",
+      "status": "pending_implementation",
+      "required_for_release": true
+    },
+    {
+      "id": "dc-cr-first-world-magic-wellspring-override",
+      "label": "Wellspring Gnome heritage overrides cantrip tradition to wellspring_tradition at feat acquisition",
+      "type": "e2e",
+      "feature_id": "dc-cr-first-world-magic",
+      "command": "npx playwright test --grep \"dc-cr-first-world-magic-wellspring\" --project=character-creation",
+      "artifacts": ["playwright-report/dc-cr-first-world-magic-wellspring-override.html"],
+      "suite_context": "playwright/character-creation",
+      "status": "pending_implementation",
+      "required_for_release": true
+    },
+    {
+      "id": "dc-cr-first-world-magic-stacks-with-fey-touched",
+      "label": "First World Magic + Fey-touched Heritage each grant separate at-will innate cantrip entries; same spell allowed as duplicate",
+      "type": "e2e",
+      "feature_id": "dc-cr-first-world-magic",
+      "command": "npx playwright test --grep \"dc-cr-first-world-magic-stacks-fey\" --project=character-creation",
+      "artifacts": ["playwright-report/dc-cr-first-world-magic-stacks-with-fey-touched.html"],
+      "suite_context": "playwright/character-creation",
+      "status": "pending_implementation",
+      "required_for_release": true
+    }
+  ],
   "dc-cr-burrow-elocutionist": [
     {
       "id": "dc-cr-burrow-elocutionist-feat-availability",
