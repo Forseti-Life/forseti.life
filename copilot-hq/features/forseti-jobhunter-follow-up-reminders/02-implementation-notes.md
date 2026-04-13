@@ -3,7 +3,7 @@
 - Feature: forseti-jobhunter-follow-up-reminders
 - Author: ba-forseti / dev-forseti
 - Date: 2026-04-13
-- Status: implemented — commit TBD
+- Status: implemented — commit 8486ab6cf
 
 ## Approach
 
