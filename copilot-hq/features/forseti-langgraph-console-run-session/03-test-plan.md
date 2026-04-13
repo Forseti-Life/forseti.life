@@ -50,8 +50,22 @@
 ### TC-5: Resume & Retry lists blocked/needs-info items
 
 - **Type:** functional
-- **When:** at least one `sessions/*/inbox/*/command.md` contains `Status: blocked` or `Status: needs-info`
-- **Then:** Resume & Retry subsection lists agent ID and item title for each found item
+- **When:** at least one `sessions/*/outbox/*.md` (most-recent per seat) contains `^- Status: blocked` or `^- Status: needs-info`
+- **Then:** Resume & Retry subsection lists: seat ID, outbox filename, status badge, and last-modified timestamp for each blocked/needs-info item
+
+**Verification command:**
+```bash
+# Confirm at least one outbox has blocked/needs-info (prerequisite check)
+grep -rl "^- Status: blocked\|^- Status: needs-info" \
+  /home/ubuntu/forseti.life/copilot-hq/sessions/*/outbox/*.md 2>/dev/null
+
+# Verify the UI renders the correct seat/file entries
+curl -s -b "$FORSETI_COOKIE_AUTHENTICATED" \
+  https://forseti.life/admin/reports/copilot-agent-tracker/langgraph-console/run/resume-retry \
+  | grep -i "blocked\|needs-info"
+```
+
+**Note:** If no outboxes are currently blocked/needs-info, verify the empty-state renders: "No blocked or needs-info items detected."
 
 ---
 
@@ -66,8 +80,33 @@
 ### TC-7: COPILOT_HQ_ROOT unset — warning banner
 
 - **Type:** functional / env warning
-- **When:** `COPILOT_HQ_ROOT` env var is absent from web context
-- **Then:** yellow warning banner "Live data unavailable: COPILOT_HQ_ROOT environment variable is not configured in the web server context." is visible
+- **When:** `COPILOT_HQ_ROOT` env var is absent from the web server context (`getenv('COPILOT_HQ_ROOT') === false`)
+- **Then:** yellow warning banner "Live data unavailable: COPILOT_HQ_ROOT environment variable is not configured in the web server context." is visible on the Run page; live data still renders (fallback path is used)
+
+**Verification — positive case (env IS set, banner must NOT appear):**
+```bash
+# Confirm env var is set in production Apache context
+curl -s -b "$FORSETI_COOKIE_AUTHENTICATED" \
+  https://forseti.life/admin/reports/copilot-agent-tracker/langgraph-console \
+  | grep -i "COPILOT_HQ_ROOT"
+
+# Verify run page has NO warning banner when env is set
+curl -s -b "$FORSETI_COOKIE_AUTHENTICATED" \
+  https://forseti.life/admin/reports/copilot-agent-tracker/langgraph-console/run \
+  | grep -c "COPILOT_HQ_ROOT environment variable is not configured"
+# Expected output: 0
+```
+
+**Verification — negative case (env NOT set, banner must appear):**
+```bash
+# Simulate unset env via PHP eval (requires drush access)
+cd /home/ubuntu/forseti.life/sites/forseti && \
+  vendor/bin/drush php-eval \
+  'echo getenv("COPILOT_HQ_ROOT") === false ? "UNSET" : "SET: " . getenv("COPILOT_HQ_ROOT");'
+# If output is SET, banner will not appear in production (correct behavior)
+# To test banner: temporarily remove COPILOT_HQ_ROOT from Apache env config,
+# run `sudo systemctl reload apache2`, load the run page, verify banner text appears
+```
 
 ---
 

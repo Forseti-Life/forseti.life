@@ -153,3 +153,99 @@ All 4 run subsections are **already live** (not stubs) as of prior releases:
 | Concurrency | `subRunConcurrency()` | ✅ `pick_agents.*`, `agent_cap` | Empty-state message wording |
 
 The feature's remaining "wiring" work is gap-filling, not new wiring. Dev effort is lighter than the feature brief implies.
+
+---
+
+## BA Confirmation (2026-04-13) — all 4 open questions resolved against live code
+
+### Q1 — AC-3 Resume & Retry: correct glob pattern and parsing approach
+
+**Confirmed:** Scan `sessions/*/outbox/*.md` — NOT `sessions/*/inbox/*/command.md`.
+
+`command.md` files are task specs dispatched TO agents by PM. They have `- Status: pending` at most and never contain `Status: blocked` or `Status: needs-info`. Blocked/needs-info status is always written by agents into their **outbox** files.
+
+**Exact glob spec for dev:**
+```php
+$glob  = $this->hqPath('sessions/*/outbox/*.md');
+$files = glob($glob) ?: [];
+rsort($files); // newest filename first (ISO date prefix)
+$seen  = [];
+$blocked_detail = [];
+foreach ($files as $path) {
+    if (!preg_match('#sessions/([^/]+)/outbox/#', $path, $m)) continue;
+    $seat = $m[1];
+    if (isset($seen[$seat])) continue; // only most-recent outbox per seat
+    $seen[$seat] = true;
+    $content = @file_get_contents($path);
+    if ($content && preg_match('/^- Status: (blocked|needs-info)/m', $content, $sm)) {
+        $blocked_detail[] = [
+            'seat'   => $seat,
+            'file'   => basename($path),
+            'status' => $sm[1],
+            'mtime'  => date('Y-m-d H:i', (int) filemtime($path)),
+        ];
+    }
+}
+```
+
+Status line format confirmed live: `^- Status: <value>` (lowercase, dash prefix, single space). Pattern is reliable across all seats. This scan supplements `health_check.blocked_count` from the tick: primary count (tick-read, fast) → aggregate row; secondary (outbox glob) → individual item detail table.
+
+---
+
+### Q2 — AC-2 result summary truncation: field and HTML placement
+
+**Confirmed via live `subRunStreamEvents()` inspection (lines 971–995):**
+
+Current method renders 4 columns: `Seq | Step | RC | Tick timestamp`. There is **no result summary column** — it must be added as a **5th column after RC**.
+
+**Which field to truncate:** For each step in `step_results`, take the full `$data` array, remove the `rc` key, JSON-encode the rest. Truncate to 120 chars with `…` suffix. Steps with no data beyond `rc` show `—`.
+
+```php
+$step_data_clean = $data;
+unset($step_data_clean['rc']);
+$summary = !empty($step_data_clean)
+    ? json_encode($step_data_clean, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE)
+    : '—';
+if (strlen($summary) > 120) {
+    $summary = substr($summary, 0, 117) . '…';
+}
+```
+
+Updated header: `Seq | Step | RC | Summary | Tick timestamp`. The 120-char truncation pattern already exists at line 1435 of this controller (outbox scanner) — follow the same approach.
+
+---
+
+### Q3 — AC-7 COPILOT_HQ_ROOT warning: banner semantics
+
+**Confirmed:** Banner must appear when `getenv('COPILOT_HQ_ROOT') === false`, **even when the fallback resolves and data loads successfully**. This is an operational signal ("running without explicit env config"), not an error.
+
+Current `run()` (line 364) has no env check. Required addition before returning `$build`:
+
+```php
+if (getenv('COPILOT_HQ_ROOT') === false) {
+    $build = ['env_warning' => [
+        '#markup' => '<div class="messages messages--warning">'
+            . $this->t('Live data unavailable: COPILOT_HQ_ROOT environment variable is not configured in the web server context.')
+            . '</div>',
+    ]] + $build;
+}
+return $build;
+```
+
+Banner text must match AC-7 exactly. When env var IS set, no banner is shown.
+
+---
+
+### Q4 — Session Health placement: main run() page, not a subsection
+
+**Confirmed via live code (lines 362–464):**
+
+No `run/session-health` route exists in `sectionMap()`. The `run()` page already has a "Health & Resume" table (lines 440–451). `$parity` is destructured at line 365 but **not used in the run page health table** (only used in `observe()`). All needed data is already in scope.
+
+**Dev must extend `health_table` `#rows` in `run()` with:**
+- `parity_ok` badge: `isset($parity['parity_ok']) ? ((bool)$parity['parity_ok'] ? '✓ OK' : '✗ FAIL') : '—'`
+- `provider`: `(string)($tick['provider'] ?? '—')`
+- Last tick timestamp: add as explicit named health row (currently only in `ts_note`)
+- Tick sequence number: `count(file($this->hqPath(self::TICKS_RELATIVE), FILE_SKIP_EMPTY_LINES))`
+
+No new route or method required. If PM wants Session Health as a dedicated subsection, that is a PM scope decision requiring a new `sectionMap()` entry and `subRunSessionHealth()` method.
