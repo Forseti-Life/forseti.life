@@ -16078,6 +16078,96 @@
       "required_for_release": true
     }
   ],
+  "dc-cr-gnome-heritage-fey-touched": [
+    {
+      "id": "dc-cr-gnome-heritage-fey-touched-fey-trait-added",
+      "label": "Fey-touched Gnome gains fey trait in addition to Gnome and Humanoid",
+      "type": "e2e",
+      "feature_id": "dc-cr-gnome-heritage-fey-touched",
+      "command": "npx playwright test --grep \"dc-cr-gnome-heritage-fey-touched-fey-trait\" --project=character-creation",
+      "artifacts": ["playwright-report/dc-cr-gnome-heritage-fey-touched-fey-trait-added.html"],
+      "suite_context": "playwright/character-creation",
+      "status": "pending_implementation",
+      "required_for_release": true
+    },
+    {
+      "id": "dc-cr-gnome-heritage-fey-touched-cantrip-selectable",
+      "label": "Player selects primal cantrip at heritage selection; stored as at-will innate primal spell",
+      "type": "e2e",
+      "feature_id": "dc-cr-gnome-heritage-fey-touched",
+      "command": "npx playwright test --grep \"dc-cr-gnome-heritage-fey-touched-cantrip-selectable\" --project=character-creation",
+      "artifacts": ["playwright-report/dc-cr-gnome-heritage-fey-touched-cantrip-selectable.html"],
+      "suite_context": "playwright/character-creation",
+      "status": "pending_implementation",
+      "required_for_release": true
+    },
+    {
+      "id": "dc-cr-gnome-heritage-fey-touched-cantrip-heightened",
+      "label": "Cantrip spell level equals ceil(character_level / 2); verified at levels 1, 5, and 9",
+      "type": "e2e",
+      "feature_id": "dc-cr-gnome-heritage-fey-touched",
+      "command": "npx playwright test --grep \"dc-cr-gnome-heritage-fey-touched-cantrip-heightened\" --project=character-creation",
+      "artifacts": ["playwright-report/dc-cr-gnome-heritage-fey-touched-cantrip-heightened.html"],
+      "suite_context": "playwright/character-creation",
+      "status": "pending_implementation",
+      "required_for_release": true
+    },
+    {
+      "id": "dc-cr-gnome-heritage-fey-touched-cantrip-at-will",
+      "label": "Innate cantrip has no use-per-day cap; casting does not decrement a use counter",
+      "type": "e2e",
+      "feature_id": "dc-cr-gnome-heritage-fey-touched",
+      "command": "npx playwright test --grep \"dc-cr-gnome-heritage-fey-touched-at-will\" --project=encounter",
+      "artifacts": ["playwright-report/dc-cr-gnome-heritage-fey-touched-cantrip-at-will.html"],
+      "suite_context": "playwright/encounter",
+      "status": "pending_implementation",
+      "required_for_release": true
+    },
+    {
+      "id": "dc-cr-gnome-heritage-fey-touched-daily-swap-activity",
+      "label": "Daily cantrip swap is a 10-minute concentrate activity; replacement must be from primal list",
+      "type": "e2e",
+      "feature_id": "dc-cr-gnome-heritage-fey-touched",
+      "command": "npx playwright test --grep \"dc-cr-gnome-heritage-fey-touched-daily-swap-activity\" --project=downtime",
+      "artifacts": ["playwright-report/dc-cr-gnome-heritage-fey-touched-daily-swap-activity.html"],
+      "suite_context": "playwright/downtime",
+      "status": "pending_implementation",
+      "required_for_release": true
+    },
+    {
+      "id": "dc-cr-gnome-heritage-fey-touched-swap-resets-daily",
+      "label": "One swap allowed per day; swap_used_today resets to false on daily preparation",
+      "type": "e2e",
+      "feature_id": "dc-cr-gnome-heritage-fey-touched",
+      "command": "npx playwright test --grep \"dc-cr-gnome-heritage-fey-touched-swap-resets\" --project=downtime",
+      "artifacts": ["playwright-report/dc-cr-gnome-heritage-fey-touched-swap-resets-daily.html"],
+      "suite_context": "playwright/downtime",
+      "status": "pending_implementation",
+      "required_for_release": true
+    },
+    {
+      "id": "dc-cr-gnome-heritage-fey-touched-second-swap-blocked",
+      "label": "Second same-day swap attempt returns error: 'Daily cantrip swap already used'",
+      "type": "e2e",
+      "feature_id": "dc-cr-gnome-heritage-fey-touched",
+      "command": "npx playwright test --grep \"dc-cr-gnome-heritage-fey-touched-second-swap\" --project=downtime",
+      "artifacts": ["playwright-report/dc-cr-gnome-heritage-fey-touched-second-swap-blocked.html"],
+      "suite_context": "playwright/downtime",
+      "status": "pending_implementation",
+      "required_for_release": true
+    },
+    {
+      "id": "dc-cr-gnome-heritage-fey-touched-fey-trait-additive",
+      "label": "fey trait is additive; character.traits contains Gnome, Humanoid, and fey (all three)",
+      "type": "e2e",
+      "feature_id": "dc-cr-gnome-heritage-fey-touched",
+      "command": "npx playwright test --grep \"dc-cr-gnome-heritage-fey-touched-trait-additive\" --project=character-creation",
+      "artifacts": ["playwright-report/dc-cr-gnome-heritage-fey-touched-fey-trait-additive.html"],
+      "suite_context": "playwright/character-creation",
+      "status": "pending_implementation",
+      "required_for_release": true
+    }
+  ],
   "dc-cr-first-world-magic": [
     {
       "id": "dc-cr-first-world-magic-feat-selectable-level-1",
