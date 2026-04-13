@@ -288,34 +288,17 @@ class FeatEffectManager {
           break;
 
         case 'animal-accomplice':
-          $selected_animal = $this->resolveFeatSelectionValue($character_data, 'animal-accomplice', ['selected_companion', 'companion', 'animal']);
-
-          if ($selected_animal === NULL) {
-            $this->addSelectionGrant(
-              $effects,
-              'animal-accomplice',
-              'animal_accomplice_choice',
-              1,
-              'Select one Tiny animal accomplice to accompany your character.'
-            );
-          }
-
-          $effects['available_actions']['at_will'][] = [
-            'id' => 'animal-accomplice-command',
-            'name' => 'Command Animal Accomplice',
-            'action_cost' => 1,
-            'description' => $selected_animal
-              ? ('Command your animal accomplice (' . $selected_animal . ') to Assist, Scout, or perform simple tasks.')
-              : 'Command your animal accomplice to Assist, Scout, or perform simple tasks.',
-          ];
-          $effects['conditional_modifiers']['movement'][] = [
-            'id' => 'animal-accomplice',
-            'rule' => 'animal_accomplice_support',
-            'context' => 'Exploration support and helper interactions',
-          ];
-          $effects['notes'][] = $selected_animal
-            ? ('Animal Accomplice selected: ' . $selected_animal . '.')
-            : 'Animal Accomplice pending companion selection.';
+          // Gnome Ancestry Feat 1: grants a familiar via the standard familiar rules.
+          // Non-spellcasting characters may receive this familiar (no class prerequisite).
+          // Gnomes typically choose animals with burrow Speed, but any catalog type is valid.
+          $this->addSelectionGrant(
+            $effects,
+            'animal-accomplice',
+            'familiar_creation',
+            1,
+            'Create a familiar via the Familiar API (POST /api/character/{id}/familiar). Gnomes often prefer animals with burrow Speed (badger, mole, rabbit) but any familiar type is valid.'
+          );
+          $effects['notes'][] = 'Animal Accomplice: grants a familiar. Use POST /api/character/{id}/familiar to create. Burrow-speed animals (badger, mole, rabbit) are recommended for gnomes but not required.';
           $effects['applied_feats'][] = $feat_id;
           break;
 

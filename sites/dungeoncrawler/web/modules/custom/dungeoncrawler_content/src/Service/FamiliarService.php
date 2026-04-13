@@ -41,6 +41,31 @@ class FamiliarService {
   const REPLACEMENT_SECONDS = 604800;
 
   /**
+   * Valid familiar animal types.
+   *
+   * Each entry: id → ['name', 'burrow_speed' => bool].
+   * 'burrow_speed' = TRUE flags gnome-recommended animals (Animal Accomplice note).
+   * The pseudo-type 'standard' is always accepted for legacy/class-granted familiars.
+   */
+  const FAMILIAR_TYPES = [
+    'bat'    => ['id' => 'bat',    'name' => 'Bat',    'burrow_speed' => FALSE],
+    'cat'    => ['id' => 'cat',    'name' => 'Cat',    'burrow_speed' => FALSE],
+    'crab'   => ['id' => 'crab',   'name' => 'Crab',   'burrow_speed' => FALSE],
+    'fish'   => ['id' => 'fish',   'name' => 'Fish',   'burrow_speed' => FALSE],
+    'lizard' => ['id' => 'lizard', 'name' => 'Lizard', 'burrow_speed' => FALSE],
+    'owl'    => ['id' => 'owl',    'name' => 'Owl',    'burrow_speed' => FALSE],
+    'pest'   => ['id' => 'pest',   'name' => 'Pest',   'burrow_speed' => FALSE],
+    'raven'  => ['id' => 'raven',  'name' => 'Raven',  'burrow_speed' => FALSE],
+    'snake'  => ['id' => 'snake',  'name' => 'Snake',  'burrow_speed' => FALSE],
+    'toad'   => ['id' => 'toad',   'name' => 'Toad',   'burrow_speed' => FALSE],
+    'weasel' => ['id' => 'weasel', 'name' => 'Weasel', 'burrow_speed' => FALSE],
+    // Gnome Animal Accomplice recommendations (burrow Speed):
+    'badger' => ['id' => 'badger', 'name' => 'Badger', 'burrow_speed' => TRUE],
+    'mole'   => ['id' => 'mole',   'name' => 'Mole',   'burrow_speed' => TRUE],
+    'rabbit' => ['id' => 'rabbit', 'name' => 'Rabbit', 'burrow_speed' => TRUE],
+  ];
+
+  /**
    * Familiar ability catalog: id → definition.
    *
    * Prerequisites key maps to a property that must be TRUE on the familiar record.
@@ -80,12 +105,21 @@ class FamiliarService {
     $level     = (int) ($char_data['basicInfo']['level'] ?? $record->level ?? 1);
     $class     = strtolower($char_data['basicInfo']['class'] ?? '');
 
+    // Validate familiar_type when explicitly provided (rejects invalid catalog entries).
+    $familiar_type = $params['familiar_type'] ?? 'standard';
+    if ($familiar_type !== 'standard' && !$this->isValidFamiliarType($familiar_type)) {
+      throw new \InvalidArgumentException(
+        'Invalid familiar_type "' . $familiar_type . '". Must be "standard" or one of: ' . implode(', ', array_keys(self::FAMILIAR_TYPES)) . '.',
+        400
+      );
+    }
+
     $is_witch_required = $params['is_witch_required'] ?? ($class === 'witch');
 
     $familiar = [
       'familiar_id'          => $character_id . '_familiar',
       'character_id'         => $character_id,
-      'familiar_type'        => $params['familiar_type'] ?? 'standard',
+      'familiar_type'        => $familiar_type,
       'hp'                   => self::HP_PER_LEVEL * $level,
       'max_hp'               => self::HP_PER_LEVEL * $level,
       'speed'                => $params['speed'] ?? self::DEFAULT_SPEED,
@@ -581,6 +615,28 @@ class FamiliarService {
       ->condition('id', $character_id)
       ->condition('campaign_id', 0)
       ->execute();
+  }
+
+  // ── Familiar type catalog helpers ──────────────────────────────────────────
+
+  /**
+   * Return the full familiar type catalog.
+   *
+   * @param bool $burrow_only  If TRUE, return only animals with burrow Speed.
+   * @return array  Array of type definitions.
+   */
+  public function getFamiliarTypes(bool $burrow_only = FALSE): array {
+    if (!$burrow_only) {
+      return array_values(self::FAMILIAR_TYPES);
+    }
+    return array_values(array_filter(self::FAMILIAR_TYPES, fn($t) => $t['burrow_speed']));
+  }
+
+  /**
+   * Return TRUE if $type is a recognized familiar type (or 'standard').
+   */
+  public function isValidFamiliarType(string $type): bool {
+    return $type === 'standard' || isset(self::FAMILIAR_TYPES[$type]);
   }
 
 }
