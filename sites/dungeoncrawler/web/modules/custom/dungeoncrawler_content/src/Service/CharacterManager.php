@@ -817,6 +817,9 @@ class CharacterManager {
       ['id' => 'first-world-adept', 'name' => 'First World Adept', 'level' => 9, 'traits' => ['Gnome'], 'prerequisites' => 'At least one primal innate spell',
         'benefit' => 'You gain faerie fire and invisibility as 2nd-level primal innate spells. You can cast each of these primal innate spells once per day.',
         'prerequisite_primal_innate_spell' => TRUE],
+      ['id' => 'gnome-weapon-expertise', 'name' => 'Gnome Weapon Expertise', 'level' => 13, 'traits' => ['Gnome'], 'prerequisites' => 'Gnome Weapon Familiarity',
+        'benefit' => 'Whenever you gain a class feature that grants expert or greater proficiency in a given weapon or weapons, you also gain that proficiency in all gnome weapons in which you are trained.',
+        'prerequisite_gnome_weapon_familiarity' => TRUE],
     ],
     'Goblin' => [
       ['id' => 'burn-it', 'name' => 'Burn It!', 'level' => 1, 'traits' => ['Goblin'], 'prerequisites' => '',

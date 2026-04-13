@@ -940,6 +940,24 @@ class FeatEffectManager {
           $effects['applied_feats'][] = $feat_id;
           break;
 
+        case 'gnome-weapon-expertise':
+          $cascade_rank = $this->getClassWeaponExpertiseRank($character_data['class_features'] ?? []);
+          if ($cascade_rank !== '') {
+            foreach ($effects['training_grants']['weapons'] as &$weapon_entry) {
+              if (($weapon_entry['group'] ?? '') === 'Gnome Weapons') {
+                $existing_rank = $weapon_entry['proficiency'] ?? 'trained';
+                $rank_order = ['untrained' => 0, 'trained' => 1, 'expert' => 2, 'master' => 3, 'legendary' => 4];
+                if (($rank_order[$cascade_rank] ?? 0) > ($rank_order[$existing_rank] ?? 0)) {
+                  $weapon_entry['proficiency'] = $cascade_rank;
+                }
+              }
+            }
+            unset($weapon_entry);
+            $effects['derived_adjustments']['flags']['gnome_weapon_expertise_cascade_rank'] = $cascade_rank;
+          }
+          $effects['applied_feats'][] = $feat_id;
+          break;
+
         case 'goblin-weapon-familiarity':
           $this->addWeaponFamiliarity($effects, 'Goblin Weapons', ['dogslicer', 'horsechopper']);
           $effects['applied_feats'][] = $feat_id;
@@ -1639,6 +1657,61 @@ class FeatEffectManager {
       'proficiency' => 'trained',
       'examples' => $examples,
     ];
+  }
+
+  /**
+   * Returns the highest weapon proficiency rank granted by class features.
+   *
+   * Used by gnome-weapon-expertise to cascade class proficiency upgrades.
+   * Returns '' if no expert-or-greater class weapon feature is present.
+   *
+   * @param array $class_features
+   *   The character's classFeatures array.
+   *
+   * @return string
+   *   One of '', 'expert', 'master', 'legendary'.
+   */
+  private function getClassWeaponExpertiseRank(array $class_features): string {
+    $legendary_ids = ['weapon-legend', 'versatile-legend', 'monk-apex-strike'];
+    $master_ids = [
+      'fighter-weapon-mastery',
+      'ranger-weapon-mastery',
+      'investigator-greater-weapon-expertise',
+      'swashbuckler-weapon-mastery',
+      'champion-weapon-mastery',
+      'simple-weapon-mastery',
+    ];
+    $expert_ids = [
+      'wizard-weapon-expertise',
+      'rogue-weapon-expertise',
+      'ranger-weapon-expertise',
+      'bard-weapon-expertise',
+      'alchemical-weapon-expertise',
+      'witch-weapon-expertise',
+      'investigator-weapon-expertise',
+      'oracle-weapon-expertise',
+      'swashbuckler-weapon-expertise',
+      'champion-weapon-expertise',
+      'sorcerer-weapon-expertise',
+    ];
+
+    $owned_ids = array_column($class_features, 'id');
+    foreach ($legendary_ids as $id) {
+      if (in_array($id, $owned_ids, TRUE)) {
+        return 'legendary';
+      }
+    }
+    foreach ($master_ids as $id) {
+      if (in_array($id, $owned_ids, TRUE)) {
+        return 'master';
+      }
+    }
+    foreach ($expert_ids as $id) {
+      if (in_array($id, $owned_ids, TRUE)) {
+        return 'expert';
+      }
+    }
+    return '';
   }
 
   /**

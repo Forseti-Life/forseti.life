@@ -782,6 +782,15 @@ class CharacterLevelingService {
       }
     }
 
+    // Gnome Weapon Familiarity prerequisite (e.g. Gnome Weapon Expertise).
+    if (!empty($feat['prerequisite_gnome_weapon_familiarity'])) {
+      if (!$this->characterHasGnomeWeaponFamiliarity($char_data)) {
+        throw new \InvalidArgumentException(
+          "Feat '{$feat_id}' requires Gnome Weapon Familiarity", 400
+        );
+      }
+    }
+
     return $feat;
   }
 
@@ -818,6 +827,14 @@ class CharacterLevelingService {
     }
 
     return FALSE;
+  }
+
+  /**
+   * Returns TRUE if the character has Gnome Weapon Familiarity.
+   */
+  private function characterHasGnomeWeaponFamiliarity(array $char_data): bool {
+    $owned_ids = array_column($char_data['features']['feats'] ?? [], 'id');
+    return in_array('gnome-weapon-familiarity', $owned_ids, TRUE);
   }
 
 }
