@@ -618,11 +618,15 @@ else:
 lines.append("- Dev consumes this evidence and fixes failing behavior; QA updates suites if the test script is flawed.")
 lines.append("- PM is pulled in only for scope/intent decisions (e.g., ACL publicness) and for release coordination/final push.")
 
-(out_dir / 'findings-summary.md').write_text("\n".join(lines) + "\n", encoding='utf-8')
+ (out_dir / 'findings-summary.md').write_text("\n".join(lines) + "\n", encoding='utf-8')
 
-print("WROTE: findings-summary.md")
-print("WROTE: findings-summary.json")
+ print("WROTE: findings-summary.md")
+ print("WROTE: findings-summary.json")
 PY
+
+  if [ -n "${team_id:-}" ]; then
+    python3 scripts/gate2-clean-audit-backstop.py --team "${team_id}" --source "site-audit-run.sh" || true
+  fi
 }
 
 run_site() {

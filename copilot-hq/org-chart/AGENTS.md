@@ -21,7 +21,7 @@ Agents are the named "seats" we delegate work to. Each agent has a **role** and 
 - `qa-dungeoncrawler` — verification agent for `dungeoncrawler`
 
 ## Finance
-- `accountant-forseti` — accountant / FinOps seat for `forseti.life`; tracks AWS, GitHub, and related vendor spend for CEO review
+- `accountant-forseti` — accountant / FinOps seat for `forseti.life`; tracks income, expenses, reconciliations, and finance-system hygiene for CEO review
 
 ## Capability Agents (Copilot modes)
 - `agent-explore` — discovery/synthesis

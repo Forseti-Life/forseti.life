@@ -72,6 +72,12 @@ Exit criteria:
 - Evidence attached.
 - Explicit APPROVE or BLOCK.
 
+Clean-audit auto-approval rule:
+- When the latest QA site audit is clean (`0` missing assets, `0` permission violations, `0` other failures, `0` config drift), Gate 2 APPROVE must be materialized automatically for the active release.
+- Primary path: `scripts/site-audit-run.sh` calls `scripts/gate2-clean-audit-backstop.py` immediately after writing `findings-summary.json`.
+- CEO backstop: the scheduled 2-hour CEO cycle (`scripts/ceo-ops-once.sh`, installed by `scripts/install-crons.sh`) re-runs the same remediation and queues a CEO root-cause review item if the backstop had to intervene.
+- Purpose: a clean audit is sufficient Gate 2 evidence; duplicate or stale suite-activate churn must not keep PM signoff blocked.
+
 ### Release-critical QA testgen backlog intervention rule (PM-owned, added 2026-03-22)
 
 **Trigger (hard threshold):** If a QA testgen backlog for a release-bound grooming pool reaches **2 consecutive groom/improvement cycles with 0 test plans delivered**, PM must intervene directly in the same cycle.

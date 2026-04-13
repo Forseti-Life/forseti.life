@@ -1,18 +1,19 @@
 # Architect Session State — architect-copilot
 
 > **Rolling file. Overwrite this at the end of each working session (and briefly before starting each task).**
-> Last updated: 2026-04-13 after Job Hunter preferences wiring
+> Last updated: 2026-04-13 after Job Hunter CIO LangGraph flow monitoring slice
 
 ---
 
 ## Currently Working On
 
-Completed the Job Hunter job-board preferences follow-through:
-- saved job-board source/filter preferences now feed the live search flow when
-  the current request does not explicitly override them,
-- `/jobhunter/preferences` now exists as the canonical preferences entrypoint,
-- and the discovery UI now pre-checks sources from saved preferences instead of
-  drifting from live search behavior.
+Completed the first monitorable LangGraph slice for the Job Hunter CIO pipeline:
+- `copilot_agent_tracker` LangGraph Process Flow now exposes a live
+  **Job-Hunter CIO Application Flow** section backed by production Job Hunter
+  tables,
+- the workflow registry now lists that CIO flow as `in_progress`,
+- and the dashboard shows exactly where the live pipeline is moving versus
+  stalled (discovery/import/queue/app-prep live; tailoring/submission blocked).
 
 ---
 
@@ -20,12 +21,60 @@ Completed the Job Hunter job-board preferences follow-through:
 
 | Site | Release ID | Status | Notes |
 |---|---|---|---|
-| dungeoncrawler | `20260409-dungeoncrawler-release-e` | In progress | dev/qa active; ≤7 feature cap enforced |
-| forseti | `20260409-forseti-release-g` | Scoping | ba-forseti grooming stubs; pm-forseti waiting on delivery |
+| dungeoncrawler | `20260412-dungeoncrawler-release-i` | In progress | 14 features in dev/qa pipeline; 23 ready for activation |
+| forseti | `20260412-forseti-release-h` | In progress | Job Hunter release-h has 4 in_progress features; LangGraph/AI/Safety next slices are groomed but not yet activated |
 
 ---
 
 ## What Was Last Worked On
+
+**2026-04-13 — Job Hunter CIO LangGraph flow monitoring**
+
+- Added a live Job Hunter CIO workflow snapshot to
+  `copilot_agent_tracker`'s LangGraph Process Flow page instead of creating a
+  separate admin report.
+- Registered a new site-level workflow entry:
+  `Job-Hunter CIO Application Flow` with an in-progress status in the LangGraph
+  workflow registry.
+- Wired the process-flow page to read live Forseti Job Hunter state for Keith
+  Aumiller (`keith.aumiller@stlouisintegration.com`) and expose stage counts for:
+  - discovered CIO opportunities in staging
+  - canonical imported CIO jobs
+  - saved jobs bound to Keith
+  - application records and apply-URL readiness
+  - tailored resume / PDF readiness
+  - confirmed submissions
+- Added a recent canonical CIO jobs table so operators can see the latest live
+  jobs, submission posture, manual-review flags, and apply targets directly from
+  the LangGraph page.
+- Confirmed the live bottleneck is now explicit in the dashboard:
+  - 162 CIO matches discovered
+  - 6 canonical CIO jobs imported
+  - 6 saved jobs / 6 application records created
+  - 0 tailored CIO resumes and 0 confirmed submissions
+- Captured the still-open import drift directly in the dashboard warnings:
+  `jobhunter_job_requirements` still exposes `source`, while
+  `SearchAggregatorService` import logic expects `external_source`.
+
+**2026-04-13 — Job Hunter contact tracker realignment**
+
+- Realigned the contact tracker schema with a forward-only `job_hunter_update_9059`
+  migration that adds `name`, `title`, and `company_id` fields while preserving
+  legacy `full_name`, `job_title`, and `company_name` compatibility.
+- Replaced the collation-sensitive SQL backfill with a Drupal DB row pass so the
+  live update applies safely on production MySQL.
+- Updated the contact list and add/edit form to use company-backed contacts,
+  current referral statuses (`none/requested/pending/provided`), and a real
+  POST delete action.
+- Updated contact save logic to write both the current fields and legacy
+  compatibility fields when present so the code stays safe before and after the
+  update hook runs.
+- Updated saved-job contact surfacing to match linked contacts by `company_id`
+  first, then fall back to legacy `company_name` only when needed.
+- Added focused static contract coverage for the contact tracker routes,
+  controller expectations, and the new schema realignment hook.
+- Applied the live Drupal update and confirmed `jobhunter_contacts` now exposes:
+  `name`, `title`, `company_id` with no unresolved contact rows on this host.
 
 **2026-04-13 — Job Hunter preferences/search wiring**
 
@@ -219,9 +268,17 @@ Completed the Job Hunter job-board preferences follow-through:
 
 ## Open Threads / Pending Decisions
 
-No blocking implementation bug remains for the initial CIO application flow.
+No blocking bug remains for the new CIO monitoring slice itself.
 
-Release-process follow-through is now the main open thread:
+Current Job Hunter open threads are now:
+- fix the `source` vs `external_source` import drift so more staged CIO
+  opportunities can become canonical job requirements,
+- generate tailored CIO resume artifacts / PDFs so the monitored flow can move
+  from application-prep into submission,
+- then decide whether to add a second automation slice that advances
+  manual-review applications toward confirmed submission.
+
+Release-process follow-through is still a main parallel thread:
 - PM should correct stale feature status for
   `forseti-jobhunter-interview-outcome-tracker`
 - PM can now use the backfilled release-gate artifacts for current `ready` /

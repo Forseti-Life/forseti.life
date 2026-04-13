@@ -3460,3 +3460,123 @@ function job_hunter_update_9058() {
   ]);
   return t('Created jobhunter_offers table for offer tracking.');
 }
+
+/**
+ * Realign jobhunter_contacts with the company_id-backed contact tracker brief.
+ */
+function job_hunter_update_9059() {
+  $schema = \Drupal::database()->schema();
+  $db = \Drupal::database();
+
+  if (!$schema->tableExists('jobhunter_contacts')) {
+    return t('jobhunter_contacts does not exist.');
+  }
+
+  if (!$schema->fieldExists('jobhunter_contacts', 'name')) {
+    $schema->addField('jobhunter_contacts', 'name', [
+      'type' => 'varchar',
+      'length' => 255,
+      'not null' => FALSE,
+      'default' => NULL,
+      'description' => 'Display name for the contact.',
+    ]);
+  }
+
+  if (!$schema->fieldExists('jobhunter_contacts', 'title')) {
+    $schema->addField('jobhunter_contacts', 'title', [
+      'type' => 'varchar',
+      'length' => 255,
+      'not null' => FALSE,
+      'default' => NULL,
+      'description' => 'Role or title for the contact.',
+    ]);
+  }
+
+  if (!$schema->fieldExists('jobhunter_contacts', 'company_id')) {
+    $schema->addField('jobhunter_contacts', 'company_id', [
+      'type' => 'int',
+      'unsigned' => TRUE,
+      'not null' => FALSE,
+      'default' => NULL,
+      'description' => 'Referenced company from jobhunter_companies.',
+    ]);
+  }
+
+  if ($schema->fieldExists('jobhunter_contacts', 'full_name')) {
+    $db->query("
+      UPDATE {jobhunter_contacts}
+      SET name = full_name
+      WHERE (name IS NULL OR name = '')
+        AND full_name IS NOT NULL
+        AND full_name <> ''
+    ");
+  }
+
+  if ($schema->fieldExists('jobhunter_contacts', 'job_title')) {
+    $db->query("
+      UPDATE {jobhunter_contacts}
+      SET title = job_title
+      WHERE (title IS NULL OR title = '')
+        AND job_title IS NOT NULL
+        AND job_title <> ''
+    ");
+  }
+
+  if ($schema->fieldExists('jobhunter_contacts', 'company_name')) {
+    $legacy_contacts = $db->select('jobhunter_contacts', 'ct')
+      ->fields('ct', ['id', 'company_name'])
+      ->isNull('company_id')
+      ->condition('company_name', '', '<>')
+      ->execute()
+      ->fetchAllAssoc('id');
+
+    foreach ($legacy_contacts as $contact_id => $contact) {
+      $company_name = trim((string) $contact->company_name);
+      if ($company_name === '') {
+        continue;
+      }
+
+      $matched_company_id = $db->select('jobhunter_companies', 'c')
+        ->fields('c', ['id'])
+        ->condition('name', $company_name)
+        ->range(0, 1)
+        ->execute()
+        ->fetchField();
+
+      if ($matched_company_id !== FALSE) {
+        $db->update('jobhunter_contacts')
+          ->fields(['company_id' => (int) $matched_company_id])
+          ->condition('id', (int) $contact_id)
+          ->execute();
+      }
+    }
+  }
+
+  $db->query("
+    UPDATE {jobhunter_contacts}
+    SET relationship_type = CASE relationship_type
+      WHEN 'colleague' THEN 'connection'
+      WHEN 'friend' THEN 'connection'
+      WHEN 'alumni' THEN 'connection'
+      WHEN 'other' THEN 'cold'
+      ELSE relationship_type
+    END
+  ");
+
+  $db->query("
+    UPDATE {jobhunter_contacts}
+    SET referral_status = CASE referral_status
+      WHEN 'referred' THEN 'provided'
+      WHEN 'pending-referral' THEN 'pending'
+      ELSE referral_status
+    END
+  ");
+
+  $db->query("
+    UPDATE {jobhunter_contacts}
+    SET referral_status = 'none'
+    WHERE referral_status NOT IN ('none', 'requested', 'pending', 'provided')
+  ");
+
+  return t('Realigned jobhunter_contacts with company_id-backed contact tracking.');
+}

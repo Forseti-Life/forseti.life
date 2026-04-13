@@ -38,6 +38,7 @@ final class DashboardController extends ControllerBase {
   const LANGGRAPH_PARITY_RELATIVE = 'inbox/responses/langgraph-parity-latest.json';
   const LANGGRAPH_FEATURE_PROGRESS_RELATIVE = 'dashboards/FEATURE_PROGRESS.md';
   const RELEASE_CYCLE_CONTROL_FILE_DEFAULT = '/var/tmp/copilot-sessions-hq/release-cycle-control.json';
+  const JOBHUNTER_CIO_TARGET_EMAIL = 'keith.aumiller@stlouisintegration.com';
 
   public function __construct(
     private readonly DashboardRepository $repository,
@@ -961,6 +962,14 @@ final class DashboardController extends ControllerBase {
         'purpose' => 'LangGraph-driven job-posting intake and triage for the forseti.life job-hunter module.',
         'console' => NULL,
       ],
+      [
+        'scope'   => 'Site',
+        'site'    => 'forseti.life',
+        'name'    => 'Job-Hunter CIO Application Flow',
+        'status'  => 'in_progress',
+        'purpose' => 'Monitor Keith Aumiller CIO roles from staged discovery through canonical import, saved-job binding, tailoring readiness, and submission checkpoints.',
+        'console' => 'copilot_agent_tracker.langgraph_process_flow',
+      ],
       // ── Site: dungeoncrawler ───────────────────────────────────────────────
       [
         'scope'   => 'Site',
@@ -1211,6 +1220,241 @@ final class DashboardController extends ControllerBase {
     catch (\Throwable) {
       return [];
     }
+  }
+
+  /**
+   * Returns the Drupal user ID for the CIO automation target profile.
+   */
+  private function getJobHunterCioTargetUid(): ?int {
+    if (!$this->database->schema()->tableExists('users_field_data')) {
+      return NULL;
+    }
+
+    $uid = $this->database->query(
+      'SELECT uid FROM {users_field_data} WHERE mail = :mail ORDER BY uid ASC LIMIT 1',
+      [':mail' => self::JOBHUNTER_CIO_TARGET_EMAIL]
+    )->fetchField();
+
+    return $uid === FALSE ? NULL : (int) $uid;
+  }
+
+  /**
+   * Returns the SQL fragment and params used to match CIO job titles.
+   *
+   * @return array{sql: string, params: array<string, string>}
+   *   SQL clause and placeholder values.
+   */
+  private function getJobHunterCioTitleSql(string $field): array {
+    return [
+      'sql' => '(LOWER(' . $field . ') LIKE :cio_phrase OR LOWER(' . $field . ') REGEXP :cio_regex)',
+      'params' => [
+        ':cio_phrase' => '%chief information officer%',
+        ':cio_regex' => '(^|[^a-z])cio([^a-z]|$)',
+      ],
+    ];
+  }
+
+  /**
+   * Executes a scalar COUNT/summary query and normalizes the result to int.
+   */
+  private function fetchIntQueryValue(string $sql, array $args = []): int {
+    $value = $this->database->query($sql, $args)->fetchField();
+    return $value === FALSE ? 0 : (int) $value;
+  }
+
+  /**
+   * Renders a compact workflow-stage badge.
+   */
+  private function renderJobHunterFlowBadge(string $state, string $label): string {
+    [$fg, $bg] = match ($state) {
+      'healthy' => ['#1b5e20', '#e8f5e9'],
+      'attention' => ['#e65100', '#fff3e0'],
+      'blocked' => ['#b71c1c', '#ffebee'],
+      default => ['#616161', '#f5f5f5'],
+    };
+
+    return '<span style="display:inline-block;padding:2px 8px;border-radius:12px;'
+      . 'font-size:0.78em;font-weight:600;color:' . $fg . ';background:' . $bg . ';">'
+      . Html::escape($label)
+      . '</span>';
+  }
+
+  /**
+   * Builds a live Job Hunter CIO process-flow snapshot for Keith Aumiller.
+   *
+   * @return array<string, mixed>
+   *   Snapshot data keyed by counts, warnings, steps, and recent jobs.
+   */
+  private function loadJobHunterCioFlowSnapshot(): array {
+    $required_tables = [
+      'jobhunter_job_search_results',
+      'jobhunter_job_requirements',
+      'jobhunter_saved_jobs',
+      'jobhunter_applications',
+      'jobhunter_tailored_resumes',
+    ];
+    foreach ($required_tables as $table) {
+      if (!$this->database->schema()->tableExists($table)) {
+        return [
+          'available' => FALSE,
+          'reason' => 'Required Job Hunter table missing: ' . $table,
+        ];
+      }
+    }
+
+    $uid = $this->getJobHunterCioTargetUid();
+    if ($uid === NULL) {
+      return [
+        'available' => FALSE,
+        'reason' => 'Unable to resolve Keith Aumiller user account on this site.',
+      ];
+    }
+
+    ['sql' => $job_title_sql, 'params' => $title_params] = $this->getJobHunterCioTitleSql('jr.job_title');
+    ['sql' => $search_title_sql, 'params' => $search_params] = $this->getJobHunterCioTitleSql('job_title');
+
+    $staged_pending = $this->fetchIntQueryValue(
+      'SELECT COUNT(*) FROM {jobhunter_job_search_results} WHERE imported_to_job_id IS NULL AND ' . $search_title_sql,
+      $search_params
+    );
+    $staged_imported = $this->fetchIntQueryValue(
+      'SELECT COUNT(*) FROM {jobhunter_job_search_results} WHERE imported_to_job_id IS NOT NULL AND ' . $search_title_sql,
+      $search_params
+    );
+    $canonical_jobs = $this->fetchIntQueryValue(
+      'SELECT COUNT(*) FROM {jobhunter_job_requirements} jr WHERE ' . $job_title_sql,
+      $title_params
+    );
+    $saved_jobs = $this->fetchIntQueryValue(
+      'SELECT COUNT(*) FROM {jobhunter_saved_jobs} sj INNER JOIN {jobhunter_job_requirements} jr ON jr.id = sj.job_id WHERE sj.uid = :uid AND ' . $job_title_sql,
+      [':uid' => $uid] + $title_params
+    );
+    $applications = $this->fetchIntQueryValue(
+      'SELECT COUNT(*) FROM {jobhunter_applications} a INNER JOIN {jobhunter_job_requirements} jr ON jr.id = a.job_id WHERE a.uid = :uid AND ' . $job_title_sql,
+      [':uid' => $uid] + $title_params
+    );
+    $apply_ready = $this->fetchIntQueryValue(
+      'SELECT COUNT(*) FROM {jobhunter_applications} a INNER JOIN {jobhunter_job_requirements} jr ON jr.id = a.job_id WHERE a.uid = :uid AND COALESCE(a.apply_url, \'\') <> \'\' AND ' . $job_title_sql,
+      [':uid' => $uid] + $title_params
+    );
+    $manual_review = $this->fetchIntQueryValue(
+      'SELECT COUNT(*) FROM {jobhunter_applications} a INNER JOIN {jobhunter_job_requirements} jr ON jr.id = a.job_id WHERE a.uid = :uid AND (a.admin_review_required = 1 OR a.submission_status = :manual_required) AND ' . $job_title_sql,
+      [':uid' => $uid, ':manual_required' => 'manual_required'] + $title_params
+    );
+    $tailored_resumes = $this->fetchIntQueryValue(
+      'SELECT COUNT(*) FROM {jobhunter_tailored_resumes} tr INNER JOIN {jobhunter_job_requirements} jr ON jr.id = tr.job_id WHERE tr.uid = :uid AND ' . $job_title_sql,
+      [':uid' => $uid] + $title_params
+    );
+    $tailored_pdf_ready = $this->fetchIntQueryValue(
+      'SELECT COUNT(*) FROM {jobhunter_tailored_resumes} tr INNER JOIN {jobhunter_job_requirements} jr ON jr.id = tr.job_id WHERE tr.uid = :uid AND tr.pdf_generated = 1 AND ' . $job_title_sql,
+      [':uid' => $uid] + $title_params
+    );
+    $submitted = $this->fetchIntQueryValue(
+      'SELECT COUNT(*) FROM {jobhunter_applications} a INNER JOIN {jobhunter_job_requirements} jr ON jr.id = a.job_id WHERE a.uid = :uid AND ((COALESCE(a.submission_status, \'\') IN (:submitted, :confirmed)) OR COALESCE(a.confirmed_at, \'\') <> \'\' OR COALESCE(a.submission_date, \'\') <> \'\') AND ' . $job_title_sql,
+      [':uid' => $uid, ':submitted' => 'submitted', ':confirmed' => 'confirmed'] + $title_params
+    );
+
+    $recent_jobs = [];
+    $source_field = $this->database->schema()->fieldExists('jobhunter_job_requirements', 'external_source') ? 'external_source' : 'source';
+    $recent_query = $this->database->query(
+      'SELECT jr.id, jr.job_title, jr.' . $source_field . ' AS source_label, COALESCE(sj.id, 0) AS saved_job_id, '
+      . 'COALESCE(a.submission_status, \'\') AS submission_status, COALESCE(a.apply_url, \'\') AS apply_url, '
+      . 'COALESCE(a.admin_review_required, 0) AS admin_review_required, COALESCE(tr.tailoring_status, \'\') AS tailoring_status, '
+      . 'COALESCE(tr.pdf_generated, 0) AS pdf_generated '
+      . 'FROM {jobhunter_job_requirements} jr '
+      . 'LEFT JOIN {jobhunter_saved_jobs} sj ON sj.job_id = jr.id AND sj.uid = :uid '
+      . 'LEFT JOIN {jobhunter_applications} a ON a.job_id = jr.id AND a.uid = :uid '
+      . 'LEFT JOIN {jobhunter_tailored_resumes} tr ON tr.job_id = jr.id AND tr.uid = :uid '
+      . 'WHERE ' . $job_title_sql . ' '
+      . 'ORDER BY jr.id DESC LIMIT 10',
+      [':uid' => $uid] + $title_params
+    );
+    foreach ($recent_query as $row) {
+      $recent_jobs[] = [
+        'id' => (int) $row->id,
+        'job_title' => (string) $row->job_title,
+        'source_label' => (string) ($row->source_label ?? ''),
+        'saved_job_id' => (int) ($row->saved_job_id ?? 0),
+        'submission_status' => (string) ($row->submission_status ?? ''),
+        'apply_url' => (string) ($row->apply_url ?? ''),
+        'admin_review_required' => (int) ($row->admin_review_required ?? 0),
+        'tailoring_status' => (string) ($row->tailoring_status ?? ''),
+        'pdf_generated' => (int) ($row->pdf_generated ?? 0),
+      ];
+    }
+
+    $discovered_total = $staged_pending + $staged_imported;
+    $steps = [
+      [
+        'label' => 'Discover CIO opportunities',
+        'state' => $discovered_total > 0 ? 'healthy' : 'pending',
+        'badge' => $this->renderJobHunterFlowBadge($discovered_total > 0 ? 'healthy' : 'pending', $discovered_total > 0 ? 'Healthy' : 'Pending'),
+        'signal' => $discovered_total . ' total matches (' . $staged_pending . ' still staged, ' . $staged_imported . ' already imported).',
+        'intent' => 'Keep the LangGraph intake queue fed with fresh CIO-class opportunities.',
+      ],
+      [
+        'label' => 'Import into canonical job requirements',
+        'state' => $canonical_jobs === 0 ? 'blocked' : ($canonical_jobs < $discovered_total ? 'attention' : 'healthy'),
+        'badge' => $this->renderJobHunterFlowBadge($canonical_jobs === 0 ? 'blocked' : ($canonical_jobs < $discovered_total ? 'attention' : 'healthy'), $canonical_jobs === 0 ? 'Blocked' : ($canonical_jobs < $discovered_total ? 'Attention' : 'Healthy')),
+        'signal' => $canonical_jobs . ' canonical CIO jobs for ' . $discovered_total . ' discovered matches.',
+        'intent' => 'Promote staged opportunities into the durable job requirement pipeline.',
+      ],
+      [
+        'label' => 'Bind to Keith queue',
+        'state' => $canonical_jobs === 0 ? 'pending' : ($saved_jobs >= $canonical_jobs ? 'healthy' : ($saved_jobs > 0 ? 'attention' : 'blocked')),
+        'badge' => $this->renderJobHunterFlowBadge($canonical_jobs === 0 ? 'pending' : ($saved_jobs >= $canonical_jobs ? 'healthy' : ($saved_jobs > 0 ? 'attention' : 'blocked')), $canonical_jobs === 0 ? 'Pending' : ($saved_jobs >= $canonical_jobs ? 'Healthy' : ($saved_jobs > 0 ? 'Attention' : 'Blocked'))),
+        'signal' => $saved_jobs . ' saved CIO jobs tied to Keith (uid ' . $uid . ').',
+        'intent' => 'Turn imported jobs into user-scoped work items ready for application automation.',
+      ],
+      [
+        'label' => 'Resolve apply path and create application records',
+        'state' => $applications === 0 ? 'blocked' : ($apply_ready >= $applications ? 'healthy' : 'attention'),
+        'badge' => $this->renderJobHunterFlowBadge($applications === 0 ? 'blocked' : ($apply_ready >= $applications ? 'healthy' : 'attention'), $applications === 0 ? 'Blocked' : ($apply_ready >= $applications ? 'Healthy' : 'Attention')),
+        'signal' => $applications . ' application records, ' . $apply_ready . ' with resolved apply URLs, ' . $manual_review . ' flagged for manual review.',
+        'intent' => 'Move each saved job into an actionable submission path with a destination URL and operator posture.',
+      ],
+      [
+        'label' => 'Generate tailored resume package',
+        'state' => $applications === 0 ? 'pending' : ($tailored_resumes === 0 ? 'blocked' : ($tailored_pdf_ready >= $tailored_resumes ? 'healthy' : 'attention')),
+        'badge' => $this->renderJobHunterFlowBadge($applications === 0 ? 'pending' : ($tailored_resumes === 0 ? 'blocked' : ($tailored_pdf_ready >= $tailored_resumes ? 'healthy' : 'attention')), $applications === 0 ? 'Pending' : ($tailored_resumes === 0 ? 'Blocked' : ($tailored_pdf_ready >= $tailored_resumes ? 'Healthy' : 'Attention'))),
+        'signal' => $tailored_resumes . ' tailored CIO resumes, ' . $tailored_pdf_ready . ' with PDF output.',
+        'intent' => 'Produce the per-opportunity resume artifact the submission step can actually send.',
+      ],
+      [
+        'label' => 'Submit and confirm applications',
+        'state' => $applications === 0 ? 'pending' : ($submitted > 0 ? 'healthy' : 'attention'),
+        'badge' => $this->renderJobHunterFlowBadge($applications === 0 ? 'pending' : ($submitted > 0 ? 'healthy' : 'attention'), $applications === 0 ? 'Pending' : ($submitted > 0 ? 'Healthy' : 'Attention')),
+        'signal' => $submitted . ' submissions confirmed out of ' . $applications . ' application records.',
+        'intent' => 'Close the loop from prepared application to confirmed external submission.',
+      ],
+    ];
+
+    $warnings = [];
+    if ($source_field === 'source') {
+      $warnings[] = 'jobhunter_job_requirements still exposes source; SearchAggregatorService import logic is using external_source.';
+    }
+    if ($tailored_resumes === 0 && $applications > 0) {
+      $warnings[] = 'Application prep exists, but no tailored CIO resume artifacts have been generated yet.';
+    }
+
+    return [
+      'available' => TRUE,
+      'uid' => $uid,
+      'discovered_total' => $discovered_total,
+      'staged_pending' => $staged_pending,
+      'staged_imported' => $staged_imported,
+      'canonical_jobs' => $canonical_jobs,
+      'saved_jobs' => $saved_jobs,
+      'applications' => $applications,
+      'apply_ready' => $apply_ready,
+      'manual_review' => $manual_review,
+      'tailored_resumes' => $tailored_resumes,
+      'tailored_pdf_ready' => $tailored_pdf_ready,
+      'submitted' => $submitted,
+      'warnings' => $warnings,
+      'steps' => $steps,
+      'recent_jobs' => $recent_jobs,
+    ];
   }
 
   /**
@@ -4286,6 +4530,7 @@ final class DashboardController extends ControllerBase {
     $latest_tick  = $this->readLastJsonlObject($this->langgraphPath(self::LANGGRAPH_TICKS_RELATIVE));
     $step_results = (array) ($latest_tick['step_results'] ?? []);
     $tick_ts      = (string) ($latest_tick['ts'] ?? '');
+    $cio_flow     = $this->loadJobHunterCioFlowSnapshot();
 
     // ── Orchestrator pipeline definition ────────────────────────────────────
     // Order mirrors engine.py graph.add_edge() calls.
@@ -4428,6 +4673,122 @@ final class DashboardController extends ControllerBase {
       ];
     }
 
+    // ── Site workflow: Job Hunter CIO application flow ──────────────────────
+    $build['cio_flow_heading'] = [
+      '#markup' => '<h3>' . $this->t('Job-Hunter CIO Application Flow — Live Site Snapshot') . '</h3>'
+        . '<p>' . $this->t('Site-level LangGraph monitoring slice for Keith Aumiller. This turns the existing Job Hunter application pipeline into explicit, checkable stages without changing the org-wide orchestrator graph.') . '</p>',
+    ];
+
+    if (empty($cio_flow['available'])) {
+      $build['cio_flow_unavailable'] = [
+        '#markup' => '<div class="messages messages--warning"><strong>' . $this->t('CIO workflow unavailable') . '</strong> — '
+          . $this->t('@reason', ['@reason' => (string) ($cio_flow['reason'] ?? 'Job Hunter data could not be loaded.')]) . '</div>',
+      ];
+    }
+    else {
+      $tailoring_gap = (int) $cio_flow['applications'] > 0 && (int) $cio_flow['tailored_resumes'] === 0;
+      $summary_class = $tailoring_gap ? 'warning' : 'status';
+      $summary_label = $tailoring_gap ? 'CIO Flow: ATTENTION' : 'CIO Flow: OK';
+      $summary_text = $tailoring_gap
+        ? $this->t('Discovery, import, saved-job, and application-prep stages are live, but tailored CIO resumes have not been generated yet.')
+        : $this->t('The monitored CIO workflow has active opportunities and no immediate stage gap is detected.');
+      $build['cio_flow_summary'] = [
+        '#markup' => '<div class="messages messages--' . $summary_class . '"><strong>' . $this->t($summary_label) . '</strong> — ' . $summary_text . '</div>',
+      ];
+
+      $build['cio_flow_snapshot'] = [
+        '#type' => 'table',
+        '#header' => [
+          $this->t('Metric'),
+          $this->t('Value'),
+        ],
+        '#rows' => [
+          [$this->t('Target profile'), $this->t('Keith Aumiller (uid @uid)', ['@uid' => (string) $cio_flow['uid']])],
+          [$this->t('Discovered CIO matches'), (string) $cio_flow['discovered_total']],
+          [$this->t('Still staged'), (string) $cio_flow['staged_pending']],
+          [$this->t('Imported from staging'), (string) $cio_flow['staged_imported']],
+          [$this->t('Canonical CIO jobs'), (string) $cio_flow['canonical_jobs']],
+          [$this->t('Saved CIO jobs'), (string) $cio_flow['saved_jobs']],
+          [$this->t('Application records'), (string) $cio_flow['applications']],
+          [$this->t('Apply URLs resolved'), (string) $cio_flow['apply_ready']],
+          [$this->t('Manual review flags'), (string) $cio_flow['manual_review']],
+          [$this->t('Tailored resumes'), (string) $cio_flow['tailored_resumes']],
+          [$this->t('Tailored PDFs ready'), (string) $cio_flow['tailored_pdf_ready']],
+          [$this->t('Confirmed submissions'), (string) $cio_flow['submitted']],
+        ],
+      ];
+
+      $cio_rows = [];
+      foreach ((array) $cio_flow['steps'] as $step_index => $step) {
+        $cio_rows[] = [
+          (string) ($step_index + 1),
+          (string) ($step['label'] ?? ''),
+          (string) ($step['intent'] ?? ''),
+          (string) ($step['signal'] ?? ''),
+          ['data' => ['#markup' => (string) ($step['badge'] ?? '')]],
+        ];
+      }
+      $build['cio_flow_steps'] = [
+        '#type' => 'table',
+        '#header' => [
+          $this->t('#'),
+          $this->t('Stage'),
+          $this->t('Automation intent'),
+          $this->t('Live signal'),
+          $this->t('Status'),
+        ],
+        '#rows' => $cio_rows,
+        '#empty' => $this->t('No CIO workflow steps available.'),
+      ];
+
+      if (!empty($cio_flow['warnings'])) {
+        $warning_items = array_map(static fn(string $warning): string => Html::escape($warning), (array) $cio_flow['warnings']);
+        $build['cio_flow_warnings'] = [
+          '#markup' => '<h4>' . $this->t('Flow warnings') . '</h4><ul><li>' . implode('</li><li>', $warning_items) . '</li></ul>',
+        ];
+      }
+
+      $recent_job_rows = [];
+      foreach ((array) $cio_flow['recent_jobs'] as $job) {
+        $apply_target = trim((string) ($job['apply_url'] ?? ''));
+        if ($apply_target === '') {
+          $apply_target = '—';
+        }
+        elseif (strlen($apply_target) > 90) {
+          $apply_target = substr($apply_target, 0, 87) . '...';
+        }
+
+        $recent_job_rows[] = [
+          '#' . (string) ($job['id'] ?? 0) . ' · ' . (string) ($job['job_title'] ?? ''),
+          (string) (($job['source_label'] ?? '') !== '' ? $job['source_label'] : '—'),
+          !empty($job['saved_job_id']) ? $this->t('Saved') : $this->t('Not saved'),
+          (string) (($job['tailoring_status'] ?? '') !== '' ? $job['tailoring_status'] : 'not_started'),
+          !empty($job['pdf_generated']) ? $this->t('PDF ready') : $this->t('PDF pending'),
+          (string) (($job['submission_status'] ?? '') !== '' ? $job['submission_status'] : 'not_started'),
+          !empty($job['admin_review_required']) ? $this->t('Yes') : $this->t('No'),
+          $apply_target,
+        ];
+      }
+      $build['cio_flow_recent_jobs'] = [
+        '#markup' => '<h4>' . $this->t('Recent canonical CIO jobs') . '</h4>',
+      ];
+      $build['cio_flow_recent_jobs_table'] = [
+        '#type' => 'table',
+        '#header' => [
+          $this->t('Job'),
+          $this->t('Source'),
+          $this->t('Saved'),
+          $this->t('Tailoring'),
+          $this->t('PDF'),
+          $this->t('Application'),
+          $this->t('Manual review'),
+          $this->t('Apply target'),
+        ],
+        '#rows' => $recent_job_rows,
+        '#empty' => $this->t('No canonical CIO jobs found.'),
+      ];
+    }
+
     // ── Registered workflows summary ─────────────────────────────────────────
     $build['other_flows_heading'] = [
       '#markup' => '<h3>' . $this->t('Registered Workflows') . '</h3>',
@@ -4447,6 +4808,12 @@ final class DashboardController extends ControllerBase {
           $this->t('forseti.life'),
           $this->t('⬜ Planned'),
           $this->t('LangGraph-driven job-posting intake and triage — scoping pending.'),
+        ],
+        [
+          $this->t('Job-Hunter CIO Application Flow'),
+          $this->t('forseti.life'),
+          $this->t('🟡 In Progress'),
+          $this->t('Live monitoring slice for Keith CIO opportunities: staging, import, queue binding, tailoring, and submission readiness.'),
         ],
         [
           $this->t('PF2E Encounter Flow'),

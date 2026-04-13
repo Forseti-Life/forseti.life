@@ -1879,32 +1879,38 @@ class CompanyController extends ControllerBase {
           ->fetchCol();
       }
 
+      $contact_name_field = $this->getContactNameField();
+      $contact_title_field = $this->getContactTitleField();
+      $contact_has_company_id = $this->database->schema()->fieldExists('jobhunter_contacts', 'company_id');
+      $contact_has_company_name = $this->database->schema()->fieldExists('jobhunter_contacts', 'company_name');
+
       $referral_rows = [];
       $other_rows = [];
       if (!empty($linked_contacts)) {
-        $contact_rows = $this->database->select('jobhunter_contacts', 'ct')
-          ->fields('ct', ['id', 'full_name', 'job_title', 'relationship_type', 'referral_status'])
+        $contact_query = $this->database->select('jobhunter_contacts', 'ct');
+        $contact_query->fields('ct', ['id', $contact_name_field, $contact_title_field, 'relationship_type', 'referral_status']);
+        $contact_rows = $contact_query
           ->condition('ct.id', $linked_contacts, 'IN')
           ->condition('ct.uid', $uid)
-          ->orderBy('ct.full_name')
+          ->orderBy('ct.' . $contact_name_field)
           ->execute()
           ->fetchAll();
         foreach ($contact_rows as $c) {
           $edit_url = Url::fromRoute('job_hunter.contacts_edit', ['contact_id' => $c->id])->toString();
           $ref_badge = '';
-          if ($c->referral_status === 'referred') {
-            $ref_badge = ' <span style="display:inline-block;background:#d1fae5;color:#065f46;padding:2px 7px;border-radius:999px;font-size:0.8em;font-weight:600;">Referred</span>';
+          if ($c->referral_status === 'provided') {
+            $ref_badge = ' <span style="display:inline-block;background:#d1fae5;color:#065f46;padding:2px 7px;border-radius:999px;font-size:0.8em;font-weight:600;">Provided</span>';
           }
-          elseif ($c->referral_status === 'pending-referral') {
+          elseif ($c->referral_status === 'pending') {
             $ref_badge = ' <span style="display:inline-block;background:#fef3c7;color:#92400e;padding:2px 7px;border-radius:999px;font-size:0.8em;font-weight:600;">Pending Referral</span>';
           }
           $row_html = '<tr>'
-            . '<td>' . htmlspecialchars((string) $c->full_name) . $ref_badge . '</td>'
-            . '<td>' . htmlspecialchars((string) ($c->job_title ?? '')) . '</td>'
+            . '<td>' . htmlspecialchars((string) ($c->{$contact_name_field} ?? '')) . $ref_badge . '</td>'
+            . '<td>' . htmlspecialchars((string) ($c->{$contact_title_field} ?? '')) . '</td>'
             . '<td>' . htmlspecialchars((string) $c->relationship_type) . '</td>'
             . '<td><a href="' . htmlspecialchars($edit_url) . '">Edit</a></td>'
             . '</tr>';
-          if ($c->referral_status === 'referred') {
+          if ($c->referral_status === 'provided') {
             $referral_rows[] = $row_html;
           }
           else {
@@ -1913,28 +1919,54 @@ class CompanyController extends ControllerBase {
         }
       }
 
-      // Also show company-name-match contacts not already linked.
+      $job_company_id = $this->database->select('jobhunter_job_requirements', 'jr')
+        ->fields('jr', ['company_id'])
+        ->condition('jr.id', (int) $job_id)
+        ->range(0, 1)
+        ->execute()
+        ->fetchField();
+
+      // Also show same-company contacts not already linked.
       $job_company_name = $extracted['company_name'] ?? NULL;
-      if (!empty($job_company_name)) {
-        $exclude_ids = !empty($linked_contacts) ? $linked_contacts : [0];
-        $company_match = $this->database->select('jobhunter_contacts', 'ct')
-          ->fields('ct', ['id', 'full_name', 'job_title', 'relationship_type', 'referral_status', 'company_name'])
+      $exclude_ids = !empty($linked_contacts) ? array_map('intval', $linked_contacts) : [0];
+      $company_match = [];
+
+      if ($job_company_id && $contact_has_company_id) {
+        $company_match_query = $this->database->select('jobhunter_contacts', 'ct');
+        $company_match_query->fields('ct', ['id', $contact_name_field, $contact_title_field, 'relationship_type', 'referral_status']);
+        if ($contact_has_company_name) {
+          $company_match_query->addField('ct', 'company_name', 'legacy_company_name');
+        }
+        $company_match = $company_match_query
+          ->condition('ct.uid', $uid)
+          ->condition('ct.company_id', (int) $job_company_id)
+          ->condition('ct.id', $exclude_ids, 'NOT IN')
+          ->orderBy('ct.' . $contact_name_field)
+          ->execute()
+          ->fetchAll();
+      }
+
+      if (empty($company_match) && !empty($job_company_name) && $contact_has_company_name) {
+        $company_match_query = $this->database->select('jobhunter_contacts', 'ct');
+        $company_match_query->fields('ct', ['id', $contact_name_field, $contact_title_field, 'relationship_type', 'referral_status', 'company_name']);
+        $company_match = $company_match_query
           ->condition('ct.uid', $uid)
           ->condition('ct.company_name', $job_company_name)
           ->condition('ct.id', $exclude_ids, 'NOT IN')
-          ->orderBy('ct.full_name')
+          ->orderBy('ct.' . $contact_name_field)
           ->execute()
           ->fetchAll();
-        foreach ($company_match as $c) {
-          $edit_url = Url::fromRoute('job_hunter.contacts_edit', ['contact_id' => $c->id])->toString();
-          $other_rows[] = '<tr>'
-            . '<td>' . htmlspecialchars((string) $c->full_name)
-            . ' <span style="display:inline-block;background:#e0e7ff;color:#3730a3;padding:2px 7px;border-radius:999px;font-size:0.8em;">Company match</span></td>'
-            . '<td>' . htmlspecialchars((string) ($c->job_title ?? '')) . '</td>'
-            . '<td>' . htmlspecialchars((string) $c->relationship_type) . '</td>'
-            . '<td><a href="' . htmlspecialchars($edit_url) . '">Edit</a></td>'
-            . '</tr>';
-        }
+      }
+
+      foreach ($company_match as $c) {
+        $edit_url = Url::fromRoute('job_hunter.contacts_edit', ['contact_id' => $c->id])->toString();
+        $other_rows[] = '<tr>'
+          . '<td>' . htmlspecialchars((string) ($c->{$contact_name_field} ?? ''))
+          . ' <span style="display:inline-block;background:#e0e7ff;color:#3730a3;padding:2px 7px;border-radius:999px;font-size:0.8em;">Company match</span></td>'
+          . '<td>' . htmlspecialchars((string) ($c->{$contact_title_field} ?? '')) . '</td>'
+          . '<td>' . htmlspecialchars((string) $c->relationship_type) . '</td>'
+          . '<td><a href="' . htmlspecialchars($edit_url) . '">Edit</a></td>'
+          . '</tr>';
       }
 
       if (!empty($referral_rows) || !empty($other_rows)) {
@@ -3865,26 +3897,124 @@ HTML;
   }
 
   /**
-   * Valid contact relationship types (release-e: colleague/recruiter/friend/alumni/other).
+   * Valid contact relationship types.
+   *
+   * Supports the original brief plus PM-approved extensions.
    */
-  const CONTACT_RELATIONSHIP_TYPES = ['colleague', 'recruiter', 'friend', 'alumni', 'other'];
+  const CONTACT_RELATIONSHIP_TYPES = ['warm', 'cold', 'referral', 'recruiter', 'hiring_manager', 'connection'];
 
   /**
-   * Valid contact referral status values (release-e: none/referred/pending-referral).
+   * Valid contact referral status values.
    */
-  const CONTACT_REFERRAL_STATUSES = ['none', 'referred', 'pending-referral'];
+  const CONTACT_REFERRAL_STATUSES = ['none', 'requested', 'pending', 'provided'];
+
+  /**
+   * Resolve the preferred contact name column for the current schema.
+   */
+  protected function getContactNameField(): string {
+    return $this->database->schema()->fieldExists('jobhunter_contacts', 'name') ? 'name' : 'full_name';
+  }
+
+  /**
+   * Resolve the preferred contact title column for the current schema.
+   */
+  protected function getContactTitleField(): string {
+    return $this->database->schema()->fieldExists('jobhunter_contacts', 'title') ? 'title' : 'job_title';
+  }
+
+  /**
+   * Load company options for contact forms.
+   *
+   * @return array<int, string>
+   *   Company options keyed by company id.
+   */
+  protected function getContactCompanyOptions(): array {
+    $companies = $this->database->select('jobhunter_companies', 'c')
+      ->fields('c', ['id', 'name'])
+      ->orderBy('c.name', 'ASC')
+      ->execute()
+      ->fetchAllKeyed();
+
+    return array_map('strval', $companies);
+  }
+
+  /**
+   * Normalize contact relationship values across schema generations.
+   */
+  protected function normalizeContactRelationshipType(string $relationship_type): string {
+    $normalized = [
+      'colleague' => 'connection',
+      'friend' => 'connection',
+      'alumni' => 'connection',
+      'other' => 'cold',
+    ][trim($relationship_type)] ?? trim($relationship_type);
+
+    if (!in_array($normalized, self::CONTACT_RELATIONSHIP_TYPES, TRUE)) {
+      return 'connection';
+    }
+
+    return $normalized;
+  }
+
+  /**
+   * Normalize legacy referral statuses to the current contract.
+   */
+  protected function normalizeContactReferralStatus(string $referral_status): string {
+    $normalized = [
+      'referred' => 'provided',
+      'pending-referral' => 'pending',
+    ][trim($referral_status)] ?? trim($referral_status);
+
+    if (!in_array($normalized, self::CONTACT_REFERRAL_STATUSES, TRUE)) {
+      return 'none';
+    }
+
+    return $normalized;
+  }
+
+  /**
+   * Try to resolve a company id from a legacy company name snapshot.
+   */
+  protected function resolveCompanyIdFromLegacyName(?string $company_name): ?int {
+    $company_name = trim((string) $company_name);
+    if ($company_name === '') {
+      return NULL;
+    }
+
+    $company_id = $this->database->select('jobhunter_companies', 'c')
+      ->fields('c', ['id'])
+      ->condition('c.name', $company_name)
+      ->range(0, 1)
+      ->execute()
+      ->fetchField();
+
+    return $company_id !== FALSE ? (int) $company_id : NULL;
+  }
 
   /**
    * Renders the contacts list at /jobhunter/contacts.
    */
   public function contactsList(): array {
     $uid = (int) $this->currentUser()->id();
+    $contact_name_field = $this->getContactNameField();
+    $contact_title_field = $this->getContactTitleField();
+    $contact_has_company_id = $this->database->schema()->fieldExists('jobhunter_contacts', 'company_id');
+    $contact_has_company_name = $this->database->schema()->fieldExists('jobhunter_contacts', 'company_name');
 
     try {
-      $contacts = $this->database->select('jobhunter_contacts', 'ct')
-        ->fields('ct', ['id', 'full_name', 'job_title', 'company_name', 'relationship_type', 'last_contact_date', 'referral_status', 'changed'])
+      $query = $this->database->select('jobhunter_contacts', 'ct');
+      $query->fields('ct', ['id', $contact_name_field, $contact_title_field, 'relationship_type', 'last_contact_date', 'referral_status', 'changed']);
+      if ($contact_has_company_id) {
+        $query->addField('ct', 'company_id');
+        $query->leftJoin('jobhunter_companies', 'c', 'ct.company_id = c.id');
+        $query->addField('c', 'name', 'company_display_name');
+      }
+      if ($contact_has_company_name) {
+        $query->addField('ct', 'company_name', 'legacy_company_name');
+      }
+      $contacts = $query
         ->condition('ct.uid', $uid)
-        ->orderBy('ct.full_name', 'ASC')
+        ->orderBy('ct.' . $contact_name_field, 'ASC')
         ->execute()
         ->fetchAll();
     }
@@ -3898,22 +4028,30 @@ HTML;
       $edit_url = Url::fromRoute('job_hunter.contacts_edit', ['contact_id' => $ct->id])->toString();
       $del_csrf  = \Drupal::csrfToken()->get('job_hunter.contacts_delete.' . $ct->id);
       $del_url   = Url::fromRoute('job_hunter.contacts_delete', ['contact_id' => $ct->id])->toString() . '?token=' . rawurlencode($del_csrf);
+      $company_display = (string) ($ct->company_display_name ?? $ct->legacy_company_name ?? '—');
+      $relationship_label = ucwords(str_replace('_', ' ', str_replace('-', ' ', (string) $ct->relationship_type)));
       $ref_badge = '';
-      if ($ct->referral_status === 'referred') {
-        $ref_badge = ' <span style="background:#28a745;color:#fff;padding:2px 6px;border-radius:4px;font-size:0.8em;">Referred</span>';
+      if ($ct->referral_status === 'provided') {
+        $ref_badge = ' <span style="background:#28a745;color:#fff;padding:2px 6px;border-radius:4px;font-size:0.8em;">Provided</span>';
       }
-      elseif ($ct->referral_status === 'pending-referral') {
+      elseif ($ct->referral_status === 'pending') {
         $ref_badge = ' <span style="background:#fd7e14;color:#fff;padding:2px 6px;border-radius:4px;font-size:0.8em;">Pending</span>';
       }
+      elseif ($ct->referral_status === 'requested') {
+        $ref_badge = ' <span style="background:#0d6efd;color:#fff;padding:2px 6px;border-radius:4px;font-size:0.8em;">Requested</span>';
+      }
+      $delete_form = '<form method="post" action="' . htmlspecialchars($del_url) . '" style="display:inline;margin:0;">'
+        . '<button type="submit" class="link-button" onclick="return confirm(\'Delete this contact?\')">Delete</button>'
+        . '</form>';
       $rows[] = [
         'data' => [
-          ['data' => ['#markup' => htmlspecialchars((string) $ct->full_name)]],
-          ['data' => ['#markup' => htmlspecialchars((string) ($ct->company_name ?? '—'))]],
-          ['data' => ['#markup' => htmlspecialchars(ucwords(str_replace('_', ' ', (string) $ct->relationship_type)))]],
+          ['data' => ['#markup' => htmlspecialchars((string) ($ct->{$contact_name_field} ?? ''))]],
+          ['data' => ['#markup' => htmlspecialchars($company_display)]],
+          ['data' => ['#markup' => htmlspecialchars((string) ($ct->{$contact_title_field} ?? '—'))]],
+          ['data' => ['#markup' => htmlspecialchars($relationship_label)]],
           ['data' => ['#markup' => htmlspecialchars((string) ($ct->last_contact_date ?? '—'))]],
           ['data' => ['#markup' => htmlspecialchars(ucfirst(str_replace('-', ' ', (string) $ct->referral_status))) . $ref_badge]],
-          ['data' => ['#markup' => '<a href="' . htmlspecialchars($edit_url) . '">Edit</a> | '
-            . '<a href="' . htmlspecialchars($del_url) . '" onclick="return confirm(\'Delete this contact?\')">Delete</a>']],
+          ['data' => ['#markup' => '<a href="' . htmlspecialchars($edit_url) . '">Edit</a> | ' . $delete_form]],
         ],
       ];
     }
@@ -3921,10 +4059,10 @@ HTML;
     $add_url = Url::fromRoute('job_hunter.contacts_add')->toString();
 
     $content = [
-      'add_link' => ['#markup' => '<p><a href="' . htmlspecialchars($add_url) . '" class="button">+ Add Contact</a></p>'],
+      'add_link' => ['#markup' => '<p><a href="' . htmlspecialchars($add_url) . '" class="button">+ Add Contact</a></p><style>.link-button{background:none;border:none;color:#0d6efd;padding:0;font:inherit;cursor:pointer;text-decoration:underline;}</style>'],
       'table' => [
         '#type' => 'table',
-        '#header' => [$this->t('Name'), $this->t('Company'), $this->t('Relationship'), $this->t('Last Contact'), $this->t('Referral Status'), $this->t('Actions')],
+        '#header' => [$this->t('Name'), $this->t('Company'), $this->t('Title'), $this->t('Relationship'), $this->t('Last Contact'), $this->t('Referral Status'), $this->t('Actions')],
         '#rows' => $rows,
         '#empty' => $this->t('No contacts yet. Click "Add Contact" to get started.'),
         '#attributes' => ['class' => ['contacts-list']],
@@ -3940,6 +4078,8 @@ HTML;
   public function contactForm($contact_id = NULL): array {
     $uid = (int) $this->currentUser()->id();
     $contact_id = $contact_id !== NULL ? (int) $contact_id : NULL;
+    $contact_name_field = $this->getContactNameField();
+    $contact_title_field = $this->getContactTitleField();
 
     $existing = NULL;
     if ($contact_id !== NULL) {
@@ -3982,29 +4122,43 @@ HTML;
       }
     }
 
+    $company_options = $this->getContactCompanyOptions();
+    if (empty($company_options)) {
+      return $this->wrapWithNavigation([
+        '#markup' => $this->t('No companies are available yet. Add or import a company before creating contacts.'),
+      ]);
+    }
+
     $save_csrf = \Drupal::csrfToken()->get('job_hunter.contacts_save');
     $save_url  = Url::fromRoute('job_hunter.contacts_save')->toString() . '?token=' . rawurlencode($save_csrf);
 
-    $full_name_val  = htmlspecialchars((string) ($existing['full_name'] ?? ''));
-    $job_title_val  = htmlspecialchars((string) ($existing['job_title'] ?? ''));
-    $company_val    = htmlspecialchars((string) ($existing['company_name'] ?? ''));
-    $linkedin_val   = htmlspecialchars((string) ($existing['linkedin_url'] ?? ''));
+    $resolved_company_id = isset($existing['company_id']) && $existing['company_id'] !== NULL
+      ? (int) $existing['company_id']
+      : $this->resolveCompanyIdFromLegacyName($existing['company_name'] ?? NULL);
+    $full_name_val  = htmlspecialchars((string) ($existing[$contact_name_field] ?? $existing['full_name'] ?? ''));
+    $job_title_val  = htmlspecialchars((string) ($existing[$contact_title_field] ?? $existing['job_title'] ?? ''));
     $notes_val      = htmlspecialchars((string) ($existing['notes'] ?? ''));
-    $rel_val        = (string) ($existing['relationship_type'] ?? 'other');
+    $rel_val        = $this->normalizeContactRelationshipType((string) ($existing['relationship_type'] ?? 'connection'));
     $id_field       = $contact_id !== NULL ? '<input type="hidden" name="contact_id" value="' . $contact_id . '">' : '';
     $lcd_val        = htmlspecialchars((string) ($existing['last_contact_date'] ?? ''));
-    $ref_val        = (string) ($existing['referral_status'] ?? 'none');
+    $ref_val        = $this->normalizeContactReferralStatus((string) ($existing['referral_status'] ?? 'none'));
 
     $rel_options = '';
     foreach (self::CONTACT_RELATIONSHIP_TYPES as $r) {
       $sel = ($rel_val === $r) ? ' selected' : '';
-      $rel_options .= '<option value="' . $r . '"' . $sel . '>' . htmlspecialchars(ucwords(str_replace('_', ' ', $r))) . '</option>';
+      $rel_options .= '<option value="' . $r . '"' . $sel . '>' . htmlspecialchars(ucwords(str_replace('_', ' ', str_replace('-', ' ', $r)))) . '</option>';
     }
 
     $ref_options = '';
     foreach (self::CONTACT_REFERRAL_STATUSES as $s) {
       $sel = ($ref_val === $s) ? ' selected' : '';
       $ref_options .= '<option value="' . $s . '"' . $sel . '>' . htmlspecialchars(ucfirst(str_replace('-', ' ', $s))) . '</option>';
+    }
+
+    $company_select_options = '<option value="">— Select a company —</option>';
+    foreach ($company_options as $company_option_id => $company_label) {
+      $sel = ($resolved_company_id === (int) $company_option_id) ? ' selected' : '';
+      $company_select_options .= '<option value="' . (int) $company_option_id . '"' . $sel . '>' . htmlspecialchars($company_label) . '</option>';
     }
 
     $heading = $contact_id !== NULL ? 'Edit Contact' : 'Add Contact';
@@ -4049,24 +4203,20 @@ JLHTML;
   <form method="post" action="{$save_url}">
     {$id_field}
     <div style="margin-bottom:1em;">
-      <label><strong>Full Name *</strong></label><br>
-      <input type="text" name="full_name" value="{$full_name_val}" required style="width:100%;max-width:400px;">
+      <label><strong>Name *</strong></label><br>
+      <input type="text" name="name" value="{$full_name_val}" required style="width:100%;max-width:400px;">
     </div>
     <div style="margin-bottom:1em;">
-      <label><strong>Job Title</strong> (optional)</label><br>
-      <input type="text" name="job_title" value="{$job_title_val}" style="width:100%;max-width:400px;">
+      <label><strong>Company *</strong></label><br>
+      <select name="company_id" required style="width:100%;max-width:400px;">{$company_select_options}</select>
     </div>
     <div style="margin-bottom:1em;">
-      <label><strong>Company Name *</strong></label><br>
-      <input type="text" name="company_name" value="{$company_val}" required style="width:100%;max-width:400px;">
+      <label><strong>Title</strong> (optional)</label><br>
+      <input type="text" name="title" value="{$job_title_val}" style="width:100%;max-width:400px;">
     </div>
     <div style="margin-bottom:1em;">
       <label><strong>Relationship Type</strong></label><br>
       <select name="relationship_type">{$rel_options}</select>
-    </div>
-    <div style="margin-bottom:1em;">
-      <label><strong>LinkedIn URL</strong> (optional, must start with https://linkedin.com/)</label><br>
-      <input type="url" name="linkedin_url" value="{$linkedin_val}" style="width:100%;max-width:400px;">
     </div>
     <div style="margin-bottom:1em;">
       <label><strong>Last Contact Date</strong> (optional)</label><br>
@@ -4096,53 +4246,84 @@ HTML;
   public function contactSave(): \Symfony\Component\HttpFoundation\Response {
     $uid     = (int) $this->currentUser()->id();
     $request = $this->requestStack->getCurrentRequest();
+    $contact_name_field = $this->getContactNameField();
+    $contact_title_field = $this->getContactTitleField();
+    $contact_has_full_name = $this->database->schema()->fieldExists('jobhunter_contacts', 'full_name');
+    $contact_has_job_title = $this->database->schema()->fieldExists('jobhunter_contacts', 'job_title');
+    $contact_has_company_id = $this->database->schema()->fieldExists('jobhunter_contacts', 'company_id');
+    $contact_has_company_name = $this->database->schema()->fieldExists('jobhunter_contacts', 'company_name');
 
     $contact_id        = $request->request->get('contact_id', NULL);
     $contact_id        = ($contact_id !== NULL && $contact_id !== '') ? (int) $contact_id : NULL;
-    $full_name         = strip_tags((string) $request->request->get('full_name', ''));
-    $job_title         = strip_tags((string) $request->request->get('job_title', ''));
-    $company_name      = strip_tags((string) $request->request->get('company_name', ''));
-    $rel_type          = (string) $request->request->get('relationship_type', 'other');
-    $linkedin_raw      = strip_tags((string) $request->request->get('linkedin_url', ''));
+    $full_name         = strip_tags((string) $request->request->get('name', $request->request->get('full_name', '')));
+    $job_title         = strip_tags((string) $request->request->get('title', $request->request->get('job_title', '')));
+    $company_id        = (int) $request->request->get('company_id', 0);
+    $rel_type          = $this->normalizeContactRelationshipType((string) $request->request->get('relationship_type', 'connection'));
     $notes             = strip_tags((string) $request->request->get('notes', ''));
     $last_contact_date = preg_replace('/[^0-9\-]/', '', (string) $request->request->get('last_contact_date', ''));
-    $referral_status   = (string) $request->request->get('referral_status', 'none');
+    $referral_status   = $this->normalizeContactReferralStatus((string) $request->request->get('referral_status', 'none'));
+    $redirect_route = $contact_id !== NULL
+      ? Url::fromRoute('job_hunter.contacts_edit', ['contact_id' => $contact_id])->toString()
+      : Url::fromRoute('job_hunter.contacts_add')->toString();
 
     if ($full_name === '') {
-      $this->messenger()->addError($this->t('Contact full name is required.'));
+      $this->messenger()->addError($this->t('Contact name is required.'));
       return new \Symfony\Component\HttpFoundation\RedirectResponse(
-        Url::fromRoute('job_hunter.contacts_add')->toString()
+        $redirect_route
       );
     }
 
-    if ($company_name === '') {
-      $this->messenger()->addError($this->t('Company name is required.'));
+    if ($company_id <= 0) {
+      $this->messenger()->addError($this->t('Company is required.'));
       return new \Symfony\Component\HttpFoundation\RedirectResponse(
-        Url::fromRoute('job_hunter.contacts_add')->toString()
+        $redirect_route
       );
     }
 
-    if (!in_array($rel_type, self::CONTACT_RELATIONSHIP_TYPES, TRUE)) {
-      $rel_type = 'other';
+    if ($last_contact_date !== '' && !preg_match('/^\d{4}-\d{2}-\d{2}$/', $last_contact_date)) {
+      $this->messenger()->addError($this->t('Last contact date must use YYYY-MM-DD format.'));
+      return new \Symfony\Component\HttpFoundation\RedirectResponse(
+        $redirect_route
+      );
     }
 
-    if (!in_array($referral_status, self::CONTACT_REFERRAL_STATUSES, TRUE)) {
-      $referral_status = 'none';
-    }
+    $company = $this->database->select('jobhunter_companies', 'c')
+      ->fields('c', ['id', 'name'])
+      ->condition('c.id', $company_id)
+      ->range(0, 1)
+      ->execute()
+      ->fetchObject();
 
-    // SEC-4: LinkedIn URL validation — must start with https://linkedin.com/.
-    $linkedin_url = '';
-    if ($linkedin_raw !== '') {
-      if (!str_starts_with($linkedin_raw, 'https://linkedin.com/') && !str_starts_with($linkedin_raw, 'https://www.linkedin.com/')) {
-        $this->messenger()->addError($this->t('LinkedIn URL must start with https://linkedin.com/.'));
-        return new \Symfony\Component\HttpFoundation\RedirectResponse(
-          Url::fromRoute('job_hunter.contacts_add')->toString()
-        );
-      }
-      $linkedin_url = $linkedin_raw;
+    if (!$company) {
+      $this->messenger()->addError($this->t('Selected company was not found.'));
+      return new \Symfony\Component\HttpFoundation\RedirectResponse(
+        $redirect_route
+      );
     }
 
     $now = \Drupal::time()->getRequestTime();
+    $fields = [
+      $contact_name_field => $full_name,
+      $contact_title_field => $job_title ?: NULL,
+      'relationship_type' => $rel_type,
+      'notes' => $notes ?: NULL,
+      'last_contact_date' => $last_contact_date ?: NULL,
+      'referral_status' => $referral_status,
+      'changed' => $now,
+    ];
+
+    if ($contact_has_full_name) {
+      $fields['full_name'] = $full_name;
+    }
+    if ($contact_has_job_title) {
+      $fields['job_title'] = $job_title ?: NULL;
+    }
+    if ($contact_has_company_id) {
+      $fields['company_id'] = (int) $company->id;
+    }
+    if ($contact_has_company_name) {
+      $fields['company_name'] = (string) $company->name;
+    }
 
     try {
       if ($contact_id !== NULL) {
@@ -4160,17 +4341,7 @@ HTML;
           );
         }
         $this->database->update('jobhunter_contacts')
-          ->fields([
-            'full_name'         => $full_name,
-            'job_title'         => $job_title ?: NULL,
-            'company_name'      => $company_name,
-            'relationship_type' => $rel_type,
-            'linkedin_url'      => $linkedin_url ?: NULL,
-            'notes'             => $notes ?: NULL,
-            'last_contact_date' => $last_contact_date ?: NULL,
-            'referral_status'   => $referral_status,
-            'changed'           => $now,
-          ])
+          ->fields($fields)
           ->condition('id', $contact_id)
           ->condition('uid', $uid)
           ->execute();
@@ -4179,20 +4350,10 @@ HTML;
         $redirect_id = $contact_id;
       }
       else {
+        $fields['uid'] = $uid;
+        $fields['created'] = $now;
         $redirect_id = $this->database->insert('jobhunter_contacts')
-          ->fields([
-            'uid'               => $uid,
-            'full_name'         => $full_name,
-            'job_title'         => $job_title ?: NULL,
-            'company_name'      => $company_name,
-            'relationship_type' => $rel_type,
-            'linkedin_url'      => $linkedin_url ?: NULL,
-            'notes'             => $notes ?: NULL,
-            'last_contact_date' => $last_contact_date ?: NULL,
-            'referral_status'   => $referral_status,
-            'created'           => $now,
-            'changed'           => $now,
-          ])
+          ->fields($fields)
           ->execute();
         // SEC-5: log uid + id only.
         $this->getLogger('job_hunter')->info('Contact created: uid=@uid id=@id', ['@uid' => $uid, '@id' => $redirect_id]);

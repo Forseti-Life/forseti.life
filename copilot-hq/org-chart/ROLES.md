@@ -27,7 +27,7 @@ This org uses a small set of roles to enforce checks-and-balances.
 - Docs: `org-chart/roles/security-analyst.md`, `org-chart/roles/security-analyst.instructions.md`
 
 ## Accountant
-- Owns financial operations visibility for product spend, reconciles vendor billing, tracks expenditures, and recommends cost-control actions to leadership.
+- Owns financial operations visibility for product income and spend, reconciles billing and cash records, tracks financial commitments, and recommends control or optimization actions to leadership.
 - Docs: `org-chart/roles/accountant.md`, `org-chart/roles/accountant.instructions.md`
 
 ## Source of Truth

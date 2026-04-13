@@ -24,6 +24,7 @@ That page is rendered from this file. CEO and architect seats must treat the roa
 | PROJ-005 | AI Conversation | product line | forseti.life | foundation_in_place | P1 | pm-forseti | 2026-04-12 |
 | PROJ-006 | Community Safety | product line | forseti.life | public_platform_track | P2 | pm-forseti | 2026-04-12 |
 | PROJ-007 | Dungeoncrawler Product Track | product line | dungeoncrawler | separate_product_site | P1 | pm-dungeoncrawler | 2026-04-13 |
+| PROJ-008 | Forseti Accounting Pipeline | delivery project | forseti.life | in_progress | P1 | accountant-forseti | 2026-04-13 |
 | PROJ-001 | LangGraph Console UI | delivery project | forseti.life | in_progress | P1 | pm-forseti | 2026-04-05 |
 | PROJ-002 | QA Suite Completeness | delivery project | forseti.life | in_progress | P2 | pm-forseti / qa-forseti | 2026-04-09 |
 | PROJ-003 | DungeonCrawler Roadmap Completion | delivery project | dungeoncrawler | in_progress | P1 | pm-dungeoncrawler | 2026-03-01 |
@@ -98,6 +99,24 @@ That page is rendered from this file. CEO and architect seats must treat the roa
 **Next step:** Activate ready features for release-i (10-feature cap; activate gnome feat cluster first as it is the deepest groomed batch). After dev/QA cycle completes, queue BA decomposition for `core/ch01` and `core/ch02` — these are the largest unaddressed pending gaps (608 requirements combined).
 
 **Queue status:** 14 features in dev/QA pipeline (release-e/f/g); 23 features `ready` for release-i activation; BA decomposition for core/ch01 and core/ch02 not yet dispatched (next major roadmap gap to close).
+
+---
+
+## PROJ-008 — Forseti Accounting Pipeline
+
+**Scope:** Establish Forseti's repeatable accounting operating model: daily income/expense capture, cash reconciliation, daily flash P&L, monthly close, renewal tracking, anomaly logging, and the smallest finance system stack needed to keep reporting trustworthy as volume grows.
+
+**Owner / primary developer:** `accountant-forseti`
+
+**Current state (2026-04-13):** Foundation documentation is in place and the active April 2026 finance workspace has now been opened under `dashboards/finance/`, including `daily-p-and-l-2026-04.md`, `income-ledger-2026-04.md`, `expense-ledger-2026-04.md`, and `vendor-reconciliation-2026-04.md`. The project is still blocked on live source hookup: no authoritative income, expense, or cash sources have been confirmed yet, so the new April artifacts are placeholders rather than actual reported figures.
+
+**Last scoped release:** `20260412-forseti-release-h` (operations/process foundation defined; no product feature activation yet)
+
+**Progress SLA:** 7 days without a CEO/accountant update, source-system hookup decision, or April artifact population from live sources = breach
+
+**Next step:** CEO should confirm the authoritative live income, expense, and cash sources for Forseti so `accountant-forseti` can replace the April placeholders with source-backed entries and begin daily reconciliation.
+
+**Queue status:** Project registered in roadmap; process docs and active April finance artifacts exist; blocker is the missing live source decision for income, expenses, and cash evidence.
 
 ---
 
@@ -311,4 +330,4 @@ See `runbooks/roadmap-audit.md` for full query protocol and per-chapter status.
 
 ---
 
-*Last updated: 2026-04-13 by pm-dungeoncrawler (PROJ-007 roadmap process refresh — DB gap analysis, ready pool + active pipeline reconciled)*
+*Last updated: 2026-04-13 by accountant-forseti (PROJ-008 registered — Forseti accounting pipeline added to CEO roadmap registry)*

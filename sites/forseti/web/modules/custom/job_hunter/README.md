@@ -21,6 +21,7 @@ This module has comprehensive documentation organized for different audiences:
 A comprehensive AI-powered Drupal module that automates the entire job application process using Generative AI. This system analyzes user resumes, scrapes job postings from employer websites, tailors applications using AI, and automatically submits applications across multiple employer platforms.
 
 ## Maintenance Notes
+- 2026-04-13: Realigned the contact tracker with the current feature brief by adding `name`, `title`, and `company_id` compatibility to `jobhunter_contacts`, switching the UI to company-backed contacts, and matching saved-job contact surfacing on `company_id` before legacy-name fallback.
 - 2026-03-02: Standardized GenAI fallback decisions into `GenAiFallbackService` for reusable process-flow gating (deterministic checks first, shared JSON contract, shared parsing). Initial production use is in Step 2 application-location verification.
 - 2026-02-19: Auto-generate cover letter templates on profile load when missing, removing the manual generate button.
 - 2026-02-19: Unified profile form resume parsing with ResumeGenAiParsingWorker chunked parsing to ensure a single shared GenAI flow and avoid token limits.
