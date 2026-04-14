@@ -23,6 +23,10 @@ By default, public export excludes:
 - virtualenvs (`**/.venv/`)
 - runtime pid/state files and local heavy model artifacts
 
+Export behavior:
+- `scripts/export-public-mirror.sh` removes previously exported excluded paths from an existing mirror (`--delete-excluded`), so stale private directories do not linger after policy changes.
+- The mirror currently recreates only `tmp/.gitkeep` as a public-safe scaffold placeholder.
+
 Forseti platform publication candidates should also keep these private unless intentionally sanitized for a specific public repo:
 - `prod-config/**`
 - `database-exports/**`
@@ -72,6 +76,7 @@ git bundle create backups/hq-$(date +%Y%m%d-%H%M%S).bundle --all
 - Review mirror diff in full.
 - Search for obvious sensitive strings.
 - Verify no runtime/session artifacts were exported.
+- Verify previously exported private directories were removed from the mirror working tree after sync.
 - Verify no credential-bearing config sync or private key material was exported.
 - Verify docs do not expose private infrastructure details unintentionally.
 

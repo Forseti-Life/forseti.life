@@ -7,11 +7,11 @@ orchestrator/.venv/
 *.pid
 
 # Local/volatile outputs
-inbox/responses/**
-tmp/**
+inbox/responses/
+tmp/
 
 # Session/audit trail is private by default
-sessions/**
+sessions/
 
 # Local LLM heavy artifacts
 llm/models/*.gguf

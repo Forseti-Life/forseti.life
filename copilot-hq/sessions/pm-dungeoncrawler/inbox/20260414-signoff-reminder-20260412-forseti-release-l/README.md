@@ -21,3 +21,4 @@ This is a coordinated cross-team co-sign requirement.
 
 ## Verification
 - `bash scripts/release-signoff.sh forseti 20260412-forseti-release-l` then `bash scripts/release-signoff-status.sh 20260412-forseti-release-l`
+- Status: pending

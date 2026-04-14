@@ -61,3 +61,5 @@ Anything not groomed when Stage 0 of 20260412-forseti-release-m starts is automa
 ## References
 - runbooks/feature-intake.md
 - runbooks/intake-to-qa-handoff.md
+- Agent: pm-forseti
+- Status: pending

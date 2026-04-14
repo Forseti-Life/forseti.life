@@ -16,3 +16,4 @@ Follow up with the owning seat, unblock it, or resolve the stale item.
 
 ## Verification
 - `bash scripts/sla-report.sh` no longer reports `BREACH outbox-lag: ba-dungeoncrawler inbox=20260414-ba-refscan-dungeoncrawler-pf2e-core-rulebook-fourth-prin`
+- Status: pending

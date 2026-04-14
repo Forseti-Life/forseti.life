@@ -16,3 +16,4 @@ Follow up with the owning seat, unblock it, or resolve the stale item.
 
 ## Verification
 - `bash scripts/sla-report.sh` no longer reports `BREACH outbox-lag: pm-forseti inbox=20260414-groom-20260412-forseti-release-l`
+- Status: pending

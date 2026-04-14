@@ -16,3 +16,4 @@ Follow up with the owning seat, unblock it, or resolve the stale item.
 
 ## Verification
 - `bash scripts/sla-report.sh` no longer reports `BREACH outbox-lag: qa-dungeoncrawler inbox=20260414-gate2-followup-20260412-dungeoncrawler-release-l`
+- Status: pending

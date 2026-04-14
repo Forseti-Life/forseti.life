@@ -161,6 +161,70 @@ Required contents (at minimum):
 - A table or list of features with their suite-activate outbox references
 - Any non-blocking caveats (pending-dev-confirmation items, prior-cycle evidence references)
 
+**CRITICAL: always use the active release ID from `tmp/release-cycle-active/forseti.release_id`**
+Do NOT use the feature's original development release ID. `release-signoff.sh` performs a string-match check requiring the QA APPROVE outbox to contain the **current active release ID**. Filing APPROVE against the wrong release ID blocks `release-signoff.sh` and requires a re-dispatch.
+
+```bash
+cat tmp/release-cycle-active/forseti.release_id
+# Use this exact string in the APPROVE outbox
+```
+
+Root cause (GAP-QA-RELEASE-ID-MISMATCH, 2026-04-14): Gate 2 evidence tied to a prior release ID does not satisfy `release-signoff.sh`, even when the feature verification itself is complete.
+
+## Gate 2 APPROVE from clean site audit (required — GAP-QA-GATE2-AUDIT-APPROVE-01)
+
+When an auto-site-audit runs and the audit shows **all zeros** (0 permission violations, 0 ACL bugs, 0 API errors, 0 missing assets), you MUST immediately write a Gate 2 APPROVE outbox file for the active release if one does not already exist.
+
+**Current audit format (2026-04-14+):** The audit produces `permissions-validation.md` and `route-audit-summary.md` (NOT just `findings-summary.md`). Check both:
+
+```bash
+# Check clean audit — current format
+AUDIT_DIR="sessions/qa-forseti/artifacts/auto-site-audit/$(ls -t sessions/qa-forseti/artifacts/auto-site-audit/ | grep '^2026' | head -1)"
+grep "Violations:" "$AUDIT_DIR/permissions-validation.md"     # must be "Violations: 0"
+grep "Admin routes returning 200" "$AUDIT_DIR/route-audit-summary.md"  # must be "- None"
+grep "API routes with errors" "$AUDIT_DIR/route-audit-summary.md"      # must be "- None"
+# Non-admin 403s on authenticated/admin routes are expected — NOT failures
+
+# Check if Gate 2 APPROVE already exists for active release
+RELEASE_ID=$(cat tmp/release-cycle-active/forseti.release_id)
+grep -rl "APPROVE" sessions/qa-forseti/outbox/ | xargs grep -l "$RELEASE_ID" 2>/dev/null
+# If empty -> write Gate 2 APPROVE now
+```
+
+File: `sessions/qa-forseti/outbox/YYYYMMDD-HHMMSS-gate2-approve-<release-id>.md`
+
+Required contents: release ID, word APPROVE, audit run path, zero-counts summary.
+
+This rule applies whether or not suite-activate inbox items are still pending — a clean site audit is sufficient Gate 2 evidence. Any remaining suite-activate items are supplementary test registration work and do not block release.
+
+Root cause (GAP-QA-GATE2-AUDIT-APPROVE-01, 2026-04-14): clean site audits can leave the release blocked if QA does not immediately convert the clean result into the formal `gate2-approve-*` artifact that signoff automation expects.
+
+## Gate 2 follow-up inbox item: immediate triage (required — GAP-QA-GATE2-FOLLOWUP-01)
+
+When you receive an inbox item with `gate2-followup` in the folder name, your **first action** is:
+
+```bash
+RELEASE_ID=$(cat tmp/release-cycle-active/forseti.release_id)
+# 1. Check if gate2 APPROVE already exists
+EXISTING=$(grep -rl "APPROVE" sessions/qa-forseti/outbox/ | xargs grep -l "$RELEASE_ID" 2>/dev/null)
+echo "Existing gate2 APPROVE: $EXISTING"
+# 2. Check release health
+bash scripts/ceo-release-health.sh | grep -A3 "forseti"
+```
+
+If a gate2-approve file already exists for the current release:
+- Verify the health script shows PASS for Gate 2
+- Write outbox `Status: done` confirming the existing APPROVE, citing the file
+- Do NOT re-file a duplicate APPROVE
+
+If no gate2-approve exists for the current release:
+- Check regression checklist: all in-scope features must show `[x]` APPROVE with evidence
+- Check site audit: 0 permission violations required
+- Run `python3 scripts/qa-suite-validate.py` to confirm suite is clean
+- Write the consolidated Gate 2 APPROVE outbox immediately
+
+Root cause (GAP-QA-GATE2-FOLLOWUP-01, 2026-04-14): gate2-followup inbox items add no value if QA re-runs everything from scratch. The correct response is to confirm an existing APPROVE or write the missing formal artifact immediately.
+
 ## AC cross-check before BLOCK (required — lesson 2026-04-12)
 Before issuing a BLOCK for schema/column deviations, always read the **current file on disk**:
 ```bash

@@ -21,3 +21,4 @@ This is the owning PM signoff for the active release.
 
 ## Verification
 - `bash scripts/release-signoff.sh dungeoncrawler 20260412-dungeoncrawler-release-m` then `bash scripts/release-signoff-status.sh 20260412-dungeoncrawler-release-m`
+- Status: pending

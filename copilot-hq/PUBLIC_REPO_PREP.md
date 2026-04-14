@@ -114,6 +114,9 @@ Remaining pre-public actions:
 - Apply the decided private-only policy for `sessions/**` except where a sanitized curated example is intentionally copied into public docs/examples.
 - Run full-history scrub and rewrite/truncate history before changing visibility.
 
+Current note (2026-04-14):
+- `scripts/export-public-mirror.sh` now removes excluded paths from existing mirrors and no longer recreates `inbox/responses/.gitkeep`. The remaining hard blockers are current-tree key material, secret-bearing history, and governance confirmation of external credential rotation.
+
 ## Quick command ideas (manual runbook)
 Use these as prompts for your own execution runbook (adapt as needed):
 - `git status --porcelain`

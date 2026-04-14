@@ -27,14 +27,13 @@ if [ ! -d "$TARGET_DIR/.git" ]; then
 fi
 
 # Sync private repo -> public mirror working tree using denylist policy.
-rsync -a --delete \
+rsync -a --delete --delete-excluded \
   --exclude-from="$IGNORE_FILE" \
   "$ROOT_DIR/" "$TARGET_DIR/"
 
-# Ensure scaffold placeholders exist in mirror.
-mkdir -p "$TARGET_DIR/tmp" "$TARGET_DIR/inbox/responses"
+# Keep only public-safe scaffold placeholders in the mirror.
+mkdir -p "$TARGET_DIR/tmp"
 : > "$TARGET_DIR/tmp/.gitkeep"
-: > "$TARGET_DIR/inbox/responses/.gitkeep"
 
 printf 'Synced public mirror to: %s\n' "$TARGET_DIR"
 printf 'Next: (cd %s && git status --short)\n' "$TARGET_DIR"

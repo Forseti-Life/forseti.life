@@ -131,7 +131,13 @@ if [[ "$AGENT" == qa-* ]]; then
 
     # Pattern 1: QA BLOCK → Dev fix routing
     if echo "$STATUS_LINE" | grep -qi "done" && printf '%s' "$OUTBOX_CONTENT" | grep -q "BLOCK"; then
-      if [ -n "$DEV_AGENT" ]; then
+      SKIP_DEV_ROUTING=false
+      if printf '%s' "$OUTBOX_CONTENT" | grep -qiE 'No new Dev inbox items created|consumes the audit artifact directly'; then
+        SKIP_DEV_ROUTING=true
+        log "skip dev routing for ${OUTBOX_BASE}: explicit delegation in QA outbox"
+      fi
+
+      if [ -n "$DEV_AGENT" ] && [ "$SKIP_DEV_ROUTING" != "true" ]; then
         RELEASE_ID="$(extract_release_id "$OUTBOX_CONTENT" "$OUTBOX_BASE")"
         ROI="$(extract_roi "$OUTBOX_CONTENT" 10)"
         NEXT_ACTIONS="$(printf '%s' "$OUTBOX_CONTENT" | awk '/^## Next actions/{found=1; next} found && /^## /{exit} found{print}' | head -20 | sed '/^[[:space:]]*$/d')"

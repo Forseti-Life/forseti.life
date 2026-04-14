@@ -41,8 +41,20 @@ class H3PrecomputationService {
    * Constructor.
    */
   public function __construct(LoggerChannelFactoryInterface $logger_factory) {
-    $this->database = Database::getConnection('default', 'amisafe');
     $this->loggerFactory = $logger_factory;
+  }
+
+  /**
+   * Get the AmISafe database connection lazily.
+   *
+   * This prevents unrelated Drush commands from failing during bootstrap just
+   * because the optional AmISafe secondary database is unavailable.
+   */
+  protected function getDatabase() {
+    if (!$this->database) {
+      $this->database = Database::getConnection('default', 'amisafe');
+    }
+    return $this->database;
   }
 
   /**
@@ -51,9 +63,10 @@ class H3PrecomputationService {
   public function generateH3IndexesForIncidents() {
     $logger = $this->loggerFactory->get('amisafe_precomputation');
     $logger->info('Starting H3 index generation for incidents...');
+    $database = $this->getDatabase();
 
     // Get all incidents without H3 indexes (NULL or empty)
-    $query = $this->database->select('raw_incidents', 'ri')
+    $query = $database->select('raw_incidents', 'ri')
       ->fields('ri', ['id', 'lat', 'lng'])
       ->condition('lat', 0, '!=')
       ->condition('lng', 0, '!=');
@@ -75,7 +88,7 @@ class H3PrecomputationService {
       
       if ($h3_index) {
         // Update the incident with H3 index
-        $this->database->update('raw_incidents')
+        $database->update('raw_incidents')
           ->fields(['h3_index' => $h3_index])
           ->condition('id', $incident->id)
           ->execute();
@@ -98,12 +111,13 @@ class H3PrecomputationService {
   public function precomputeResolution($resolution = 9) {
     $logger = $this->loggerFactory->get('amisafe_precomputation');
     $logger->info("Starting pre-computation for H3 resolution {$resolution}");
+    $database = $this->getDatabase();
 
     // Update processing status
     $this->updateProcessingStatus($resolution, 'AGGREGATION', 'RUNNING');
 
     // Get all incidents with coordinates
-    $query = $this->database->select('raw_incidents', 'ri')
+    $query = $database->select('raw_incidents', 'ri')
       ->fields('ri')
       ->condition('lat', 0, '!=')
       ->condition('lng', 0, '!=');
@@ -149,9 +163,9 @@ class H3PrecomputationService {
       $center = $this->h3ToLatLng($h3_index);
       $boundary = $this->h3ToBoundary($h3_index);
       
-      if ($center && $boundary) {
-        // Store in database
-        $this->database->merge('amisafe_h3_aggregated')
+        if ($center && $boundary) {
+          // Store in database
+          $database->merge('amisafe_h3_aggregated')
           ->keys(['h3_index' => $h3_index, 'h3_resolution' => $resolution])
           ->fields([
             'center_lat' => $center['lat'],
@@ -189,6 +203,7 @@ class H3PrecomputationService {
   private function generateEmptyHexagons($resolution, $existing_indexes) {
     $logger = $this->loggerFactory->get('amisafe_precomputation');
     $logger->info("Generating empty hexagon grid for resolution {$resolution}");
+    $database = $this->getDatabase();
 
     $bounds = self::PHILADELPHIA_BOUNDS;
     
@@ -213,7 +228,7 @@ class H3PrecomputationService {
         
         if ($center && $boundary) {
           // Store empty hexagon
-          $this->database->merge('amisafe_h3_aggregated')
+          $database->merge('amisafe_h3_aggregated')
             ->keys(['h3_index' => $h3_index, 'h3_resolution' => $resolution])
             ->fields([
               'center_lat' => $center['lat'],
@@ -253,6 +268,7 @@ class H3PrecomputationService {
    * Update processing status
    */
   private function updateProcessingStatus($resolution, $process_type, $status, $error_message = null) {
+    $database = $this->getDatabase();
     $fields = [
       'status' => $status,
       'error_message' => $error_message
@@ -265,7 +281,7 @@ class H3PrecomputationService {
       $fields['progress_percent'] = 100.00;
     }
 
-    $this->database->merge('amisafe_h3_processing_status')
+    $database->merge('amisafe_h3_processing_status')
       ->keys(['resolution' => $resolution, 'process_type' => $process_type])
       ->fields($fields)
       ->execute();
@@ -275,7 +291,7 @@ class H3PrecomputationService {
    * Update processing progress
    */
   private function updateProcessingProgress($resolution, $process_type, $progress_percent, $processed, $total) {
-    $this->database->update('amisafe_h3_processing_status')
+    $this->getDatabase()->update('amisafe_h3_processing_status')
       ->fields([
         'progress_percent' => $progress_percent,
         'records_processed' => $processed,

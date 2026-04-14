@@ -16,3 +16,4 @@ Follow up with the owning seat, unblock it, or resolve the stale item.
 
 ## Verification
 - `bash scripts/sla-report.sh` no longer reports `BREACH outbox-lag: dev-dungeoncrawler inbox=20260414-191700-impl-dc-cr-goblin-weapon-frenzy`
+- Status: pending

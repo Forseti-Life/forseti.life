@@ -1,6 +1,6 @@
 # Feature Progress
 
-Generated: 2026-04-14T18:58:19Z
+Generated: 2026-04-14T21:49:38Z
 
 | Work item | Website | Module | Status | Priority | PM | Dev | QA |
 |-----------|---------|--------|--------|----------|----|-----|----|
@@ -28,6 +28,7 @@ Generated: 2026-04-14T18:58:19Z
 | dc-cr-animal-companion | dungeoncrawler | dungeoncrawler_content | done |  |  |  |  |
 | dc-cr-background-system | dungeoncrawler | dungeoncrawler_content | done | high (required prerequisite for character creation workflow; provides ability boosts, skill training, and skill feat to character) |  |  |  |
 | dc-cr-burrow-elocutionist | dungeoncrawler | dungeoncrawler_content | done | P3 |  |  |  |
+| dc-cr-ceaseless-shadows | dungeoncrawler | dungeoncrawler_content | pre-triage | unset (PM will set at triage) |  |  |  |
 | dc-cr-character-class | dungeoncrawler | dungeoncrawler_content | done | high (core pillar of character building; defines proficiencies, HP/level, class features, and class feats — required for character creation workflow) |  |  |  |
 | dc-cr-character-creation | dungeoncrawler | dungeoncrawler_content | done | high (first end-to-end player journey; onboarding experience for every new dungeoncrawler player; depends on ancestry, background, and class all being implemented first) |  |  |  |
 | dc-cr-character-leveling | dungeoncrawler | dungeoncrawler_content | shipped | P3 (complex; depends on feats system not yet in scope; deferred to release after next) |  |  |  |
@@ -93,11 +94,13 @@ Generated: 2026-04-14T18:58:19Z
 | dc-cr-goblin-ancestry | dungeoncrawler | dungeoncrawler_content | in_progress | P2 |  |  |  |
 | dc-cr-goblin-very-sneaky | dungeoncrawler | dungeoncrawler_content | in_progress | P2 |  |  |  |
 | dc-cr-goblin-weapon-familiarity | dungeoncrawler | dungeoncrawler_content | in_progress | P2 |  |  |  |
-| dc-cr-goblin-weapon-frenzy | dungeoncrawler | dungeoncrawler_content | ready | P3 |  |  |  |
+| dc-cr-goblin-weapon-frenzy | dungeoncrawler | dungeoncrawler_content | in_progress | P3 |  |  |  |
 | dc-cr-halfling-ancestry | dungeoncrawler | dungeoncrawler_content | in_progress | P2 |  |  |  |
-| dc-cr-halfling-heritage-gutsy | dungeoncrawler | dungeoncrawler_content | ready | P3 |  |  |  |
-| dc-cr-halfling-heritage-hillock | dungeoncrawler | dungeoncrawler_content | ready | P3 |  |  |  |
+| dc-cr-halfling-heritage-gutsy | dungeoncrawler | dungeoncrawler_content | in_progress | P3 |  |  |  |
+| dc-cr-halfling-heritage-hillock | dungeoncrawler | dungeoncrawler_content | in_progress | P3 |  |  |  |
 | dc-cr-halfling-keen-eyes | dungeoncrawler | dungeoncrawler_content | in_progress | P2 |  |  |  |
+| dc-cr-halfling-resolve | dungeoncrawler | dungeoncrawler_content | pre-triage | unset (PM will set at triage) |  |  |  |
+| dc-cr-halfling-weapon-expertise | dungeoncrawler | dungeoncrawler_content | pre-triage | unset (PM will set at triage) |  |  |  |
 | dc-cr-hazards | dungeoncrawler | dungeoncrawler_content | done | P2 |  |  |  |
 | dc-cr-heritage-system | dungeoncrawler | dungeoncrawler_content | done | P1 (character creation dependency; heritage selection step immediately follows ancestry in creation wizard) |  |  |  |
 | dc-cr-human-ancestry | dungeoncrawler | dungeoncrawler_content | done |  |  |  |  |
@@ -138,21 +141,21 @@ Generated: 2026-04-14T18:58:19Z
 | dc-cr-treasure-by-level | dungeoncrawler | dungeoncrawler_content | in_progress |  |  |  |  |
 | dc-cr-unburdened-iron | dungeoncrawler | dungeoncrawler_content | done | unset (PM will set at triage) |  |  |  |
 | dc-cr-vengeful-hatred | dungeoncrawler | dungeoncrawler_content | done | unset (PM will set at triage) |  |  |  |
-| dc-cr-vivacious-conduit | dungeoncrawler | dungeoncrawler_content | ready | P3 |  |  |  |
+| dc-cr-vivacious-conduit | dungeoncrawler | dungeoncrawler_content | in_progress | P3 |  |  |  |
 | dc-cr-xp-award-system | dungeoncrawler | dungeoncrawler_content | done | P3 |  |  |  |
 | dc-cr-xp-rewards | dungeoncrawler | dungeoncrawler_content | done | unset (PM will set at triage) |  |  |  |
-| dc-gam-gods-magic | dungeoncrawler | dungeoncrawler_content | ready | P3 |  |  |  |
+| dc-gam-gods-magic | dungeoncrawler | dungeoncrawler_content | in_progress | P3 |  |  |  |
 | dc-gmg-hazards | dungeoncrawler | dungeoncrawler_content | done | P2 |  |  |  |
-| dc-gmg-npc-gallery | dungeoncrawler | dungeoncrawler_content | ready | P3 |  |  |  |
-| dc-gmg-running-guide | dungeoncrawler | dungeoncrawler_content | ready | P3 |  |  |  |
-| dc-gmg-subsystems | dungeoncrawler | dungeoncrawler_content | ready | P3 |  |  |  |
+| dc-gmg-npc-gallery | dungeoncrawler | dungeoncrawler_content | in_progress | P3 |  |  |  |
+| dc-gmg-running-guide | dungeoncrawler | dungeoncrawler_content | in_progress | P3 |  |  |  |
+| dc-gmg-subsystems | dungeoncrawler | dungeoncrawler_content | in_progress | P3 |  |  |  |
 | dc-gng-guns-gears | dungeoncrawler | dungeoncrawler_content | ready | P3 |  |  |  |
 | dc-home-suggestion-notice | dungeoncrawler.life | dungeoncrawler_content (home page / front page block) | done | P2 |  |  |  |
 | dc-som-secrets-of-magic | dungeoncrawler | dungeoncrawler_content | ready | P3 |  |  |  |
-| dc-ui-encounter-party-rail | dungeoncrawler | dungeoncrawler_content | ready | P1 |  |  |  |
-| dc-ui-hexmap-thin-client | dungeoncrawler | dungeoncrawler_content | ready | P1 |  |  |  |
-| dc-ui-map-first-player-shell | dungeoncrawler | dungeoncrawler_content | ready | P1 |  |  |  |
-| dc-ui-scene-layer-contract | dungeoncrawler | dungeoncrawler_content | ready | P1 |  |  |  |
+| dc-ui-encounter-party-rail | dungeoncrawler | dungeoncrawler_content | in_progress | P1 |  |  |  |
+| dc-ui-hexmap-thin-client | dungeoncrawler | dungeoncrawler_content | in_progress | P1 |  |  |  |
+| dc-ui-map-first-player-shell | dungeoncrawler | dungeoncrawler_content | in_progress | P1 |  |  |  |
+| dc-ui-scene-layer-contract | dungeoncrawler | dungeoncrawler_content | in_progress | P1 |  |  |  |
 | dc-ui-sidebar-drawers | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
 | dc-ui-token-readability | dungeoncrawler | dungeoncrawler_content | ready | P1 |  |  |  |
 | forseti-agent-tracker-dashboard-controller-db-extraction | forseti.life | copilot_agent_tracker | shipped | P2 |  |  |  |
