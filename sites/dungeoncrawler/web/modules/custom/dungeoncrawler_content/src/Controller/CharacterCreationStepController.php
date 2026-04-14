@@ -1095,6 +1095,23 @@ class CharacterCreationStepController extends ControllerBase {
   private function buildFeatsArrayFromData(array $character_data): array {
     $feats = [];
 
+    // Auto-granted ancestry feats (e.g. Halfling Luck, Keen Eyes).
+    $ancestry_name = ucfirst($character_data['ancestry'] ?? '');
+    $ancestry_stats = CharacterManager::ANCESTRIES[$ancestry_name] ?? [];
+    $auto_grant_ids = $ancestry_stats['special']['auto_grant_feats'] ?? [];
+    foreach ($auto_grant_ids as $auto_id) {
+      // Look up display name from ANCESTRY_FEATS if available; fall back to ID.
+      $display_name = ucwords(str_replace('-', ' ', $auto_id));
+      $ancestry_feats_all = CharacterManager::ANCESTRY_FEATS[$ancestry_name] ?? [];
+      foreach ($ancestry_feats_all as $f) {
+        if ($f['id'] === $auto_id) {
+          $display_name = $f['name'];
+          break;
+        }
+      }
+      $feats[] = ['type' => 'ancestry', 'id' => $auto_id, 'name' => $display_name, 'level' => 1, 'auto_granted' => TRUE];
+    }
+
     // Ancestry feat.
     if (!empty($character_data['ancestry_feat'])) {
       $ancestry_name = ucfirst($character_data['ancestry'] ?? '');

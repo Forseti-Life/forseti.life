@@ -221,6 +221,13 @@ class FeatEffectManager {
           $effects['applied_feats'][] = $feat_id;
           break;
 
+        case 'keen-eyes':
+          $effects['derived_adjustments']['flags']['keen_eyes_seek_bonus'] = 2;
+          $effects['derived_adjustments']['flags']['keen_eyes_concealed_flat_dc'] = 3;
+          $effects['derived_adjustments']['flags']['keen_eyes_hidden_flat_dc'] = 9;
+          $effects['applied_feats'][] = $feat_id;
+          break;
+
         case 'adapted-cantrip':
           $selected_cantrip = $this->resolveFeatSelectionValue($character_data, 'adapted-cantrip', ['selected_cantrip', 'cantrip', 'spell_id']);
           $selected_tradition = $this->resolveFeatSelectionValue($character_data, 'adapted-cantrip', ['selected_tradition', 'tradition']);
