@@ -1,6 +1,6 @@
 # Feature Progress
 
-Generated: 2026-04-14T00:07:18Z
+Generated: 2026-04-14T01:55:13Z
 
 | Work item | Website | Module | Status | Priority | PM | Dev | QA |
 |-----------|---------|--------|--------|----------|----|-----|----|
@@ -85,11 +85,11 @@ Generated: 2026-04-14T00:07:18Z
 | dc-cr-gnome-heritage-fey-touched | dungeoncrawler | dungeoncrawler_content | in_progress | P3 |  |  |  |
 | dc-cr-gnome-heritage-sensate | dungeoncrawler | dungeoncrawler_content | in_progress | P2 |  |  |  |
 | dc-cr-gnome-heritage-umbral | dungeoncrawler | dungeoncrawler_content | in_progress | P2 |  |  |  |
-| dc-cr-gnome-heritage-wellspring | dungeoncrawler | dungeoncrawler_content | ready | P3 |  |  |  |
-| dc-cr-gnome-obsession | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
-| dc-cr-gnome-weapon-expertise | dungeoncrawler | dungeoncrawler_content | ready | P3 |  |  |  |
-| dc-cr-gnome-weapon-familiarity | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
-| dc-cr-gnome-weapon-specialist | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
+| dc-cr-gnome-heritage-wellspring | dungeoncrawler | dungeoncrawler_content | in_progress | P3 |  |  |  |
+| dc-cr-gnome-obsession | dungeoncrawler | dungeoncrawler_content | in_progress | P2 |  |  |  |
+| dc-cr-gnome-weapon-expertise | dungeoncrawler | dungeoncrawler_content | in_progress | P3 |  |  |  |
+| dc-cr-gnome-weapon-familiarity | dungeoncrawler | dungeoncrawler_content | in_progress | P2 |  |  |  |
+| dc-cr-gnome-weapon-specialist | dungeoncrawler | dungeoncrawler_content | in_progress | P2 |  |  |  |
 | dc-cr-goblin-ancestry | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
 | dc-cr-goblin-very-sneaky | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
 | dc-cr-goblin-weapon-familiarity | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
@@ -162,7 +162,7 @@ Generated: 2026-04-14T00:07:18Z
 | forseti-ai-conversation-job-suggestions | forseti.life | ai_conversation | shipped | medium |  |  |  |
 | forseti-ai-conversation-user-chat | forseti.life | ai_conversation | shipped | high |  |  |  |
 | forseti-ai-debug-gate | forseti.life | ai_conversation | shipped | P1 |  |  |  |
-| forseti-ai-local-llm-provider-selection | forseti.life | ai_conversation | ready |  |  |  |  |
+| forseti-ai-local-llm-provider-selection | forseti.life | ai_conversation | in_progress |  |  |  |  |
 | forseti-ai-service-db-refactor | forseti.life | ai_conversation | shipped | P2 |  |  |  |
 | forseti-ai-service-refactor | forseti.life | ai_conversation | shipped | P2 |  |  |  |
 | forseti-community-incident-report | forseti.life | community_incident_report (new) | ready |  |  |  |  |
@@ -171,7 +171,7 @@ Generated: 2026-04-14T00:07:18Z
 | forseti-csrf-post-routes-fix | forseti.life | job_hunter | shipped | P1 (security) |  |  |  |
 | forseti-financial-health-home | forseti.life | institutional_management (MVP host) | in_progress |  |  |  |  |
 | forseti-installation-cluster-communication | forseti.life | forseti_cluster (new) | ready |  |  |  |  |
-| forseti-jobhunter-application-analytics | forseti.life | job_hunter | in_progress | medium |  |  |  |
+| forseti-jobhunter-application-analytics | forseti.life | job_hunter | shipped | medium |  |  |  |
 | forseti-jobhunter-application-controller-db-extraction | forseti.life | job_hunter | shipped | P2 |  |  |  |
 | forseti-jobhunter-application-controller-split | forseti.life | job_hunter | shipped |  |  |  |  |
 | forseti-jobhunter-application-deadline-tracker | forseti.life | job_hunter | done | high |  |  |  |
@@ -180,23 +180,23 @@ Generated: 2026-04-14T00:07:18Z
 | forseti-jobhunter-application-submission | forseti.life | job_hunter | shipped | P1 |  |  |  |
 | forseti-jobhunter-browser-automation | forseti.life | job_hunter | shipped | P1 |  |  |  |
 | forseti-jobhunter-bulk-status-update | forseti.life | job_hunter | done | medium |  |  |  |
-| forseti-jobhunter-company-interest-tracker | forseti.life | job_hunter | ready | high |  |  |  |
+| forseti-jobhunter-company-interest-tracker | forseti.life | job_hunter | in_progress | high |  |  |  |
 | forseti-jobhunter-company-research-tracker | forseti.life | job_hunter | ready | medium |  |  |  |
 | forseti-jobhunter-contact-referral-tracker | forseti.life | job_hunter | ready | medium |  |  |  |
-| forseti-jobhunter-contact-tracker | forseti.life | job_hunter | ready | high |  |  |  |
+| forseti-jobhunter-contact-tracker | forseti.life | job_hunter | in_progress | high |  |  |  |
 | forseti-jobhunter-controller-extraction-phase1 | forseti.life | job_hunter | shipped | P2 |  |  |  |
 | forseti-jobhunter-controller-refactor | forseti.life | job_hunter | shipped | P2 |  |  |  |
 | forseti-jobhunter-controller-refactor-phase2 | forseti.life | job_hunter | shipped | P2 |  |  |  |
 | forseti-jobhunter-cover-letter-display | forseti.life | job_hunter | shipped | high |  |  |  |
 | forseti-jobhunter-e2e-flow | forseti.life | job_hunter | shipped | P0 (ROI 1000) |  |  |  |
-| forseti-jobhunter-follow-up-reminders | forseti.life | job_hunter | in_progress | medium |  |  |  |
+| forseti-jobhunter-follow-up-reminders | forseti.life | job_hunter | shipped | medium |  |  |  |
 | forseti-jobhunter-google-jobs-ux | forseti.life | job_hunter | shipped | high |  |  |  |
 | forseti-jobhunter-hook-install-fix | forseti.life | job_hunter | shipped | P1 |  |  |  |
-| forseti-jobhunter-interview-outcome-tracker | forseti.life | job_hunter | in_progress | high |  |  |  |
+| forseti-jobhunter-interview-outcome-tracker | forseti.life | job_hunter | shipped | high |  |  |  |
 | forseti-jobhunter-interview-prep | forseti.life | job_hunter | shipped | high |  |  |  |
 | forseti-jobhunter-job-board-preferences | forseti.life | job_hunter | ready | low |  |  |  |
 | forseti-jobhunter-job-match-score | forseti.life | job_hunter | shipped | low |  |  |  |
-| forseti-jobhunter-offer-tracker | forseti.life | job_hunter | in_progress | high |  |  |  |
+| forseti-jobhunter-offer-tracker | forseti.life | job_hunter | shipped | high |  |  |  |
 | forseti-jobhunter-profile | forseti.life | job_hunter | shipped | P0 |  |  |  |
 | forseti-jobhunter-profile-completeness | forseti.life | job_hunter | shipped | medium |  |  |  |
 | forseti-jobhunter-profile-form-db-extraction | forseti.life | job_hunter | shipped | P2 |  |  |  |
@@ -213,7 +213,7 @@ Generated: 2026-04-14T00:07:18Z
 | forseti-jobhunter-twig-csrf-cleanup | forseti.life | job_hunter | shipped | P2 |  |  |  |
 | forseti-langgraph-console-build-sections | forseti.life | copilot_agent_tracker | done | high |  |  |  |
 | forseti-langgraph-console-release-panel | forseti.life | copilot_agent_tracker | done | high |  |  |  |
-| forseti-langgraph-console-run-session | forseti.life | copilot_agent_tracker | ready | P1 |  |  |  |
+| forseti-langgraph-console-run-session | forseti.life | copilot_agent_tracker | in_progress | P1 |  |  |  |
 | forseti-langgraph-console-test-sections | forseti.life | copilot_agent_tracker | done | high |  |  |  |
 | forseti-langgraph-ui | forseti.life | copilot_agent_tracker | shipped | P1 |  |  |  |
 | forseti-open-source-initiative |  |  | in_progress | high |  |  |  |
