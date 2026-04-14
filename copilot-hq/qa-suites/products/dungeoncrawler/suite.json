@@ -16304,6 +16304,54 @@
           "description": "Server rejects altered goblin stat payload; canonical ancestry values used"
         }
       ]
+    },
+    {
+      "id": "dc-cr-goblin-very-sneaky-e2e",
+      "label": "Goblin Very Sneaky feat \u2014 availability, sneak bonus, visibility rule, and failure modes (TC-GVS-01 to TC-GVS-05)",
+      "type": "e2e",
+      "feature_id": "dc-cr-goblin-very-sneaky",
+      "command": "npx playwright test tests/dungeoncrawler/encounter/goblin-very-sneaky.spec.js",
+      "artifacts": [
+        "test-results/dungeoncrawler/goblin-very-sneaky/"
+      ],
+      "required_for_release": true,
+      "test_cases": [
+        {
+          "id": "TC-GVS-01",
+          "feature_id": "dc-cr-goblin-very-sneaky",
+          "name": "Very Sneaky feat availability",
+          "suite": "playwright/character-creation",
+          "expected": "Goblin feat picker includes dc-cr-goblin-very-sneaky as a selectable level 1 ancestry feat"
+        },
+        {
+          "id": "TC-GVS-02",
+          "feature_id": "dc-cr-goblin-very-sneaky",
+          "name": "Sneak gains +5 feet up to Speed",
+          "suite": "playwright/encounter",
+          "expected": "sneak_distance = min(base_sneak + 5, character.speed) \u2014 bonus never exceeds Speed cap"
+        },
+        {
+          "id": "TC-GVS-03",
+          "feature_id": "dc-cr-goblin-very-sneaky",
+          "name": "Cover at end of turn prevents Observed",
+          "suite": "playwright/encounter",
+          "expected": "Character ending turn in cover after successful Sneak is not set to Observed even if exposed mid-action"
+        },
+        {
+          "id": "TC-GVS-04",
+          "feature_id": "dc-cr-goblin-very-sneaky",
+          "name": "Failed Sneak uses normal visibility resolution",
+          "suite": "playwright/encounter",
+          "expected": "Stealth failure with feat still applies default visibility outcome; no special protection"
+        },
+        {
+          "id": "TC-GVS-05",
+          "feature_id": "dc-cr-goblin-very-sneaky",
+          "name": "Character without feat gets default behavior",
+          "suite": "playwright/encounter",
+          "expected": "No +5 feet bonus; visibility checked at end of action per standard rules"
+        }
+      ]
     }
   ],
   "dc-cr-first-world-adept": [
