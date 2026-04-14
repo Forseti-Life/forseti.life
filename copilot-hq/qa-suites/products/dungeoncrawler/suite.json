@@ -16414,6 +16414,61 @@
           "expected": "Goblin Weapon Frenzy becomes eligible when Goblin Weapon Familiarity is present and other prerequisites met"
         }
       ]
+    },
+    {
+      "id": "dc-cr-halfling-ancestry-character-creation",
+      "label": "Halfling ancestry \u2014 character creation, auto-traits, sheet integration, and failure modes (TC-HAL-01 to TC-HAL-06)",
+      "type": "e2e",
+      "feature_id": "dc-cr-halfling-ancestry",
+      "command": "npx playwright test tests/dungeoncrawler/character-creation/halfling-ancestry.spec.js",
+      "artifacts": [
+        "test-results/dungeoncrawler/halfling-ancestry/"
+      ],
+      "required_for_release": true,
+      "test_cases": [
+        {
+          "id": "TC-HAL-01",
+          "feature_id": "dc-cr-halfling-ancestry",
+          "name": "Halfling ancestry selectable",
+          "suite": "playwright/character-creation",
+          "expected": "Ancestry list includes Halfling during character creation"
+        },
+        {
+          "id": "TC-HAL-02",
+          "feature_id": "dc-cr-halfling-ancestry",
+          "name": "Core ancestry stats applied",
+          "suite": "playwright/character-creation",
+          "expected": "Selecting Halfling sets hp=6, size=Small, speed=25, boosts include Dex and Wis"
+        },
+        {
+          "id": "TC-HAL-03",
+          "feature_id": "dc-cr-halfling-ancestry",
+          "name": "Halfling Luck granted automatically",
+          "suite": "playwright/character-sheet",
+          "expected": "Halfling Luck passive appears on character summary after ancestry selection"
+        },
+        {
+          "id": "TC-HAL-04",
+          "feature_id": "dc-cr-halfling-ancestry",
+          "name": "Keen Eyes granted automatically",
+          "suite": "playwright/character-sheet",
+          "expected": "Keen Eyes trait/effect present with no extra player selection required"
+        },
+        {
+          "id": "TC-HAL-05",
+          "feature_id": "dc-cr-halfling-ancestry",
+          "name": "Heritage and feat tree unlocks",
+          "suite": "playwright/character-creation",
+          "expected": "Halfling heritage list and ancestry feat list visible and valid after ancestry selection"
+        },
+        {
+          "id": "TC-HAL-06",
+          "feature_id": "dc-cr-halfling-ancestry",
+          "name": "Non-halfling access blocked and invalid stat payload rejected",
+          "suite": "playwright/character-creation",
+          "expected": "Halfling-only heritages/feats rejected for non-halfling characters; invalid ancestry-stat submissions replaced with canonical values"
+        }
+      ]
     }
   ],
   "dc-cr-first-world-adept": [
