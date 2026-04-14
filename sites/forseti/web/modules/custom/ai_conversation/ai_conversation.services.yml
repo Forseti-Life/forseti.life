@@ -15,9 +15,15 @@ services:
     tags:
       - { name: service }
 
+  ai_conversation.ollama_api_service:
+    class: Drupal\ai_conversation\Service\OllamaApiService
+    arguments: ['@config.factory', '@logger.factory', '@http_client']
+    tags:
+      - { name: service }
+
   ai_conversation.ai_api_service:
     class: Drupal\ai_conversation\Service\AIApiService
-    arguments: ['@config.factory', '@logger.factory', '@entity_type.manager', '@ai_conversation.prompt_manager', '@ai_conversation.storage']
+    arguments: ['@config.factory', '@logger.factory', '@entity_type.manager', '@ai_conversation.prompt_manager', '@ai_conversation.storage', '@ai_conversation.ollama_api_service', '@user.data']
     tags:
       - { name: service }
 

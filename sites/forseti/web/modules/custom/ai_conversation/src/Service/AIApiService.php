@@ -7,6 +7,7 @@ use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use Drupal\node\NodeInterface;
 use Drupal\node\Entity\Node;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\user\UserDataInterface;
 use Drupal\ai_conversation\Traits\ConfigurableLoggingTrait;
 
 /**
@@ -52,6 +53,16 @@ class AIApiService {
   protected $storage;
 
   /**
+   * @var \Drupal\ai_conversation\Service\OllamaApiService|null
+   */
+  protected $ollamaService;
+
+  /**
+   * @var \Drupal\user\UserDataInterface|null
+   */
+  protected $userData;
+
+  /**
    * Maximum number of recent messages to keep (configurable).
    *
    * @var int
@@ -75,11 +86,13 @@ class AIApiService {
   /**
    * Constructs a new AIApiService object.
    */
-  public function __construct(ConfigFactoryInterface $config_factory, LoggerChannelFactoryInterface $logger_factory, EntityTypeManagerInterface $entity_type_manager, PromptManager $prompt_manager = NULL, AIConversationStorageService $storage = NULL) {
+  public function __construct(ConfigFactoryInterface $config_factory, LoggerChannelFactoryInterface $logger_factory, EntityTypeManagerInterface $entity_type_manager, PromptManager $prompt_manager = NULL, AIConversationStorageService $storage = NULL, OllamaApiService $ollama_service = NULL, UserDataInterface $user_data = NULL) {
     $this->configFactory = $config_factory;
     $this->logger = $logger_factory->get('ai_conversation');
     $this->entityTypeManager = $entity_type_manager;
-    
+    $this->ollamaService = $ollama_service;
+    $this->userData = $user_data;
+
     // Inject PromptManager or create one if not provided (for backwards compatibility)
     if ($prompt_manager) {
       $this->promptManager = $prompt_manager;
@@ -116,6 +129,51 @@ class AIApiService {
   }
 
   /**
+   * Resolves the effective provider for the given uid.
+   * Resolution order: user preference → org default → 'bedrock' fallback.
+   *
+   * @return array ['provider' => 'bedrock'|'ollama', 'model' => string|NULL]
+   */
+  public function resolveProvider(int $uid): array {
+    // Check user preference via user.data service.
+    $ud = $this->userData ?? \Drupal::service('user.data');
+    $user_provider = $ud->get('ai_conversation', $uid, 'ai_provider');
+    $user_model    = $ud->get('ai_conversation', $uid, 'ai_model');
+
+    if (!empty($user_provider) && in_array($user_provider, ['bedrock', 'ollama'], TRUE)) {
+      // Validate Ollama is actually configured before honoring user pref.
+      if ($user_provider === 'ollama') {
+        $ollama = $this->ollamaService ?? \Drupal::service('ai_conversation.ollama_api_service');
+        if (!$ollama->isConfigured()) {
+          // Fall through to org default.
+          $user_provider = NULL;
+          $user_model    = NULL;
+        }
+      }
+    }
+    else {
+      $user_provider = NULL;
+      $user_model    = NULL;
+    }
+
+    if ($user_provider !== NULL) {
+      return ['provider' => $user_provider, 'model' => $user_model ?: NULL];
+    }
+
+    // Use org default.
+    $provider_config = $this->configFactory->get('ai_conversation.provider_settings');
+    $org_provider = $provider_config->get('default_provider') ?: 'bedrock';
+    if ($org_provider === 'ollama') {
+      $ollama = $this->ollamaService ?? \Drupal::service('ai_conversation.ollama_api_service');
+      if (!$ollama->isConfigured()) {
+        $org_provider = 'bedrock';
+      }
+    }
+
+    return ['provider' => $org_provider, 'model' => NULL];
+  }
+
+  /**
    * Builds a configured Bedrock runtime client using system config only.
    */
   private function buildBedrockClient(): \Aws\BedrockRuntime\BedrockRuntimeClient {
@@ -141,29 +199,83 @@ class AIApiService {
       $this->checkAndUpdateSummary($conversation);
 
       $config = $this->configFactory->get('ai_conversation.settings');
-      $bedrock = $this->buildBedrockClient();
-
-      // Try models in order: primary from config, then fallbacks.
-      $models_to_try = $this->getModelFallbacks();
-      $model = $models_to_try[0];
 
       // Build the optimized conversation context (summary + recent messages).
       $context = $this->buildOptimizedContext($conversation, $message);
-      
+
       // Estimate input tokens.
       $input_tokens = $this->estimateTokens($context);
 
-      // Get max tokens from config.
-      $max_tokens = $config->get('max_tokens') ?: 50000;
-
       // Get system prompt from PromptManager with optional dynamic content from node 10
       $system_prompt = $this->promptManager->getSystemPrompt(10);
-      
+
       // Debug logging for system prompt
       $this->logInfo('System prompt length: @length, First 100 chars: @preview', [
         '@length' => strlen($system_prompt ?? ''),
         '@preview' => substr($system_prompt ?? 'EMPTY', 0, 100),
       ]);
+
+      // Resolve provider: user preference → org default → bedrock fallback (AC-3).
+      $uid = (int) \Drupal::currentUser()->id();
+      $resolved = $this->resolveProvider($uid);
+      $effective_provider = $resolved['provider'];
+      $effective_model    = $resolved['model'];
+
+      $this->logInfo('Effective AI provider: @provider', ['@provider' => $effective_provider]);
+
+      // --- Ollama path (AC-4) ---
+      if ($effective_provider === 'ollama') {
+        $ollama = $this->ollamaService ?? \Drupal::service('ai_conversation.ollama_api_service');
+        $ollama_models = $ollama->getAvailableModels();
+        $ollama_model  = ($effective_model && in_array($effective_model, $ollama_models, TRUE))
+          ? $effective_model
+          : ($ollama_models[0] ?? 'llama3');
+
+        try {
+          $start_time = microtime(TRUE);
+          $ollama_result = $ollama->chat(
+            $ollama_model,
+            [['role' => 'user', 'content' => $context]],
+            (string) ($system_prompt ?? '')
+          );
+          $ai_response = $ollama_result['text'];
+          $model = $ollama_result['model'];
+          $duration_ms = (int) ((microtime(TRUE) - $start_time) * 1000);
+          $output_tokens = $this->estimateTokens($ai_response);
+          $this->updateTokenCount($conversation, $input_tokens + $output_tokens);
+          $this->trackApiUsage([
+            'module' => 'ai_conversation',
+            'operation' => 'chat_message',
+            'model_id' => 'ollama/' . $model,
+            'input_tokens' => $input_tokens,
+            'output_tokens' => $output_tokens,
+            'stop_reason' => 'stop',
+            'duration_ms' => $duration_ms,
+            'context_data' => [
+              'conversation_id' => $conversation->id(),
+              'conversation_title' => $conversation->getTitle(),
+            ],
+            'success' => TRUE,
+            'prompt' => $context,
+            'response' => $ai_response,
+          ]);
+          return $ai_response;
+        }
+        catch (\RuntimeException $e) {
+          // AC-5: provider unreachable → fall back to Bedrock.
+          $this->logError('Ollama unreachable (@msg), falling back to Bedrock.', ['@msg' => $e->getMessage()]);
+          // Set a flag so the response can surface a banner (AC-5).
+          \Drupal::messenger()->addWarning(t('Your selected AI provider (Ollama) is currently unavailable. Falling back to the default provider.'));
+          $effective_provider = 'bedrock';
+        }
+      }
+
+      // --- Bedrock path (existing logic, unchanged) ---
+      $bedrock = $this->buildBedrockClient();
+      $models_to_try = $this->getModelFallbacks();
+      $model = $models_to_try[0];
+
+      $max_tokens = $config->get('max_tokens') ?: 50000;
 
       // Build the request body.
       $request_body = [

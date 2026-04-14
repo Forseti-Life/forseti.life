@@ -254,3 +254,12 @@ ai_conversation.api_chat:
   requirements:
     _user_is_logged_in: 'TRUE'
     _csrf_token: 'TRUE'
+
+# AC-1: AI Provider Selection admin form.
+ai_conversation.ai_provider_settings:
+  path: '/admin/config/forseti/ai-provider'
+  defaults:
+    _form: '\Drupal\ai_conversation\Form\AiProviderSettingsForm'
+    _title: 'AI Provider Settings'
+  requirements:
+    _permission: 'administer site configuration'

@@ -44,3 +44,20 @@ ai_conversation.settings:
     debug_logging:
       type: boolean
       label: 'Enable debug logging'
+
+ai_conversation.provider_settings:
+  type: config_object
+  label: 'AI Provider Settings'
+  mapping:
+    default_provider:
+      type: string
+      label: 'Default AI provider (bedrock or ollama)'
+    ollama_base_url:
+      type: string
+      label: 'Ollama base URL (e.g., http://localhost:11434)'
+    ollama_available_models:
+      type: sequence
+      label: 'Available Ollama model names'
+      sequence:
+        type: string
+        label: 'Model name'
