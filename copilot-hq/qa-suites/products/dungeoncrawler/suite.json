@@ -16148,6 +16148,60 @@
           "required_for_release": true
         }
       ]
+    },
+    {
+      "id": "dc-cr-gnome-weapon-familiarity-character-creation",
+      "label": "Gnome Weapon Familiarity — feat availability, glaive/kukri trained, uncommon gnome weapon access, martial-as-simple remap, downstream feat prerequisite gate",
+      "type": "playwright",
+      "feature_id": "dc-cr-gnome-weapon-familiarity",
+      "command": "npx playwright test tests/character-creation/gnome-weapon-familiarity.spec.js tests/inventory/gnome-weapon-familiarity.spec.js tests/feat-progression/gnome-weapon-familiarity.spec.js",
+      "artifacts": [
+        "sessions/qa-dungeoncrawler/artifacts/dc-cr-gnome-weapon-familiarity/playwright-report.json"
+      ],
+      "required_for_release": true,
+      "notes": "Security AC exemption confirmed: no new routes; feat/proficiency/inventory data only. TC-GWFM-05 verifies that Gnome Weapon Specialist and Gnome Weapon Expertise remain locked until this feat is present (prerequisite chain integrity).",
+      "test_cases": [
+        {
+          "id": "TC-GWFM-01",
+          "label": "Feat availability: Gnome Weapon Familiarity appears in Gnome feat 1 picker",
+          "feature_id": "dc-cr-gnome-weapon-familiarity",
+          "suite_context": "playwright/character-creation",
+          "status": "pending_implementation",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-GWFM-02",
+          "label": "Glaive and kukri trained: selecting feat grants trained proficiency with both weapons",
+          "feature_id": "dc-cr-gnome-weapon-familiarity",
+          "suite_context": "playwright/character-creation",
+          "status": "pending_implementation",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-GWFM-03",
+          "label": "Uncommon gnome weapons unlocked: character gains access to uncommon gnome weapons in inventory",
+          "feature_id": "dc-cr-gnome-weapon-familiarity",
+          "suite_context": "playwright/inventory",
+          "status": "pending_implementation",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-GWFM-04",
+          "label": "Martial gnome weapons remap: proficiency resolver uses simple-weapon tier for martial gnome weapons; remap is gnome-tagged only",
+          "feature_id": "dc-cr-gnome-weapon-familiarity",
+          "suite_context": "playwright/inventory",
+          "status": "pending_implementation",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-GWFM-05",
+          "label": "Downstream feat prerequisite: Gnome Weapon Specialist and Gnome Weapon Expertise remain locked until Gnome Weapon Familiarity is present",
+          "feature_id": "dc-cr-gnome-weapon-familiarity",
+          "suite_context": "playwright/feat-progression",
+          "status": "pending_implementation",
+          "required_for_release": true
+        }
+      ]
     }
   ],
   "dc-cr-first-world-adept": [
