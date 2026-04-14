@@ -31,3 +31,5 @@ Create `features/dc-gmg-<descriptor>/feature.md` using the standard Dungeoncrawl
 - Outline: `docs/dungeoncrawler/reference documentation/outlines/PF2E_Gamemastery_Guide_OUTLINE.md`
 - Source text: `docs/dungeoncrawler/reference documentation/PF2E Gamemastery Guide.txt`
 - Item inventory (orientation only): `docs/dungeoncrawler/reference documentation/comprehensive_item_inventory.json`
+- Agent: ba-dungeoncrawler
+- Status: pending

@@ -29,3 +29,5 @@ Create `features/dc-gg-<descriptor>/feature.md` using the standard Dungeoncrawle
 - Outline: `docs/dungeoncrawler/reference documentation/outlines/PF2E_Guns_and_Gears_OUTLINE.md`
 - Source text: `docs/dungeoncrawler/reference documentation/PF2E Guns and Gears.txt`
 - Item inventory (orientation only): `docs/dungeoncrawler/reference documentation/comprehensive_item_inventory.json`
+- Agent: ba-dungeoncrawler
+- Status: pending

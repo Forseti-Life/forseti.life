@@ -29,3 +29,5 @@ Create `features/dc-b3-<descriptor>/feature.md` using the standard Dungeoncrawle
 - Outline: `docs/dungeoncrawler/reference documentation/outlines/PF2E_Bestiary_3_OUTLINE.md`
 - Source text: `docs/dungeoncrawler/reference documentation/PF2E Bestiary 3.txt`
 - Filtered creature inventory (orientation only): `docs/dungeoncrawler/reference documentation/comprehensive_creature_inventory_filtered.json`
+- Agent: ba-dungeoncrawler
+- Status: pending

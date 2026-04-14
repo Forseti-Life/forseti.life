@@ -51,3 +51,4 @@ Include: Goal, Source reference, Implementation hint, and Mission alignment chec
 - Source text: `docs/dungeoncrawler/reference documentation/PF2E Advanced Players Guide.txt`
 - Item inventory (orientation only): `docs/dungeoncrawler/reference documentation/comprehensive_item_inventory.json`
 - Spell inventory (orientation only): `docs/dungeoncrawler/reference documentation/comprehensive_spell_inventory_filtered.json`
+- Agent: ba-dungeoncrawler

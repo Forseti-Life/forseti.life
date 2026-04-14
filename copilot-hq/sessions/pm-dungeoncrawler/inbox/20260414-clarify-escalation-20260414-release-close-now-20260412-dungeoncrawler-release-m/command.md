@@ -11,3 +11,5 @@
     Reference:
     - Original outbox: sessions/pm-dungeoncrawler/outbox/20260414-release-close-now-20260412-dungeoncrawler-release-m.md
     - If/when rewritten with Decision needed + Recommendation, escalation will be created automatically.
+- Agent: pm-dungeoncrawler
+- Status: pending

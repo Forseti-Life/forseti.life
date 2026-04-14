@@ -40,3 +40,5 @@ Each qualifying creature should produce one feature stub centered on the impleme
 - Outline: `docs/dungeoncrawler/reference documentation/outlines/PF2E_Bestiary_1_OUTLINE.md`
 - Source text: `docs/dungeoncrawler/reference documentation/PF2E Bestiary 1.txt`
 - Filtered creature inventory (orientation only): `docs/dungeoncrawler/reference documentation/comprehensive_creature_inventory_filtered.json`
+- Agent: ba-dungeoncrawler
+- Status: pending

@@ -30,3 +30,5 @@ Create `features/dc-som-<descriptor>/feature.md` using the standard Dungeoncrawl
 - Source text: `docs/dungeoncrawler/reference documentation/PF2E Secrets of Magic.txt`
 - Spell inventory (orientation only): `docs/dungeoncrawler/reference documentation/comprehensive_spell_inventory_filtered.json`
 - Item inventory (orientation only): `docs/dungeoncrawler/reference documentation/comprehensive_item_inventory.json`
+- Agent: ba-dungeoncrawler
+- Status: pending
