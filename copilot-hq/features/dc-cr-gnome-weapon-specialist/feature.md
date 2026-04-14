@@ -3,7 +3,7 @@
 - Work item id: dc-cr-gnome-weapon-specialist
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: in_progress
+- Status: done
 - Release: 20260412-dungeoncrawler-release-j
 - Priority: P2
 - PM owner: pm-dungeoncrawler

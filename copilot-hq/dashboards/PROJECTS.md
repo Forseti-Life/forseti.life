@@ -86,22 +86,23 @@ That page is rendered from this file. CEO and architect seats must treat the roa
 
 **Scope:** The dedicated Dungeoncrawler product line, separate site, and its long-lived PF2E implementation program. Long-term mission: implement all PF2E rulebook requirements currently tracked in `dc_requirements` MySQL table (2033 implemented, 674 in_progress, 698 pending as of 2026-04-13).
 
-**Current state (2026-04-13):** Active release `20260412-dungeoncrawler-release-i` (opened 2026-04-13T01:31). 14 features in_progress in dev/QA pipeline (gnome heritage sensate/umbral/chameleon, hazards, magic ch11, skills/feats/spells clusters, rest/downtime, snares, treasure, GMG hazards). 29 features at `ready` status awaiting activation: 10 gnome feat cluster (animal-accomplice, burrow-elocutionist, first-world-adept, first-world-magic, gnome-heritage-fey-touched/wellspring, gnome-obsession, gnome-weapon-expertise/familiarity/specialist), 4 goblin feats (ancestry, very-sneaky, weapon-familiarity, weapon-frenzy), halfling cluster (halfling-ancestry, heritage-gutsy, heritage-hillock, keen-eyes, vivacious-conduit), GMG features (gods-magic, npc-gallery, running-guide, subsystems), and a newly groomed 6-feature UI modernization cluster: `dc-ui-hexmap-thin-client`, `dc-ui-map-first-player-shell`, `dc-ui-encounter-party-rail`, `dc-ui-scene-layer-contract`, `dc-ui-token-readability`, `dc-ui-sidebar-drawers`.
+**Current state (2026-04-14):** Active release `20260412-dungeoncrawler-release-j`. 5 features are in the current implementation tranche, and the ready backlog is now 32 features deep. Alongside the gnome, goblin, halfling, GMG, and UI clusters, three roadmap epics were promoted from deferred to backlog-ready because their prerequisites are satisfied: `dc-b2-bestiary2`, `dc-gng-guns-gears`, and `dc-som-secrets-of-magic`.
 
-**DB requirement gaps (pipeline coverage missing):**
-- `core/ch01` (Chapter 1: Introduction) — 237 pending, no feature stub; covers fundamental rules display and character creation flow
-- `core/ch02` (Chapter 2: Ancestries & Backgrounds) — 371 pending, no feature stub; covers the ancestry/background data model and character creation enforcement (separate from the ancestry feat content already in pipeline)
-- `gng` (Guns & Gears, 5 chapters) — 30 pending, no feature stub
-- `som` (Secrets of Magic, 5 chapters) — 30 pending, no feature stub
-- `b2/b3` (Bestiary 2 & 3) — 24 pending, stubs exist in audit TSV as `blocked`
+**Backlog coverage status (2026-04-14):**
+- `core/ch01` (Chapter 1: Introduction) — 237 pending, now mapped primarily to `dc-cr-character-creation` and `dc-cr-character-leveling`
+- `core/ch02` (Chapter 2: Ancestries & Backgrounds) — 371 pending, now mapped across the ancestry/background backlog (`dc-cr-human/dwarf/gnome/elf/goblin/halfling-*`, `dc-cr-ancestry-system`, `dc-cr-background-system`)
+- `gng` (Guns & Gears, 5 chapters) — 30 pending, now queued in backlog via `dc-gng-guns-gears`
+- `som` (Secrets of Magic, 5 chapters) — 30 pending, now queued in backlog via `dc-som-secrets-of-magic`
+- `b2` (Bestiary 2) — 12 pending, now queued in backlog via `dc-b2-bestiary2`
+- `b3` (Bestiary 3) — 18 pending, still intentionally deferred until `dc-b2-bestiary2` ships
 
-**Last scoped release:** `20260412-dungeoncrawler-release-i` (active; 0 features activated yet)
+**Last scoped release:** `20260412-dungeoncrawler-release-j` (active)
 
 **Progress SLA:** 7 days without release-scoped work or a PM re-baseline/grooming update = breach
 
-**Next step:** Activate ready features for release-i (10-feature cap; activate gnome feat cluster first as it is the deepest groomed batch). In parallel, preserve the UI modernization cluster as the next product-quality grooming tranche, now sequenced `dc-ui-hexmap-thin-client` → `dc-ui-map-first-player-shell` → `dc-ui-encounter-party-rail` + `dc-ui-scene-layer-contract` → `dc-ui-token-readability` → `dc-ui-sidebar-drawers`. Hard prereqs are now explicit in the backlog: `dc-ui-hexmap-thin-client` sits ahead of encounter/token work, `dc-ui-scene-layer-contract` sits ahead of token readability, and `dc-ui-map-first-player-shell` sits ahead of drawers. After current release pressure eases, queue BA decomposition for `core/ch01` and `core/ch02` — these remain the largest unaddressed rules-content gaps (608 requirements combined).
+**Next step:** Keep release-j focused on the already-active gnome tranche, then pull next from the expanded ready backlog in this order: goblin/halfling cleanup → GMG/UI tranche → `dc-b2-bestiary2` → `dc-gng-guns-gears` → `dc-som-secrets-of-magic`. `dc-b3-bestiary3` remains gated behind Bestiary 2 shipping.
 
-**Queue status:** 14 features in dev/QA pipeline (release-e/f/g); 29 features `ready` for future activation, including 6 newly groomed UI modernization features. Execution policy for the UI tranche: dev works through in-scope architectural issues, but must keep PM updated whenever architecture changes feature scope, sequencing, dependencies, or release sizing. BA decomposition for core/ch01 and core/ch02 not yet dispatched (next major roadmap gap to close).
+**Queue status:** 32 features `ready` for future activation, including 6 UI modernization features and 3 newly promoted roadmap epics (`dc-b2-bestiary2`, `dc-gng-guns-gears`, `dc-som-secrets-of-magic`). Remaining true deferred gap: `dc-b3-bestiary3`.
 
 ---
 

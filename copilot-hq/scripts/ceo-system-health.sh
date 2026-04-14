@@ -344,7 +344,22 @@ if [ -f "$queue_log" ]; then
   last_mtime=$(stat -c %Y "$queue_log" 2>/dev/null || echo 0)
   age_h=$(( (now_ts - last_mtime) / 3600 ))
   # Check for error patterns in the last 500 lines only (avoids false positives from rotated/historical log data)
-  error_count=$(tail -500 "$queue_log" 2>/dev/null | grep -c -i "error\|exception\|failed" || echo 0)
+  error_count="$(python3 - "$queue_log" <<'PY'
+import pathlib
+import re
+import sys
+
+path = pathlib.Path(sys.argv[1])
+try:
+    lines = path.read_text(encoding="utf-8", errors="ignore").splitlines()[-500:]
+except FileNotFoundError:
+    print(0)
+    raise SystemExit(0)
+
+pattern = re.compile(r"error|exception|failed", re.IGNORECASE)
+print(sum(1 for line in lines if pattern.search(line)))
+PY
+)"
 
   if [ "$error_count" -gt 0 ]; then
     fail "Tailoring queue log has $error_count error/exception lines (last 500 lines)"

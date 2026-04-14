@@ -412,7 +412,30 @@ class ForsetiPagesController extends ControllerBase {
         'started' => $parts[7],
       ];
     }
+
+    usort($rows, function (array $a, array $b): int {
+      $a_number = $this->extractProjectNumber((string) ($a['id'] ?? ''));
+      $b_number = $this->extractProjectNumber((string) ($b['id'] ?? ''));
+
+      if ($a_number !== $b_number) {
+        return $a_number <=> $b_number;
+      }
+
+      return strcmp((string) ($a['id'] ?? ''), (string) ($b['id'] ?? ''));
+    });
+
     return $rows;
+  }
+
+  /**
+   * Extract the numeric portion of a PROJ-* identifier for ordering.
+   */
+  protected function extractProjectNumber(string $project_id): int {
+    if (preg_match('/^PROJ-(\d+)$/i', trim($project_id), $matches)) {
+      return (int) $matches[1];
+    }
+
+    return PHP_INT_MAX;
   }
 
   /**

@@ -94,10 +94,10 @@
               <h4 class="dc-roadmap__section-title">{{ section_name }}</h4>
               <ul class="dc-roadmap__req-list">
                 {% for req in reqs %}
-                  <li class="dc-roadmap__req dc-roadmap__req--{{ req.status }}"
+                  <li class="dc-roadmap__req dc-roadmap__req--{{ req.display_status }}"
                       data-req-id="{{ req.id }}">
                     <span class="dc-roadmap__req-status">
-                      <span class="dc-status-badge dc-status-badge--{{ req.status }}">
+                      <span class="dc-status-badge dc-status-badge--{{ req.display_status }}">
                         {{ req.status_label }}
                       </span>
                       {% if req.feature_id %}

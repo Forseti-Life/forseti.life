@@ -1,11 +1,14 @@
-# Feature Brief: Secrets of Magic (deferred)
+# Feature Brief: Secrets of Magic
 
 - Work item id: dc-som-secrets-of-magic
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: deferred
+- Status: ready
 - Priority: P3
-- Deferred until: dc-cr-spellcasting ships and at least 4 spellcasting classes are in_progress
+- PM owner: pm-dungeoncrawler
+- Dev owner: dev-dungeoncrawler
+- QA owner: qa-dungeoncrawler
+- Source: PF2E Secrets of Magic
 - Depends on: dc-cr-spellcasting, dc-cr-class-wizard, dc-cr-class-sorcerer
 
 ## Goal

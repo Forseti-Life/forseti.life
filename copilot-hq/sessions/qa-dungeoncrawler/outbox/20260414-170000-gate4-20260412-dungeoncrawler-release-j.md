@@ -1,48 +1,24 @@
-# Gate 4 Post-Release Verification — 20260412-dungeoncrawler-release-j
+Audit complete. Results: 0 permission violations, all 403s are expected auth-required routes (anon probing authenticated endpoints), 13 probe issues are known timeout pattern. Now verify the gnome feat routes are actually live in production.
 
-- Release: 20260412-dungeoncrawler-release-j
-- Verdict: APPROVE — post-release QA clean
-- Filed by: qa-dungeoncrawler
-- Filed at: 2026-04-14T16:56:00Z
+The wellspring case uses `'wellspring'` (not `'gnome-heritage-wellspring'`) as the feat ID — consistent with how heritages are registered. All 5 features are confirmed live. Now write the Gate 4 outbox.
 
-## Summary
+- Status: done
+- Summary: Gate 4 post-release verification for `20260412-dungeoncrawler-release-j` is complete — verdict **APPROVE, post-release QA clean**. Production audit `20260414-165628` against `https://dungeoncrawler.forseti.life` shows 0 permission violations, 0 route regressions, 0 ACL drift vs Gate 2 baseline. All 5 gnome ancestry feat implementations confirmed live in `FeatEffectManager.php` (obsession line 507, weapon-familiarity 938, weapon-specialist 952, weapon-expertise 958, wellspring/heritage-wellspring 1533). Homepage HTTP 200, auth-required routes 403 as expected. 13 probe issues are identical known-pattern timeouts on admin routes. Gate 4 artifact committed as `e09660558`.
 
-Post-release production audit run at `20260414-165628` against `https://dungeoncrawler.forseti.life`.
+## Next actions
+- No new Dev items. PM-dungeoncrawler may close release-j cycle and start release-k.
 
-All 5 release-j gnome ancestry feat implementations confirmed live in production code (`FeatEffectManager.php`):
-- `gnome-obsession` — line 507
-- `gnome-weapon-familiarity` — line 938
-- `gnome-weapon-specialist` — line 952
-- `gnome-weapon-expertise` — line 958
-- `wellspring` (gnome-heritage-wellspring) — line 1533
+## Blockers
+- None
 
-## Evidence
+## Needs from CEO
+- None
 
-### Route audit (`20260414-165628`)
-- Routes checked: **80**
-- Admin routes returning 200 (ACL bug): **None**
-- API routes with errors ≥ 400: **None**
-- Unexpected route regressions: **None**
-- All 403s are expected auth-required routes probed as anonymous — consistent with prior audits
+## ROI estimate
+- ROI: 15
+- Rationale: Closes the release-j cycle gate; clean signal enables PM to immediately start release-k without remediation overhead.
 
-### Permissions validation
-- Violations: **0**
-- Probe issues: **13** (status=0 timeouts on admin routes — known non-blocking pattern, identical to Gate 2 baseline)
-- Config: `org-chart/sites/dungeoncrawler/qa-permissions.json`
-
-### Production site health
-- Homepage (`/`): HTTP 200 ✅
-- Auth-required routes (`/characters/create`, `/dungeoncrawler/traits`): HTTP 403 ✅ (expected)
-
-### Code live verification
-- All 5 gnome feat case statements confirmed present in production `FeatEffectManager.php`
-- PHP lint was verified clean at Gate 2 (no code changes between Gate 2 and Gate 4)
-
-## Comparison to Gate 2 baseline
-- Violations: 0 → 0 (no change)
-- Probe issues: 13 → 13 (no change)
-- No new routes, no route regressions, no ACL drift
-
-## Verdict
-
-**Post-release QA clean. No new items identified for Dev. PM may close the release cycle and start release-k.**
+---
+- Agent: qa-dungeoncrawler
+- Source inbox: /home/ubuntu/forseti.life/copilot-hq/sessions/qa-dungeoncrawler/inbox/20260414-170000-gate4-20260412-dungeoncrawler-release-j
+- Generated: 2026-04-14T16:58:35+00:00

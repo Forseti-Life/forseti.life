@@ -28,6 +28,8 @@ This module acts as the central content hub for Forseti.Life, providing:
 ### Core Routes
 - `/` - Homepage (AI Looking Out For Us)
 - `/home` - Alternative homepage route
+- `/roadmap` - Portfolio roadmap synced from HQ `dashboards/PROJECTS.md`
+- `/roadmap/{project_id}` - Individual project roadmap detail page
 - `/safety-map` - Interactive crime safety map
 - `/talk-with-forseti_content` - AI conversation interface
 - `/about` - About Forseti platform
@@ -42,6 +44,10 @@ This module acts as the central content hub for Forseti.Life, providing:
 - Custom services for content management
 - Integration with other Forseti modules (AmISafe, AI Conversation)
 - Plugin system for extensibility
+
+### Synced Portfolio Roadmap
+- Renders the live Forseti project registry from `copilot-hq/dashboards/PROJECTS.md`
+- Normalizes project cards into ascending `PROJ-###` order so roadmap presentation stays stable even if the backing registry table is edited out of sequence
 
 ## Technical Details
 

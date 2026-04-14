@@ -16,6 +16,7 @@ class RoadmapController extends ControllerBase {
 
   const STATUS_LABELS = [
     'pending'     => '❌ Not Started',
+    'queued'      => '🗂️ Queued',
     'in_progress' => '🔄 In Progress',
     'implemented' => '✅ Implemented',
   ];
@@ -85,14 +86,19 @@ class RoadmapController extends ControllerBase {
         $books[$bid]['chapters'][$ck]['sections'][$sec] = [];
       }
 
+      $pipeline_status = !empty($row->feature_id)
+        ? $this->pipelineStatusResolver->getPipelineStatus((string) $row->feature_id)
+        : NULL;
       $resolved_status = $this->pipelineStatusResolver->resolveRoadmapStatus($row->feature_id ?? NULL, $row->status);
+      $display_status = $pipeline_status === 'ready' ? 'queued' : $resolved_status;
 
       $books[$bid]['chapters'][$ck]['sections'][$sec][] = [
         'id'              => $row->id,
         'paragraph_title' => $row->paragraph_title,
         'req_text'        => $row->req_text,
         'status'          => $resolved_status,
-        'status_label'    => self::STATUS_LABELS[$resolved_status] ?? $resolved_status,
+        'display_status'  => $display_status,
+        'status_label'    => self::STATUS_LABELS[$display_status] ?? $display_status,
         'feature_id'      => $row->feature_id ?? '',
       ];
 

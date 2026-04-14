@@ -57,6 +57,9 @@ find sessions/ceo-copilot-2/inbox -mindepth 1 -maxdepth 1 -type d -printf '%f\n'
 section "Clean-audit Gate 2 backstop"
 python3 ./scripts/gate2-clean-audit-backstop.py --source "ceo-ops-once.sh" --queue-followup || true
 
+section "Release/SLA remediation dispatch"
+python3 ./scripts/ceo-pipeline-remediate.py --source "ceo-ops-once.sh" || true
+
 section "Project registry link audit"
 set +e
 python3 ./scripts/project-registry-link-audit.py
@@ -71,7 +74,7 @@ set -e
 
 section "System health"
 set +e
-./scripts/ceo-system-health.sh
+./scripts/ceo-system-health.sh --dispatch
 system_rc=$?
 set -e
 

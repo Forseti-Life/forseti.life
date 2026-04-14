@@ -1,6 +1,6 @@
 # Feature Progress
 
-Generated: 2026-04-14T15:56:33Z
+Generated: 2026-04-14T16:56:06Z
 
 | Work item | Website | Module | Status | Priority | PM | Dev | QA |
 |-----------|---------|--------|--------|----------|----|-----|----|
@@ -17,7 +17,7 @@ Generated: 2026-04-14T15:56:33Z
 | dc-apg-rituals | dungeoncrawler | dungeoncrawler_content | done |  |  |  |  |
 | dc-apg-spells | dungeoncrawler | dungeoncrawler_content | done |  |  |  |  |
 | dc-b1-bestiary1 | dungeoncrawler | dungeoncrawler_content | done | P3 |  |  |  |
-| dc-b2-bestiary2 | dungeoncrawler | dungeoncrawler_content | deferred | P3 |  |  |  |
+| dc-b2-bestiary2 | dungeoncrawler | dungeoncrawler_content | ready | P3 |  |  |  |
 | dc-b3-bestiary3 | dungeoncrawler | dungeoncrawler_content | deferred | P3 |  |  |  |
 | dc-cr-action-economy | dungeoncrawler | dungeoncrawler_content | done | P0 (foundation for all encounter-mode gameplay; all class features, spells, and skill actions depend on this) |  |  |  |
 | dc-cr-alchemical-items | dungeoncrawler | dungeoncrawler_content | done | unset (PM will set at triage) |  |  |  |
@@ -146,9 +146,9 @@ Generated: 2026-04-14T15:56:33Z
 | dc-gmg-npc-gallery | dungeoncrawler | dungeoncrawler_content | ready | P3 |  |  |  |
 | dc-gmg-running-guide | dungeoncrawler | dungeoncrawler_content | ready | P3 |  |  |  |
 | dc-gmg-subsystems | dungeoncrawler | dungeoncrawler_content | ready | P3 |  |  |  |
-| dc-gng-guns-gears | dungeoncrawler | dungeoncrawler_content | deferred | P3 |  |  |  |
+| dc-gng-guns-gears | dungeoncrawler | dungeoncrawler_content | ready | P3 |  |  |  |
 | dc-home-suggestion-notice | dungeoncrawler.life | dungeoncrawler_content (home page / front page block) | done | P2 |  |  |  |
-| dc-som-secrets-of-magic | dungeoncrawler | dungeoncrawler_content | deferred | P3 |  |  |  |
+| dc-som-secrets-of-magic | dungeoncrawler | dungeoncrawler_content | ready | P3 |  |  |  |
 | dc-ui-encounter-party-rail | dungeoncrawler | dungeoncrawler_content | ready | P1 |  |  |  |
 | dc-ui-hexmap-thin-client | dungeoncrawler | dungeoncrawler_content | ready | P1 |  |  |  |
 | dc-ui-map-first-player-shell | dungeoncrawler | dungeoncrawler_content | ready | P1 |  |  |  |

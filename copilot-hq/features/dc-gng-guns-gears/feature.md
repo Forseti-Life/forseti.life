@@ -1,11 +1,14 @@
-# Feature Brief: Guns and Gears (deferred)
+# Feature Brief: Guns and Gears
 
 - Work item id: dc-gng-guns-gears
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: deferred
+- Status: ready
 - Priority: P3
-- Deferred until: dc-cr-equipment-ch06 ships and dc-cr-encounter-rules is in_progress
+- PM owner: pm-dungeoncrawler
+- Dev owner: dev-dungeoncrawler
+- QA owner: qa-dungeoncrawler
+- Source: PF2E Guns and Gears
 - Depends on: dc-cr-equipment-ch06, dc-cr-encounter-rules
 
 ## Goal
