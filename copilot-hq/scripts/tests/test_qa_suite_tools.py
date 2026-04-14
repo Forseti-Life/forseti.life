@@ -230,3 +230,27 @@ def test_dungeoncrawler_gate_derives_local_dsn_for_dry_run(tmp_path):
 
     assert result.returncode == 0, result.stderr
     assert "SIMPLETEST_DB configured=yes" in result.stdout
+
+
+def test_required_role_url_audits_explicitly_cover_recursive_url_validation():
+    manifests = [
+        SCRIPTS_DIR.parent / "qa-suites" / "products" / "forseti" / "suite.json",
+        SCRIPTS_DIR.parent / "qa-suites" / "products" / "dungeoncrawler" / "suite.json",
+    ]
+
+    for manifest_path in manifests:
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        role_audit = next(
+            suite for suite in manifest["suites"] if suite["id"] == "role-url-audit"
+        )
+        cases = role_audit.get("test_cases") or []
+        assert any(
+            "recursive url validation" in (case.get("description", "")).lower()
+            or "validate.json" in (case.get("command", "")).lower()
+            for case in cases
+        ), f"{manifest_path} must explicitly cover recursive URL validation"
+
+
+def test_site_audit_run_invokes_recursive_url_validation():
+    script = (SCRIPTS_DIR / "site-audit-run.sh").read_text(encoding="utf-8")
+    assert script.count("python3 scripts/site-validate-urls.py") >= 2

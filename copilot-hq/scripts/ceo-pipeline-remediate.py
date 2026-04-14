@@ -93,6 +93,17 @@ def _features_for_release(release_id: str) -> list[str]:
     return names
 
 
+def _feature_has_dev_outbox(team_id: str, feature_id: str) -> bool:
+    dev_outbox = ROOT / "sessions" / f"dev-{team_id}" / "outbox"
+    if not dev_outbox.exists():
+        return False
+    return any(feature_id in path.name for path in dev_outbox.glob("*.md"))
+
+
+def _all_features_have_dev_outbox(team_id: str, features: list[str]) -> bool:
+    return bool(features) and all(_feature_has_dev_outbox(team_id, feature_id) for feature_id in features)
+
+
 def _orphaned_features(team_id: str, current_release_id: str) -> list[tuple[str, str, bool]]:
     features_root = ROOT / "features"
     if not features_root.exists():
@@ -244,9 +255,13 @@ def remediate_release_blockers() -> int:
 
     for team, release_id in release_map:
         features = _features_for_release(release_id)
-        if features and not _has_gate2_approve(team.qa_agent, release_id):
+        all_impl_ready = _all_features_have_dev_outbox(team.team_id, features)
+        has_gate2 = _has_gate2_approve(team.qa_agent, release_id)
+        has_owner_signoff = _has_signoff(team.pm_agent, release_id)
+
+        if all_impl_ready and not has_gate2:
             created += int(_queue_gate2_followup(team, release_id, features))
-        if not _has_signoff(team.pm_agent, release_id):
+        if all_impl_ready and has_gate2 and not has_owner_signoff:
             created += int(_queue_signoff_reminder(team.pm_agent, team.team_id, release_id, cross_signoff=False))
         orphaned = _orphaned_features(team.team_id, release_id)
         if orphaned:
@@ -256,7 +271,13 @@ def remediate_release_blockers() -> int:
         for target_team, target_release_id in release_map:
             if signing_team.team_id == target_team.team_id:
                 continue
-            if not _has_signoff(signing_team.pm_agent, target_release_id):
+            target_features = _features_for_release(target_release_id)
+            target_ready = (
+                _all_features_have_dev_outbox(target_team.team_id, target_features)
+                and _has_gate2_approve(target_team.qa_agent, target_release_id)
+                and _has_signoff(target_team.pm_agent, target_release_id)
+            )
+            if target_ready and not _has_signoff(signing_team.pm_agent, target_release_id):
                 created += int(
                     _queue_signoff_reminder(
                         signing_team.pm_agent,

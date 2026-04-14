@@ -673,6 +673,9 @@ function job_hunter_cron() {
           'USAJobs' => 'usajobs',
           'Google Jobs (SerpAPI)' => 'serpapi',
         ];
+        $source_field = $database->schema()->fieldExists('jobhunter_job_requirements', 'external_source')
+          ? 'external_source'
+          : 'source';
         $external_source = $source_map[$job_data['source']] ?? 'external_api';
 
         $job_title = substr((string) ($job_data['title'] ?? 'Unknown'), 0, 255);
@@ -699,7 +702,7 @@ function job_hunter_cron() {
             'status' => 'active',
             'created' => time(),
             'updated' => time(),
-            'external_source' => $external_source,
+            $source_field => $external_source,
             'external_job_id' => $external_job_id,
             'job_hash' => $job_hash,
             'ai_extraction_status' => 'pending',

@@ -52,6 +52,14 @@ def _make_root(tmp_path: Path) -> Path:
         "20260412-dungeoncrawler-release-j\n",
         encoding="utf-8",
     )
+    (root / "tmp" / "release-cycle-active" / "forseti.started_at").write_text(
+        "2026-04-12T00:00:00+00:00\n",
+        encoding="utf-8",
+    )
+    (root / "tmp" / "release-cycle-active" / "dungeoncrawler.started_at").write_text(
+        "2026-04-12T00:00:00+00:00\n",
+        encoding="utf-8",
+    )
 
     for agent in [
         "pm-forseti",
@@ -113,6 +121,23 @@ def _run(root: Path) -> subprocess.CompletedProcess[str]:
 
 def test_queues_release_and_sla_followups(tmp_path):
     root = _make_root(tmp_path)
+    (root / "sessions" / "dev-forseti" / "outbox").mkdir(parents=True, exist_ok=True)
+    (root / "sessions" / "dev-forseti" / "outbox" / "20260413-impl-forseti-feature-a.md").write_text(
+        "forseti-feature-a implemented\n",
+        encoding="utf-8",
+    )
+    (root / "sessions" / "qa-forseti" / "outbox" / "20260413-gate2-approve-forseti-release-i.md").write_text(
+        "20260412-forseti-release-i\nAPPROVE\n",
+        encoding="utf-8",
+    )
+    (root / "sessions" / "pm-forseti" / "artifacts" / "release-signoffs" / "20260412-forseti-release-i.md").write_text(
+        "signed\n",
+        encoding="utf-8",
+    )
+    (root / "sessions" / "dev-dungeoncrawler" / "outbox" / "20260413-impl-dc-feature-a.md").write_text(
+        "dc-feature-a implemented\n",
+        encoding="utf-8",
+    )
 
     result = _run(root)
 
@@ -124,14 +149,48 @@ def test_queues_release_and_sla_followups(tmp_path):
     qa_forseti_items = sorted(p.name for p in (root / "sessions" / "qa-forseti" / "inbox").iterdir())
     qa_dc_items = sorted(p.name for p in (root / "sessions" / "qa-dungeoncrawler" / "inbox").iterdir())
 
-    assert any("signoff-reminder-20260412-forseti-release-i" in name for name in pm_forseti_items)
-    assert any("signoff-reminder-20260412-dungeoncrawler-release-j" in name for name in pm_forseti_items)
-    assert any("signoff-reminder-20260412-dungeoncrawler-release-j" in name for name in pm_dc_items)
+    assert not any("signoff-reminder-20260412-forseti-release-i" in name for name in pm_forseti_items)
+    assert not any("signoff-reminder-20260412-dungeoncrawler-release-j" in name for name in pm_forseti_items)
+    assert not any("signoff-reminder-20260412-dungeoncrawler-release-j" in name for name in pm_dc_items)
     assert any("signoff-reminder-20260412-forseti-release-i" in name for name in pm_dc_items)
     assert any("release-cleanup-dungeoncrawler-orphans" in name for name in pm_dc_items)
     assert any("sla-outbox-lag-dev-dungeoncrawler-20260412-old" in name for name in pm_dc_items)
-    assert any("gate2-followup-20260412-forseti-release-i" in name for name in qa_forseti_items)
+    assert not any("gate2-followup-20260412-forseti-release-i" in name for name in qa_forseti_items)
     assert any("gate2-followup-20260412-dungeoncrawler-release-j" in name for name in qa_dc_items)
+
+
+def test_skips_signoff_and_gate2_until_dev_outbox_exists(tmp_path):
+    root = _make_root(tmp_path)
+
+    result = _run(root)
+
+    assert result.returncode == 0, result.stderr
+
+    pm_dc_items = sorted(p.name for p in (root / "sessions" / "pm-dungeoncrawler" / "inbox").iterdir())
+    qa_dc_items = sorted(p.name for p in (root / "sessions" / "qa-dungeoncrawler" / "inbox").iterdir())
+
+    assert not any("signoff-reminder-20260412-dungeoncrawler-release-j" in name for name in pm_dc_items)
+    assert not any("gate2-followup-20260412-dungeoncrawler-release-j" in name for name in qa_dc_items)
+    assert any("release-cleanup-dungeoncrawler-orphans" in name for name in pm_dc_items)
+
+
+def test_cross_signoff_waits_for_owner_signoff(tmp_path):
+    root = _make_root(tmp_path)
+    (root / "sessions" / "dev-dungeoncrawler" / "outbox" / "20260413-impl-dc-feature-a.md").write_text(
+        "dc-feature-a implemented\n",
+        encoding="utf-8",
+    )
+    (root / "sessions" / "qa-dungeoncrawler" / "outbox" / "20260413-gate2-approve-dc-release-j.md").write_text(
+        "20260412-dungeoncrawler-release-j\nAPPROVE\n",
+        encoding="utf-8",
+    )
+
+    result = _run(root)
+
+    assert result.returncode == 0, result.stderr
+
+    pm_forseti_items = sorted(p.name for p in (root / "sessions" / "pm-forseti" / "inbox").iterdir())
+    assert not any("signoff-reminder-20260412-dungeoncrawler-release-j" in name for name in pm_forseti_items)
 
 
 def test_is_idempotent_for_existing_items(tmp_path):

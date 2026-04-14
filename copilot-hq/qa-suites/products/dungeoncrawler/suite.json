@@ -18,7 +18,24 @@
       "artifacts": [
         "sessions/qa-dungeoncrawler/artifacts/auto-site-audit/<ts>/..."
       ],
-      "required_for_release": true
+      "required_for_release": true,
+      "notes": "Includes recursive URL validation by running scripts/site-validate-urls.py over the union of discovered crawl URLs and custom routes, then writing dungeoncrawler-validate.json (plus per-role validate.json files when role cookies are configured).",
+      "test_cases": [
+        {
+          "id": "TC-01",
+          "description": "site-audit role-url check returns 0 unexpected access violations",
+          "type": "regression",
+          "command": "cd /home/ubuntu/forseti.life/copilot-hq && ALLOW_PROD_QA=0 DUNGEONCRAWLER_BASE_URL=http://localhost bash scripts/site-audit-run.sh dungeoncrawler 2>&1 | tail -10",
+          "status": "active"
+        },
+        {
+          "id": "TC-02",
+          "description": "Recursive URL validation writes validate.json from the crawl/route union and records at least one validated URL",
+          "type": "regression",
+          "command": "cd /home/ubuntu/forseti.life/copilot-hq && rm -rf sessions/qa-dungeoncrawler/artifacts/auto-site-audit/latest && ALLOW_PROD_QA=0 DUNGEONCRAWLER_BASE_URL=http://localhost bash scripts/site-audit-run.sh dungeoncrawler >/tmp/dungeoncrawler-role-url-audit.log 2>&1 && python3 - <<'PY'\nimport json\nfrom pathlib import Path\npath = Path('sessions/qa-dungeoncrawler/artifacts/auto-site-audit/latest/dungeoncrawler-validate.json')\nif not path.exists():\n    raise SystemExit('missing validate.json')\npayload = json.loads(path.read_text(encoding='utf-8'))\nif int(payload.get('count', 0)) <= 0:\n    raise SystemExit('validate.json contains no recursive URL results')\nprint(f\"recursive validation count={payload['count']}\")\nPY",
+          "status": "active"
+        }
+      ]
     },
     {
       "id": "dc-cr-clan-dagger-e2e",

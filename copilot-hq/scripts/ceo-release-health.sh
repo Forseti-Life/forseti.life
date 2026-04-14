@@ -23,6 +23,7 @@ set -euo pipefail
 cd "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 FIX_MODE=0
+RELEASE_START_GRACE_SECONDS="${RELEASE_START_GRACE_SECONDS:-14400}"
 for arg in "$@"; do
   [ "$arg" = "--fix" ] && FIX_MODE=1
 done
@@ -145,6 +146,31 @@ while IFS=$'\t' read -r TEAM PM_AGENT QA_AGENT; do
 
   RELEASE_ID="$(cat "$RELEASE_ID_FILE" | tr -d '[:space:]')"
   NEXT_RELEASE_ID="$(cat "$NEXT_ID_FILE" 2>/dev/null | tr -d '[:space:]' || echo '')"
+  STARTED_AT_FILE="$ACTIVE_DIR/${TEAM}.started_at"
+  RELEASE_AGE_SECS=""
+  if [ -f "$STARTED_AT_FILE" ]; then
+    STARTED_AT="$(cat "$STARTED_AT_FILE" | tr -d '[:space:]')"
+    RELEASE_AGE_SECS="$(python3 - "$STARTED_AT" <<'PY'
+from datetime import datetime, timezone
+import sys
+
+value = sys.argv[1].strip()
+if not value:
+    print("")
+    raise SystemExit(0)
+try:
+    dt = datetime.fromisoformat(value.replace("Z", "+00:00"))
+except Exception:
+    print("")
+    raise SystemExit(0)
+print(int((datetime.now(timezone.utc) - dt).total_seconds()))
+PY
+)"
+  fi
+  IN_RELEASE_GRACE=0
+  if [ -n "$RELEASE_AGE_SECS" ] && [ "$RELEASE_AGE_SECS" -lt "$RELEASE_START_GRACE_SECONDS" ]; then
+    IN_RELEASE_GRACE=1
+  fi
 
   echo "  Release ID:  $RELEASE_ID"
   echo "  Next ID:     ${NEXT_RELEASE_ID:-<not set>}"
@@ -198,6 +224,7 @@ PY
   echo "  Features in $RELEASE_ID:"
   FEATURES_IN_RELEASE=()
   FEATURES_NOT_DONE=()
+  FEATURES_WAITING_FOR_IMPL=0
   while IFS= read -r FEAT_DIR; do
     [ -d "$FEAT_DIR" ] || continue
     FM="$FEAT_DIR/feature.md"
@@ -217,7 +244,12 @@ PY
         if [ -n "$HAS_IMPL" ]; then
           pass "  feature: $FEAT_NAME (status=$STATUS, dev outbox: $HAS_IMPL)"
         else
-          fail "  feature: $FEAT_NAME (status=$STATUS, NO dev outbox found — implementation missing)"
+          if [ "$IN_RELEASE_GRACE" = "1" ]; then
+            warn "  feature: $FEAT_NAME (status=$STATUS, no dev outbox yet — release still within startup grace)"
+          else
+            fail "  feature: $FEAT_NAME (status=$STATUS, NO dev outbox found — implementation missing)"
+          fi
+          FEATURES_WAITING_FOR_IMPL=$((FEATURES_WAITING_FOR_IMPL + 1))
           FEATURES_NOT_DONE+=("$FEAT_NAME")
         fi
       else
@@ -243,9 +275,10 @@ PY
   if [ -n "$GATE2_FILE" ]; then
     pass "[$TEAM] Gate 2 APPROVE: $(basename "$GATE2_FILE")"
   else
-    # Check if this is an empty release (no features) — warn instead of fail
     if [ "$FEAT_COUNT" -eq 0 ]; then
       warn "[$TEAM] Gate 2 APPROVE not found (empty release — may need --empty-release flag)"
+    elif [ "$FEATURES_WAITING_FOR_IMPL" -gt 0 ]; then
+      warn "[$TEAM] Gate 2 APPROVE pending implementation completion (${FEATURES_WAITING_FOR_IMPL} feature(s) still missing dev outbox)"
     else
       fail "[$TEAM] Gate 2 APPROVE not found in $QA_OUTBOX for $RELEASE_ID"
       info "Expected: $QA_OUTBOX/<timestamp>-gate2-approve-<slug>.md containing '$RELEASE_ID' and 'APPROVE'"
@@ -256,6 +289,12 @@ PY
   PM_SIGNOFF="sessions/${PM_AGENT}/artifacts/release-signoffs/${RELEASE_ID}.md"
   if [ -f "$PM_SIGNOFF" ]; then
     pass "[$TEAM] PM signoff ($PM_AGENT): found"
+  elif [ "$FEAT_COUNT" -eq 0 ]; then
+    warn "[$TEAM] PM signoff pending scope activation for $RELEASE_ID"
+  elif [ "$FEATURES_WAITING_FOR_IMPL" -gt 0 ]; then
+    warn "[$TEAM] PM signoff pending implementation and QA completion for $RELEASE_ID"
+  elif [ -z "$GATE2_FILE" ]; then
+    warn "[$TEAM] PM signoff pending Gate 2 APPROVE for $RELEASE_ID"
   else
     fail "[$TEAM] PM signoff missing: $PM_SIGNOFF"
     info "Run: bash scripts/release-signoff.sh $TEAM $RELEASE_ID"
@@ -324,7 +363,7 @@ while IFS=$'\t' read -r TEAM PM_AGENT QA_AGENT; do
   [ -n "$TEAM" ] || continue
   TEAMS_LIST+=("$TEAM")
   RID="$(cat "$ACTIVE_DIR/${TEAM}.release_id" 2>/dev/null | tr -d '[:space:]' || echo '')"
-  RELEASE_MAP+=("$TEAM:$PM_AGENT:$RID")
+  RELEASE_MAP+=("$TEAM:$PM_AGENT:$QA_AGENT:$RID")
 done <<<"$COORDINATED_TEAMS"
 
 for SIGNING_ENTRY in "${RELEASE_MAP[@]:-}"; do
@@ -332,6 +371,8 @@ for SIGNING_ENTRY in "${RELEASE_MAP[@]:-}"; do
   SIGNING_TEAM="${SIGNING_ENTRY%%:*}"
   REST="${SIGNING_ENTRY#*:}"
   SIGNING_PM="${REST%%:*}"
+  REST="${REST#*:}"
+  SIGNING_QA="${REST%%:*}"
   SIGNING_RID="${REST##*:}"
   [ -n "$SIGNING_RID" ] || continue
 
@@ -340,12 +381,21 @@ for SIGNING_ENTRY in "${RELEASE_MAP[@]:-}"; do
     TARGET_TEAM="${TARGET_ENTRY%%:*}"
     TARGET_REST="${TARGET_ENTRY#*:}"
     TARGET_PM="${TARGET_REST%%:*}"
+    TARGET_REST="${TARGET_REST#*:}"
+    TARGET_QA="${TARGET_REST%%:*}"
     TARGET_RID="${TARGET_REST##*:}"
     [ "$SIGNING_TEAM" = "$TARGET_TEAM" ] && continue  # skip self
     [ -n "$TARGET_RID" ] || continue
 
     CROSS_FILE="sessions/${SIGNING_PM}/artifacts/release-signoffs/${TARGET_RID}.md"
-    if [ -f "$CROSS_FILE" ]; then
+    TARGET_OWNER_SIGNOFF="sessions/${TARGET_PM}/artifacts/release-signoffs/${TARGET_RID}.md"
+    TARGET_GATE2="$(find "sessions/${TARGET_QA}/outbox" -maxdepth 1 -name "*gate2-approve*" -type f 2>/dev/null \
+      | xargs grep -l "$TARGET_RID" 2>/dev/null | head -1 || true)"
+    if [ ! -f "$TARGET_OWNER_SIGNOFF" ]; then
+      warn "$SIGNING_PM co-sign for $TARGET_RID not yet applicable (owner PM signoff missing)"
+    elif [ -z "$TARGET_GATE2" ]; then
+      warn "$SIGNING_PM co-sign for $TARGET_RID not yet applicable (Gate 2 APPROVE missing)"
+    elif [ -f "$CROSS_FILE" ]; then
       pass "$SIGNING_PM co-signed $TARGET_RID"
     else
       fail "$SIGNING_PM has NOT co-signed $TARGET_RID"

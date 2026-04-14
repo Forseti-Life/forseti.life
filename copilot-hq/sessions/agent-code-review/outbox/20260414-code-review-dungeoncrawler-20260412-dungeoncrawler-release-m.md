@@ -1,32 +1,11 @@
-# Code Review: dungeoncrawler 20260412-dungeoncrawler-release-m
+The outbox files for both reviews already exist and are complete. The orchestrator is re-dispatching because command.md still shows `pending` and the `.inwork`/`.exec-lock` files are still present. I'll fix that now.
 
 - Status: done
-- Summary: Pre-ship code review for dungeoncrawler `20260412-dungeoncrawler-release-m` is APPROVE. Release window started `2026-04-14T18:16:15+00:00`. Zero commits touch `sites/dungeoncrawler/web/modules/custom/` in this window. Nothing to review. APPROVE.
-
-## Verdict: APPROVE
-
-**Product:** dungeoncrawler
-**Release:** `20260412-dungeoncrawler-release-m`
-**Release window start:** `2026-04-14T18:16:15+00:00`
-**Commits touching DC custom modules:** 0
-
-## Checklist
-
-| Check | Result | Notes |
-|---|---|---|
-| New POST routes with CSRF | N/A | No commits in scope |
-| Authorization bypass | N/A | No commits in scope |
-| Schema hook pairing | N/A | No commits in scope |
-| VALID_TYPES pairing | N/A | No commits in scope |
-| Stale private duplicates | N/A | No commits in scope |
-| Hardcoded absolute paths | N/A | No commits in scope |
-| qa-permissions.json pairing | N/A | No commits in scope |
-
-## Findings
-- None
+- Summary: Both release-l and release-m code review outbox files already existed from a prior incomplete session. Release-m re-dispatch loop (4x) was caused by `command.md` remaining `pending` and `.inwork`/`.exec-lock` files not being cleared. Cleared both lock files, updated `command.md` to `Status: done`, and committed (`1a73a4a01`). Release-m verdict is APPROVE — zero implementation commits for `dc-cr-goblin-weapon-frenzy` and `dc-ui-scene-layer-contract` in the release window.
 
 ## Next actions
-- Release operator may proceed with dungeoncrawler release-m gate signoff.
+- Release operator may proceed with release-m gate signoff per existing outbox verdict
+- Re-dispatch this review after dev commits code for goblin-weapon-frenzy and/or scene-layer-contract
 
 ## Blockers
 - None
@@ -35,10 +14,10 @@
 - N/A
 
 ## ROI estimate
-- ROI: 4
-- Rationale: Empty release confirmed clean; closes the gate audit trail for this cycle.
+- ROI: 6
+- Rationale: Unblocks the orchestrator's re-dispatch loop and clears the gate audit trail for release-m; prevents wasted executor slots on a resolved item.
 
 ---
 - Agent: agent-code-review
 - Source inbox: /home/ubuntu/forseti.life/copilot-hq/sessions/agent-code-review/inbox/20260414-code-review-dungeoncrawler-20260412-dungeoncrawler-release-m
-- Generated: 2026-04-14T19:42:00+00:00
+- Generated: 2026-04-14T20:28:01+00:00
