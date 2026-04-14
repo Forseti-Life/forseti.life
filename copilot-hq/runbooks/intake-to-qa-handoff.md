@@ -240,20 +240,26 @@ For each AC item, determine the test type:
 | Content visible / not visible | Add to crawl + role audit suite |
 | Permission check | Add to `qa-permissions.json` rule + role audit |
 
-### Step 3 — Add test cases to the suite
+### Step 3 — Add runnable suite metadata
 
-Update `qa-suites/products/forseti/suite.json` with new entries, or add a feature overlay suite.  
-Update `org-chart/sites/forseti.life/qa-permissions.json` for any new permission expectations.
+Create or update the feature overlay manifest: `qa-suites/products/forseti/features/<feature-id>.json`  
+Do **not** edit the live `qa-suites/products/forseti/suite.json` during grooming.
+
+Each overlay suite entry must include:
+- `owner_seat`
+- `source_path`
+- `env_requirements`
+- `release_checkpoint`
 
 After editing:
 ```bash
-python3 scripts/qa-suite-validate.py
+python3 scripts/qa-suite-validate.py --product forseti --feature-id <feature-id>
 ```
 
 ### Step 4 — Write the test plan stub
 
 Create `features/<feature-id>/03-test-plan.md` from `templates/03-test-plan.md`.  
-List each test case added, the suite it lives in, and the expected PASS/FAIL signal.
+List each test case added, the suite it lives in, the overlay path, and the expected PASS/FAIL signal.
 
 ### Step 5 — Report back to PM
 
@@ -276,6 +282,7 @@ When test cases are written and suite is validated, close the loop:
 This:
 - Marks `features/<id>/feature.md` status → `ready`
 - Writes a PM inbox item confirming the feature is groomed and in the ready pool
+- Verifies the feature overlay manifest exists and validates cleanly
 - PM doesn't need to do anything — the feature just becomes available at next Stage 0
 
 **After this step, Dev can start implementing.** The test cases exist. Dev's job is to make them PASS.
@@ -331,7 +338,8 @@ No grooming work ever blocks or delays an in-flight release.
 | Acceptance criteria | `01-acceptance-criteria.md` | `features/<feature-id>/01-acceptance-criteria.md` |
 | Release scope | `01-change-list.md` | `sessions/pm-forseti/artifacts/release-candidates/<release-id>/01-change-list.md` |
 | QA handoff | QA inbox item | `sessions/qa-forseti/inbox/<date>-testgen-<feature-id>/` |
-| Test cases | Suite manifest | `qa-suites/products/forseti/suite.json` |
+| Runnable suite metadata | Feature overlay manifest | `qa-suites/products/forseti/features/<feature-id>.json` |
+| Live release suite | Product suite manifest | `qa-suites/products/forseti/suite.json` |
 | Permission rules | QA permissions | `org-chart/sites/forseti.life/qa-permissions.json` |
 | Test plan | `03-test-plan.md` | `features/<feature-id>/03-test-plan.md` |
 | Verification report | `04-verification-report.md` | `features/<feature-id>/04-verification-report.md` |

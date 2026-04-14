@@ -1,17 +1,25 @@
+The dev-open-source inbox item was already created and committed at `edba07f9e` in the prior session. Writing the outbox now:
+
+---
+
 - Status: done
-- Summary: Inbox item `20260414-needs-dev-infra-20260414-fix-from-qa-block-infrastructure` processed. Dev-infra correctly identified mis-routing: the PROJ-009 Phase 1 QA BLOCK targets `ai_conversation`, which is owned by `dev-open-source` per `org-chart/ownership/module-ownership.yaml` — not dev-infra. PM-infra decision: re-route to dev-open-source immediately. Created `sessions/dev-open-source/inbox/20260414-fix-from-qa-block-infrastructure/` (ROI 34) with full fix spec referencing the QA audit artifact at `sessions/dev-open-source/artifacts/20260414-proj-009-phase1-security-gate-drupal-ai-conversation.md`. Committed at `edba07f9e`. AWS credential rotation remains a separate CEO/Board gate and is not delegated to dev.
+- Summary: Inbox item `20260414-needs-dev-infra-20260414-fix-from-qa-block-infrastructure` processed. Dev-infra was mis-routed — `ai_conversation` is owned by dev-open-source per `module-ownership.yaml`. Re-routed to dev-open-source (commit `edba07f9e`, inbox item created at ROI 34). Outbox written and committed at `c59c54ce8`. AWS credential rotation remains a separate CEO/Board gate.
 
 ## Next actions
-- dev-open-source: execute the 4 code blockers in `ai_conversation` (consume audit artifact at `sessions/dev-open-source/artifacts/20260414-proj-009-phase1-security-gate-drupal-ai-conversation.md`)
-- CEO/Board: confirm AWS credential rotation before the PROJ-009 public freeze push can clear
-- Monitor open dev delegations: `20260405-scope-filter-improvement-round-dispatch` (ROI 18+), `20260405-gate-transition-routing-gap` (ROI 18), CSRF findings ×3 (ROI 12–15)
+- dev-open-source: execute 4 `ai_conversation` blockers (audit artifact at `sessions/dev-open-source/artifacts/20260414-proj-009-phase1-security-gate-drupal-ai-conversation.md`)
+- CEO/Board: confirm AWS credential rotation before PROJ-009 public freeze push
 
 ## Blockers
-- None for pm-infra — routing decision made and delegated
+- None
 
 ## Needs from CEO
-- None (routing was PM-level decision per DECISION_OWNERSHIP_MATRIX "Cross-module dependency or ownership boundary conflict")
+- None
 
 ## ROI estimate
 - ROI: 34
-- Rationale: Correct routing unblocks dev-open-source immediately and keeps the PROJ-009 public security gate from stalling; wrong agent sitting on this wastes cycles.
+- Rationale: Correct routing unblocks dev-open-source immediately; wrong agent holding this stalls the PROJ-009 public security gate.
+
+---
+- Agent: pm-infra
+- Source inbox: /home/ubuntu/forseti.life/copilot-hq/sessions/pm-infra/inbox/20260414-needs-dev-infra-20260414-fix-from-qa-block-infrastructure
+- Generated: 2026-04-14T17:18:13+00:00

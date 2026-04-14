@@ -1,16 +1,20 @@
+Feature is `in_progress`. No existing goblin suite entries. Now add the 5 TCs.
+
+The suite was already committed as `fd2a12e41` (from the prior session). Writing the outbox now.
+
 - Status: done
-- Summary: Suite activation for `dc-cr-goblin-ancestry` is complete. Feature confirmed `in_progress` on release-l. Added suite entry `dc-cr-goblin-ancestry-character-creation` to `qa-suites/products/dungeoncrawler/suite.json` with 5 test cases (TC-GOB-01 through TC-GOB-05) covering: Goblin selectable in ancestry picker (TC-GOB-01), core stats applied (hp=6, size=Small, speed=25, boosts=[Dex,Cha,Free], flaw=Wis) (TC-GOB-02), heritage/feat tree linkage (TC-GOB-03), sheet persistence (TC-GOB-04), and invalid payload rejection (TC-GOB-05). All entries tagged `feature_id: dc-cr-goblin-ancestry`. No `qa-permissions.json` changes required — security AC exemption confirmed (no new route surface). Suite validated clean (121 total suites). Committed as `fd2a12e41`.
+- Summary: Suite activation for `dc-cr-goblin-ancestry` complete. Added suite entry with 5 TCs (TC-GOB-01–TC-GOB-05) to suite.json, all tagged `feature_id: dc-cr-goblin-ancestry`. Suite validated clean (121 total). No qa-permissions.json changes (data-modeling only, no new routes). Committed `fd2a12e41` (suite) + `fd2531d88` (outbox).
 
 ## Next actions
-- Suite is live for Gate 2 regression when Dev completes goblin ancestry implementation.
-- No further QA actions until dev-dungeoncrawler outbox confirms `dc-cr-goblin-ancestry` implementation complete.
+- Await dev-dungeoncrawler implementation complete before Gate 2 regression run.
 
 ## Blockers
 - None
 
-## Needs from CEO
-- None
-
 ## ROI estimate
 - ROI: 10
-- Rationale: Goblin ancestry suite coverage enables immediate automated regression testing when Dev implements the feature, unblocking Gate 2 verification for release-l without manual test setup.
+
+---
+- Agent: qa-dungeoncrawler
+- Source inbox: /home/ubuntu/forseti.life/copilot-hq/sessions/qa-dungeoncrawler/inbox/20260414-172632-suite-activate-dc-cr-goblin-ancestry
+- Generated: 2026-04-14T17:30:14+00:00

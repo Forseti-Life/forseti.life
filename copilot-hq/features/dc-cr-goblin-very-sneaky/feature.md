@@ -3,14 +3,14 @@
 - Work item id: dc-cr-goblin-very-sneaky
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: ready
+- Status: in_progress
 - Priority: P2
 - PM owner: pm-dungeoncrawler
 - Dev owner: dev-dungeoncrawler
 - QA owner: qa-dungeoncrawler
 - Source: PF2E Core Rulebook (Fourth Printing), lines 7384–7683
 - Category: game-mechanic
-- Release: (set by PM at activation)
+- Release: 20260412-dungeoncrawler-release-l
 - Created: 2026-04-11
 
 ## Goal

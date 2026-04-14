@@ -27,13 +27,16 @@ Design, implement, and run automated test suites for product features, and verif
 
 Policy:
 - The canonical test cases for each product are the automated suites declared in:
-	- `qa-suites/products/<product>/suite.json`
+	- `qa-suites/products/<product>/suite.json` (live release manifest)
+	- `qa-suites/products/<product>/features/<feature-id>.json` (grooming-time feature overlay)
 - Suites must be executable automation with PASS/FAIL outcomes.
 - Manual-only checklists are allowed as planning aids, but are not the SoT.
 
 Maintenance:
 - If a product does not have a `suite.json`, create it (or escalate to QA lead/PM) before claiming verification is complete.
-- After updating any `suite.json`, validate with: `python3 scripts/qa-suite-validate.py`.
+- During grooming, create/update the feature overlay manifest alongside `03-test-plan.md`; do not leave a `ready` feature without runnable suite metadata.
+- After updating any suite manifest or feature overlay, validate with: `python3 scripts/qa-suite-validate.py`.
+- If selected overlays need to be compiled into a release-scoped manifest, use: `python3 scripts/qa-suite-build.py --product <product> --include-feature <feature-id>`.
 
 ## Delegation rule (new)
 - QA does **not** generate inbox items for other roles.
@@ -77,6 +80,7 @@ Evidence sources:
 
 Deliverables:
 - Update/maintain the product’s suite manifest (SoT): `qa-suites/products/<product>/suite.json`.
+- During grooming, update/maintain the feature overlay: `qa-suites/products/<product>/features/<feature-id>.json`.
 - A concise outbox update summarizing:
 	- new errors/regressions
 	- access-control concerns

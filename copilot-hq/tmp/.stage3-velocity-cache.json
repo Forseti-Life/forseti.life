@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-04-14T17:04:16.960139",
+  "generated_at": "2026-04-14T17:55:32.400203",
   "window_minutes": 15,
   "teams": [
     {
@@ -13,10 +13,10 @@
       "introduced_last_window": 0,
       "resolved_per_15_minutes": 0.0,
       "workflow": {
-        "dev_outbox_updates": 0,
+        "dev_outbox_updates": 3,
         "dev_notify_qa_markers": 0,
-        "qa_done_markers": 0,
-        "handoff_signal": "weak"
+        "qa_done_markers": 4,
+        "handoff_signal": "moderate"
       },
       "recent_deltas": [
         {
@@ -82,10 +82,10 @@
       "introduced_last_window": 0,
       "resolved_per_15_minutes": 0.0,
       "workflow": {
-        "dev_outbox_updates": 0,
+        "dev_outbox_updates": 1,
         "dev_notify_qa_markers": 0,
-        "qa_done_markers": 1,
-        "handoff_signal": "weak"
+        "qa_done_markers": 2,
+        "handoff_signal": "moderate"
       },
       "recent_deltas": [
         {

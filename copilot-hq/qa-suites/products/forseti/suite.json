@@ -4341,6 +4341,78 @@
       ]
     },
     {
+      "id": "forseti-community-incident-report-form-acl",
+      "label": "Community incident report form blocks anonymous access",
+      "type": "security",
+      "feature_id": "forseti-community-incident-report",
+      "command": "curl -s -o /dev/null -w \"%{http_code}\" https://forseti.life/community/report",
+      "artifacts": [
+        "sessions/qa-forseti/artifacts/community-incident-report/tc1-form-acl.log"
+      ],
+      "required_for_release": true,
+      "notes": "Expect 403 or 302 redirect to login for anonymous GET /community/report."
+    },
+    {
+      "id": "forseti-community-incident-report-form-authenticated",
+      "label": "Community incident report form loads for authenticated user",
+      "type": "functional",
+      "feature_id": "forseti-community-incident-report",
+      "command": "curl -s -b \"$FORSETI_COOKIE_AUTHENTICATED\" https://forseti.life/community/report | grep -Eq 'incident|description|location'",
+      "artifacts": [
+        "sessions/qa-forseti/artifacts/community-incident-report/tc2-form-authenticated.log"
+      ],
+      "required_for_release": true,
+      "notes": "Expect HTTP 200 and visible form fields for incident type, description, location, and date."
+    },
+    {
+      "id": "forseti-community-incident-report-submit-unpublished",
+      "label": "Community incident submission creates unpublished node",
+      "type": "functional",
+      "feature_id": "forseti-community-incident-report",
+      "command": "bash -c 'DRUSH=/var/www/html/forseti/vendor/bin/drush; $DRUSH --uri=https://forseti.life sql:query \"SELECT status FROM node_field_data WHERE type=\\\"community_incident\\\" ORDER BY nid DESC LIMIT 1\" 2>/dev/null'",
+      "artifacts": [
+        "sessions/qa-forseti/artifacts/community-incident-report/tc3-submit-unpublished.log"
+      ],
+      "required_for_release": true,
+      "notes": "After authenticated form submission, latest community_incident node should exist with status=0 and confirmation message shown."
+    },
+    {
+      "id": "forseti-community-incident-report-public-listing",
+      "label": "Community incident listing is public and renders published items",
+      "type": "functional",
+      "feature_id": "forseti-community-incident-report",
+      "command": "curl -s https://forseti.life/community-reports | grep -Eq 'Community|Incident|Report'",
+      "artifacts": [
+        "sessions/qa-forseti/artifacts/community-incident-report/tc4-public-listing.log"
+      ],
+      "required_for_release": true,
+      "notes": "Expect HTTP 200 for anonymous users. Listing should render published community incidents; pager verification remains fixture-dependent."
+    },
+    {
+      "id": "forseti-community-incident-report-admin-moderation",
+      "label": "Admin moderation view for community incidents is restricted and reachable",
+      "type": "acl",
+      "feature_id": "forseti-community-incident-report",
+      "command": "curl -s -o /dev/null -w \"%{http_code}\" -b \"$FORSETI_COOKIE_ADMINISTRATOR\" https://forseti.life/admin/content/community-reports",
+      "artifacts": [
+        "sessions/qa-forseti/artifacts/community-incident-report/tc6-admin-moderation.log"
+      ],
+      "required_for_release": true,
+      "notes": "Admin should receive 200. Non-admin denial is enforced by qa-permissions.json for /admin/content/community-reports."
+    },
+    {
+      "id": "forseti-community-incident-report-amisafe-regression",
+      "label": "AmISafe community layer path and baseline routes stay healthy",
+      "type": "regression",
+      "feature_id": "forseti-community-incident-report",
+      "command": "bash -c 'test \"$(curl -s -o /dev/null -w \"%{http_code}\" https://forseti.life/amisafe)\" = \"200\" && test \"$(curl -s -o /dev/null -w \"%{http_code}\" https://forseti.life/safety-calculator)\" = \"200\" && curl -s -b \"$FORSETI_COOKIE_AUTHENTICATED\" https://forseti.life/amisafe/crime-map | grep -Eq \"Community Reports|crime-map|toggle\"'",
+      "artifacts": [
+        "sessions/qa-forseti/artifacts/community-incident-report/tc8-amisafe-regression.log"
+      ],
+      "required_for_release": true,
+      "notes": "Covers map-layer smoke plus no-regression checks on /amisafe and /safety-calculator."
+    },
+    {
       "id": "forseti-jobhunter-offer-tracker-form-renders",
       "label": "Offer details form renders on saved-job detail for jobs in offer received status",
       "type": "functional",

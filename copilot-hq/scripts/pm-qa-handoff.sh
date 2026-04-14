@@ -10,7 +10,7 @@
 # What it does:
 #   1. Reads features/<feature-id>/feature.md and 01-acceptance-criteria.md
 #   2. Writes a QA inbox item with the feature brief + AC attached
-#   3. QA's job: generate test cases → suite.json + 03-test-plan.md
+#   3. QA's job: generate test cases → feature overlay manifest + 03-test-plan.md
 #
 # Prerequisites:
 #   - features/<feature-id>/feature.md must exist
@@ -77,9 +77,11 @@ cat > "$ITEM_DIR/command.md" <<EOF
 
 Design test cases for this feature and write the test plan spec.
 
-**This is NEXT-RELEASE grooming work.** Do NOT add anything to \`suite.json\` yet.
-Test cases are added to the live suite only when the feature is selected into release scope at Stage 0.
-Adding tests for unimplemented features to the live suite would cause the current in-flight release to fail.
+**This is NEXT-RELEASE grooming work.** Do NOT edit the live product manifest \`qa-suites/products/${SITE}/suite.json\` yet.
+Instead, create a **feature-scoped suite overlay** at:
+\`qa-suites/products/${SITE}/features/${FEATURE_ID}.json\`
+
+That overlay is the runnable SoT for this feature during grooming. The live release manifest is compiled from selected overlays at Stage 0.
 
 ### Required outputs
 
@@ -87,9 +89,17 @@ Adding tests for unimplemented features to the live suite would cause the curren
    - List every test case derived from the AC
    - For each: test description, which suite it will live in, expected HTTP status or behavior, roles covered
    - Flag any AC items that cannot be expressed as automation (note to PM)
+2. **Create** \`qa-suites/products/${SITE}/features/${FEATURE_ID}.json\` from \`templates/qa-feature-suite.json\`:
+   - Declare at least one runnable suite entry for this feature
+   - Include \`owner_seat\`, \`source_path\`, \`env_requirements\`, and \`release_checkpoint\`
+   - Point \`test_plan\` at \`features/${FEATURE_ID}/03-test-plan.md\`
+   - Validate with:
+     \`\`\`bash
+     python3 scripts/qa-suite-validate.py --product ${SITE} --feature-id ${FEATURE_ID}
+     \`\`\`
 2. **Signal completion:**
-   \`\`\`bash
-   ./scripts/qa-pm-testgen-complete.sh ${SITE} ${FEATURE_ID} "<brief summary>"
+    \`\`\`bash
+    ./scripts/qa-pm-testgen-complete.sh ${SITE} ${FEATURE_ID} "<brief summary>"
    \`\`\`
    This marks the feature groomed/ready and notifies PM — do not skip this step.
 
@@ -97,11 +107,12 @@ Adding tests for unimplemented features to the live suite would cause the curren
 
 - Do NOT edit \`qa-suites/products/${SITE}/suite.json\`
 - Do NOT edit \`org-chart/sites/${SITE}.life/qa-permissions.json\`
-Those changes happen at Stage 0 of the next release when this feature is selected into scope.
+Those release-scope changes happen at Stage 0 of the next release when this feature is selected into scope.
+During grooming, keep all feature-specific runnable metadata in the overlay manifest.
 
 ### Test case mapping guide (for 03-test-plan.md)
 
-| AC type | Test approach (write in plan, activate at Stage 0) |
+| AC type | Test approach (write in plan + overlay during grooming, activate at Stage 0) |
 |---------|---------------------------------------------------|
 | Route accessible to role X | \`role-url-audit\` suite entry — HTTP 200 for role X |
 | Route blocked for role Y | \`role-url-audit\` suite entry — HTTP 403 for role Y |

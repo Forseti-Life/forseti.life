@@ -111,11 +111,47 @@
       }
     },
     {
+      "id": "forseti-community-incident-report-admin-moderation",
+      "feature_id": "forseti-community-incident-report",
+      "path_regex": "^/admin/content/community-reports(?:/|$)",
+      "notes": "Added for feature forseti-community-incident-report. Moderation dashboard for pending/published reports must be admin-only; listed before admin-area so content_editor is denied.",
+      "expect": {
+        "anon": "deny",
+        "authenticated": "deny",
+        "content_editor": "deny",
+        "administrator": "allow"
+      }
+    },
+    {
       "id": "admin-area",
       "path_regex": "^/admin(?:/|$)",
       "expect": {
         "anon": "deny",
         "authenticated": "deny",
+        "content_editor": "allow",
+        "administrator": "allow"
+      }
+    },
+    {
+      "id": "forseti-community-incident-report-form",
+      "feature_id": "forseti-community-incident-report",
+      "path_regex": "^/community/report(?:/|$)",
+      "notes": "Added for feature forseti-community-incident-report. Community report form is authenticated-only and uses Drupal Form API CSRF protection on submit.",
+      "expect": {
+        "anon": "deny",
+        "authenticated": "allow",
+        "content_editor": "allow",
+        "administrator": "allow"
+      }
+    },
+    {
+      "id": "forseti-community-incident-report-listing",
+      "feature_id": "forseti-community-incident-report",
+      "path_regex": "^/community-reports(?:/|$)",
+      "notes": "Added for feature forseti-community-incident-report. Public listing page for published community incidents.",
+      "expect": {
+        "anon": "allow",
+        "authenticated": "allow",
         "content_editor": "allow",
         "administrator": "allow"
       }

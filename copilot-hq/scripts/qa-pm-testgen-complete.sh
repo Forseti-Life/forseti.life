@@ -29,12 +29,20 @@ fi
 FEATURE_DIR="features/${FEATURE_ID}"
 TEST_PLAN="${FEATURE_DIR}/03-test-plan.md"
 FEATURE_BRIEF="${FEATURE_DIR}/feature.md"
+ACCEPTANCE_CRITERIA="${FEATURE_DIR}/01-acceptance-criteria.md"
+OVERLAY_MANIFEST="qa-suites/products/${SITE}/features/${FEATURE_ID}.json"
 PM_AGENT="pm-${SITE}"
 PM_INBOX="sessions/${PM_AGENT}/inbox"
 DATE_TAG="$(date +%Y%m%d-%H%M%S)"
 PM_ITEM="${PM_INBOX}/${DATE_TAG}-testgen-complete-${FEATURE_ID}"
 
 # Validate QA output exists
+if [ ! -f "$ACCEPTANCE_CRITERIA" ]; then
+  echo "ERROR: Acceptance criteria not found: $ACCEPTANCE_CRITERIA" >&2
+  echo "  PM handoff is incomplete; cannot mark feature ready." >&2
+  exit 1
+fi
+
 if [ ! -f "$TEST_PLAN" ]; then
   echo "ERROR: Test plan not found: $TEST_PLAN" >&2
   echo "  Write the test plan before signaling completion." >&2
@@ -48,8 +56,17 @@ if [ "$TEST_PLAN_LINES" -lt 5 ]; then
   exit 1
 fi
 
+if [ ! -f "$OVERLAY_MANIFEST" ]; then
+  echo "ERROR: Feature overlay manifest not found: $OVERLAY_MANIFEST" >&2
+  echo "  Create the runnable suite overlay before signaling completion." >&2
+  exit 1
+fi
+
+python3 scripts/qa-suite-validate.py --product "$SITE" --feature-id "$FEATURE_ID"
+
 echo "[qa-pm-testgen-complete] Feature: $FEATURE_ID | Site: $SITE"
 echo "[qa-pm-testgen-complete] Test plan: $TEST_PLAN ($TEST_PLAN_LINES lines) ✓"
+echo "[qa-pm-testgen-complete] Feature overlay: $OVERLAY_MANIFEST ✓"
 
 # Mark feature as groomed/ready in feature.md
 if [ -f "$FEATURE_BRIEF" ]; then
@@ -91,10 +108,11 @@ cat > "$PM_ITEM/command.md" <<EOF
 
 This feature has passed the grooming gate and is eligible for the next release scope selection.
 
-**All three artifacts exist:**
+**All four grooming artifacts exist:**
 - \`${FEATURE_DIR}/feature.md\` ✓
 - \`${FEATURE_DIR}/01-acceptance-criteria.md\` ✓
 - \`${FEATURE_DIR}/03-test-plan.md\` ✓
+- \`${OVERLAY_MANIFEST}\` ✓
 
 ## QA summary
 
@@ -107,6 +125,9 @@ No action needed now — it will be available when the next release cycle starts
 
 If you want to review the test plan:
   cat ${TEST_PLAN}
+
+If you want to review the runnable suite metadata:
+  cat ${OVERLAY_MANIFEST}
 EOF
 
 echo "[qa-pm-testgen-complete] PM notified: $PM_ITEM"
