@@ -66,6 +66,17 @@ ls sessions/dev-forseti/inbox/ | grep "<feature-id>"
 - Features activated without a test plan inflate the in_progress count and can trigger premature auto-close.
 - Lesson (2026-04-08): `forseti-ai-service-refactor` and `forseti-jobhunter-schema-fix` were activated for `20260407-forseti-release-b` but dev hadn't processed the dispatch — QA issued a Gate 2 BLOCK because the implementations were missing.
 
+**Security AC pre-check (added 2026-04-14):** Before running `pm-scope-activate.sh`, verify each feature has either a `## Security acceptance criteria` section (non-empty) or a `- Security AC exemption:` line in `feature.md`. The script will block with an error if missing. To check in bulk:
+```bash
+for fid in <feature-id-list>; do
+  grep -q "## Security acceptance criteria\|Security AC exemption" features/$fid/feature.md \
+    && echo "OK: $fid" || echo "MISSING SEC AC: $fid"
+done
+```
+If missing: add the section with 4 subsections (authentication/permission surface, CSRF expectations, input validation, PII/logging constraints), or add `- Security AC exemption: <reason>` for features with no security surface. Do this BEFORE the activation attempt.
+
+Lesson (2026-04-14): `forseti-langgraph-console-run-session` and `forseti-ai-local-llm-provider-selection` both blocked scope activation with `ERROR: feature.md is missing a '## Security acceptance criteria' section`. Added sections in the same cycle; added ~2 minutes of rework. Pre-checking would have avoided the error.
+
 **Dev capacity check before activating scope (added 2026-04-09 — GAP-PM-CAPACITY-20260408):**
 Before activating features for any release, count the features you are about to activate and compare to expected dev throughput:
 - `dev-forseti` typical throughput: **3–5 features per release cycle** (1 dev seat)
