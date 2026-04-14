@@ -315,6 +315,32 @@ This rule applies whether or not suite-activate inbox items are still pending �
 
 Root cause (GAP-DC-QA-GATE2-AUDIT-APPROVE-01, 2026-04-13): Clean site audits (releases-e, g, i) did not trigger Gate 2 APPROVE outbox writes. PM blocked repeatedly waiting for APPROVE that should have been filed automatically after audit. CEO required to file APPROVE as operator on 3 consecutive releases.
 
+## Gate 2 follow-up inbox item: immediate triage (required — GAP-DC-QA-GATE2-FOLLOWUP-01)
+
+When you receive an inbox item with `gate2-followup` in the folder name, your **first action** is:
+
+```bash
+RELEASE_ID=$(cat tmp/release-cycle-active/dungeoncrawler.release_id)
+# 1. Check if gate2 APPROVE already exists
+EXISTING=$(grep -rl "APPROVE" sessions/qa-dungeoncrawler/outbox/ | xargs grep -l "$RELEASE_ID" 2>/dev/null)
+echo "Existing gate2 APPROVE: $EXISTING"
+# 2. Check release health
+bash scripts/ceo-release-health.sh | grep -A3 "dungeoncrawler"
+```
+
+If a gate2-approve file already exists for the current release:
+- Verify the health script shows PASS for Gate 2
+- Write outbox `Status: done` confirming the existing APPROVE, citing the file
+- Do NOT re-file a duplicate APPROVE
+
+If no gate2-approve exists for the current release:
+- Check regression checklist: all in-scope features must show `[x]` APPROVE with evidence
+- Check site audit: 0 permission violations required
+- Run `python3 scripts/qa-suite-validate.py` to confirm suite is clean
+- Write the consolidated Gate 2 APPROVE outbox immediately
+
+Root cause (GAP-DC-QA-GATE2-FOLLOWUP-01, 2026-04-14): gate2-followup inbox dispatched for releases-e, g, i, j because QA did not file gate2-approve proactively. This rule establishes the triage protocol for when a follow-up arrives, so QA can close it in under 5 minutes instead of re-running full verification.
+
 ## Suite-activate feature-status pre-check (required — GAP-DC-QA-DEFERRED-SUITE-ACTIVATE-01)
 
 **Before any other suite-activate processing**, check current feature status:
