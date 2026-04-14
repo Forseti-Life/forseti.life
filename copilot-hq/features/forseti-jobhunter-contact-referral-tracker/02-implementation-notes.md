@@ -3,7 +3,7 @@
 - Feature: forseti-jobhunter-contact-referral-tracker
 - Author: dev-forseti
 - Date: 2026-04-12
-- Status: implemented — commit cb9c5e51b
+- Status: implemented — commits cb9c5e51b, f9c9b2731 (release-k SEC-4 fix)
 
 ## Approach
 
@@ -47,7 +47,7 @@ release-d contact-tracker schema.
 - [x] All routes require `_user_is_logged_in: 'TRUE'` (inherited from routing)
 - [x] POST routes use CSRF split-route pattern (SEC-2)
 - [x] All DB reads/writes scoped to `currentUser()->id()` — no uid from request (SEC-3)
-- [x] LinkedIn URL validated: must start with `https://linkedin.com/` or `https://www.linkedin.com/` (SEC-4)
+- [x] LinkedIn URL validated: scheme must be http/https (422 on javascript:/data:); must contain `linkedin.com` (SEC-4) — **fixed release-k: added scheme check returning 422**
 - [x] No PII logged — only uid + contact id / saved-job id in watchdog (SEC-5)
 - [x] Schema migrations preserve existing data, normalize old values
 
