@@ -16469,6 +16469,54 @@
           "expected": "Halfling-only heritages/feats rejected for non-halfling characters; invalid ancestry-stat submissions replaced with canonical values"
         }
       ]
+    },
+    {
+      "id": "dc-cr-halfling-keen-eyes-e2e",
+      "label": "Halfling Keen Eyes \u2014 auto-grant, Seek bonus, flat-check reductions, and boundary cases (TC-HKE-01 to TC-HKE-05)",
+      "type": "e2e",
+      "feature_id": "dc-cr-halfling-keen-eyes",
+      "command": "npx playwright test tests/dungeoncrawler/encounter/halfling-keen-eyes.spec.js",
+      "artifacts": [
+        "test-results/dungeoncrawler/halfling-keen-eyes/"
+      ],
+      "required_for_release": true,
+      "test_cases": [
+        {
+          "id": "TC-HKE-01",
+          "feature_id": "dc-cr-halfling-keen-eyes",
+          "name": "Keen Eyes auto-granted",
+          "suite": "playwright/character-sheet",
+          "expected": "Keen Eyes passive appears on character sheet without extra selection required"
+        },
+        {
+          "id": "TC-HKE-02",
+          "feature_id": "dc-cr-halfling-keen-eyes",
+          "name": "Seek bonus within 30 feet",
+          "suite": "playwright/encounter",
+          "expected": "Seek check against hidden/undetected target within 30 feet includes +2 circumstance bonus"
+        },
+        {
+          "id": "TC-HKE-03",
+          "feature_id": "dc-cr-halfling-keen-eyes",
+          "name": "Concealed target flat-check DC reduced to 3",
+          "suite": "playwright/encounter",
+          "expected": "Halfling attacking a concealed target uses flat-check DC=3 instead of default DC=5"
+        },
+        {
+          "id": "TC-HKE-04",
+          "feature_id": "dc-cr-halfling-keen-eyes",
+          "name": "Hidden target flat-check DC reduced to 9",
+          "suite": "playwright/encounter",
+          "expected": "Halfling attacking a hidden target uses flat-check DC=9 instead of default DC=11"
+        },
+        {
+          "id": "TC-HKE-05",
+          "feature_id": "dc-cr-halfling-keen-eyes",
+          "name": "Defaults preserved outside scope",
+          "suite": "playwright/encounter",
+          "expected": "Non-halfling uses default DCs; Seek bonus absent beyond 30 feet; reductions not applied to observed/undetected targets"
+        }
+      ]
     }
   ],
   "dc-cr-first-world-adept": [
