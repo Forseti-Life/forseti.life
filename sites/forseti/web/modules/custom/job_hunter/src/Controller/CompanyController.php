@@ -4142,6 +4142,8 @@ HTML;
     $id_field       = $contact_id !== NULL ? '<input type="hidden" name="contact_id" value="' . $contact_id . '">' : '';
     $lcd_val        = htmlspecialchars((string) ($existing['last_contact_date'] ?? ''));
     $ref_val        = $this->normalizeContactReferralStatus((string) ($existing['referral_status'] ?? 'none'));
+    $email_val      = htmlspecialchars((string) ($existing['email'] ?? ''));
+    $linkedin_val   = htmlspecialchars((string) ($existing['linkedin_url'] ?? ''));
 
     $rel_options = '';
     foreach (self::CONTACT_RELATIONSHIP_TYPES as $r) {
@@ -4230,6 +4232,14 @@ JLHTML;
       <label><strong>Notes</strong> (optional)</label><br>
       <textarea name="notes" rows="4" style="width:100%;max-width:400px;">{$notes_val}</textarea>
     </div>
+    <div style="margin-bottom:1em;">
+      <label><strong>Email</strong> (optional)</label><br>
+      <input type="email" name="email" value="{$email_val}" style="width:100%;max-width:400px;" placeholder="jane@example.com">
+    </div>
+    <div style="margin-bottom:1em;">
+      <label><strong>LinkedIn URL</strong> (optional)</label><br>
+      <input type="url" name="linkedin_url" value="{$linkedin_val}" style="width:100%;max-width:400px;" placeholder="https://linkedin.com/in/username">
+    </div>
     <button type="submit" class="button button--primary">Save</button>
     &nbsp;<a href="/jobhunter/contacts" class="button">Cancel</a>
   </form>
@@ -4262,6 +4272,8 @@ HTML;
     $notes             = strip_tags((string) $request->request->get('notes', ''));
     $last_contact_date = preg_replace('/[^0-9\-]/', '', (string) $request->request->get('last_contact_date', ''));
     $referral_status   = $this->normalizeContactReferralStatus((string) $request->request->get('referral_status', 'none'));
+    $email_raw         = trim((string) $request->request->get('email', ''));
+    $linkedin_raw      = trim((string) $request->request->get('linkedin_url', ''));
     $redirect_route = $contact_id !== NULL
       ? Url::fromRoute('job_hunter.contacts_edit', ['contact_id' => $contact_id])->toString()
       : Url::fromRoute('job_hunter.contacts_add')->toString();
@@ -4285,6 +4297,26 @@ HTML;
       return new \Symfony\Component\HttpFoundation\RedirectResponse(
         $redirect_route
       );
+    }
+
+    // SEC-4: validate email format if provided.
+    $email = '';
+    if ($email_raw !== '') {
+      if (!filter_var($email_raw, FILTER_VALIDATE_EMAIL)) {
+        $this->messenger()->addError($this->t('Invalid email address.'));
+        return new \Symfony\Component\HttpFoundation\RedirectResponse($redirect_route);
+      }
+      $email = $email_raw;
+    }
+
+    // SEC-4: validate LinkedIn URL pattern if provided.
+    $linkedin_url = '';
+    if ($linkedin_raw !== '') {
+      if (strpos($linkedin_raw, 'linkedin.com') === FALSE) {
+        $this->messenger()->addError($this->t('LinkedIn URL must be a linkedin.com URL.'));
+        return new \Symfony\Component\HttpFoundation\RedirectResponse($redirect_route);
+      }
+      $linkedin_url = $linkedin_raw;
     }
 
     $company = $this->database->select('jobhunter_companies', 'c')
@@ -4323,6 +4355,12 @@ HTML;
     }
     if ($contact_has_company_name) {
       $fields['company_name'] = (string) $company->name;
+    }
+    if ($this->database->schema()->fieldExists('jobhunter_contacts', 'email')) {
+      $fields['email'] = $email ?: NULL;
+    }
+    if ($this->database->schema()->fieldExists('jobhunter_contacts', 'linkedin_url')) {
+      $fields['linkedin_url'] = $linkedin_url ?: NULL;
     }
 
     try {

@@ -3580,3 +3580,36 @@ function job_hunter_update_9059() {
 
   return t('Realigned jobhunter_contacts with company_id-backed contact tracking.');
 }
+
+/**
+ * Add email and linkedin_url columns to jobhunter_contacts (AC-4 / SEC-4).
+ */
+function job_hunter_update_9060() {
+  $schema = \Drupal::database()->schema();
+
+  if (!$schema->tableExists('jobhunter_contacts')) {
+    return t('jobhunter_contacts does not exist — skipped.');
+  }
+
+  if (!$schema->fieldExists('jobhunter_contacts', 'email')) {
+    $schema->addField('jobhunter_contacts', 'email', [
+      'type' => 'varchar',
+      'length' => 255,
+      'not null' => FALSE,
+      'default' => NULL,
+      'description' => 'Contact email address (optional).',
+    ]);
+  }
+
+  if (!$schema->fieldExists('jobhunter_contacts', 'linkedin_url')) {
+    $schema->addField('jobhunter_contacts', 'linkedin_url', [
+      'type' => 'varchar',
+      'length' => 512,
+      'not null' => FALSE,
+      'default' => NULL,
+      'description' => 'Contact LinkedIn profile URL (optional).',
+    ]);
+  }
+
+  return t('Added email and linkedin_url columns to jobhunter_contacts.');
+}
