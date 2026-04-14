@@ -115,7 +115,7 @@ class TestCrossTeamQAGate2(unittest.TestCase):
     # ── AC1: same-team case still works ──────────────────────────────────────
     def test_same_team_approve_in_signing_qa_outbox(self):
         """APPROVE in the signing team's own QA outbox → signoff written."""
-        release_id = 'test-cross-team-qa-20260408-dungeoncrawler-release-x'
+        release_id = '20260408-dungeoncrawler-release-x'
         import json
         with open(PRODUCT_TEAMS_JSON) as f:
             data = json.load(f)
@@ -131,7 +131,7 @@ class TestCrossTeamQAGate2(unittest.TestCase):
     # ── AC2: cross-team — APPROVE in owning QA outbox only ───────────────────
     def test_cross_team_approve_in_owning_qa_outbox(self):
         """Cross-team: APPROVE in qa-forseti/outbox when dungeoncrawler signs forseti release."""
-        release_id = 'test-cross-team-qa-20260408-forseti-release-x'
+        release_id = '20260408-forseti-release-x'
         # Owning QA agent = qa-forseti (release_id contains 'forseti')
         owning_qa_outbox = os.path.join(REPO_ROOT, 'sessions', 'qa-forseti', 'outbox')
         approve_file = _write_approve(owning_qa_outbox, release_id)
@@ -144,7 +144,7 @@ class TestCrossTeamQAGate2(unittest.TestCase):
     # ── AC3: no approve anywhere → BLOCKED ───────────────────────────────────
     def test_no_approve_blocks(self):
         """No APPROVE in either QA outbox → exit 1 with BLOCKED message."""
-        release_id = 'test-cross-team-qa-20260408-forseti-release-noapp'
+        release_id = '20260408-forseti-release-noapp'
         result, written = self._run_in_real_root('dungeoncrawler', release_id)
         self.assertNotEqual(result.returncode, 0, "Should fail when no APPROVE found")
         self.assertIn('BLOCKED', result.stderr)
@@ -153,7 +153,7 @@ class TestCrossTeamQAGate2(unittest.TestCase):
     # ── AC4: INFO message logged for cross-team fallback ─────────────────────
     def test_cross_team_info_message(self):
         """Cross-team fallback emits INFO message identifying owning QA agent."""
-        release_id = 'test-cross-team-qa-20260408-forseti-release-y'
+        release_id = '20260408-forseti-release-y'
         owning_qa_outbox = os.path.join(REPO_ROOT, 'sessions', 'qa-forseti', 'outbox')
         approve_file = _write_approve(owning_qa_outbox, release_id)
         result, _ = self._run_in_real_root('dungeoncrawler', release_id,
@@ -165,7 +165,7 @@ class TestCrossTeamQAGate2(unittest.TestCase):
     # ── AC5: cross-team BLOCKED error message includes owning outbox path ────
     def test_cross_team_blocked_error_mentions_owning_qa(self):
         """BLOCKED error mentions owning QA agent in stderr for cross-team co-sign."""
-        release_id = 'test-cross-team-qa-20260408-forseti-release-blocked'
+        release_id = '20260408-forseti-release-blocked'
         result, _ = self._run_in_real_root('dungeoncrawler', release_id)
         self.assertNotEqual(result.returncode, 0)
         self.assertIn('qa-forseti', result.stderr,
@@ -174,7 +174,7 @@ class TestCrossTeamQAGate2(unittest.TestCase):
     # ── AC6: empty-release bypass still works in cross-team scenario ──────────
     def test_empty_release_bypass_cross_team(self):
         """--empty-release flag bypasses Gate 2 check even in cross-team scenario."""
-        release_id = 'test-cross-team-qa-20260408-forseti-release-empty'
+        release_id = '20260408-forseti-release-empty'
         result, written = self._run_in_real_root('dungeoncrawler', release_id,
                                                  extra_args=['--empty-release'])
         self.assertEqual(result.returncode, 0,

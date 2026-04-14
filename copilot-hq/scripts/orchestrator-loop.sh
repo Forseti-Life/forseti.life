@@ -32,7 +32,7 @@ run_orchestrator_once() {
   [ -x "orchestrator/.venv/bin/python" ] && python_bin="orchestrator/.venv/bin/python"
 
   "$python_bin" orchestrator/run.py --once \
-    --agent-cap "${ORCHESTRATOR_AGENT_CAP:-6}" \
+    --agent-cap "${ORCHESTRATOR_AGENT_CAP:-8}" \
     ${ORCHESTRATOR_NO_PUBLISH:+--no-publish} \
     --kpi-interval "${ORCHESTRATOR_KPI_INTERVAL:-300}" \
     --log-file "$LATEST"

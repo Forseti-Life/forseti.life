@@ -3,7 +3,7 @@
 - Status: in_progress
 - Website: forseti.life
 - Module: institutional_management (MVP host)
-- Release: tbd
+- Release: 20260412-forseti-release-l
 - Owner: pm-forseti
 - Project: PROJ-008
 - Source: accountant-forseti proposal 2026-04-13

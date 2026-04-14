@@ -86,7 +86,7 @@ That page is rendered from this file. CEO and architect seats must treat the roa
 
 **Scope:** The dedicated Dungeoncrawler product line, separate site, and its long-lived PF2E implementation program. Long-term mission: implement all PF2E rulebook requirements currently tracked in `dc_requirements` MySQL table (2033 implemented, 674 in_progress, 698 pending as of 2026-04-13).
 
-**Current state (2026-04-14):** Active release `20260412-dungeoncrawler-release-j`. 5 features are in the current implementation tranche, and the ready backlog is now 32 features deep. Alongside the gnome, goblin, halfling, GMG, and UI clusters, three roadmap epics were promoted from deferred to backlog-ready because their prerequisites are satisfied: `dc-b2-bestiary2`, `dc-gng-guns-gears`, and `dc-som-secrets-of-magic`.
+**Current state (2026-04-14):** Active runtime release is now `20260412-dungeoncrawler-release-m`, with `20260412-dungeoncrawler-release-n` queued as the next release. The roadmap page remains live and pipeline-backed: requirement status is resolved from `dc_requirements` plus HQ feature status, so implemented and in-progress work still render correctly. The current release has just rolled forward and is waiting on PM scope activation; a `scope-activate` item is already queued for `pm-dungeoncrawler`. The ready backlog is 17 features deep, and 10 Dungeoncrawler features remain `in_progress` across the broader implementation pipeline. Alongside the gnome, goblin, halfling, GMG, and UI clusters, the promoted roadmap epics remain `dc-b2-bestiary2`, `dc-gng-guns-gears`, and `dc-som-secrets-of-magic`.
 
 **Backlog coverage status (2026-04-14):**
 - `core/ch01` (Chapter 1: Introduction) — 237 pending, now mapped primarily to `dc-cr-character-creation` and `dc-cr-character-leveling`
@@ -96,13 +96,13 @@ That page is rendered from this file. CEO and architect seats must treat the roa
 - `b2` (Bestiary 2) — 12 pending, now queued in backlog via `dc-b2-bestiary2`
 - `b3` (Bestiary 3) — 18 pending, still intentionally deferred until `dc-b2-bestiary2` ships
 
-**Last scoped release:** `20260412-dungeoncrawler-release-j` (active)
+**Last scoped release:** `20260412-dungeoncrawler-release-l` (most recent scoped tranche; active runtime release is `20260412-dungeoncrawler-release-m`)
 
 **Progress SLA:** 7 days without release-scoped work or a PM re-baseline/grooming update = breach
 
-**Next step:** Keep release-j focused on the already-active gnome tranche, then pull next from the expanded ready backlog in this order: goblin/halfling cleanup → GMG/UI tranche → `dc-b2-bestiary2` → `dc-gng-guns-gears` → `dc-som-secrets-of-magic`. `dc-b3-bestiary3` remains gated behind Bestiary 2 shipping.
+**Next step:** `pm-dungeoncrawler` should process the queued `scope-activate` item for `20260412-dungeoncrawler-release-m`, then pull from the ready backlog in this order: goblin/halfling cleanup → GMG/UI tranche → `dc-b2-bestiary2` → `dc-gng-guns-gears` → `dc-som-secrets-of-magic`. `dc-b3-bestiary3` remains gated behind Bestiary 2 shipping.
 
-**Queue status:** 32 features `ready` for future activation, including 6 UI modernization features and 3 newly promoted roadmap epics (`dc-b2-bestiary2`, `dc-gng-guns-gears`, `dc-som-secrets-of-magic`). Remaining true deferred gap: `dc-b3-bestiary3`.
+**Queue status:** 17 features `ready` for future activation, `scope-activate` is queued for the active runtime release `20260412-dungeoncrawler-release-m`, and 10 features are currently `in_progress` across the pipeline. Remaining true deferred gap: `dc-b3-bestiary3`.
 
 ---
 
@@ -368,18 +368,18 @@ Root cause: `FORSETI_COOKIE_AUTHENTICATED` env var is never set in automation be
 **Roadmap audit runbook:** `runbooks/roadmap-audit.md`  
 **Scope:** Systematically implement all `pending` requirements in `dc_requirements` table until every requirement is either `implemented` or has a `feature_id` pointing to an active pipeline feature.
 
-Current status: The public roadmap now derives requirement state from the live pipeline, and the release-cycle drift defect has been fixed. `20260412-dungeoncrawler-release-e` is the active runtime release with 5 scoped features in progress, while `20260412-dungeoncrawler-release-f` is groomed as the next wave. PM, Dev, and QA all have active queue items for release-e / release-f work, so the project currently has no queue gap.
+Current status: The public roadmap still derives requirement state from the live pipeline, and the sync path remains intact. Active runtime release is `20260412-dungeoncrawler-release-m`, with `20260412-dungeoncrawler-release-n` already groomed as the next wave. The current runtime release has just advanced and is awaiting PM scope activation; a scope-activate item is already queued. The broader Dungeoncrawler pipeline remains active with 10 features `in_progress` and 17 features `ready`.
 
-**Last scoped release:** `20260412-dungeoncrawler-release-e`
+**Last scoped release:** `20260412-dungeoncrawler-release-l`
 
 **Progress SLA:** 7 days without release-scoped work or a PM re-baseline/grooming update = breach
 
-**Next step:** let release-e execution continue, watch for Gate 2 on the 5 active features, and then promote release-f only after the coordinated push/post-push handoff completes.
+**Next step:** complete PM scope activation for `20260412-dungeoncrawler-release-m`, let that tranche execute through Gate 2, and then promote `20260412-dungeoncrawler-release-n` only after the coordinated push/post-push handoff completes.
 
-**Queue status:** active items already queued for `pm-dungeoncrawler`, `dev-dungeoncrawler`, and `qa-dungeoncrawler`
+**Queue status:** active items are queued for `pm-dungeoncrawler`, `dev-dungeoncrawler`, and `qa-dungeoncrawler`; current runtime gap is only Stage 0 activation for `20260412-dungeoncrawler-release-m`, and that PM item is already in inbox.
 
 See `runbooks/roadmap-audit.md` for full query protocol and per-chapter status.
 
 ---
 
-*Last updated: 2026-04-13 by accountant-forseti (PROJ-008 registered — Forseti accounting pipeline added to CEO roadmap registry)*
+*Last updated: 2026-04-14 by ceo-copilot-2 (Dungeoncrawler live runtime/release state refreshed to match roadmap + pipeline state)*

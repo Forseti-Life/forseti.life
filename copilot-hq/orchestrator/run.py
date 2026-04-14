@@ -2095,7 +2095,7 @@ def main() -> None:
     parser.add_argument("--once", action="store_true", help="Run one tick and exit")
     parser.add_argument("--interval", type=int, default=60, help="Seconds between ticks")
     parser.add_argument("--provider", choices=["shell", "cline"], default="shell")
-    parser.add_argument("--agent-cap", type=int, default=4,
+    parser.add_argument("--agent-cap", type=int, default=8,
                         help="Max agents to execute per tick (CEO counts toward cap)")
     parser.add_argument("--non-ceo-cap", type=int, default=None,
                         help="Deprecated alias; mapped to total cap as non_ceo+1")

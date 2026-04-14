@@ -265,6 +265,7 @@ function dungeoncrawler_content_theme(array $existing, string $type, string $the
         'impl_pct'       => 0,
         'prog_pct'       => 0,
         'is_admin'       => FALSE,
+        'backlog_groups' => [],
         'status_labels'  => [],
       ],
       'template' => 'dungeoncrawler-roadmap',

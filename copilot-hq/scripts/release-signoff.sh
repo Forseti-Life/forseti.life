@@ -331,7 +331,7 @@ _email_html="<!DOCTYPE html>
 
   <!-- Header -->
   <div style=\"background:#1a7f37;padding:20px 24px;\">
-    <h1 style=\"color:#fff;margin:0;font-size:18px;\">🚀 Release Ready to Push</h1>
+    <h1 style=\"color:#fff;margin:0;font-size:18px;\">🚀 Coordinated Release Ready for Operator Push</h1>
     <p style=\"color:#d1fae5;margin:4px 0 0;font-size:13px;\">${HQ_SITE_NAME}</p>
   </div>
 
@@ -355,7 +355,12 @@ _email_html="<!DOCTYPE html>
     ${_features_html}
 
     <div style=\"margin-top:24px;padding:16px;background:#f6f8fa;border-radius:6px;border-left:3px solid #1a7f37;\">
-      <p style=\"margin:0 0 8px;font-weight:600;color:#1f2328;\">Required action</p>
+      <p style=\"margin:0 0 8px;font-weight:600;color:#1f2328;\">Board note</p>
+      <p style=\"margin:0;color:#57606a;font-size:13px;\">This notification is informational unless you are personally acting as the release operator (<code>pm-forseti</code>) for this push.</p>
+    </div>
+
+    <div style=\"margin-top:16px;padding:16px;background:#f6f8fa;border-radius:6px;border-left:3px solid #0969da;\">
+      <p style=\"margin:0 0 8px;font-weight:600;color:#1f2328;\">Operator action (<code>pm-forseti</code>)</p>
       <p style=\"margin:0;color:#57606a;font-size:13px;\">Verify, push, and advance the release cycle:</p>
       <ol style=\"margin:8px 0 0;padding-left:20px;color:#57606a;font-size:13px;\">
         <li>Check status: <code>bash scripts/release-signoff-status.sh ${release_id}</code></li>
@@ -376,7 +381,7 @@ _email_html="<!DOCTYPE html>
 </div>
 </body></html>"
 
-printf "To: %s\nFrom: %s\nSubject: [%s] 🚀 Release ready to push: %s\nContent-Type: text/html; charset=UTF-8\nMIME-Version: 1.0\n\n%s\n" \
+printf "To: %s\nFrom: %s\nSubject: [%s] FYI: coordinated release ready for operator push: %s\nContent-Type: text/html; charset=UTF-8\nMIME-Version: 1.0\n\n%s\n" \
   "$BOARD_EMAIL" "$HQ_FROM_EMAIL" "$HQ_SITE_NAME" "$release_id" "$_email_html" \
   | /usr/sbin/sendmail -t \
   && echo "INFO: Board notification sent to ${BOARD_EMAIL}" \

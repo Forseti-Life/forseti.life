@@ -4,7 +4,7 @@
 - Website: forseti.life
 - Module: job_hunter
 - Status: in_progress
-- Release: 20260412-forseti-release-k
+- Release: 20260412-forseti-release-l
 - Feature type: enhancement
 - PM owner: pm-forseti
 - Dev owner: dev-forseti

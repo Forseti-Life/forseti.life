@@ -53,7 +53,7 @@ python3 orchestrator/run.py --once --no-publish
 
 | Flag | Default | Purpose |
 |------|---------|---------|
-| `--agent-cap N` | 4 | Max agents executed per tick |
+| `--agent-cap N` | 8 | Max agents executed per tick |
 | `--kpi-interval N` | 300 | Seconds between KPI monitor runs |
 | `--release-cycle-interval N` | 300 | Seconds between release cycle checks |
 | `--no-publish` | off | Skip Drupal publish step |

@@ -226,7 +226,7 @@ class ForsetiPagesController extends ControllerBase {
       '#next_step' => $project['next_step'],
       '#queue_status' => $project['queue_status'],
       '#goals' => $project['goals'],
-      '#back_url' => '/roadmap',
+      '#nav_links' => $project['nav_links'],
       '#cache' => [
         'max-age' => 300,
         'contexts' => ['url'],
@@ -308,6 +308,18 @@ class ForsetiPagesController extends ControllerBase {
         $link_text = (string) $this->t('Open project roadmap');
       }
 
+      $actions = [];
+      if ($link_url !== '' && $link_text !== '') {
+        $actions[] = [
+          'url' => $link_url,
+          'text' => $link_text,
+          'style' => 'primary',
+        ];
+      }
+      foreach ($this->buildReleaseNavigationLinks($detail['last_scoped_release'] ?? '') as $link) {
+        $actions[] = $link;
+      }
+
       $projects[] = [
         'title' => $project_id . ' - ' . ($row['name'] ?? $project_id),
         'status' => $this->formatRoadmapStatus((string) ($row['status'] ?? 'unknown'), (string) ($row['priority'] ?? '')),
@@ -322,8 +334,7 @@ class ForsetiPagesController extends ControllerBase {
           !empty($detail['progress_sla']) ? 'Progress: ' . $this->summarizeProgressStatus($detail['last_scoped_release'] ?? '', $detail['progress_sla'], $detail['queue_status'] ?? '') : '',
         ])),
         'roadmap' => $roadmap,
-        'link_url' => $link_url,
-        'link_text' => $link_text,
+        'actions' => $actions,
       ];
     }
 
@@ -356,6 +367,14 @@ class ForsetiPagesController extends ControllerBase {
       $detail = $details[$project_id] ?? [];
       $project_manager = $this->resolveRoadmapProjectManager($row);
       return [
+        'nav_links' => array_merge(
+          [[
+            'url' => Url::fromRoute('forseti_content.roadmap')->toString(),
+            'text' => (string) $this->t('Back to all roadmaps'),
+            'style' => 'primary',
+          ]],
+          $this->buildReleaseNavigationLinks($detail['last_scoped_release'] ?? '')
+        ),
         'project_id' => $project_id,
         'title' => $project_id . ' - ' . ($row['name'] ?? $project_id),
         'product' => $row['product'] ?? '',
@@ -381,6 +400,33 @@ class ForsetiPagesController extends ControllerBase {
     }
 
     return NULL;
+  }
+
+  /**
+   * Build navigation links from roadmap pages into release pages when visible.
+   */
+  protected function buildReleaseNavigationLinks(string $release_id): array {
+    $release_id = trim($release_id);
+    if (
+      $release_id === ''
+      || !preg_match('/^\d{8}-[A-Za-z0-9._-]+$/', $release_id)
+      || !$this->currentUser()->hasPermission('administer copilot agent tracker')
+    ) {
+      return [];
+    }
+
+    return [
+      [
+        'url' => Url::fromRoute('copilot_agent_tracker.release_notes_release', ['release_id' => $release_id])->toString(),
+        'text' => (string) $this->t('Release status'),
+        'style' => 'secondary',
+      ],
+      [
+        'url' => Url::fromRoute('copilot_agent_tracker.release_notes')->toString(),
+        'text' => (string) $this->t('All release notes'),
+        'style' => 'secondary',
+      ],
+    ];
   }
 
   /**

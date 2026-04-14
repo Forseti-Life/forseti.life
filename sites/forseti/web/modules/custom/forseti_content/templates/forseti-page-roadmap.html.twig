@@ -40,9 +40,11 @@
                 {% endfor %}
               </ul>
 
-              {% if project.link_url %}
+              {% if project.actions %}
                 <div class="mt-3">
-                  <a href="{{ project.link_url }}" class="btn btn-outline-primary">{{ project.link_text }}</a>
+                  {% for action in project.actions %}
+                    <a href="{{ action.url }}" class="btn {% if action.style == 'primary' %}btn-outline-primary{% else %}btn-outline-secondary{% endif %} me-2 mb-2">{{ action.text }}</a>
+                  {% endfor %}
                 </div>
               {% endif %}
             </div>

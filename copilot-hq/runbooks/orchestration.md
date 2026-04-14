@@ -93,7 +93,7 @@ After post-push + post-release QA, CEO runs:
 - Paused agents skipped (`scripts/is-agent-paused.sh`)
 - Agents with empty inbox skipped
 - Within same level: sorted by top effective ROI (base ROI + org priority bonus)
-- `--agent-cap` (default 4): max agents executed per tick
+- `--agent-cap` (default 8): max agents executed per tick
 
 ## CEO escalation path
 

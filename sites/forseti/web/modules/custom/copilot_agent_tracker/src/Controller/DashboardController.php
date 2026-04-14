@@ -3005,7 +3005,8 @@ final class DashboardController extends ControllerBase {
         '#markup' => '<p>Release history sourced from HQ PM artifacts and CEO metadata. '
           . '<strong>' . $total . ' release(s)</strong> found. '
           . 'Pending release candidates also appear in the '
-          . '<a href="/admin/reports/copilot-agent-tracker#todo-for-keith">approval queue</a>.</p>',
+          . '<a href="/admin/reports/copilot-agent-tracker#todo-for-keith">approval queue</a>. '
+          . '<a href="' . Url::fromRoute('forseti_content.roadmap')->toString() . '">Project roadmaps</a>.</p>',
       ],
       'items' => $items ?: [
         '#markup' => '<em>No release candidates or shipped releases found.</em>',
@@ -3072,7 +3073,7 @@ final class DashboardController extends ControllerBase {
         '#markup' => '<p><strong>Release id:</strong> ' . htmlspecialchars($release_id) . '</p>'
           . '<p><strong>State:</strong> ' . htmlspecialchars($state) . '</p>'
           . '<p><a href="' . htmlspecialchars($testing_results_url) . '">Testing results (URL validation + functional tests)</a></p>'
-          . '<p><a href="' . Url::fromRoute('copilot_agent_tracker.release_notes')->toString() . '">All release notes</a></p>',
+          . '<p><a href="' . Url::fromRoute('copilot_agent_tracker.release_notes')->toString() . '">All release notes</a> | <a href="' . Url::fromRoute('forseti_content.roadmap')->toString() . '">Project roadmaps</a></p>',
       ],
       'details' => $details ?: [
         '#markup' => '<em>No details published for this release yet.</em>',
@@ -3199,7 +3200,7 @@ final class DashboardController extends ControllerBase {
       'summary' => [
         '#markup' => '<p><strong>Release id:</strong> ' . htmlspecialchars($release_id) . '</p>'
           . '<p><strong>State:</strong> ' . htmlspecialchars($state) . '</p>'
-          . '<p><a href="' . $this->safeReleaseNotesDetailUrl($release_id)->toString() . '">Release status details</a> | <a href="' . Url::fromRoute('copilot_agent_tracker.release_notes')->toString() . '">All release notes</a></p>',
+          . '<p><a href="' . $this->safeReleaseNotesDetailUrl($release_id)->toString() . '">Release status details</a> | <a href="' . Url::fromRoute('copilot_agent_tracker.release_notes')->toString() . '">All release notes</a> | <a href="' . Url::fromRoute('forseti_content.roadmap')->toString() . '">Project roadmaps</a></p>',
       ],
       'scoreboard' => [
         '#type' => 'table',

@@ -69,6 +69,76 @@ class RoadmapPipelineStatusResolverTest extends UnitTestCase {
   }
 
   /**
+   * @covers ::getFeatureBacklogGroups
+   */
+  public function testGetFeatureBacklogGroupsSurfacesGroupedReadyBacklogFeatures(): void {
+    $this->writeFeature(
+      'dc-ui-map-first-player-shell',
+      'ready',
+      [
+        'Website' => 'dungeoncrawler',
+        'Priority' => 'P1',
+        'Roadmap' => 'Dungeoncrawler UI modernization',
+      ],
+      'Feature Brief: Map-First Player Shell'
+    );
+    $this->writeFeature(
+      'dc-ui-sidebar-drawers',
+      'ready',
+      [
+        'Website' => 'dungeoncrawler',
+        'Priority' => 'P2',
+        'Roadmap' => 'Dungeoncrawler UI modernization',
+      ],
+      'Feature Brief: Sidebar Drawers'
+    );
+    $this->writeFeature(
+      'dc-gmg-running-guide',
+      'in_progress',
+      [
+        'Website' => 'dungeoncrawler',
+        'Priority' => 'P1',
+        'Roadmap' => 'GMG implementation',
+      ],
+      'Feature Brief: GMG Running Guide'
+    );
+    $this->writeFeature(
+      'forseti-ignore-me',
+      'ready',
+      [
+        'Website' => 'forseti.life',
+        'Priority' => 'P1',
+        'Roadmap' => 'Wrong product',
+      ],
+      'Feature Brief: Wrong Product'
+    );
+    $this->writeFeature(
+      'dc-hidden-deferred',
+      'deferred',
+      [
+        'Website' => 'dungeoncrawler',
+        'Priority' => 'P1',
+        'Roadmap' => 'Deferred bucket',
+      ],
+      'Feature Brief: Deferred Feature'
+    );
+
+    $resolver = new RoadmapPipelineStatusResolver($this->featuresPath);
+    $groups = $resolver->getFeatureBacklogGroups('dungeoncrawler');
+
+    $this->assertCount(2, $groups);
+    $this->assertSame('Dungeoncrawler UI modernization', $groups[0]['title']);
+    $this->assertSame(['queued' => 2, 'in_progress' => 0], $groups[0]['counts']);
+    $this->assertSame('Map-First Player Shell', $groups[0]['features'][0]['title']);
+    $this->assertSame('queued', $groups[0]['features'][0]['display_status']);
+    $this->assertSame('P1', $groups[0]['features'][0]['priority']);
+    $this->assertSame('Sidebar Drawers', $groups[0]['features'][1]['title']);
+    $this->assertSame('GMG implementation', $groups[1]['title']);
+    $this->assertSame(['queued' => 0, 'in_progress' => 1], $groups[1]['counts']);
+    $this->assertSame('in_progress', $groups[1]['features'][0]['display_status']);
+  }
+
+  /**
    * @covers ::getPipelineStatus
    * @dataProvider pathTraversalProvider
    */
@@ -95,9 +165,22 @@ class RoadmapPipelineStatusResolverTest extends UnitTestCase {
    * Writes a minimal feature file for testing.
    */
   private function writeFeatureStatus(string $feature_id, string $status): void {
+    $this->writeFeature($feature_id, $status);
+  }
+
+  /**
+   * Writes a feature file with optional metadata for testing.
+   */
+  private function writeFeature(string $feature_id, string $status, array $fields = [], string $heading = 'Feature Brief: Example'): void {
     $dir = $this->featuresPath . '/' . $feature_id;
     mkdir($dir, 0777, TRUE);
-    file_put_contents($dir . '/feature.md', "# Feature\n\n- Status: {$status}\n");
+
+    $lines = ["# {$heading}", '', "- Status: {$status}"];
+    foreach ($fields as $label => $value) {
+      $lines[] = sprintf('- %s: %s', $label, $value);
+    }
+
+    file_put_contents($dir . '/feature.md', implode("\n", $lines) . "\n");
   }
 
   /**
