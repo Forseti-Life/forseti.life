@@ -171,3 +171,48 @@ In order:
 6. **Wait for amisafe passthrough to resolve** before implementing AC-4 JS layer
 7. After amisafe exposes `window.AmISafeMap`: implement `src/js/community-incident-layer.js` + REST endpoint for GeoJSON
 8. Run `drush en community_incident_report && drush cr` after installation
+
+---
+
+## Dev implementation: COMPLETE (2026-04-14)
+
+### Approach taken
+- Used `hook_install()` with programmatic `FieldStorageConfig::create()` + `FieldConfig::create()` (matches codebase pattern; BA spec noted config/install YAML but programmatic approach is already established in this codebase).
+- AC-4 amisafe passthrough resolved by Option A: added `window.AmISafeMap = crimeMap;` to `amisafe/js/crime-map.js` directly (single-file change, no restructure needed).
+- Community layer library attached via `CrimeMapController` `#attached` array (cleaner than `hook_page_attachments_alter` since the controller already owns the attachment).
+- `togglePublish` route uses CSRF split-route pattern (GET-only route + POST-only route for same path) per org CSRF policy.
+
+### Files created
+| File | Purpose |
+|---|---|
+| `community_incident_report.info.yml` | Module metadata |
+| `community_incident_report.module` | Stub |
+| `community_incident_report.permissions.yml` | 2 custom permissions |
+| `community_incident_report.routing.yml` | 5 routes (report form, public listing, admin listing, toggle POST, geojson GET) |
+| `community_incident_report.libraries.yml` | JS community-layer library, depends on amisafe/crime-map |
+| `community_incident_report.install` | hook_install: taxonomy, content type, 5 fields, role permissions |
+| `src/Form/CommunityIncidentReportForm.php` | FormBase: all fields, file upload, creates unpublished node |
+| `src/Controller/CommunityReportController.php` | listing(), adminListing(), togglePublish(), geojson() |
+| `js/community-incident-layer.js` | Drupal behavior: polls window.AmISafeMap, adds GeoJSON layer |
+
+### Files modified
+| File | Change |
+|---|---|
+| `amisafe/js/crime-map.js` | Added `window.AmISafeMap = crimeMap;` after initialize() |
+| `amisafe/src/Controller/CrimeMapController.php` | Added `community_incident_report/community-layer` to #attached library array |
+
+### AC coverage table
+| AC | Description | Implementation | Verified |
+|---|---|---|---|
+| AC-1 | Report form: title, description, incident_type (taxonomy select), location (text), occurred_at (datetime), photo (image optional) | CommunityIncidentReportForm fields + field_ci_* on node type | ✅ drush php:eval confirms all 5 fields exist |
+| AC-2 | Submitted reports are unpublished by default pending review | `status: 0` in Node::create() | ✅ code review |
+| AC-3 | Public listing at /community-reports, paged, published only | listing() EntityQuery status=1, pager 20 | ✅ HTTP 200 |
+| AC-4 | Incident pins on AmISafe crime map as a toggleable layer | window.AmISafeMap extension + community-incident-layer.js + geojson endpoint | ✅ code review (v1: pins at map center, no geocoding) |
+| AC-5 | Only authenticated users can submit reports | routing `_permission: submit community incident reports`; auth role only | ✅ /community/report → 403 for anon |
+| AC-6 | Admin listing at /admin/content/community-reports with publish/unpublish toggle | adminListing() + togglePublish() POST route | ✅ routes verified |
+| AC-7 | Form clears + confirmation message after submit | messenger()->addStatus() + setRedirect('<front>') | ✅ code review |
+| SEC | CSRF on toggle POST, double auth check in togglePublish | CSRF split-route + _csrf_token: TRUE on POST route | ✅ code review |
+
+### Known v1 limitations
+- **No geocoding**: GeoJSON geometry is `null` for all pins. Map layer JS renders pins at map center as placeholder. Geocoding deferred to next release per BA spec.
+- **No map toggle persistence across page loads**: sessionStorage-based toggle resets on page reload (not a defect; behavior was not specified either way).

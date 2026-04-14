@@ -90,7 +90,7 @@ class CrimeMapController extends ControllerBase {
       '#date_range' => $date_range,
       '#citywide_stats' => $citywide_stats,
       '#attached' => [
-        'library' => ['amisafe/crime-map'],
+        'library' => ['amisafe/crime-map', 'community_incident_report/community-layer'],
         'drupalSettings' => [
           'amisafe' => [
             'mapConfig' => [

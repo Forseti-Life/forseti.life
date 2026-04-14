@@ -27,6 +27,8 @@
           this.setAttribute('data-amisafe-initialized', 'true');
           var crimeMap = new AmISafeCrimeMap(this, settings.amisafe);
           crimeMap.initialize();
+          // Expose instance so external modules (e.g. community_incident_report) can attach layers.
+          window.AmISafeMap = crimeMap;
         }
       });
     }
