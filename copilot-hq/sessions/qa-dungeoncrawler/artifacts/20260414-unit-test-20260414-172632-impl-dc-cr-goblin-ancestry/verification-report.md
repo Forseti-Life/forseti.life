@@ -72,4 +72,7 @@ All 5 TCs: **PASS**
 ---
 
 ## Site audit
-- Site audit not re-run (no route surface changes); last clean audit on file at `sessions/qa-dungeoncrawler/artifacts/auto-site-audit/latest/`
+- Audit run: 20260414-180900 (ALLOW_PROD_QA=1)
+- Violations: 0
+- Probe issues: 13 (known pre-existing; same set as prior audits)
+- Artifact: `sessions/qa-dungeoncrawler/artifacts/auto-site-audit/20260414-180900/permissions-validation.md`
