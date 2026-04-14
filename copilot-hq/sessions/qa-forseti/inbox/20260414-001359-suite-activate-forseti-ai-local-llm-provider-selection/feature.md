@@ -1,9 +1,9 @@
 # Feature: forseti-ai-local-llm-provider-selection
 
-- Status: in_progress
+- Status: ready
 - Website: forseti.life
 - Module: ai_conversation
-- Release: 20260412-forseti-release-i
+- Release: 20260412-forseti-release-h
 - Owner: pm-forseti
 - Project: PROJ-005
 
