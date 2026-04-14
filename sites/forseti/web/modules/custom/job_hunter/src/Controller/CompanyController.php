@@ -4300,9 +4300,16 @@ HTML;
       $email = $email_raw;
     }
 
-    // SEC-4: validate LinkedIn URL pattern if provided.
+    // SEC-4: validate LinkedIn URL — scheme must be http/https; reject javascript:/data:/etc with 422.
     $linkedin_url = '';
     if ($linkedin_raw !== '') {
+      $li_scheme = strtolower(parse_url($linkedin_raw, PHP_URL_SCHEME) ?? '');
+      if (!in_array($li_scheme, ['http', 'https'], TRUE)) {
+        return new \Symfony\Component\HttpFoundation\JsonResponse(
+          ['error' => 'linkedin_url scheme must be http or https'],
+          422
+        );
+      }
       if (strpos($linkedin_raw, 'linkedin.com') === FALSE) {
         $this->messenger()->addError($this->t('LinkedIn URL must be a linkedin.com URL.'));
         return new \Symfony\Component\HttpFoundation\RedirectResponse($redirect_route);
