@@ -37,13 +37,20 @@
     {
       "id": "module-test-suite",
       "label": "Module PHPUnit test suite (functional)",
-      "type": "unit",
-      "command": "cd /home/ubuntu/forseti.life/sites/dungeoncrawler && ./vendor/bin/phpunit -c phpunit.xml.dist --testsuite=functional 2>&1",
+      "type": "functional",
+      "command": "bash scripts/dungeoncrawler-functional-gate.sh",
       "artifacts": [
-        "sessions/qa-dungeoncrawler/artifacts/phpunit/<ts>/phpunit-output.txt"
+        "sessions/qa-dungeoncrawler/artifacts/phpunit-functional/<ts>/phpunit-output.txt"
       ],
-      "required_for_release": false,
-      "notes": "Requires a configured Drupal test environment (SIMPLETEST_BASE_URL, database). Run via tests/run-tests.sh for auto-setup. Currently not required_for_release due to env dependency; promote when CI env is available."
+      "required_for_release": true,
+      "owner_seat": "qa-dungeoncrawler",
+      "source_path": "sites/dungeoncrawler/web/modules/custom/dungeoncrawler_tester/tests/src/Functional/",
+      "env_requirements": [
+        "DUNGEONCRAWLER_SIMPLETEST_DB or SIMPLETEST_DB (or DB_PASSWORD-derived local DSN)",
+        "DUNGEONCRAWLER_SIMPLETEST_BASE_URL or SIMPLETEST_BASE_URL"
+      ],
+      "release_checkpoint": "final-pre-ship",
+      "notes": "Runs through scripts/dungeoncrawler-functional-gate.sh so directory/bootstrap setup is automatic and missing DB/base-url prerequisites fail explicitly instead of silently exempting the suite."
     },
     {
       "id": "dc-cr-action-economy-phpunit",
@@ -16350,6 +16357,61 @@
           "name": "Character without feat gets default behavior",
           "suite": "playwright/encounter",
           "expected": "No +5 feet bonus; visibility checked at end of action per standard rules"
+        }
+      ]
+    },
+    {
+      "id": "dc-cr-goblin-weapon-familiarity-e2e",
+      "label": "Goblin Weapon Familiarity feat \u2014 availability, proficiency grants, weapon access/remap, and failure modes (TC-GWF-01 to TC-GWF-06)",
+      "type": "e2e",
+      "feature_id": "dc-cr-goblin-weapon-familiarity",
+      "command": "npx playwright test tests/dungeoncrawler/character-creation/goblin-weapon-familiarity.spec.js",
+      "artifacts": [
+        "test-results/dungeoncrawler/goblin-weapon-familiarity/"
+      ],
+      "required_for_release": true,
+      "test_cases": [
+        {
+          "id": "TC-GWF-01",
+          "feature_id": "dc-cr-goblin-weapon-familiarity",
+          "name": "Goblin feat availability",
+          "suite": "playwright/character-creation",
+          "expected": "Goblin feat picker includes dc-cr-goblin-weapon-familiarity as a selectable level 1 ancestry feat"
+        },
+        {
+          "id": "TC-GWF-02",
+          "feature_id": "dc-cr-goblin-weapon-familiarity",
+          "name": "Dogslicer and horsechopper proficiency granted",
+          "suite": "playwright/character-creation",
+          "expected": "character.weapon_proficiencies includes dogslicer=trained and horsechopper=trained after feat selection"
+        },
+        {
+          "id": "TC-GWF-03",
+          "feature_id": "dc-cr-goblin-weapon-familiarity",
+          "name": "Uncommon goblin weapons unlocked",
+          "suite": "playwright/inventory",
+          "expected": "Goblin-only uncommon weapons are visible and valid for selection after feat is applied"
+        },
+        {
+          "id": "TC-GWF-04",
+          "feature_id": "dc-cr-goblin-weapon-familiarity",
+          "name": "Proficiency remap applied",
+          "suite": "playwright/inventory",
+          "expected": "Martial goblin weapons resolve as simple; advanced goblin weapons resolve as martial; non-goblin weapon categories unchanged"
+        },
+        {
+          "id": "TC-GWF-05",
+          "feature_id": "dc-cr-goblin-weapon-familiarity",
+          "name": "Non-goblin blocked from feat",
+          "suite": "playwright/character-creation",
+          "expected": "Feat hidden or rejected with prerequisite failure for non-goblin characters"
+        },
+        {
+          "id": "TC-GWF-06",
+          "feature_id": "dc-cr-goblin-weapon-familiarity",
+          "name": "Goblin Weapon Frenzy prerequisite opens",
+          "suite": "playwright/feat-progression",
+          "expected": "Goblin Weapon Frenzy becomes eligible when Goblin Weapon Familiarity is present and other prerequisites met"
         }
       ]
     }
