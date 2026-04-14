@@ -1,6 +1,6 @@
 # Feature: forseti-ai-local-llm-provider-selection
 
-- Status: in_progress
+- Status: shipped
 - Website: forseti.life
 - Module: ai_conversation
 - Release: 20260412-forseti-release-i

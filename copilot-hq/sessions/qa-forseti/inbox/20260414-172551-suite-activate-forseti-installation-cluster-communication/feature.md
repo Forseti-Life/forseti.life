@@ -1,9 +1,9 @@
 # Feature: forseti-installation-cluster-communication
 
-- Status: in_progress
+- Status: ready
 - Website: forseti.life
 - Module: forseti_cluster (new)
-- Release: 20260412-forseti-release-k
+- Release: unscoped
 - Owner: pm-forseti
 - Project: PROJ-011
 
