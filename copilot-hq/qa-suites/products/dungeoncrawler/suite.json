@@ -16358,7 +16358,9 @@
           "suite": "playwright/encounter",
           "expected": "No +5 feet bonus; visibility checked at end of action per standard rules"
         }
-      ]
+      ],
+      "activated_release": "20260412-dungeoncrawler-release-l",
+      "activated_date": "2026-04-14"
     },
     {
       "id": "dc-cr-goblin-weapon-familiarity-e2e",
@@ -16413,7 +16415,9 @@
           "suite": "playwright/feat-progression",
           "expected": "Goblin Weapon Frenzy becomes eligible when Goblin Weapon Familiarity is present and other prerequisites met"
         }
-      ]
+      ],
+      "activated_release": "20260412-dungeoncrawler-release-l",
+      "activated_date": "2026-04-14"
     },
     {
       "id": "dc-cr-halfling-ancestry-character-creation",
