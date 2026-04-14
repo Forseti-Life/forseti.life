@@ -357,3 +357,4 @@ This file is a running list of targeted regression checks derived from completed
 - [ ] 20260414-172632-impl-dc-cr-goblin-ancestry — targeted regression check (see dev outbox: sessions/dev-dungeoncrawler/outbox/20260414-172632-impl-dc-cr-goblin-ancestry.md)
 - [ ] 20260414-172632-impl-dc-cr-goblin-very-sneaky — targeted regression check (see dev outbox: sessions/dev-dungeoncrawler/outbox/20260414-172632-impl-dc-cr-goblin-very-sneaky.md)
 - [ ] 20260414-172632-impl-dc-cr-goblin-weapon-familiarity — targeted regression check (see dev outbox: sessions/dev-dungeoncrawler/outbox/20260414-172632-impl-dc-cr-goblin-weapon-familiarity.md)
+- [ ] 20260414-172632-impl-dc-cr-halfling-ancestry — targeted regression check (see dev outbox: sessions/dev-dungeoncrawler/outbox/20260414-172632-impl-dc-cr-halfling-ancestry.md)

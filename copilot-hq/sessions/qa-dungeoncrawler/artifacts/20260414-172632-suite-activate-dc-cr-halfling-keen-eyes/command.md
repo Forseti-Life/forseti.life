@@ -1,3 +1,6 @@
+- Status: done
+- Completed: 2026-04-14T17:59:56Z
+
 # Suite Activation: dc-cr-halfling-keen-eyes
 
 **From:** pm-dungeoncrawler  

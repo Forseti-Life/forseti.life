@@ -1,15 +1,18 @@
 """Tests for post-coordinated-push.sh Step 3: release_id advancement."""
 import json
+import shutil
 import subprocess
 import tempfile
 import textwrap
 from datetime import datetime, timezone
 from pathlib import Path
 
-import pytest
-
 SCRIPT = Path(__file__).resolve().parents[2] / "scripts" / "post-coordinated-push.sh"
+BOUNDARY_SCRIPT = Path(__file__).resolve().parents[2] / "scripts" / "ceo-release-boundary-health.sh"
+RELEASE_CYCLE_START = Path(__file__).resolve().parents[2] / "scripts" / "release-cycle-start.sh"
 assert SCRIPT.exists(), f"Script not found: {SCRIPT}"
+assert BOUNDARY_SCRIPT.exists(), f"Script not found: {BOUNDARY_SCRIPT}"
+assert RELEASE_CYCLE_START.exists(), f"Script not found: {RELEASE_CYCLE_START}"
 
 _TEAMS_JSON = {
     "teams": [
@@ -71,6 +74,10 @@ def _make_root(tmp: Path, *, signoffs_done: bool = True) -> Path:
     stub = scripts_dir / "release-signoff.sh"
     stub.write_text("#!/usr/bin/env bash\nexit 0\n")
     stub.chmod(0o755)
+    shutil.copy2(BOUNDARY_SCRIPT, scripts_dir / "ceo-release-boundary-health.sh")
+    shutil.copy2(RELEASE_CYCLE_START, scripts_dir / "release-cycle-start.sh")
+    (scripts_dir / "ceo-release-boundary-health.sh").chmod(0o755)
+    (scripts_dir / "release-cycle-start.sh").chmod(0o755)
 
     return root
 
@@ -181,3 +188,52 @@ class TestReleaseIdAdvancement:
             new_ts = (active / f"{team_id}.started_at").read_text().strip()
             assert new_ts != old_ts, f"{team_id}: started_at not updated"
             assert new_ts > "2024", f"{team_id}: started_at appears stale: {new_ts!r}"
+
+    def test_pm_grooming_seeded_for_new_next_release(self, tmp_path):
+        """Advancing a release should immediately seed PM grooming for the new next release."""
+        root = _make_root(tmp_path)
+        today = datetime.now(timezone.utc).strftime("%Y%m%d")
+
+        result = _run(root)
+        assert result.returncode == 0, result.stderr
+
+        for team_id in ("forseti", "dungeoncrawler"):
+            pm_inbox = root / "sessions" / f"pm-{team_id}" / "inbox"
+            expected = pm_inbox / f"{today}-groom-{today}-{team_id}-release-d"
+            assert expected.is_dir(), f"{team_id}: expected grooming item {expected}"
+
+    def test_boundary_health_queues_scope_activate_immediately(self, tmp_path):
+        """A freshly advanced empty release should get a PM scope-activate item right away."""
+        root = _make_root(tmp_path)
+        features = root / "features"
+        features.mkdir()
+        today = datetime.now(timezone.utc).strftime("%Y%m%d")
+        for team_id, website in (
+            ("forseti", "forseti.life"),
+            ("dungeoncrawler", "dungeoncrawler.forseti.life"),
+        ):
+            feat_dir = features / f"{team_id}-feat-ready"
+            feat_dir.mkdir()
+            (feat_dir / "feature.md").write_text(
+                textwrap.dedent(
+                    f"""\
+                    # Feature Brief
+
+                    - Work item id: {team_id}-feat-ready
+                    - Website: {website}
+                    - Status: ready
+                    - Release:
+                    - Dev owner: dev-{team_id}
+                    - QA owner: qa-{team_id}
+                    """
+                ),
+                encoding="utf-8",
+            )
+
+        result = _run(root)
+        assert result.returncode == 0, result.stderr
+
+        for team_id in ("forseti", "dungeoncrawler"):
+            pm_inbox = root / "sessions" / f"pm-{team_id}" / "inbox"
+            items = list(pm_inbox.glob(f"*-scope-activate-{today}-{team_id}-release-c"))
+            assert len(items) == 1, f"{team_id}: expected one scope-activate item, got {items}"

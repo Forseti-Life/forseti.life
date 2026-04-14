@@ -30,7 +30,9 @@ Both are tracked in `tmp/release-cycle-active/`.
 **The orchestrator manages this automatically.** The `release_cycle` step (runs every 5 min) starts
 missing cycles and keeps `next_release_id` aligned with the active release. **It does not advance
 `current release_id` on PM signoff alone.** Runtime advancement happens only after the coordinated push
-handoff completes via `scripts/post-coordinated-push.sh`.
+handoff completes via `scripts/post-coordinated-push.sh`. That handoff now immediately re-runs
+`release-cycle-start.sh` for the new current/next pair and runs `scripts/ceo-release-boundary-health.sh`
+so the next cycle is seeded without waiting for the periodic CEO loop.
 See `runbooks/orchestration.md` for the full trigger path.
 
 ## Release handoff diagram (authoritative)
@@ -45,8 +47,9 @@ flowchart TD
   F --> G[pm-forseti verifies release-signoff-status.sh]
   G --> H[Coordinated deploy / Gate 4 push]
   H --> I[post-coordinated-push.sh advances current -> next]
-  I --> J[new next_release_id generated]
-  J --> K[Next cycle continues with new current + next]
+  I --> J[release-cycle-start.sh re-seeds new current + next]
+  J --> K[CEO boundary health verifies no empty/stale handoff]
+  K --> L[Next cycle continues with new current + next]
 
   E -. forbidden .-> X[Do not advance current on signoff alone]
   X -. prevents .-> Y[Pre-push race / wrong active release pointer]
