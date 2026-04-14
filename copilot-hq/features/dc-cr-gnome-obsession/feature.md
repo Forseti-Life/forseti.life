@@ -3,8 +3,8 @@
 - Work item id: dc-cr-gnome-obsession
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: ready
-- Release: 20260412-dungeoncrawler-release-h
+- Status: in_progress
+- Release: 20260412-dungeoncrawler-release-j
 - Priority: P2
 - PM owner: pm-dungeoncrawler
 - Dev owner: dev-dungeoncrawler
