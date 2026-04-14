@@ -61,6 +61,25 @@ final class LangGraphConsoleStubController extends ControllerBase {
   }
 
   /**
+   * AC-7: yellow warning banner when COPILOT_HQ_ROOT env var is not set.
+   *
+   * Returns an empty array (no banner) when the env var IS set.
+   *
+   * @return array<mixed>
+   */
+  private function hqRootWarning(): array {
+    if (getenv('COPILOT_HQ_ROOT') !== FALSE) {
+      return [];
+    }
+    return [
+      '#markup' => '<div role="alert" style="background:#fff3cd;border:1px solid #ffc107;padding:8px 12px;margin-bottom:12px;border-radius:4px;">'
+        . '<strong>' . $this->t('Warning') . ':</strong> '
+        . $this->t('The COPILOT_HQ_ROOT environment variable is not set. Using default path: /home/ubuntu/forseti.life/copilot-hq')
+        . '</div>',
+    ];
+  }
+
+  /**
    * Read a JSON file safely, returning [] on any failure.
    *
    * @return array<mixed>
@@ -373,6 +392,12 @@ final class LangGraphConsoleStubController extends ControllerBase {
     $agent_cap = isset($tick['agent_cap']) ? (int) $tick['agent_cap'] : 0;
     $health    = (array) ($tick['step_results']['health_check'] ?? []);
 
+    // AC-5: tick sequence number = line count of JSONL file.
+    $ticks_path   = $this->hqPath(self::TICKS_RELATIVE);
+    $tick_seq     = is_readable($ticks_path) ? count(file($ticks_path, FILE_SKIP_EMPTY_LINES)) : '—';
+    $parity_ok    = isset($parity['parity_ok']) ? (bool) $parity['parity_ok'] : NULL;
+    $provider     = (string) ($tick['provider'] ?? '—');
+
     // Agents table.
     $agent_rows = [];
     foreach ($exec_ran as $entry) {
@@ -404,63 +429,100 @@ final class LangGraphConsoleStubController extends ControllerBase {
     $sections = $this->sectionMap();
     $nav = $this->buildSectionRows('run', (array) $sections['run']['subsections']);
 
-    return [
+    // AC-5: Session Health section.
+    $session_health_rows = [];
+    if (empty($tick) && empty($parity)) {
+      $session_health_empty = $this->t('Session health unavailable — no tick data.');
+    }
+    else {
+      $session_health_empty = NULL;
+      $session_health_rows = [
+        [$this->t('Last tick'), $this->fmtTs($ts)],
+        [$this->t('Tick sequence'), (string) $tick_seq],
+        [$this->t('Provider'), $provider],
+        [$this->t('Parity'), ['data' => ['#markup' => $this->badge($parity_ok)]]],
+      ];
+    }
+
+    $build = [
       '#type' => 'container',
       '#cache' => ['max-age' => 0],
-      'title' => ['#markup' => '<h2>' . $this->t('Run') . '</h2>'],
-      'ts_note' => ['#markup' => '<p><em>' . $this->t('Last tick: @ts', ['@ts' => $this->fmtTs($ts)]) . '</em></p>'],
+    ];
 
-      'agents_header' => ['#markup' => '<h3>' . $this->t('Threads & Runs — Agent Execution') . '</h3>'],
-      'agents_table' => [
-        '#type' => 'table',
-        '#header' => [$this->t('Agent'), $this->t('Exit')],
-        '#rows' => $agent_rows,
-        '#empty' => $this->t('No execution data.'),
-      ],
+    // AC-7: warning banner when COPILOT_HQ_ROOT is not set.
+    $warning = $this->hqRootWarning();
+    if (!empty($warning)) {
+      $build['hq_root_warning'] = $warning;
+    }
 
-      'teams_header' => ['#markup' => '<h3>' . $this->t('Release Cycle — Active Teams') . '</h3>'],
-      'teams_table' => [
-        '#type' => 'table',
-        '#header' => [$this->t('Team'), $this->t('Action'), $this->t('Current Release'), $this->t('Next Release'), $this->t('RC')],
-        '#rows' => $team_rows,
-        '#empty' => $this->t('No release cycle data.'),
-      ],
+    $build['title']   = ['#markup' => '<h2>' . $this->t('Run') . '</h2>'];
+    $build['ts_note'] = ['#markup' => '<p><em>' . $this->t('Last tick: @ts', ['@ts' => $this->fmtTs($ts)]) . '</em></p>'];
 
-      'push_header' => ['#markup' => '<h3>' . $this->t('Coordinated Push') . '</h3>'],
-      'push_table' => [
+    $build['session_health_header'] = ['#markup' => '<h3>' . $this->t('Session Health') . '</h3>'];
+    if ($session_health_empty !== NULL) {
+      $build['session_health_empty'] = ['#markup' => '<p>' . $session_health_empty . '</p>'];
+    }
+    else {
+      $build['session_health_table'] = [
         '#type' => 'table',
         '#header' => [$this->t('Metric'), $this->t('Value')],
-        '#rows' => [
-          [$this->t('Push status'), $push_status],
-          [$this->t('Teams not ready'), $not_ready ?: '—'],
-          [$this->t('Release priority agents'), $release_pri ?: '—'],
-        ],
-      ],
+        '#rows' => $session_health_rows,
+      ];
+    }
 
-      'health_header' => ['#markup' => '<h3>' . $this->t('Health & Resume') . '</h3>'],
-      'health_table' => [
-        '#type' => 'table',
-        '#header' => [$this->t('Metric'), $this->t('Value')],
-        '#rows' => [
-          [$this->t('Idle agents with inbox'), (string) $idle_with_inbox],
-          [$this->t('Blocked agents'), (string) $blocked],
-          [$this->t('Remediated this tick'), (string) count($remediated)],
-          [$this->t('Agent cap'), (string) $agent_cap],
-          [$this->t('Agents selected'), (string) count($selected) . ' (' . implode(', ', array_map('strval', $selected)) . ')'],
-        ],
-      ],
+    $build['agents_header'] = ['#markup' => '<h3>' . $this->t('Threads & Runs — Agent Execution') . '</h3>'];
+    $build['agents_table']  = [
+      '#type' => 'table',
+      '#header' => [$this->t('Agent'), $this->t('Exit')],
+      '#rows' => $agent_rows,
+      // AC-1: exact empty-state wording.
+      '#empty' => $this->t('No run data available — start a workflow to populate this panel.'),
+    ];
 
-      'nav' => [
-        '#type' => 'details',
-        '#title' => $this->t('Subsections'),
-        '#open' => FALSE,
-        'table' => [
-          '#type' => 'table',
-          '#header' => [$this->t('Subsection'), $this->t('Frame'), $this->t('Status')],
-          '#rows' => $nav,
-        ],
+    $build['teams_header'] = ['#markup' => '<h3>' . $this->t('Release Cycle — Active Teams') . '</h3>'];
+    $build['teams_table']  = [
+      '#type' => 'table',
+      '#header' => [$this->t('Team'), $this->t('Action'), $this->t('Current Release'), $this->t('Next Release'), $this->t('RC')],
+      '#rows' => $team_rows,
+      '#empty' => $this->t('No release cycle data.'),
+    ];
+
+    $build['push_header'] = ['#markup' => '<h3>' . $this->t('Coordinated Push') . '</h3>'];
+    $build['push_table']  = [
+      '#type' => 'table',
+      '#header' => [$this->t('Metric'), $this->t('Value')],
+      '#rows' => [
+        [$this->t('Push status'), $push_status],
+        [$this->t('Teams not ready'), $not_ready ?: '—'],
+        [$this->t('Release priority agents'), $release_pri ?: '—'],
       ],
     ];
+
+    $build['health_header'] = ['#markup' => '<h3>' . $this->t('Health & Resume') . '</h3>'];
+    $build['health_table']  = [
+      '#type' => 'table',
+      '#header' => [$this->t('Metric'), $this->t('Value')],
+      '#rows' => [
+        [$this->t('Idle agents with inbox'), (string) $idle_with_inbox],
+        [$this->t('Blocked agents'), (string) $blocked],
+        [$this->t('Remediated this tick'), (string) count($remediated)],
+        [$this->t('Agent cap'), (string) $agent_cap],
+        [$this->t('Agents selected'), (string) count($selected) . ' (' . implode(', ', array_map('strval', $selected)) . ')'],
+      ],
+    ];
+
+    $build['nav'] = [
+      '#type' => 'details',
+      '#title' => $this->t('Subsections'),
+      '#open' => FALSE,
+      'table' => [
+        '#type' => 'table',
+        '#header' => [$this->t('Subsection'), $this->t('Frame'), $this->t('Status')],
+        '#rows' => $nav,
+      ],
+    ];
+
+    return $build;
   }
 
   /**
@@ -976,20 +1038,29 @@ final class LangGraphConsoleStubController extends ControllerBase {
     $i     = 1;
     foreach ($steps as $name => $data) {
       $rc = isset($data['rc']) ? $this->rcBadge((int) $data['rc']) : '—';
+      // AC-2: result summary text truncated to 120 chars.
+      $summary_raw = is_array($data)
+        ? json_encode($data, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE)
+        : (string) $data;
+      $summary = mb_strlen($summary_raw) > 120
+        ? htmlspecialchars(mb_substr($summary_raw, 0, 120)) . '&hellip;'
+        : htmlspecialchars($summary_raw);
       $rows[] = [
         (string) $i++,
         (string) $name,
         ['data' => ['#markup' => $rc]],
         $this->fmtTs($ts),
+        ['data' => ['#markup' => '<small>' . $summary . '</small>']],
       ];
     }
     return $this->buildSubPage((string) $sub[0], (string) $sub[1], $back, [
       'table' => [
         '#type' => 'table',
         '#caption' => $this->t('Pipeline step execution events for the last tick'),
-        '#header' => [$this->t('Seq'), $this->t('Step'), $this->t('RC'), $this->t('Tick timestamp')],
+        '#header' => [$this->t('Seq'), $this->t('Step'), $this->t('RC'), $this->t('Tick timestamp'), $this->t('Summary')],
         '#rows' => $rows,
-        '#empty' => $this->t('No events.'),
+        // AC-2: exact empty-state wording.
+        '#empty' => $this->t('No step events in latest tick.'),
       ],
     ]);
   }
@@ -1009,6 +1080,34 @@ final class LangGraphConsoleStubController extends ControllerBase {
       [$this->t('Blocked agents'), (string) ($hc['blocked_count'] ?? '—')],
       [$this->t('Remediated this tick'), (string) count($remediated)],
     ];
+
+    // AC-3: individual blocked item detail — scan most-recent outbox per seat.
+    $hq_root     = rtrim($this->hqPath(''), '/');
+    $outbox_glob = $hq_root . '/sessions/*/outbox/*.md';
+    $files       = glob($outbox_glob) ?: [];
+    rsort($files);
+    $seen_seats    = [];
+    $blocked_items = [];
+    foreach ($files as $path) {
+      if (!preg_match('#sessions/([^/]+)/outbox/#', $path, $m)) {
+        continue;
+      }
+      $seat = $m[1];
+      if (isset($seen_seats[$seat])) {
+        continue;
+      }
+      $seen_seats[$seat] = TRUE;
+      $content = @file_get_contents($path);
+      if ($content && preg_match('/^- Status: (blocked|needs-info)/m', $content, $sm)) {
+        $blocked_items[] = [
+          htmlspecialchars($seat),
+          htmlspecialchars(basename($path)),
+          htmlspecialchars($sm[1]),
+          date('Y-m-d H:i', (int) filemtime($path)),
+        ];
+      }
+    }
+
     return $this->buildSubPage((string) $sub[0], (string) $sub[1], $back, [
       'summary' => [
         '#type' => 'table',
@@ -1022,12 +1121,25 @@ final class LangGraphConsoleStubController extends ControllerBase {
         '#rows' => $rem_rows,
         '#empty' => $this->t('None remediated this tick.'),
       ],
+      'blocked_header' => ['#markup' => '<h4>' . $this->t('Blocked / Needs-Info Items (most recent outbox per seat)') . '</h4>'],
+      'blocked_table' => [
+        '#type' => 'table',
+        '#header' => [$this->t('Seat'), $this->t('Outbox file'), $this->t('Status'), $this->t('Last modified')],
+        '#rows' => $blocked_items,
+        '#empty' => $this->t('No blocked or needs-info items found.'),
+      ],
     ]);
   }
 
   /** @param array<mixed> $sub @param array<mixed> $back */
   private function subRunConcurrency(array $sub, array $back): array {
     ['tick' => $tick] = $this->loadTelemetry();
+    // AC-4: empty state when pick_agents key is absent.
+    if (!isset($tick['step_results']['pick_agents'])) {
+      return $this->buildSubPage((string) $sub[0], (string) $sub[1], $back, [
+        'empty' => ['#markup' => '<p>' . $this->t('Concurrency data not yet available in latest tick.') . '</p>'],
+      ]);
+    }
     $pick = (array) ($tick['step_results']['pick_agents'] ?? []);
     $cap  = isset($tick['agent_cap']) ? (int) $tick['agent_cap'] : NULL;
     $sel  = (array) ($pick['selected'] ?? []);
