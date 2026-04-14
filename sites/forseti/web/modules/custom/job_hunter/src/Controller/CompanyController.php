@@ -3666,15 +3666,6 @@ HTML;
   public function companyResearchList(): array {
     $uid = (int) $this->currentUser()->id();
 
-    $rows = $this->database->select('jobhunter_company_research', 'cr')
-      ->fields('cr', ['id', 'company_id', 'culture_fit_score', 'changed'])
-      ->fields('c', ['name', 'industry'])
-      ->condition('cr.uid', $uid)
-      ->orderBy('cr.changed', 'DESC')
-      ->execute()
-      ->fetchAll();
-
-    // We need a join — redo with proper join syntax.
     $query = $this->database->select('jobhunter_company_research', 'cr');
     $query->join('jobhunter_companies', 'c', 'cr.company_id = c.id');
     $query->fields('cr', ['id', 'company_id', 'culture_fit_score', 'changed']);
@@ -3697,11 +3688,11 @@ HTML;
       $date         = $row->changed ? date('Y-m-d', (int) $row->changed) : '—';
       $cid          = (int) $row->company_id;
       $table_rows[] = [
-        '<a href="/jobhunter/companies/' . $cid . '/research">' . $company_name . '</a>',
+        '<a href="/jobhunter/companies/' . $cid . '/research" rel="noopener noreferrer">' . $company_name . '</a>',
         $industry,
         $score,
         $date,
-        '<a href="/jobhunter/companies/' . $cid . '/research">Edit</a>',
+        '<a href="/jobhunter/companies/' . $cid . '/research" rel="noopener noreferrer">Edit</a>',
       ];
     }
 
