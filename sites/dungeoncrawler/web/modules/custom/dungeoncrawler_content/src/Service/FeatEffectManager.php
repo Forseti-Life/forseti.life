@@ -574,6 +574,13 @@ class FeatEffectManager {
           $effects['applied_feats'][] = $feat_id;
           break;
 
+        case 'very-sneaky':
+          $effects['derived_adjustments']['flags']['very_sneaky_sneak_distance_bonus'] = 5;
+          $effects['derived_adjustments']['flags']['very_sneaky_eot_visibility_delay'] = TRUE;
+          $effects['notes'][] = 'Very Sneaky: +5 ft movement when using Sneak (up to Speed); do not become Observed at end of Sneak action if cover/concealment is maintained at end of turn.';
+          $effects['applied_feats'][] = $feat_id;
+          break;
+
         case 'goblin-song':
           $effects['available_actions']['at_will'][] = [
             'id' => 'goblin-song',

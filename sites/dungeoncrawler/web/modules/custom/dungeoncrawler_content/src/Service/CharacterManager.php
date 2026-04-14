@@ -839,6 +839,8 @@ class CharacterManager {
         'benefit' => 'Trained with dogslicers and horsechoppers. For proficiency, treat martial goblin weapons as simple, advanced goblin weapons as martial.'],
       ['id' => 'junk-tinker', 'name' => 'Junk Tinker', 'level' => 1, 'traits' => ['Goblin'], 'prerequisites' => '',
         'benefit' => 'Trained in Crafting. You can Craft nonmagical items from junk. Crafting DCs for such items are 5 easier, but items are shoddy (break on failed attack/check).'],
+      ['id' => 'very-sneaky', 'name' => 'Very Sneaky', 'level' => 1, 'traits' => ['Goblin'], 'prerequisites' => '',
+        'benefit' => 'You can move 5 feet farther when you take the Sneak action, up to your Speed. You don\'t become Observed at the end of a Sneak action if you lack cover or concealment, as long as you have cover, greater cover, or concealment at the end of your turn.'],
     ],
     'Halfling' => [
       ['id' => 'distracting-shadows', 'name' => 'Distracting Shadows', 'level' => 1, 'traits' => ['Halfling'], 'prerequisites' => '',
