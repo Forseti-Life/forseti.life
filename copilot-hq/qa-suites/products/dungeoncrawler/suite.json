@@ -16202,6 +16202,60 @@
           "required_for_release": true
         }
       ]
+    },
+    {
+      "id": "dc-cr-gnome-weapon-specialist-character-creation",
+      "label": "Gnome Weapon Specialist — prerequisite gate, glaive/kukri/gnome-weapon critical specialization, non-gnome and normal-hit exclusions",
+      "type": "playwright",
+      "feature_id": "dc-cr-gnome-weapon-specialist",
+      "command": "npx playwright test tests/feat-progression/gnome-weapon-specialist.spec.js tests/encounter/gnome-weapon-specialist.spec.js",
+      "artifacts": [
+        "sessions/qa-dungeoncrawler/artifacts/dc-cr-gnome-weapon-specialist/playwright-report.json"
+      ],
+      "required_for_release": true,
+      "notes": "Security AC exemption confirmed: combat hook only; no new route surface. TC-GWS-02/03 verify critical specialization is looked up from the existing lookup, not duplicated. TC-GWS-04/05 are failure-mode guards.",
+      "test_cases": [
+        {
+          "id": "TC-GWS-01",
+          "label": "Feat locked before Gnome Weapon Familiarity; unlocked as Gnome feat 5 after prerequisite is present",
+          "feature_id": "dc-cr-gnome-weapon-specialist",
+          "suite_context": "playwright/feat-progression",
+          "status": "pending_implementation",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-GWS-02",
+          "label": "Critical hit with glaive applies glaive critical specialization effect",
+          "feature_id": "dc-cr-gnome-weapon-specialist",
+          "suite_context": "playwright/encounter",
+          "status": "pending_implementation",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-GWS-03",
+          "label": "Critical hit with kukri or other gnome-tagged weapon applies matching critical specialization effect",
+          "feature_id": "dc-cr-gnome-weapon-specialist",
+          "suite_context": "playwright/encounter",
+          "status": "pending_implementation",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-GWS-04",
+          "label": "Critical hit with a non-gnome weapon does not trigger Gnome Weapon Specialist specialization",
+          "feature_id": "dc-cr-gnome-weapon-specialist",
+          "suite_context": "playwright/encounter",
+          "status": "pending_implementation",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-GWS-05",
+          "label": "Normal (non-critical) hit with gnome weapon does not trigger specialization effect",
+          "feature_id": "dc-cr-gnome-weapon-specialist",
+          "suite_context": "playwright/encounter",
+          "status": "pending_implementation",
+          "required_for_release": true
+        }
+      ]
     }
   ],
   "dc-cr-first-world-adept": [
