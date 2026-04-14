@@ -1,36 +1,17 @@
+All checks pass. The AC feature.md uses `jobhunter_user_preferences` as the table name but the implementation uses `jobhunter_source_preferences` — this is a dev-noted AC deviation (name discrepancy from the AC draft). The implementation is functionally complete. Now update the checklist and write the outbox.
+
+Done. Commit `34bbb0976`.
+
+---
+
 - Status: done
-- Summary: Unit-test verification of `forseti-jobhunter-job-board-preferences` (Dev item `20260414-172605`) is APPROVE. Code inspection confirmed all 5 ACs and 4 SEC criteria: (AC-1) `/jobhunter/preferences` GET form renders with source toggles for `forseti/serpapi/adzuna/usajobs`, gated by `_user_is_logged_in: TRUE`; (AC-2) prefs are loaded from `jobhunter_source_preferences` on revisit and pre-populate form; (AC-3) `SearchAggregatorService` reads enabled sources from saved prefs (default: all on); (AC-4) schema `jobhunter_source_preferences` confirmed via `hook_update_9051` — 8 required columns + `unique keys: uid`; (AC-5) no saved row → `$enabled_sources = ['forseti']` default with all sources treated as active. Security: all 4 routes (GET `/preferences`, POST `/preferences/save`, legacy GET `/preferences/sources`, legacy POST `/preferences/sources/save`) have `_user_is_logged_in: TRUE`; both POST routes have `_csrf_token: TRUE` (CSRF split-route); uid from `currentUser()->id()` only; `VALID_SOURCE_KEYS` allowlist returns HTTP 400 for unknown source keys; `VALID_REMOTE_PREFS` + salary/radius bounds enforced; logger emits uid only. Two dev-documented deviations accepted: table is `jobhunter_source_preferences` not `jobhunter_user_preferences` (AC-4 name mismatch — functional equivalent); `remote_only` AC enum stored as `remote` in implementation (backward-compat remapping confirmed in form load). Site audit `20260414-005254` remains 0 violations. Regression checklist line 182 updated to `[x]` APPROVE.
-
-## Verdict: APPROVE
-
-## Evidence
-
-| Check | Result |
-|---|---|
-| AC-1: GET `/jobhunter/preferences` with source toggles, auth-gated | PASS |
-| AC-2: prefs saved + reloaded from `jobhunter_source_preferences` | PASS |
-| AC-3: SearchAggregatorService reads enabled sources | PASS (code path confirmed) |
-| AC-4: schema 8 cols + unique uid key via hook_update_9051 | PASS (deviation: table name `source_prefs` not `user_prefs` — accepted) |
-| AC-5: no saved row → all sources active default | PASS |
-| SEC-1: `_user_is_logged_in: TRUE` all 4 routes | PASS |
-| SEC-2: CSRF split-route on both POST save routes | PASS |
-| SEC-3: uid from `currentUser()->id()` only | PASS |
-| SEC-4: `VALID_SOURCE_KEYS` allowlist → HTTP 400 for unknown keys | PASS |
-| Salary/radius bounds validation | PASS |
-| Logger: uid only, no preference values | PASS |
-| Deviation: `remote_only` → `remote` enum mapping | Accepted (dev-documented) |
-| Site audit 20260414-005254 | 0 violations |
-
-## Next actions
-- Regression checklist line 182 updated to `[x]` APPROVE
-- Await dispatch for remaining release-j unit-test verifies
-
-## Blockers
-- None
-
-## Needs from CEO
-- None
+- Summary: `forseti-jobhunter-job-board-preferences` — **APPROVE**. All 5 ACs and 4 SEC criteria confirmed by code inspection of `CompanyController.php` (`sourcePreferencesForm`/`sourcePreferencesSave`), routing.yml (4 routes: primary + legacy aliases), and `hook_update_9051` schema. `VALID_SOURCE_KEYS` allowlist rejects unknown source keys → HTTP 400; CSRF split-route on all POST routes; uid from `currentUser()->id()` only; logger emits uid only. Two dev-documented deviations accepted: table named `jobhunter_source_preferences` (not `jobhunter_user_preferences`), and `remote_only` AC enum stored as `remote` in implementation. Site audit `20260414-005254` remains 0 violations.
 
 ## ROI estimate
 - ROI: 20
-- Rationale: Clears job-board-preferences for Gate 2; no rework needed. Low-priority feature, but closes the release-j verification batch.
+- Rationale: Closes release-j verification batch item; no rework needed.
+
+---
+- Agent: qa-forseti
+- Source inbox: /home/ubuntu/forseti.life/copilot-hq/sessions/qa-forseti/inbox/20260414-unit-test-20260414-172605-impl-forseti-jobhunter-job-board-preferences
+- Generated: 2026-04-14T18:13:23+00:00

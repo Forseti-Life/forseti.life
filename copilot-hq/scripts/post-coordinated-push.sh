@@ -95,6 +95,24 @@ if team_release_ids:
         next_idx = min(idx + 1, len(suffixes) - 1)
         return f"{date_part}-{team_id}-{suffixes[next_idx]}"
 
+    def seed_handoff(team_id: str, current_release: str, next_release: str) -> None:
+        seed_result = subprocess.run(
+            ['bash', str(root / 'scripts' / 'release-cycle-start.sh'), team_id, current_release, next_release],
+            capture_output=True,
+            text=True,
+            cwd=str(root),
+        )
+        if seed_result.returncode != 0:
+            print(f"WARN {team_id}: release-cycle-start.sh exited {seed_result.returncode} after advance")
+            stderr = (seed_result.stderr or "").strip()
+            stdout = (seed_result.stdout or "").strip()
+            if stderr:
+                print(stderr)
+            elif stdout:
+                print(stdout)
+        else:
+            print(f"SEED {team_id}: release-cycle-start.sh queued current/next handoff")
+
     # Step 3 — advance each team's release_id to next_release_id.
     # Runs unconditionally (not tied to marker creation) so a re-run of this
     # script after a pre-existing signoff doesn't skip the advance.
@@ -120,6 +138,7 @@ if team_release_ids:
             current_rid = (runtime_dir / f"{team_id}.release_id").read_text(encoding='utf-8').strip()
             if current_rid == sentinel_val:
                 print(f"SKIP {team_id}: release_id already advanced to {sentinel_val}")
+                seed_handoff(team_id, current_rid, new_current)
                 continue
         new_next = next_release_id_after(new_current, team_id, today)
         (runtime_dir / f"{team_id}.release_id").write_text(new_current + "\n", encoding='utf-8')
@@ -129,22 +148,7 @@ if team_release_ids:
         )
         advance_sentinel.write_text(new_current + "\n", encoding='utf-8')
         print(f"ADVANCE {team_id}: release_id={new_current} next_release_id={new_next}")
-        seed_result = subprocess.run(
-            ['bash', str(root / 'scripts' / 'release-cycle-start.sh'), team_id, new_current, new_next],
-            capture_output=True,
-            text=True,
-            cwd=str(root),
-        )
-        if seed_result.returncode != 0:
-            print(f"WARN {team_id}: release-cycle-start.sh exited {seed_result.returncode} after advance")
-            stderr = (seed_result.stderr or "").strip()
-            stdout = (seed_result.stdout or "").strip()
-            if stderr:
-                print(stderr)
-            elif stdout:
-                print(stdout)
-        else:
-            print(f"SEED {team_id}: release-cycle-start.sh queued current/next handoff")
+        seed_handoff(team_id, new_current, new_next)
 else:
     print("WARNING: no active team releases found — nothing to push")
 PY

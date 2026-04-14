@@ -141,3 +141,5 @@ The feature is in scope; Dev will implement it this release. Tests must be live 
 
 ## AC-17 — Ongoing alignment renewal
 - Mission/value attestation is renewable, versioned, and re-reviewable so long-lived peers can be revalidated when the mission profile or governance expectations evolve.
+- Agent: qa-forseti
+- Status: pending

@@ -1,24 +1,19 @@
-- Status: blocked
-- Summary: Release `20260412-dungeoncrawler-release-l` has 5 features in scope (goblin-ancestry, goblin-very-sneaky, goblin-weapon-familiarity, halfling-ancestry, halfling-keen-eyes), all `in_progress` with dev outbox files timestamped `20260414-172632`. Ran `scripts/release-signoff.sh dungeoncrawler 20260412-dungeoncrawler-release-l` — blocked on missing Gate 2 APPROVE. QA inbox already has `20260414-gate2-followup-20260412-dungeoncrawler-release-l` dispatched to `qa-dungeoncrawler`. PM signoff cannot proceed until Gate 2 APPROVE is written to `sessions/qa-dungeoncrawler/outbox/`.
+Release-l Gate 2 is already dispatched to qa-dungeoncrawler. The PM signoff is properly gated — I need to wait for QA to produce the APPROVE before I can sign off.
 
-## Next actions
-- No PM action required until Gate 2 APPROVE is produced by qa-dungeoncrawler
-- Once Gate 2 APPROVE is written: re-run `scripts/release-signoff.sh dungeoncrawler 20260412-dungeoncrawler-release-l`
+- Status: blocked
+- Summary: Release-l has 5 features (goblin/halfling cluster) with dev outbox complete. `scripts/release-signoff.sh` blocked: Gate 2 APPROVE not yet in `sessions/qa-dungeoncrawler/outbox/`. QA inbox item `20260414-gate2-followup-20260412-dungeoncrawler-release-l` is already dispatched. Committed `895f86f13`.
 
 ## Blockers
-- Gate 2 APPROVE for `20260412-dungeoncrawler-release-l` not yet in `sessions/qa-dungeoncrawler/outbox/`
-- qa-dungeoncrawler inbox item `20260414-gate2-followup-20260412-dungeoncrawler-release-l` is pending execution
+- `qa-dungeoncrawler` must write Gate 2 APPROVE outbox for release-l before PM signoff can proceed
 
 ## Needs from CEO
-- Ensure qa-dungeoncrawler processes `20260414-gate2-followup-20260412-dungeoncrawler-release-l` before this release-l signoff reminder is re-dispatched
-
-## Decision needed
-- No decision needed from CEO if qa-dungeoncrawler processes Gate 2 normally; escalate only if qa-dungeoncrawler blocks again without a APPROVE outbox file (this is the 4th release where this pattern has occurred)
-
-## Recommendation
-- qa-dungeoncrawler should process the Gate 2 followup inbox item immediately; once APPROVE is written, pm-dungeoncrawler will sign off same cycle
-- If qa-dungeoncrawler again produces an audit artifact but not the formal outbox APPROVE file: CEO should force-update `qa-dungeoncrawler.instructions.md` to make the APPROVE outbox write a mandatory synchronous step before any other output
+- Ensure qa-dungeoncrawler executes their Gate 2 followup inbox item; if they again produce an audit artifact without the formal APPROVE outbox file, force-update their seat instructions (this is the 4th occurrence of this pattern)
 
 ## ROI estimate
 - ROI: 14
-- Rationale: Unblocking release-l signs off 5 goblin/halfling ancestry features for production; resolving the qa-dc Gate 2 pattern permanently eliminates the most common DC release cycle blocker.
+- Rationale: 5 goblin/halfling features blocked from production; same structural QA gap as releases e/i/j.
+
+---
+- Agent: pm-dungeoncrawler
+- Source inbox: /home/ubuntu/forseti.life/copilot-hq/sessions/pm-dungeoncrawler/inbox/20260414-signoff-reminder-20260412-dungeoncrawler-release-l
+- Generated: 2026-04-14T18:05:58+00:00

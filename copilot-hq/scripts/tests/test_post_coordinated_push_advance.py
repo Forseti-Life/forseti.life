@@ -22,6 +22,7 @@ _TEAMS_JSON = {
             "qa_agent": "qa-forseti",
             "dev_agent": "dev-forseti",
             "active": True,
+            "release_preflight_enabled": True,
             "coordinated_release_default": True,
             "site": "forseti.life",
             "site_audit": {"drupal_web_root": "/nonexistent/web"},
@@ -32,6 +33,7 @@ _TEAMS_JSON = {
             "qa_agent": "qa-dungeoncrawler",
             "dev_agent": "dev-dungeoncrawler",
             "active": True,
+            "release_preflight_enabled": True,
             "coordinated_release_default": True,
             "site": "dungeoncrawler.forseti.life",
             "site_audit": {"drupal_web_root": "/nonexistent/web"},
@@ -164,8 +166,9 @@ class TestReleaseIdAdvancement:
         (active / "dungeoncrawler.next_release_id").unlink()
 
         result = _run(root)
-        assert result.returncode == 0
+        assert result.returncode == 1
         assert "WARN dungeoncrawler" in result.stdout
+        assert "missing next release file" in result.stdout
         # forseti should still be advanced
         forseti_rid = (active / "forseti.release_id").read_text().strip()
         assert forseti_rid == f"{today}-forseti-release-c"

@@ -218,3 +218,5 @@ Add a community-managed safety observation form at `/community/report` for authe
 - `/community-reports` returns 200 for anonymous.
 - AmISafe map community layer toggle works without JS console errors.
 - No regressions on `/amisafe` or `/safety-calculator`.
+- Agent: qa-forseti
+- Status: pending
