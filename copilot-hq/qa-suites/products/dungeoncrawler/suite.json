@@ -16094,6 +16094,60 @@
           "required_for_release": true
         }
       ]
+    },
+    {
+      "id": "dc-cr-gnome-weapon-expertise-feat-progression",
+      "label": "Gnome Weapon Expertise — prerequisite gate, proficiency cascade to glaive/kukri/trained gnome weapons, later upgrades, no non-class trigger",
+      "type": "playwright",
+      "feature_id": "dc-cr-gnome-weapon-expertise",
+      "command": "npx playwright test tests/feat-progression/gnome-weapon-expertise.spec.js tests/level-up/gnome-weapon-expertise.spec.js",
+      "artifacts": [
+        "sessions/qa-dungeoncrawler/artifacts/dc-cr-gnome-weapon-expertise/playwright-report.json"
+      ],
+      "required_for_release": true,
+      "notes": "Security AC exemption confirmed: no new routes; passive proficiency event handling only. TC-GWE-02/03/04 require triggering class proficiency upgrade events. TC-GWE-05 uses non-class manual edit to confirm no spurious cascade.",
+      "test_cases": [
+        {
+          "id": "TC-GWE-01",
+          "label": "Prerequisite gate: feat locked without Gnome Weapon Familiarity; selectable after prerequisite present",
+          "feature_id": "dc-cr-gnome-weapon-expertise",
+          "suite_context": "playwright/feat-progression",
+          "status": "pending_implementation",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-GWE-02",
+          "label": "Expert cascade to glaive and kukri: class grants expert proficiency; glaive and kukri gain matching expert rank",
+          "feature_id": "dc-cr-gnome-weapon-expertise",
+          "suite_context": "playwright/level-up",
+          "status": "pending_implementation",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-GWE-03",
+          "label": "Trained gnome weapons receive cascade: trained gnome weapon rises to match new class-granted rank",
+          "feature_id": "dc-cr-gnome-weapon-expertise",
+          "suite_context": "playwright/level-up",
+          "status": "pending_implementation",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-GWE-04",
+          "label": "Later class upgrades continue to cascade: master/legendary class proficiency continues to cascade to affected gnome weapons",
+          "feature_id": "dc-cr-gnome-weapon-expertise",
+          "suite_context": "playwright/level-up",
+          "status": "pending_implementation",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-GWE-05",
+          "label": "Non-class change does not trigger cascade: manual non-class proficiency edit does not fire cascade event",
+          "feature_id": "dc-cr-gnome-weapon-expertise",
+          "suite_context": "playwright/level-up",
+          "status": "pending_implementation",
+          "required_for_release": true
+        }
+      ]
     }
   ],
   "dc-cr-first-world-adept": [
