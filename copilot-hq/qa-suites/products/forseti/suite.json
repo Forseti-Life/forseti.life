@@ -4425,6 +4425,127 @@
         }
       ]
     }
+  ,
+    {
+      "id": "forseti-ai-local-llm-provider-selection-admin-form",
+      "label": "Admin provider config form loads at /admin/config/forseti/ai-provider (200 as admin)",
+      "type": "functional",
+      "feature_id": "forseti-ai-local-llm-provider-selection",
+      "command": "curl -s -o /dev/null -w \"%{http_code}\" -b \"$FORSETI_COOKIE_ADMIN\" https://forseti.life/admin/config/forseti/ai-provider | grep -Eq \"^200\"",
+      "artifacts": ["sessions/qa-forseti/artifacts/forseti-ai-local-llm-provider-selection-results.json"],
+      "required_for_release": true,
+      "test_cases": [
+        {
+          "id": "TC-1",
+          "description": "GET /admin/config/forseti/ai-provider as admin returns 200 and shows org-default provider selector and OLLAMA_BASE_URL field"
+        }
+      ]
+    },
+    {
+      "id": "forseti-ai-local-llm-provider-selection-admin-save",
+      "label": "Admin can save org-default provider and config persists on reload",
+      "type": "functional",
+      "feature_id": "forseti-ai-local-llm-provider-selection",
+      "command": "curl -s -o /dev/null -w \"%{http_code}\" -b \"$FORSETI_COOKIE_ADMIN\" -X POST https://forseti.life/admin/config/forseti/ai-provider | grep -Eq \"^(200|302)\"",
+      "artifacts": ["sessions/qa-forseti/artifacts/forseti-ai-local-llm-provider-selection-results.json"],
+      "required_for_release": true,
+      "test_cases": [
+        {
+          "id": "TC-2",
+          "description": "Admin sets org-default to openai and saves; config persists and form shows saved value on reload"
+        }
+      ]
+    },
+    {
+      "id": "forseti-ai-local-llm-provider-selection-user-preference",
+      "label": "Authenticated user can save field_ai_provider on /user/{uid}/edit",
+      "type": "functional",
+      "feature_id": "forseti-ai-local-llm-provider-selection",
+      "command": "curl -s -o /dev/null -w \"%{http_code}\" -b \"$FORSETI_COOKIE_AUTHENTICATED\" https://forseti.life/user | grep -Eq \"^(200|301|302)\"",
+      "artifacts": ["sessions/qa-forseti/artifacts/forseti-ai-local-llm-provider-selection-results.json"],
+      "required_for_release": true,
+      "test_cases": [
+        {
+          "id": "TC-3",
+          "description": "Authenticated user sets field_ai_provider to openai on /user/{uid}/edit; preference saved on user entity"
+        }
+      ]
+    },
+    {
+      "id": "forseti-ai-local-llm-provider-selection-openai-chat",
+      "label": "Chat uses user provider preference — OpenAI path works without regression",
+      "type": "functional",
+      "feature_id": "forseti-ai-local-llm-provider-selection",
+      "command": "curl -s -o /dev/null -w \"%{http_code}\" -b \"$FORSETI_COOKIE_AUTHENTICATED\" https://forseti.life/forseti/chat | grep -Eq \"^(200|302)\"",
+      "artifacts": ["sessions/qa-forseti/artifacts/forseti-ai-local-llm-provider-selection-results.json"],
+      "required_for_release": true,
+      "test_cases": [
+        {
+          "id": "TC-4",
+          "description": "User with field_ai_provider=openai sends chat message; response returns from OpenAI; no regression on /forseti/chat"
+        }
+      ]
+    },
+    {
+      "id": "forseti-ai-local-llm-provider-selection-ollama-disabled-unset",
+      "label": "Ollama option disabled when OLLAMA_BASE_URL unset — inline error shown",
+      "type": "functional",
+      "feature_id": "forseti-ai-local-llm-provider-selection",
+      "command": "echo 'Manual: verify Ollama selector disabled when OLLAMA_BASE_URL not configured; inline error displayed'",
+      "artifacts": ["sessions/qa-forseti/artifacts/forseti-ai-local-llm-provider-selection-results.json"],
+      "required_for_release": true,
+      "test_cases": [
+        {
+          "id": "TC-5",
+          "description": "OLLAMA_BASE_URL unset: Ollama option is disabled in provider selector; selecting it shows inline error"
+        }
+      ]
+    },
+    {
+      "id": "forseti-ai-local-llm-provider-selection-ollama-fallback",
+      "label": "Unreachable Ollama falls back to org default with provider-error banner",
+      "type": "functional",
+      "feature_id": "forseti-ai-local-llm-provider-selection",
+      "command": "echo 'Manual: configure bad Ollama URL, send chat message, verify provider-error banner and org-default fallback'",
+      "artifacts": ["sessions/qa-forseti/artifacts/forseti-ai-local-llm-provider-selection-results.json"],
+      "required_for_release": true,
+      "test_cases": [
+        {
+          "id": "TC-6",
+          "description": "User provider set to misconfigured Ollama (bad URL); chat shows provider-error banner and falls back to org default without exception"
+        }
+      ]
+    },
+    {
+      "id": "forseti-ai-local-llm-provider-selection-regression-chat-routes",
+      "label": "Existing chat routes /forseti/chat and /forseti/conversations unaffected",
+      "type": "regression",
+      "feature_id": "forseti-ai-local-llm-provider-selection",
+      "command": "curl -s -o /dev/null -w \"%{http_code}\" -b \"$FORSETI_COOKIE_AUTHENTICATED\" https://forseti.life/forseti/chat | grep -Eq \"^(200|302)\" && curl -s -o /dev/null -w \"%{http_code}\" -b \"$FORSETI_COOKIE_AUTHENTICATED\" https://forseti.life/forseti/conversations | grep -Eq \"^(200|302|403)\"",
+      "artifacts": ["sessions/qa-forseti/artifacts/forseti-ai-local-llm-provider-selection-results.json"],
+      "required_for_release": true,
+      "test_cases": [
+        {
+          "id": "TC-7",
+          "description": "GET /forseti/chat and /forseti/conversations return expected status codes; no behavior change for OpenAI-only users"
+        }
+      ]
+    },
+    {
+      "id": "forseti-ai-local-llm-provider-selection-acl-admin-only",
+      "label": "ACL: /admin/config/forseti/ai-provider returns 403 for non-admin authenticated user",
+      "type": "security",
+      "feature_id": "forseti-ai-local-llm-provider-selection",
+      "command": "curl -s -o /dev/null -w \"%{http_code}\" -b \"$FORSETI_COOKIE_AUTHENTICATED\" https://forseti.life/admin/config/forseti/ai-provider | grep -Eq \"^(403|302)\"",
+      "artifacts": ["sessions/qa-forseti/artifacts/forseti-ai-local-llm-provider-selection-results.json"],
+      "required_for_release": true,
+      "test_cases": [
+        {
+          "id": "TC-8",
+          "description": "Non-admin authenticated user GET /admin/config/forseti/ai-provider returns 403 Forbidden"
+        }
+      ]
+    }
   ],
   "_schema_notes": [
     "Suite entries MAY include an optional 'feature_id' field when the suite was added for a specific groomed feature.",

@@ -1155,5 +1155,27 @@
         "administrator": "ignore"
       }
     }
+  ,{
+      "id": "forseti-ai-local-llm-provider-selection-admin-config",
+      "feature_id": "forseti-ai-local-llm-provider-selection",
+      "path_regex": "/admin/config/forseti/ai-provider",
+      "notes": "AI provider admin config page — admin-only. Added for feature forseti-ai-local-llm-provider-selection.",
+      "expect": {
+        "anon": "403",
+        "authenticated": "403",
+        "administrator": "200"
+      }
+    },
+    {
+      "id": "forseti-ai-local-llm-provider-selection-chat-route",
+      "feature_id": "forseti-ai-local-llm-provider-selection",
+      "path_regex": "/forseti/chat",
+      "notes": "Chat route must remain accessible to authenticated users after provider selection feature; anon blocked. Added for feature forseti-ai-local-llm-provider-selection.",
+      "expect": {
+        "anon": "403",
+        "authenticated": "200",
+        "administrator": "200"
+      }
+    }
   ]
 }
