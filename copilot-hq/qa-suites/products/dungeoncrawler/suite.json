@@ -16472,7 +16472,9 @@
           "suite": "playwright/character-creation",
           "expected": "Halfling-only heritages/feats rejected for non-halfling characters; invalid ancestry-stat submissions replaced with canonical values"
         }
-      ]
+      ],
+      "activated_release": "20260412-dungeoncrawler-release-l",
+      "activated_date": "2026-04-14"
     },
     {
       "id": "dc-cr-halfling-keen-eyes-e2e",
@@ -16520,7 +16522,9 @@
           "suite": "playwright/encounter",
           "expected": "Non-halfling uses default DCs; Seek bonus absent beyond 30 feet; reductions not applied to observed/undetected targets"
         }
-      ]
+      ],
+      "activated_release": "20260412-dungeoncrawler-release-l",
+      "activated_date": "2026-04-14"
     }
   ],
   "dc-cr-first-world-adept": [
