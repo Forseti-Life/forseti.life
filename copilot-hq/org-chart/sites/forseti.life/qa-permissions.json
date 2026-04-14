@@ -1177,5 +1177,16 @@
         "administrator": "200"
       }
     }
+  ,{
+      "id": "forseti-langgraph-console-run-session-run-panel",
+      "feature_id": "forseti-langgraph-console-run-session",
+      "path_regex": "/admin/reports/copilot-agent-tracker/langgraph-console/run",
+      "notes": "LangGraph console Run panel — admin-only. Anon and non-admin authenticated should be blocked. Added for feature forseti-langgraph-console-run-session.",
+      "expect": {
+        "anon": "403",
+        "authenticated": "403",
+        "administrator": "200"
+      }
+    }
   ]
 }
