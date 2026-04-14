@@ -16040,6 +16040,60 @@
           "required_for_release": true
         }
       ]
+    },
+    {
+      "id": "dc-cr-gnome-obsession-character-creation",
+      "label": "Gnome Obsession — Lore selection, milestone expert/master/legendary upgrades, no off-schedule upgrades",
+      "type": "playwright",
+      "feature_id": "dc-cr-gnome-obsession",
+      "command": "npx playwright test tests/character-creation/gnome-obsession.spec.js tests/level-up/gnome-obsession.spec.js",
+      "artifacts": [
+        "sessions/qa-dungeoncrawler/artifacts/dc-cr-gnome-obsession/playwright-report.json"
+      ],
+      "required_for_release": true,
+      "notes": "Security AC exemption confirmed: no new routes; existing feat/level-up routes only. TC-GOBS-02/03/04 require character at levels 2/7/15 respectively. TC-GOBS-05 samples non-milestone levels (3, 5, 10).",
+      "test_cases": [
+        {
+          "id": "TC-GOBS-01",
+          "label": "Gnome Obsession selectable as Gnome feat 1; Lore selector accepts Lore skills only; non-Lore skills rejected",
+          "feature_id": "dc-cr-gnome-obsession",
+          "suite_context": "playwright/character-creation",
+          "status": "pending_implementation",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-GOBS-02",
+          "label": "Level 2 expert upgrade: chosen Lore and background Lore (if any) upgrade to expert on level-up to 2",
+          "feature_id": "dc-cr-gnome-obsession",
+          "suite_context": "playwright/level-up",
+          "status": "pending_implementation",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-GOBS-03",
+          "label": "Level 7 master upgrade: tracked Lore skills upgrade to master on level-up to 7",
+          "feature_id": "dc-cr-gnome-obsession",
+          "suite_context": "playwright/level-up",
+          "status": "pending_implementation",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-GOBS-04",
+          "label": "Level 15 legendary upgrade: tracked Lore skills upgrade to legendary on level-up to 15",
+          "feature_id": "dc-cr-gnome-obsession",
+          "suite_context": "playwright/level-up",
+          "status": "pending_implementation",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-GOBS-05",
+          "label": "No off-schedule upgrades: leveling to non-milestone levels (e.g., 3, 5, 10) does not trigger extra proficiency increase from feat",
+          "feature_id": "dc-cr-gnome-obsession",
+          "suite_context": "playwright/level-up",
+          "status": "pending_implementation",
+          "required_for_release": true
+        }
+      ]
     }
   ],
   "dc-cr-first-world-adept": [
