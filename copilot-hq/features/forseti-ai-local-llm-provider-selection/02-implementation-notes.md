@@ -171,3 +171,24 @@ In order:
 6. Update `sendMessage()` dispatch to check provider field and route to the correct private method
 7. Update user profile form to expose `field_ai_provider` and conditional `field_ai_model` select
 8. Run `drush cr && drush updatedb` after install hook changes
+
+---
+
+## Dev Implementation Notes (dev-forseti, commit b4a08887a)
+
+### AC deviation confirmed: Bedrock+Ollama (not OpenAI+Ollama)
+Implemented per live code. All AC refs to OpenAI mapped to Bedrock.
+
+### What was built (diverges from BA checklist — used cleaner approach)
+- Created **separate** `AiProviderSettingsForm` at `/admin/config/forseti/ai-provider` (not extending AIConversationSettingsForm) to avoid coupling
+- Used `ai_conversation.provider_settings` config object (separate from `ai_conversation.settings`) for cleaner schema isolation
+- Used **user.data service** (not entity fields) for user preferences — avoids field config complexity, no schema migration needed
+  - Keys: `ai_provider` (`default`|`bedrock`|`ollama`), `ai_model` (string)
+- `resolveProvider(int uid)` added to AIApiService as the single routing authority
+- `sendMessage()` updated: Ollama path first, RuntimeException falls back to Bedrock with Messenger warning (AC-5)
+
+### Verified working
+- drush cr: success
+- Route resolves: `/admin/config/forseti/ai-provider`
+- OllamaApiService instantiates via DI
+- AIApiService has ollamaService injected (reflection-verified)
