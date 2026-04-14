@@ -133,7 +133,7 @@ That page is rendered from this file. CEO and architect seats must treat the roa
 
 **Progress SLA:** 7 days without a PM-open-source re-baseline, dev-open-source publication audit, or Board/org-setup step = breach
 
-**Next step:** `dev-open-source` rotates the previously exposed AWS credentials and completes current-tree secret removal, then runs Phase 1 history scrub + sensitive-data audit. In parallel, `pm-open-source` applies the now-decided curated-mirror / extracted-repo policy to the first publication candidate and converts the prep docs into a publication-candidate gate with pass/fail evidence for the first public repo.
+**Next step:** `drupal-ai-conversation` is now the explicit first publication candidate and the PM publication-candidate gate is written. `dev-open-source` should clear the candidate-local NO-GO findings from the Phase 1 audit (HQ/session coupling, stale absolute path, site-specific logging reference, Forseti-specific default prompt) while CEO confirms external AWS credential rotation; once both are done, `pm-open-source` freezes the sanitized extract and hands it to `qa-open-source`.
 
 **Queue status:** Governance unblock is complete (`Forseti-Life` org verified) and publication scope is now explicit (curated mirror / extracted repos; operational artifacts remain private). Publication is still blocked on credential rotation + history rewrite/scrub, candidate freeze, packaging, and final validation evidence.
 

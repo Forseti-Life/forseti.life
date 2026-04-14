@@ -298,9 +298,18 @@ Root cause (GAP-DC-QA-GATE2-CONSOLIDATE-01, 2026-04-08): qa-dungeoncrawler proce
 
 ## Gate 2 APPROVE from clean site audit (required — GAP-DC-QA-GATE2-AUDIT-APPROVE-01)
 
-When an auto-site-audit runs and the findings-summary shows **all zeros** (0 missing assets, 0 permission violations, 0 other failures, 0 config drift), you MUST immediately write a Gate 2 APPROVE outbox file for the active release if one does not already exist:
+When an auto-site-audit runs and the audit shows **all zeros** (0 permission violations, 0 ACL bugs, 0 API errors, 0 missing assets), you MUST immediately write a Gate 2 APPROVE outbox file for the active release if one does not already exist.
+
+**Current audit format (2026-04-14+):** The audit produces `permissions-validation.md` and `route-audit-summary.md` (NOT `findings-summary.md`). Check both:
 
 ```bash
+# Check clean audit — new format
+AUDIT_DIR="sessions/qa-dungeoncrawler/artifacts/auto-site-audit/$(ls -t sessions/qa-dungeoncrawler/artifacts/auto-site-audit/ | grep '^2026' | head -1)"
+grep "Violations:" "$AUDIT_DIR/permissions-validation.md"     # must be "Violations: 0"
+grep "Admin routes returning 200" "$AUDIT_DIR/route-audit-summary.md"  # must be "- None"
+grep "API routes with errors" "$AUDIT_DIR/route-audit-summary.md"      # must be "- None"
+# Non-admin 403s on authenticated/admin routes are expected — NOT failures
+
 # Check if Gate 2 APPROVE already exists for active release
 RELEASE_ID=$(cat tmp/release-cycle-active/dungeoncrawler.release_id)
 grep -rl "APPROVE" sessions/qa-dungeoncrawler/outbox/ | xargs grep -l "$RELEASE_ID" 2>/dev/null
@@ -313,7 +322,8 @@ Required contents: release ID, word APPROVE, audit run path, zero-counts summary
 
 This rule applies whether or not suite-activate inbox items are still pending — a clean site audit is sufficient Gate 2 evidence. Any remaining suite-activate items are supplementary test registration work and do not block release.
 
-Root cause (GAP-DC-QA-GATE2-AUDIT-APPROVE-01, 2026-04-13): Clean site audits (releases-e, g, i) did not trigger Gate 2 APPROVE outbox writes. PM blocked repeatedly waiting for APPROVE that should have been filed automatically after audit. CEO required to file APPROVE as operator on 3 consecutive releases.
+Root cause (GAP-DC-QA-GATE2-AUDIT-APPROVE-01, 2026-04-13): Clean site audits (releases-e, g, i) did not trigger Gate 2 APPROVE outbox writes.
+Root cause update (2026-04-14): The instruction referenced `findings-summary.md` but the audit format changed to `permissions-validation.md` + `route-audit-summary.md`. Rule updated to match actual output. CEO required to file APPROVE as operator on 4 consecutive releases (e, i, j + operator-override on g).
 
 ## Gate 2 follow-up inbox item: immediate triage (required — GAP-DC-QA-GATE2-FOLLOWUP-01)
 
