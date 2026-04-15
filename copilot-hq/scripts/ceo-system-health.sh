@@ -13,6 +13,9 @@
 set -euo pipefail
 cd "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
+# shellcheck source=scripts/lib/merge-health.sh
+source "./scripts/lib/merge-health.sh"
+
 JSON_MODE=0
 DISPATCH_MODE=0
 for arg in "$@"; do
@@ -164,7 +167,44 @@ else
   warn "Orchestrator: no last-autoexec health file"
 fi
 
-# ─── 3. APACHE ERROR LOG ANALYSIS ──────────────────────────────────────────
+# ─── 3. MERGE HEALTH ───────────────────────────────────────────────────────
+echo ""
+echo "$SEP"
+echo "  Merge Health"
+echo "$SEP"
+
+merge_health_scan "."
+if [ "$MERGE_HEALTH_IN_GIT_REPO" -eq 0 ]; then
+  warn "Merge health: not a git repository"
+elif [ "$MERGE_HEALTH_HAS_ISSUES" -eq 1 ]; then
+  merge_details=""
+  while IFS= read -r detail; do
+    [ -n "$detail" ] || continue
+    if [ -n "$merge_details" ]; then
+      merge_details+="\n"
+    fi
+    merge_details+="$detail"
+  done < <(merge_health_issue_lines 20)
+  fail "Merge health: $MERGE_HEALTH_SUMMARY"
+  while IFS= read -r detail; do
+    [ -n "$detail" ] || continue
+    info "$detail"
+  done < <(merge_health_issue_lines 20)
+  info "Inspect: git status --short --branch"
+  if [ "$MERGE_HEALTH_MERGE_HEAD" -eq 1 ]; then
+    info "Abort if safe: git merge --abort"
+  fi
+  if [ "$MERGE_HEALTH_UNMERGED_COUNT" -gt 0 ]; then
+    info "After resolving conflicts: git add <resolved-files> && git commit"
+  fi
+  queue_dispatch "dev-infra" "merge-health-remediation" "10" "FAIL" \
+    "HQ repo has unresolved merge state" \
+    "The HQ repo has unresolved merge state.\n\nSummary: ${MERGE_HEALTH_SUMMARY}\n\nDetails:\n\`\`\`\n${merge_details}\n\`\`\`\n\nInspect:\n\`\`\`bash\ngit status --short --branch\n\`\`\`\nIf abandoning the merge is safe:\n\`\`\`bash\ngit merge --abort\n\`\`\`\nAfter resolving conflicts:\n\`\`\`bash\ngit add <resolved-files>\ngit commit\n\`\`\`"
+else
+  pass "Merge health: no active merge conflicts or unfinished merge state"
+fi
+
+# ─── 4. APACHE ERROR LOG ANALYSIS ──────────────────────────────────────────
 echo ""
 echo "$SEP"
 echo "  Apache Error Logs (real errors, last 24h)"
@@ -214,7 +254,7 @@ for site in forseti dungeoncrawler; do
   fi
 done
 
-# ─── 4. DRUPAL WATCHDOG ─────────────────────────────────────────────────────
+# ─── 5. DRUPAL WATCHDOG ─────────────────────────────────────────────────────
 echo ""
 echo "$SEP"
 echo "  Drupal Watchdog (forseti.life)"
@@ -242,7 +282,7 @@ else
   info "Drupal watchdog: drush not found at $drupal_root/vendor/bin/drush"
 fi
 
-# ─── 5. SCOREBOARD FRESHNESS ────────────────────────────────────────────────
+# ─── 6. SCOREBOARD FRESHNESS ────────────────────────────────────────────────
 echo ""
 echo "$SEP"
 echo "  Scoreboard Freshness  (target: updated within 7 days)"
@@ -274,7 +314,7 @@ else
   warn "Scoreboard directory missing: $scoreboard_dir"
 fi
 
-# ─── 6. FEATURE VELOCITY ────────────────────────────────────────────────────
+# ─── 7. FEATURE VELOCITY ────────────────────────────────────────────────────
 echo ""
 echo "$SEP"
 echo "  Feature Velocity  (shipped features per recent release)"
@@ -312,7 +352,7 @@ for site in forseti dungeoncrawler; do
   fi
 done
 
-# ─── 7. KB LESSON RATE ──────────────────────────────────────────────────────
+# ─── 8. KB LESSON RATE ──────────────────────────────────────────────────────
 echo ""
 echo "$SEP"
 echo "  KB Lesson Rate  (lessons filed in last 7 days)"
@@ -332,7 +372,7 @@ else
   warn "KB lessons directory missing: $lesson_dir"
 fi
 
-# ─── 8. TAILORING QUEUE ─────────────────────────────────────────────────────
+# ─── 9. TAILORING QUEUE ─────────────────────────────────────────────────────
 echo ""
 echo "$SEP"
 echo "  Drupal Queue Health  (tailoring queue)"
@@ -381,7 +421,7 @@ else
   info "Tailoring queue log not found: $queue_log"
 fi
 
-# ─── 9. QA AUDIT FRESHNESS ──────────────────────────────────────────────────
+# ─── 10. QA AUDIT FRESHNESS ─────────────────────────────────────────────────
 echo ""
 echo "$SEP"
 echo "  QA Audit Freshness  (auto-site-audit/latest)"
@@ -415,7 +455,7 @@ for site_qa in qa-forseti qa-dungeoncrawler; do
   fi
 done
 
-# ─── 10. DEAD-LETTER INBOX DETECTION ────────────────────────────────────────
+# ─── 11. DEAD-LETTER INBOX DETECTION ────────────────────────────────────────
 echo ""
 echo "$SEP"
 echo "  Dead-Letter Inbox Items  (non-archived items > 48h old)"

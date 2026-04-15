@@ -2,6 +2,7 @@
 
 ## Every 2 hours (scheduled CEO quality check)
 - Snapshot org health: active vs idle, queue sizes, blockers.
+- Confirm repo merge health: no unresolved `MERGE_HEAD` state and no unmerged files.
 - Run `scripts/ceo-release-health.sh` for release-gate failures.
 - Run `scripts/ceo-system-health.sh` for runtime and org-health failures.
 - Surface the CEO inbox snapshot and suggested actions in one log.

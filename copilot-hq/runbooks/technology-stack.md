@@ -201,6 +201,7 @@ Web safety:
   - org enabled flag
   - loop pid statuses
   - queue counts
+  - repo merge health (`MERGE_HEAD` / unmerged-file detection)
   - per-agent inbox/exec/last activity snapshot
 
 ### Logs

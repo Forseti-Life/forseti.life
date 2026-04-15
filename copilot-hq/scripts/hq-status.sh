@@ -6,6 +6,8 @@ cd "$ROOT_DIR"
 
 # shellcheck source=lib/agents.sh
 source "./scripts/lib/agents.sh"
+# shellcheck source=lib/merge-health.sh
+source "./scripts/lib/merge-health.sh"
 
 now_iso() { date -Iseconds; }
 
@@ -149,6 +151,9 @@ printf '%-18s %s\n' "Processed:" "$(count_glob 'inbox/processed/*.md')"
 blocked_count="$(./scripts/hq-blockers.sh count 2>/dev/null || echo 0)"
 printf '%-18s %s\n' "Blocked:" "$blocked_count"
 
+merge_health_scan "$ROOT_DIR"
+printf '%-18s %s\n' "Merge health:" "$MERGE_HEALTH_SUMMARY"
+
 echo
 printf '%-26s %6s %6s %-26s %10s\n' "Agent" "Inbox" "Exec" "Next inbox" "Last act"
 printf '%-26s %6s %6s %-26s %10s\n' "--------------------------" "------" "------" "--------------------------" "----------"
@@ -177,6 +182,18 @@ done < <(configured_agent_ids)
 # a seat has 3+ unprocessed items.
 
 _starvation_exit=0
+_merge_exit=0
+
+if [ "$MERGE_HEALTH_HAS_ISSUES" -eq 1 ]; then
+  echo
+  echo "── Merge issue details ──"
+  while IFS= read -r detail; do
+    [ -n "$detail" ] || continue
+    printf 'ERROR [merge-health] %s\n' "$detail"
+  done < <(merge_health_issue_lines 10)
+  echo "ERROR [merge-health] Remediate: resolve conflicts, git add the resolved files, then git commit; or run git merge --abort if the merge should be abandoned"
+  _merge_exit=1
+fi
 
 _check_starvation() {
   local seat="$1"
@@ -250,4 +267,8 @@ for a in agents:
 PY
 )
 
-exit "$_starvation_exit"
+if [ "$_starvation_exit" -ne 0 ] || [ "$_merge_exit" -ne 0 ]; then
+  exit 1
+fi
+
+exit 0
