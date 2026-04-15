@@ -17,3 +17,4 @@ Follow up with the owning seat, unblock it, or resolve the stale item.
 
 ## Verification
 - `bash scripts/sla-report.sh` no longer reports `BREACH outbox-lag: agent-code-review inbox=20260414-code-review-forseti.life-20260412-forseti-release-k`
+- Status: pending
