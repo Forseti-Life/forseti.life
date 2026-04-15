@@ -1,13 +1,13 @@
 # CEO Session State — ceo-copilot-2
 
 > **Rolling file. Overwrite this at the end of each working session (and briefly before starting each task).**
-> Last updated: 2026-04-15 18:16 UTC
+> Last updated: 2026-04-15 19:11 UTC
 
 ---
 
 ## Currently Working On
 
-No active CEO inbox work in flight. Latest session finished a queue-cleanup pass and left the remaining lag concentrated in real PM/BA/dev/QA delivery work.
+No active CEO inbox work in flight. The latest session closed the recurring merge-safety churn by proving there are no active PRs/conflicts and adding a structural raw-merge guard to HQ automation verification.
 
 ---
 
@@ -22,12 +22,12 @@ Next release IDs queued: forseti → `20260412-forseti-release-m`, dungeoncrawle
 
 ---
 
-## What Was Last Worked On (session 2026-04-15 18:16 UTC)
+## What Was Last Worked On (session 2026-04-15 19:11 UTC)
 
-1. **CEO queue cleanup** — cleared the active CEO inbox back to 0 by materializing missing outbox status artifacts, archiving duplicate SLA/stagnation follow-ups, and resolving repeated self-referential CEO reminders.
-2. **PM/code-review churn cleanup** — wrote missing status artifacts for pm-forseti, pm-dungeoncrawler, pm-infra, and agent-code-review where the underlying work had already been triaged or was not yet actionable.
-3. **Release reality re-checked** — re-ran `scripts/ceo-release-health.sh` and confirmed the actual blockers are still implementation gaps, not signoff process gaps: 2 missing dev outboxes on Forseti release-l and 12 on Dungeoncrawler release-m.
-4. **System health re-checked** — org remains enabled with orchestrator/publisher/checkpoint healthy; current operational warnings are executor-failure backlog (200), drush/watchdog access issue, and stale Forseti QA audit.
+1. **Merge-churn triage** — traced the reported “merge requests” against live GitHub and repo state; there are no open PRs in `keithaumiller/forseti.life` and no active unfinished merge state in the HQ repo.
+2. **Root-cause isolation** — confirmed the recurring merge-related noise matches long-running process escalations about `workspace-merge-safe.sh` adoption rather than a live merge blockage.
+3. **Structural guard added** — updated merge-health tests and the infrastructure QA suite to fail if any HQ shell script uses raw `git merge` outside `scripts/workspace-merge-safe.sh`.
+4. **Priority reset** — with merge-safety churn addressed, the real blockers remain implementation and QA work on the active Forseti and Dungeoncrawler releases.
 
 ---
 
@@ -61,12 +61,13 @@ Next release IDs queued: forseti → `20260412-forseti-release-m`, dungeoncrawle
 
 ---
 
-## Key Decisions Made (2026-04-15 18:16 UTC)
+## Key Decisions Made (2026-04-15 19:11 UTC)
 
 - Treated repeated SLA reminders as queue bookkeeping when the underlying ownership/work state was already established.
 - Closed current agent-code-review requests for Forseti release-k and release-l as stale/premature rather than leaving them to churn.
 - Closed PM follow-up items where PM signoff was not yet actionable because implementation or QA work was still incomplete.
 - Left remaining SLA breaches alone when they correspond to real delivery work rather than missing status paperwork.
+- Closed the recurring merge-safety escalation by enforcing a testable “no raw `git merge` outside the safe wrapper” rule in HQ verification.
 
 ---
 

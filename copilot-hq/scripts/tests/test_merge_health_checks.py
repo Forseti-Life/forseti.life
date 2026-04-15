@@ -1,4 +1,5 @@
 import os
+import re
 import shutil
 import subprocess
 from pathlib import Path
@@ -8,6 +9,7 @@ HQ_STATUS = Path(__file__).resolve().parents[1] / "hq-status.sh"
 CEO_SYSTEM_HEALTH = Path(__file__).resolve().parents[1] / "ceo-system-health.sh"
 AGENTS_LIB = Path(__file__).resolve().parents[1] / "lib" / "agents.sh"
 MERGE_HEALTH_LIB = Path(__file__).resolve().parents[1] / "lib" / "merge-health.sh"
+RAW_GIT_MERGE_RE = re.compile(r"^\s*(?:if\s+!\s+)?git\s+merge\b")
 
 
 def _write_executable(path: Path, content: str) -> None:
@@ -131,3 +133,22 @@ def test_ceo_system_health_dispatches_merge_remediation(tmp_path):
     assert "Summary: MERGE_HEAD present, 1 unmerged file(s)" in readme
     assert "git merge --abort" in readme
     assert "git add <resolved-files>" in readme
+
+
+def test_hq_shell_scripts_use_workspace_merge_safe_wrapper():
+    scripts_root = Path(__file__).resolve().parents[1]
+    allowed_path = scripts_root / "workspace-merge-safe.sh"
+    violations = []
+
+    for path in sorted(scripts_root.rglob("*.sh")):
+        if path == allowed_path:
+            continue
+
+        for line_number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
+            stripped = line.lstrip()
+            if stripped.startswith("#"):
+                continue
+            if RAW_GIT_MERGE_RE.search(line):
+                violations.append(f"{path.relative_to(scripts_root)}:{line_number}:{stripped}")
+
+    assert not violations, "raw git merge found outside workspace-merge-safe.sh:\n" + "\n".join(violations)

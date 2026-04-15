@@ -155,6 +155,17 @@
       ],
       "required_for_release": false,
       "notes": "dry-run mode: verifies script executes without performing a merge"
+    },
+    {
+      "id": "workspace-merge-safe-adoption",
+      "label": "Verify HQ shell scripts do not use raw git merge outside the safe wrapper",
+      "type": "lint",
+      "command": "python3 -c \"from pathlib import Path; import re, sys; root = Path('scripts'); allowed = root / 'workspace-merge-safe.sh'; rx = re.compile(r'^\\\\s*(?:if\\\\s+!\\\\s+)?git\\\\s+merge\\\\b'); violations = [];\\nfor path in sorted(root.rglob('*.sh')):\\n    if path == allowed:\\n        continue\\n    for line_number, line in enumerate(path.read_text(encoding='utf-8').splitlines(), start=1):\\n        stripped = line.lstrip()\\n        if stripped.startswith('#'):\\n            continue\\n        if rx.search(line):\\n            violations.append(f'{path}:{line_number}:{stripped}')\\nif violations:\\n    print('FAIL: raw git merge found outside workspace-merge-safe.sh')\\n    print('\\\\n'.join(violations))\\n    sys.exit(1)\\nprint('PASS: no raw git merge outside workspace-merge-safe.sh')\"",
+      "artifacts": [
+        "stdout/stderr logs"
+      ],
+      "required_for_release": true,
+      "notes": "Added 2026-04-15 to close the recurring merge-safety adoption gap by enforcing the safe wrapper structurally."
     }
   ]
 }
