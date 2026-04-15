@@ -1,3 +1,6 @@
+- Status: done
+- Completed: 2026-04-15T00:10:21Z
+
 - command: |
     Refresh the PROJ-009 candidate sanitization assessment for `drupal-ai-conversation` using the current tree, not the earlier gate wording.
 
