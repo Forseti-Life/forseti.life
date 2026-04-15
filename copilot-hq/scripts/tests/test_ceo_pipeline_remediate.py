@@ -202,3 +202,29 @@ def test_is_idempotent_for_existing_items(tmp_path):
     assert first.returncode == 0, first.stderr
     assert second.returncode == 0, second.stderr
     assert second.stdout.strip() == "Queued 0 CEO remediation item(s)"
+
+
+def test_missing_escalation_items_include_structured_metadata(tmp_path):
+    root = _make_root(tmp_path)
+    (root / "scripts" / "sla-report.sh").write_text(
+        "#!/usr/bin/env bash\n"
+        "set -euo pipefail\n"
+        "echo 'SLA report @ test'\n"
+        "echo 'BREACH missing-escalation: pm-dungeoncrawler status=blocked "
+        "outbox=20260414-release-close-now-20260412-dungeoncrawler-release-m.md "
+        "supervisor=ceo-copilot-2'\n",
+        encoding="utf-8",
+    )
+    (root / "scripts" / "sla-report.sh").chmod(
+        (root / "scripts" / "sla-report.sh").stat().st_mode | stat.S_IXUSR
+    )
+
+    result = _run(root)
+
+    assert result.returncode == 0, result.stderr
+
+    items = sorted((root / "sessions" / "ceo-copilot-2" / "inbox").iterdir())
+    readme = (items[0] / "README.md").read_text(encoding="utf-8")
+    assert "- Escalated agent: pm-dungeoncrawler" in readme
+    assert "- Escalated item: 20260414-release-close-now-20260412-dungeoncrawler-release-m" in readme
+    assert "- Escalated status: blocked" in readme

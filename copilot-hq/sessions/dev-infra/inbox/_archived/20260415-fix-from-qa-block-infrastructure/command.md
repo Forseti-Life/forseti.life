@@ -14,4 +14,5 @@ QA issued a BLOCK. Address all failing tests and re-submit for verification.
 1. Address all failing tests listed in the QA outbox above.
 2. Commit a fix and write an outbox update with commit hash.
 3. QA will re-verify on the next cycle.
-
+- Agent: dev-infra
+- Status: pending

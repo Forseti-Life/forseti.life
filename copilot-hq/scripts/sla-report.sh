@@ -64,6 +64,19 @@ needs_escalation_exists() {
       return 0
     fi
   done
+  for d in sessions/"${supervisor}"/inbox/*; do
+    [ -f "$d/README.md" ] || continue
+    if grep -qF -- "- Escalated agent: ${agent}" "$d/README.md"; then
+      if grep -qF -- "- Escalated item: ${item}" "$d/README.md"; then
+        return 0
+      fi
+    fi
+    # Backward compatibility for older CEO remediation items that only embedded
+    # the blocked agent/item in prose.
+    if grep -qF -- "Agent \`${agent}\` has latest outbox \`${item}.md\`" "$d/README.md"; then
+      return 0
+    fi
+  done
   return 1
 }
 

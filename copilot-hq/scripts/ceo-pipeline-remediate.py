@@ -143,17 +143,30 @@ def _has_signoff(pm_agent: str, release_id: str) -> bool:
     return (ROOT / "sessions" / pm_agent / "artifacts" / "release-signoffs" / f"{release_id}.md").exists()
 
 
-def _write_item(agent: str, folder_name: str, roi: int, title: str, body: str, verification: str) -> bool:
+def _write_item(
+    agent: str,
+    folder_name: str,
+    roi: int,
+    title: str,
+    body: str,
+    verification: str,
+    metadata: list[tuple[str, str]] | None = None,
+) -> bool:
     item_dir = ROOT / "sessions" / agent / "inbox" / folder_name
     if item_dir.exists():
         return False
     item_dir.mkdir(parents=True, exist_ok=True)
     (item_dir / "roi.txt").write_text(f"{roi}\n", encoding="utf-8")
+    metadata_lines = ""
+    if metadata:
+        metadata_lines = "".join(f"- {key}: {value}\n" for key, value in metadata if value)
+
     readme = f"""# {title}
 
 - Agent: {agent}
 - Dispatched-by: ceo-copilot-2 (ceo-pipeline-remediate.py)
 - Dispatched-at: {NOW_ISO}
+{metadata_lines}
 
 ## Issue
 
@@ -237,11 +250,19 @@ def _supervisor_for(agent: str) -> str:
     return result.stdout.strip()
 
 
-def _queue_sla_item(agent: str, slug: str, roi: int, title: str, body: str, verification: str) -> bool:
+def _queue_sla_item(
+    agent: str,
+    slug: str,
+    roi: int,
+    title: str,
+    body: str,
+    verification: str,
+    metadata: list[tuple[str, str]] | None = None,
+) -> bool:
     supervisor = _supervisor_for(agent)
     if not supervisor or supervisor == "board":
         supervisor = "ceo-copilot-2"
-    return _write_item(supervisor, slug, roi, title, body, verification)
+    return _write_item(supervisor, slug, roi, title, body, verification, metadata)
 
 
 def remediate_release_blockers() -> int:
@@ -319,12 +340,27 @@ def remediate_sla_breaches() -> int:
             agent, status, outbox_name, _supervisor = match.groups()
             slug = f"{DATE_PREFIX}-sla-missing-escalation-{_slug(agent, 32)}-{_slug(outbox_name, 32)}"
             title = f"SLA breach: missing escalation for {agent}"
+            outbox_base = outbox_name[:-3] if outbox_name.endswith(".md") else outbox_name
             body = (
                 f"Agent `{agent}` has latest outbox `{outbox_name}` with status `{status}`, but no supervisor escalation item exists.\n\n"
                 "Create or handle the required escalation so the blocked item is actively owned."
             )
             verification = f"`bash scripts/sla-report.sh` no longer reports `BREACH missing-escalation: {agent}`"
-            created += int(_queue_sla_item(agent, slug, 8, title, body, verification))
+            created += int(
+                _queue_sla_item(
+                    agent,
+                    slug,
+                    8,
+                    title,
+                    body,
+                    verification,
+                    metadata=[
+                        ("Escalated agent", agent),
+                        ("Escalated item", outbox_base),
+                        ("Escalated status", status),
+                    ],
+                )
+            )
     return created
 
 

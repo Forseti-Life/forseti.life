@@ -1344,6 +1344,26 @@ def _dispatch_release_close_triggers() -> None:
         if signoff_file.exists():
             continue  # already signed, nothing to do
 
+        # If PM already processed this same close-now trigger and left it blocked,
+        # don't re-dispatch daily copies until the release state actually changes.
+        matching_outboxes = sorted(
+            (REPO_ROOT / "sessions" / pm_id / "outbox").glob(f"*release-close-now-{slug[:40]}.md"),
+            key=lambda path: path.stat().st_mtime,
+            reverse=True,
+        )
+        if matching_outboxes:
+            latest_match = matching_outboxes[0]
+            try:
+                latest_text = latest_match.read_text(encoding="utf-8", errors="ignore")
+            except Exception:
+                latest_text = ""
+            latest_status = ""
+            match = re.search(r"^-\s+Status:\s*(.+)$", latest_text, re.MULTILINE | re.IGNORECASE)
+            if match:
+                latest_status = match.group(1).strip().lower().replace("_", "-")
+            if rid in latest_text and latest_status == "blocked":
+                continue
+
         # Evaluate triggers
         triggers: List[str] = []
 

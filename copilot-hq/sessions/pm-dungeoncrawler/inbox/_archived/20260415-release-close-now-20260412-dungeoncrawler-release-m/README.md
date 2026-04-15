@@ -3,7 +3,7 @@
 - Agent: pm-dungeoncrawler
 - Release: 20260412-dungeoncrawler-release-m
 - Status: pending
-- Created: 2026-04-15T03:39:33.879290+00:00
+- Created: 2026-04-15T00:16:48.333739+00:00
 
 ## Auto-close conditions met
   - FEATURE_CAP: 12/10 features in_progress for dungeoncrawler release 20260412-dungeoncrawler-release-m
