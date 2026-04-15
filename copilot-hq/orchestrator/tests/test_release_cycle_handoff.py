@@ -76,6 +76,7 @@ class TestReleaseCycleHandoff(unittest.TestCase):
             root = Path(td)
             (root / "tmp" / "release-cycle-active").mkdir(parents=True)
             (root / "org-chart" / "products").mkdir(parents=True)
+            (root / "sessions" / "pm-dungeoncrawler" / "inbox").mkdir(parents=True)
 
             (root / "org-chart" / "products" / "product-teams.json").write_text(
                 json.dumps(
@@ -84,6 +85,7 @@ class TestReleaseCycleHandoff(unittest.TestCase):
                             {
                                 "id": "dungeoncrawler",
                                 "pm_agent": "pm-dungeoncrawler",
+                                "site": "dungeoncrawler.forseti.life",
                                 "active": True,
                                 "release_preflight_enabled": True,
                                 "coordinated_release_default": True,
@@ -126,6 +128,67 @@ class TestReleaseCycleHandoff(unittest.TestCase):
                 (root / "tmp" / "release-cycle-active" / "dungeoncrawler.next_release_id").read_text(encoding="utf-8").strip(),
                 "20260412-dungeoncrawler-release-f",
             )
+            groom_items = sorted((root / "sessions" / "pm-dungeoncrawler" / "inbox").iterdir())
+            self.assertEqual(len(groom_items), 1)
+            self.assertIn("groom-20260412-dungeoncrawler-release-f", groom_items[0].name)
+            self.assertEqual((groom_items[0] / "roi.txt").read_text(encoding="utf-8").strip(), "25")
+
+    def test_active_release_reprioritizes_existing_next_release_grooming(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            (root / "tmp" / "release-cycle-active").mkdir(parents=True)
+            (root / "org-chart" / "products").mkdir(parents=True)
+            pm_inbox = root / "sessions" / "pm-dungeoncrawler" / "inbox"
+            pm_inbox.mkdir(parents=True)
+
+            (root / "org-chart" / "products" / "product-teams.json").write_text(
+                json.dumps(
+                    {
+                        "teams": [
+                            {
+                                "id": "dungeoncrawler",
+                                "pm_agent": "pm-dungeoncrawler",
+                                "site": "dungeoncrawler.forseti.life",
+                                "active": True,
+                                "release_preflight_enabled": True,
+                                "coordinated_release_default": True,
+                            }
+                        ]
+                    }
+                ),
+                encoding="utf-8",
+            )
+            (root / "tmp" / "release-cycle-active" / "dungeoncrawler.release_id").write_text(
+                "20260412-dungeoncrawler-release-e\n", encoding="utf-8"
+            )
+            (root / "tmp" / "release-cycle-active" / "dungeoncrawler.next_release_id").write_text(
+                "20260412-dungeoncrawler-release-f\n", encoding="utf-8"
+            )
+            existing = pm_inbox / "20260412-groom-20260412-dungeoncrawler-release-f"
+            existing.mkdir()
+            (existing / "roi.txt").write_text("5\n", encoding="utf-8")
+
+            old_root = run.REPO_ROOT
+            old_run = run._run
+            run.REPO_ROOT = root
+            calls = []
+
+            def fake_run(cmd, timeout=0):
+                calls.append(cmd)
+                return 0, ""
+
+            run._run = fake_run
+            try:
+                log = []
+                run._release_cycle_step(log)
+            finally:
+                run.REPO_ROOT = old_root
+                run._run = old_run
+
+            self.assertEqual(calls, [], "Prioritizing next-release grooming must not start a new cycle")
+            self.assertEqual((existing / "roi.txt").read_text(encoding="utf-8").strip(), "25")
+            team = log[0]["teams"][0]
+            self.assertIn("pm-groom-prioritized:20260412-groom-20260412-dungeoncrawler-release-f", team["parallel"])
 
 
 if __name__ == "__main__":

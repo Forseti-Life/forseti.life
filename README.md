@@ -1,7 +1,9 @@
-# Forseti.life Open Source Platform
+# Forseti.life Platform Workspace
 Multi-site Drupal workspace for community-managed, decentralized internet services
 
-**Last Updated:** February 19, 2026
+> **Status:** This repository is the private operational Forseti monorepo. Open-source publication is **in progress**, but this monorepo is **not** currently ready for public release. The publication strategy is curated/extracted repos under `github.com/Forseti-Life/`, not flipping this live workspace public.
+
+**Last Updated:** April 15, 2026
 
 ## Mission
 Democratize and decentralize internet services by building community-managed versions of core systems for scientific, technology-focused, and tolerant people.
@@ -13,7 +15,15 @@ Democratize and decentralize internet services by building community-managed ver
 - Community safety application (early-stage)
 
 ## Open Source Status
-This repository is fully open source. Contributors are welcome. See the contribution guide and code of conduct before opening pull requests.
+Open-source publication work is active, but this monorepo is **not yet public-release ready**.
+
+Authoritative readiness and gate docs live in `copilot-hq/`:
+
+- `copilot-hq/dashboards/open-source/public-readiness-status-2026-04.md`
+- `copilot-hq/dashboards/open-source/runtime-truth-audit-2026-04.md`
+- `copilot-hq/runbooks/public-release-gate-20260308.md`
+
+Public release remains blocked by security cleanup, git-history hygiene, publication-candidate freeze, and validation evidence. See the contribution guide and code of conduct before opening pull requests against any curated public repo once published.
 
 - Contribution guide: [CONTRIBUTING.md](CONTRIBUTING.md)
 - Code of conduct: [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)
@@ -27,18 +37,20 @@ We use a full-stack, fully automated development process with an architecture-fi
 
 ### 🚀 After Workspace Restart (Fastest)
 ```bash
-./scripts/quick-start.sh
+./script/quick-start.sh
 ```
 
 ### 🔧 Complete Multi-Site Setup (First Time)
 ```bash
-./scripts/complete-setup.sh
+./script/complete-setup.sh
 ```
 
 ### ✅ Verify Everything Works
 ```bash
-./scripts/verify-setup.sh
+./script/verify-setup.sh
 ```
+
+These commands are for the private monorepo workspace. Repo-specific public quickstarts will ship with the curated public repos when they are released.
 
 ## 📚 Documentation
 

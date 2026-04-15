@@ -195,7 +195,9 @@ if [ -n "$pm_agent" ]; then
     echo "OK: PM grooming task already queued/completed: ${pm_agent} ${pm_item_id}"
   else
     mkdir -p "$pm_inbox_dir" 2>/dev/null || true
-    printf '%s\n' "5" >"$pm_inbox_dir/roi.txt" 2>/dev/null || true
+    # Keep next-release grooming warm enough to use spare slots without outranking
+    # urgent current-release execution/signoff work.
+    printf '%s\n' "25" >"$pm_inbox_dir/roi.txt" 2>/dev/null || true
 
     cat >"$pm_inbox_dir/command.md" <<MD
 # Groom Next Release: ${next_release_id}

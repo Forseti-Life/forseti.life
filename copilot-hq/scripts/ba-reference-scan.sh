@@ -191,7 +191,7 @@ if [ -d "$INBOX_DIR" ] || [ -f "$OUTBOX_FILE" ]; then
 fi
 
 mkdir -p "$INBOX_DIR"
-echo "8" > "$INBOX_DIR/roi.txt"
+echo "18" > "$INBOX_DIR/roi.txt"
 
 # Compute how many features have been generated this cycle
 CYCLE_COUNT_THIS_RELEASE="$(find features/ -name "feature.md" -newer "$PROGRESS_FILE" 2>/dev/null | wc -l | tr -d ' ')" || CYCLE_COUNT_THIS_RELEASE=0

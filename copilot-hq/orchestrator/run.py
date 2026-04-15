@@ -220,6 +220,7 @@ class ScheduledAgent:
     level: int
     top_roi: int
     has_release_work: bool = False
+    has_next_release_work: bool = False
 
 
 def _active_release_ids() -> List[str]:
@@ -233,6 +234,36 @@ def _active_release_ids() -> List[str]:
         if rid:
             ids.append(rid)
     return ids
+
+
+def _next_release_ids() -> List[str]:
+    """Return all currently tracked next-release IDs from tmp/release-cycle-active/."""
+    active_dir = REPO_ROOT / "tmp" / "release-cycle-active"
+    if not active_dir.exists():
+        return []
+    ids = []
+    for f in active_dir.glob("*.next_release_id"):
+        rid = f.read_text(encoding="utf-8").strip()
+        if rid:
+            ids.append(rid)
+    return ids
+
+
+def _item_mentions_release(item_dir: pathlib.Path, release_ids: List[str]) -> bool:
+    if not release_ids or not item_dir.exists():
+        return False
+    for rid in release_ids:
+        if rid and rid in item_dir.name:
+            return True
+    for rel_path in ("command.md", "README.md"):
+        path = item_dir / rel_path
+        if not path.exists():
+            continue
+        text = path.read_text(encoding="utf-8", errors="ignore")
+        for rid in release_ids:
+            if rid and rid in text:
+                return True
+    return False
 
 
 def _agent_has_release_work(agent_id: str, release_ids: List[str]) -> bool:
@@ -275,6 +306,19 @@ def _agent_has_release_work(agent_id: str, release_ids: List[str]) -> bool:
     return False
 
 
+def _agent_has_next_release_work(agent_id: str, next_release_ids: List[str]) -> bool:
+    """Return True if the agent has inbox work tied to a tracked next release."""
+    if not next_release_ids:
+        return False
+    inbox = _agent_inbox_dir(agent_id)
+    if not inbox.exists():
+        return False
+    for item in inbox.iterdir():
+        if item.is_dir() and item.name != "_archived" and _item_mentions_release(item, next_release_ids):
+            return True
+    return False
+
+
 def _prioritized_agents() -> List[ScheduledAgent]:
     """All agents (CEO included) with inbox items, sorted by release-work first,
     then by level then ROI.
@@ -285,6 +329,7 @@ def _prioritized_agents() -> List[ScheduledAgent]:
     """
     priorities = _load_org_priorities()
     release_ids = _active_release_ids()
+    next_release_ids = _next_release_ids()
     agents = []
     for agent_id in _load_agents_yaml_ids():
         if _is_agent_paused(agent_id):
@@ -297,14 +342,23 @@ def _prioritized_agents() -> List[ScheduledAgent]:
             default=1,
         )
         has_release = _agent_has_release_work(agent_id, release_ids)
+        has_next_release = (not has_release) and _agent_has_next_release_work(agent_id, next_release_ids)
         agents.append(ScheduledAgent(
             agent_id=agent_id,
             level=_agent_level_weight(_role_for_agent(agent_id)),
             top_roi=top,
             has_release_work=has_release,
+            has_next_release_work=has_next_release,
         ))
-    # Sort: release-work agents first, then by level desc, then by top ROI desc.
-    agents.sort(key=lambda a: (0 if a.has_release_work else 1, -a.level, -a.top_roi, a.agent_id))
+    # Sort: current-release work first, then next-release planning, then all other work.
+    agents.sort(
+        key=lambda a: (
+            0 if a.has_release_work else 1 if a.has_next_release_work else 2,
+            -a.level,
+            -a.top_roi,
+            a.agent_id,
+        )
+    )
     return agents
 
 
@@ -1719,6 +1773,139 @@ class ClineProvider(RuntimeProvider):
         return _run([exe, "run", "--agent", agent_id], timeout=3600)
 
 
+def _set_min_inbox_roi(item_dir: pathlib.Path, min_roi: int) -> None:
+    if min_roi <= 0:
+        return
+    roi_file = item_dir / "roi.txt"
+    current = 1
+    if roi_file.exists():
+        lines = roi_file.read_text(encoding="utf-8", errors="ignore").splitlines()
+        digits = "".join(ch for ch in (lines[0] if lines else "") if ch.isdigit())
+        current = max(1, _safe_int(digits, 1))
+    if current >= min_roi:
+        return
+    roi_file.write_text(f"{min_roi}\n", encoding="utf-8")
+
+
+def _find_pm_grooming_item(pm_agent: str, next_release_id: str) -> Tuple[pathlib.Path | None, bool]:
+    slug = re.sub(r"[^A-Za-z0-9._-]", "-", next_release_id).strip("-")[:60]
+    inbox = REPO_ROOT / "sessions" / pm_agent / "inbox"
+    outbox = REPO_ROOT / "sessions" / pm_agent / "outbox"
+    if inbox.exists():
+        for item in inbox.iterdir():
+            if item.is_dir() and item.name != "_archived" and item.name.endswith(f"-groom-{slug}"):
+                return item, False
+    if outbox.exists():
+        for item in outbox.glob(f"*-groom-{slug}.md"):
+            if item.is_file():
+                return item, True
+    return None, False
+
+
+def _ensure_pm_next_release_grooming(
+    *,
+    site: str,
+    team_id: str,
+    pm_agent: str,
+    current_release: str,
+    next_release_id: str,
+    today: str,
+    min_roi: int = 25,
+) -> str:
+    existing, is_outbox = _find_pm_grooming_item(pm_agent, next_release_id)
+    if existing is not None:
+        if not is_outbox:
+            _set_min_inbox_roi(existing, min_roi)
+            return f"pm-groom-prioritized:{existing.name}"
+        return f"pm-groom-covered:{existing.name}"
+
+    slug = re.sub(r"[^A-Za-z0-9._-]", "-", next_release_id).strip("-")[:60]
+    item_id = f"{today}-groom-{slug}"
+    item_dir = REPO_ROOT / "sessions" / pm_agent / "inbox" / item_id
+    item_dir.mkdir(parents=True, exist_ok=True)
+    _set_min_inbox_roi(item_dir, min_roi)
+    (item_dir / "command.md").write_text(
+        f"# Groom Next Release: {next_release_id}\n\n"
+        f"- Site: {site}\n"
+        f"- Current release (Dev executing): {current_release}\n"
+        f"- Next release (your target): {next_release_id}\n\n"
+        "The org always has two releases defined simultaneously:\n"
+        "- **Current release** — Dev is executing, QA is verifying. You monitor but do not add scope.\n"
+        "- **Next release** — You groom the backlog so Stage 0 of the next release is instant scope selection.\n\n"
+        f"This task does NOT touch the current release. All work here is for {next_release_id} only.\n\n"
+        "## Steps\n\n"
+        "1. Pull community suggestions with `./scripts/suggestion-intake.sh`.\n"
+        "2. Triage valid suggestions and create/curate feature briefs for the next release only.\n"
+        "3. Write complete acceptance criteria for accepted features.\n"
+        "4. Hand ready features to QA for test-plan design via `./scripts/pm-qa-handoff.sh`.\n"
+        "5. Leave current-release scope unchanged; activation happens only when the next release becomes current.\n\n"
+        "## Done when\n"
+        f"- The next release `{next_release_id}` has an actively groomed ready backlog.\n"
+        "- Any newly accepted feature has acceptance criteria and a QA handoff queued.\n",
+        encoding="utf-8",
+    )
+    return f"pm-groom-queued:{item_id}"
+
+
+def _find_ba_next_release_item(ba_agent: str, next_release_id: str) -> Tuple[pathlib.Path | None, bool]:
+    inbox = REPO_ROOT / "sessions" / ba_agent / "inbox"
+    outbox = REPO_ROOT / "sessions" / ba_agent / "outbox"
+    if inbox.exists():
+        for item in inbox.iterdir():
+            if item.is_dir() and item.name != "_archived" and _item_mentions_release(item, [next_release_id]):
+                return item, False
+    if outbox.exists():
+        for item in outbox.glob("*.md"):
+            if item.is_file():
+                text = item.read_text(encoding="utf-8", errors="ignore")
+                if next_release_id in text:
+                    return item, True
+    return None, False
+
+
+def _ensure_ba_next_release_scan(team_id: str, ba_agent: str, next_release_id: str, min_roi: int = 18) -> str:
+    existing, is_outbox = _find_ba_next_release_item(ba_agent, next_release_id)
+    if existing is not None:
+        if not is_outbox:
+            _set_min_inbox_roi(existing, min_roi)
+            return f"ba-scan-prioritized:{existing.name}"
+        return f"ba-scan-covered:{existing.name}"
+
+    rc, _ = _run(["bash", "scripts/ba-reference-scan.sh", team_id, next_release_id], timeout=120)
+    created, is_outbox = _find_ba_next_release_item(ba_agent, next_release_id)
+    if created is not None and not is_outbox:
+        _set_min_inbox_roi(created, min_roi)
+        return f"ba-scan-queued:{created.name}"
+    return f"ba-scan-rc:{rc}"
+
+
+def _ensure_parallel_release_coverage(
+    *,
+    team_id: str,
+    site: str,
+    pm_agent: str,
+    ba_agent: str,
+    current_release: str,
+    next_release_id: str,
+    today: str,
+) -> List[str]:
+    actions: List[str] = []
+    if pm_agent and current_release and next_release_id:
+        actions.append(
+            _ensure_pm_next_release_grooming(
+                site=site,
+                team_id=team_id,
+                pm_agent=pm_agent,
+                current_release=current_release,
+                next_release_id=next_release_id,
+                today=today,
+            )
+        )
+    if ba_agent and next_release_id:
+        actions.append(_ensure_ba_next_release_scan(team_id, ba_agent, next_release_id))
+    return actions
+
+
 def _release_cycle_step(log: List[Any]) -> None:
     """Ensure each coordinated-release team has an active release cycle.
 
@@ -1779,7 +1966,9 @@ def _release_cycle_step(log: List[Any]) -> None:
         if not (team.get("active") and team.get("release_preflight_enabled") and team.get("coordinated_release_default")):
             continue
         team_id = (team.get("id") or "").strip()
+        site = (team.get("site") or team_id).strip() or team_id
         pm_agent = (team.get("pm_agent") or "").strip()
+        ba_agent = (team.get("ba_agent") or "").strip()
         if not team_id:
             continue
 
@@ -1816,16 +2005,40 @@ def _release_cycle_step(log: List[Any]) -> None:
                 action = "signed_off_next_fixed"
             else:
                 action = "signed_off_waiting_push"
-            results.append({"team": team_id, "action": action, "current": current_release, "next": next_release})
+            coverage = _ensure_parallel_release_coverage(
+                team_id=team_id,
+                site=site,
+                pm_agent=pm_agent,
+                ba_agent=ba_agent,
+                current_release=current_release,
+                next_release_id=next_release,
+                today=today,
+            )
+            results.append(
+                {"team": team_id, "action": action, "current": current_release, "next": next_release, "parallel": coverage}
+            )
         else:
             # Cycle running — ensure next_release_id is persisted for future advance
             expected_next = _next_release_id_after(current_release, team_id, today)
             if next_release != expected_next:
+                had_next = bool(next_release)
                 next_release_id_file.write_text(expected_next + "\n")
-                action = "next_set" if not next_release else "next_fixed"
-                results.append({"team": team_id, "action": action, "current": current_release, "next": expected_next})
+                next_release = expected_next
+                action = "next_fixed" if had_next else "next_set"
             else:
-                results.append({"team": team_id, "action": "active", "current": current_release, "next": next_release})
+                action = "active"
+            coverage = _ensure_parallel_release_coverage(
+                team_id=team_id,
+                site=site,
+                pm_agent=pm_agent,
+                ba_agent=ba_agent,
+                current_release=current_release,
+                next_release_id=next_release,
+                today=today,
+            )
+            results.append(
+                {"team": team_id, "action": action, "current": current_release, "next": next_release, "parallel": coverage}
+            )
 
     log.append({"step": "release_cycle", "teams": results})
 

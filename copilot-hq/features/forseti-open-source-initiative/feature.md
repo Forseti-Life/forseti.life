@@ -40,16 +40,20 @@ Already completed in `copilot-hq`:
 - Publication scope is now explicit: use curated mirrors / extracted repos and keep `sessions/**`, `inbox/responses/**`, `tmp/**`, `prod-config/**`, `database-exports/**`, and key material private by default
 
 Still blocking first public launch:
-- Previously tracked AWS credentials in `sites/forseti/config/sync/ai_conversation.settings.yml` and `sites/dungeoncrawler/config/sync/ai_conversation.settings.yml` must be rotated externally and scrubbed from history
+- Previously tracked AWS credentials have been stripped from the current-tree Drupal config sync files, but external rotation confirmation and history scrub are still required
 - Full git history scrub/redaction is still required before any public push
 - Public candidate branch or curated mirror has not yet been frozen
 - Baseline validation run for publication candidate still needs to be recorded
+- `drupal-ai-conversation` still has candidate-local NO-GO findings that must be removed before freeze
 
 ## Immediate Next Action
 
-1. `dev-open-source` rotates exposed AWS credentials and removes them from current-tree config sync, replacing them with public-safe placeholders / env-driven configuration.
-2. `dev-open-source` runs Phase 1 history scrub and sensitive-data audit across the monorepo and intended extracted repos.
-3. `pm-open-source` converts the existing prep docs into a publication candidate gate with pass/fail evidence for the first repo to publish using the curated-mirror / extracted-repo model.
+1. `dev-open-source` clears the candidate-local `drupal-ai-conversation` NO-GO findings and produces the sanitized extraction boundary for the first freeze candidate.
+2. `ceo-copilot-2` confirms external AWS credential rotation while dev/PM finish the remaining history-scrub and private-path enforcement work required for safe publication.
+3. `pm-open-source` freezes a curated sanitized extract for `drupal-ai-conversation` and hands QA the exact frozen packet defined by the candidate gate and validation plan.
+
+Current planning reference for that path:
+- `dashboards/open-source/drupal-ai-conversation-freeze-plan-2026-04.md`
 
 ## Success Criteria
 1. `forseti-platform` overview repo published with architecture and quickstart
