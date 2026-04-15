@@ -1,37 +1,50 @@
 # Architect Session State — architect-copilot
 
 > **Rolling file. Overwrite this at the end of each working session (and briefly before starting each task).**
-> Last updated: 2026-04-13 during Financial Health next-phase architecture
+> Last updated: 2026-04-15 during PROJ-009 repo-breakout planning
 
 ---
 
 ## Currently Working On
 
-Completed an open-source documentation refinement pass after creating the first
-community-owned repo:
-- added `QUICKSTART.md`
-- updated `README.md` to be more public-friendly
-- made purpose, tech stack, and startup/runtime scripts clearer for new readers
+Planning the repo-breakout direction for `PROJ-009` now that the community home
+and GitHub org exist:
+- defining the first-wave public repo family
+- documenting source boundaries and exclusions
+- staying in planning/docs mode only (no repo creation yet)
 
 ### Current state
 
-- The org repo `Forseti-Life/forseti.life` now exists as a private community
-  repo with the first committed history push completed.
-- `copilot-hq/README.md` now leads with purpose and public-facing orientation.
-- `copilot-hq/QUICKSTART.md` now gives the first-read path, tech stack, and
-  script map.
+- The canonical repo-breakout plan now lives at
+  `dashboards/open-source/repo-breakout-plan-2026-04.md`.
+- The plan scopes this slice to documentation only and defines the first-wave
+  repo family as `forseti-platform`, `drupal-ai-conversation`,
+  `copilot-agent-framework`, `drupal-platform`, `forseti-job-hunter`, and
+  `dungeoncrawler`.
+- Companion planning docs now exist for:
+  - `forseti-platform`
+  - `copilot-agent-framework`
+  - the first-wave source-boundary matrix
+  - the shared repo-creation template/checklist
+- `drupal-ai-conversation` remains the first executable publication candidate,
+  but repo creation/extraction is explicitly deferred until after planning
+  approval and the security/history gates are cleared.
 
 ### Key decisions
 
-1. Public-facing docs needed a real quickstart before broader publication work.
-2. New readers need purpose + script map immediately, not only deep runbooks.
-3. Public-readiness blockers remain security/history/candidate-gate work.
+1. This slice is planning and direction documentation only, not repo creation.
+2. The repo family needs one canonical breakout plan before per-repo creation
+   work starts.
+3. Canonical extraction roots should follow the real source path, not symlink
+   aliases.
 
 ### Next actions
 
-1. Continue publication-readiness work for `PROJ-009`
-2. Run runtime truth/security audit work
-3. Advance candidate packaging and history scrub
+1. Write per-repo planning briefs for `drupal-platform`,
+   `forseti-job-hunter`, and `dungeoncrawler`
+2. Add a cross-repo dependency/coupling matrix for shared code and themes
+3. Only after planning approval, resume execution on candidate freeze and
+   history/security gates
 
 ---
 

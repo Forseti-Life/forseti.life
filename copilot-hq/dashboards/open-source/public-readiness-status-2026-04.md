@@ -3,13 +3,28 @@
 - Project: `PROJ-009`
 - Owner: `architect-copilot`
 - Status: `blocked`
-- Last updated: `2026-04-13`
+- Last updated: `2026-04-15`
 
 ## Summary
 
 The open-sourcing effort is **not yet ready for public release**.
 
 The GitHub org exists and the publication model is now decided, but the project is still blocked by **security cleanup, history hygiene, publication-candidate packaging, and release evidence**.
+
+## Repo-breakout planning track
+
+The current architect slice is **planning/documentation only** for the repo family that will sit under the community home and the `Forseti-Life` org. No repos are being created in this slice.
+
+Canonical planning artifact:
+
+- `dashboards/open-source/repo-breakout-plan-2026-04.md`
+
+That plan defines:
+
+1. the first-wave repos to prepare directionally now,
+2. the role of the platform/community home repo,
+3. source boundaries and exclusions for each repo,
+4. the execution order to use later once security/history gates are cleared.
 
 ## What is already in place
 
@@ -116,7 +131,7 @@ If we reduce this to the true go/no-go items, the project is blocked on:
 
 ## Recommended next action
 
-Treat the next execution slice as a **publication-candidate security gate**:
+Treat the next execution slice as a **publication-candidate security gate**, after the repo-breakout planning docs are approved:
 
 1. rotate exposed AWS credentials
 2. run full-history scrub + sensitive-data audit
