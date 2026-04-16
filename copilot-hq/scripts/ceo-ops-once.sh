@@ -49,7 +49,10 @@ for k,v in items:
 PY
 
 section "HQ status"
+set +e
 ./scripts/hq-status.sh
+hq_status_rc=$?
+set -e
 
 section "CEO inbox"
 find sessions/ceo-copilot-2/inbox -mindepth 1 -maxdepth 1 -type d -printf '%f\n' 2>/dev/null | sort || true
@@ -101,6 +104,10 @@ if [ "$system_rc" -ne 0 ]; then
   echo "- System health failed: review orchestration/runtime warnings and dispatch fixes to the owning seat."
 fi
 
+if [ "${hq_status_rc:-0}" -ne 0 ]; then
+  echo "- HQ status failed: clear merge/integration blockers or other red status conditions before the next sync/merge."
+fi
+
 if [ "${project_link_rc:-0}" -ne 0 ]; then
   echo "- Project registry link audit failed: add missing PROJ linkage so active portfolio initiatives stay visible on the roadmap."
 fi
@@ -113,13 +120,13 @@ fi
 
 echo "- If any team is intentionally deprioritized, record that in the work item update (with reason + next review time)."
 
-if [ "$release_rc" -eq 0 ] && [ "$system_rc" -eq 0 ] && [ "${project_link_rc:-0}" -eq 0 ] && [ "${blocked_count:-0}" -eq 0 ] && [ "${matrix_noncompliant_count:-0}" -eq 0 ]; then
+if [ "${hq_status_rc:-0}" -eq 0 ] && [ "$release_rc" -eq 0 ] && [ "$system_rc" -eq 0 ] && [ "${project_link_rc:-0}" -eq 0 ] && [ "${blocked_count:-0}" -eq 0 ] && [ "${matrix_noncompliant_count:-0}" -eq 0 ]; then
   echo "- No CEO action required from this scheduled check."
 fi
 
 section "Idle work seeding (DISABLED)"
 echo "(skipped)"
 
-if [ "$release_rc" -ne 0 ] || [ "$system_rc" -ne 0 ] || [ "${project_link_rc:-0}" -ne 0 ]; then
+if [ "${hq_status_rc:-0}" -ne 0 ] || [ "$release_rc" -ne 0 ] || [ "$system_rc" -ne 0 ] || [ "${project_link_rc:-0}" -ne 0 ]; then
   exit 1
 fi

@@ -45,6 +45,14 @@ def _create_conflicted_repo(root: Path) -> None:
     assert result.returncode != 0
 
 
+def _create_dirty_repo(root: Path) -> None:
+    _init_repo(root)
+    (root / "dirty.txt").write_text("base\n", encoding="utf-8")
+    _commit_all(root, "base")
+    (root / "dirty.txt").write_text("modified\n", encoding="utf-8")
+    (root / "untracked.txt").write_text("extra\n", encoding="utf-8")
+
+
 def _make_hq_root(tmp_path: Path) -> Path:
     root = tmp_path / "hq"
     (root / "scripts" / "lib").mkdir(parents=True)
@@ -91,7 +99,7 @@ def test_hq_status_reports_clean_merge_health(tmp_path):
 
     assert result.returncode == 0, result.stderr
     assert "Merge health:" in result.stdout
-    assert "no active merge conflicts or unfinished merge state" in result.stdout
+    assert "no active merge conflicts, unfinished integration state, or dirty tracked changes" in result.stdout
 
 
 def test_hq_status_fails_when_merge_conflicts_exist(tmp_path):
@@ -110,6 +118,24 @@ def test_hq_status_fails_when_merge_conflicts_exist(tmp_path):
     assert "Merge health:" in result.stdout
     assert "MERGE_HEAD present" in result.stdout
     assert "Unmerged: conflict.txt" in result.stdout
+
+
+def test_hq_status_fails_when_tracked_changes_would_block_merge(tmp_path):
+    root = _make_hq_root(tmp_path)
+    _create_dirty_repo(root)
+
+    result = subprocess.run(
+        ["bash", str(root / "scripts" / "hq-status.sh")],
+        cwd=root,
+        capture_output=True,
+        text=True,
+        env={"PATH": "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"},
+    )
+
+    assert result.returncode == 1
+    assert "Merge health:" in result.stdout
+    assert "tracked local change(s)" in result.stdout
+    assert "Tracked change: dirty.txt" in result.stdout
 
 
 def test_ceo_system_health_dispatches_merge_remediation(tmp_path):
@@ -131,8 +157,9 @@ def test_ceo_system_health_dispatches_merge_remediation(tmp_path):
     assert len(items) == 1
     readme = (items[0] / "README.md").read_text(encoding="utf-8")
     assert "Summary: MERGE_HEAD present, 1 unmerged file(s)" in readme
+    assert "HQ repo has merge/integration blockers" in readme
     assert "git merge --abort" in readme
-    assert "git add <resolved-files>" in readme
+    assert "checkpoint/stash/clean" in readme
 
 
 def test_hq_shell_scripts_use_workspace_merge_safe_wrapper():

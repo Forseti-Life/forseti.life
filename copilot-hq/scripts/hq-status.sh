@@ -191,7 +191,7 @@ if [ "$MERGE_HEALTH_HAS_ISSUES" -eq 1 ]; then
     [ -n "$detail" ] || continue
     printf 'ERROR [merge-health] %s\n' "$detail"
   done < <(merge_health_issue_lines 10)
-  echo "ERROR [merge-health] Remediate: resolve conflicts, git add the resolved files, then git commit; or run git merge --abort if the merge should be abandoned"
+  echo "ERROR [merge-health] Remediate: finish or abort any in-progress merge/rebase/cherry-pick/revert, then checkpoint or clean local tracked changes before the next merge/pull"
   _merge_exit=1
 fi
 

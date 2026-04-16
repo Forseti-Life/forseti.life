@@ -273,14 +273,26 @@ elif [ "$MERGE_HEALTH_HAS_ISSUES" -eq 1 ]; then
   if [ "$MERGE_HEALTH_MERGE_HEAD" -eq 1 ]; then
     info "Abort if safe: git merge --abort"
   fi
+  if [ "$MERGE_HEALTH_REBASE_IN_PROGRESS" -eq 1 ]; then
+    info "Abort/continue rebase as appropriate: git rebase --abort | git rebase --continue"
+  fi
+  if [ "$MERGE_HEALTH_CHERRY_PICK_HEAD" -eq 1 ]; then
+    info "Abort/continue cherry-pick as appropriate: git cherry-pick --abort | git cherry-pick --continue"
+  fi
+  if [ "$MERGE_HEALTH_REVERT_HEAD" -eq 1 ]; then
+    info "Abort/continue revert as appropriate: git revert --abort | git revert --continue"
+  fi
   if [ "$MERGE_HEALTH_UNMERGED_COUNT" -gt 0 ]; then
     info "After resolving conflicts: git add <resolved-files> && git commit"
   fi
+  if [ "$MERGE_HEALTH_TRACKED_CHANGE_COUNT" -gt 0 ]; then
+    info "Checkpoint or stash local tracked changes before the next merge/pull"
+  fi
   queue_dispatch "dev-infra" "merge-health-remediation" "10" "FAIL" \
-    "HQ repo has unresolved merge state" \
-    "The HQ repo has unresolved merge state.\n\nSummary: ${MERGE_HEALTH_SUMMARY}\n\nDetails:\n\`\`\`\n${merge_details}\n\`\`\`\n\nInspect:\n\`\`\`bash\ngit status --short --branch\n\`\`\`\nIf abandoning the merge is safe:\n\`\`\`bash\ngit merge --abort\n\`\`\`\nAfter resolving conflicts:\n\`\`\`bash\ngit add <resolved-files>\ngit commit\n\`\`\`"
+    "HQ repo has merge/integration blockers" \
+    "The HQ repo has merge/integration blockers.\n\nSummary: ${MERGE_HEALTH_SUMMARY}\n\nDetails:\n\`\`\`\n${merge_details}\n\`\`\`\n\nInspect:\n\`\`\`bash\ngit status --short --branch\n\`\`\`\nIf a merge is in progress and should be abandoned:\n\`\`\`bash\ngit merge --abort\n\`\`\`\nIf a rebase/cherry-pick/revert is in progress, finish or abort it. If local tracked changes are pending, checkpoint/stash/clean them before the next merge or pull."
 else
-  pass "Merge health: no active merge conflicts or unfinished merge state"
+  pass "Merge health: no active merge conflicts, unfinished integration state, or dirty tracked changes"
 fi
 
 # ─── 4. APACHE ERROR LOG ANALYSIS ──────────────────────────────────────────
