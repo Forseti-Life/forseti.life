@@ -16,3 +16,4 @@ You just need to write the outbox with Status: done and evidence.
 
 ## Acceptance criteria
 - `bash scripts/sla-report.sh` no longer reports BREACH for dev-infra inbox=20260415-syshealth-executor-failures-prune
+- Status: pending

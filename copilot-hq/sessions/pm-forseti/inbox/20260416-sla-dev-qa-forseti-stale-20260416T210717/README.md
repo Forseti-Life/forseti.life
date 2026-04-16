@@ -23,3 +23,4 @@ Two forseti agents have inbox items with no outbox after 2749+ seconds:
 
 ## Acceptance criteria
 - `bash scripts/sla-report.sh` no longer shows BREACH for these two inbox items
+- Status: pending

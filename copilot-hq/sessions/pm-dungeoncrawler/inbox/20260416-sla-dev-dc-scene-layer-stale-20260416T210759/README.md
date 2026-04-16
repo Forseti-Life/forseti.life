@@ -15,3 +15,4 @@
 
 ## Acceptance criteria
 - `bash scripts/sla-report.sh` no longer shows BREACH for dev-dungeoncrawler inbox=20260414-191701-impl-dc-ui-scene-layer-contract
+- Status: pending
