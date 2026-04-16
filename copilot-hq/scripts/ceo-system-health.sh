@@ -229,8 +229,9 @@ done
 
 copilot_rate_limit_failures=0
 if [ -d "$failure_dir" ]; then
-  copilot_rate_limit_failures="$(find "$failure_dir" -mmin -1440 -type f -print0 2>/dev/null \
-    | xargs -0 grep -liE "Copilot rate limit|hit a rate limit|Too Many Requests|Please try again in [0-9]+ (seconds?|minutes?)" 2>/dev/null \
+  copilot_rate_limit_failures="$({ find "$failure_dir" -mmin -1440 -type f -exec \
+      grep -liE "Copilot rate limit|hit a rate limit|Too Many Requests|Please try again in [0-9]+ (seconds?|minutes?)" {} + 2>/dev/null \
+      || true; } \
     | wc -l | tr -d ' ')"
 fi
 copilot_rate_limit_failures="${copilot_rate_limit_failures:-0}"
@@ -338,9 +339,12 @@ echo "$SEP"
 echo "  Drupal Watchdog (forseti.life)"
 echo "$SEP"
 
-drupal_root="/home/ubuntu/forseti.life/sites/forseti"
+drupal_root="/var/www/html/forseti"
+if [ ! -f "$drupal_root/vendor/bin/drush" ]; then
+  drupal_root="/home/ubuntu/forseti.life/sites/forseti"
+fi
 if [ -f "$drupal_root/vendor/bin/drush" ]; then
-  watchdog_out=$(cd "$drupal_root" && vendor/bin/drush watchdog:show --severity=error --count=5 --format=string 2>/dev/null || echo "DRUSH_UNAVAILABLE")
+  watchdog_out=$(cd "$drupal_root" && vendor/bin/drush watchdog:show --severity=3 --count=5 --format=string 2>/dev/null || echo "DRUSH_UNAVAILABLE")
   if echo "$watchdog_out" | grep -q "DRUSH_UNAVAILABLE\|Error\|Cannot"; then
     warn "Drupal watchdog: drush unavailable or errored"
   elif [ -z "$(echo "$watchdog_out" | tr -d '[:space:]')" ]; then

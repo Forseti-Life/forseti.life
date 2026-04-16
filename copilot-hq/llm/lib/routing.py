@@ -75,7 +75,7 @@ def resolve_model_id(
       3. routing["default"]
       4. "copilot"  (hard fallback)
 
-    Returns a model ID string (e.g. "phi-3-mini") or "copilot".
+    Returns a route string (e.g. "copilot", "bedrock", "phi-3-mini").
     """
     # 1. Per-agent override
     model_id = (routing.get("agents") or {}).get(agent_id)
@@ -104,7 +104,7 @@ def resolve_model_file(
 ) -> Optional[Path]:
     """
     Return the Path to the local model file for agent_id if it exists on disk,
-    or None if the agent should use Copilot CLI.
+    or None if the route points to a live backend such as Copilot/Bedrock.
     """
     model_id = resolve_model_id(agent_id, routing, agents_yaml_path)
     if not model_id or model_id == "copilot":

@@ -41,45 +41,6 @@ fi
 BEDROCK_ASSIST_SCRIPT="${BEDROCK_ASSIST_SCRIPT:-$ROOT_DIR/scripts/bedrock-assist.sh}"
 AGENTIC_BACKEND="${HQ_AGENTIC_BACKEND:-auto}"
 
-resolve_backend() {
-  case "$AGENTIC_BACKEND" in
-    copilot)
-      if [ -n "$COPILOT_BIN" ]; then
-        echo "copilot"
-        return 0
-      fi
-      echo "ERROR: HQ_AGENTIC_BACKEND=copilot but copilot CLI not found in PATH." >&2
-      return 1
-      ;;
-    bedrock)
-      if [ -x "$BEDROCK_ASSIST_SCRIPT" ]; then
-        echo "bedrock"
-        return 0
-      fi
-      echo "ERROR: HQ_AGENTIC_BACKEND=bedrock but script not executable: $BEDROCK_ASSIST_SCRIPT" >&2
-      return 1
-      ;;
-    auto)
-      if [ -n "$COPILOT_BIN" ]; then
-        echo "copilot"
-        return 0
-      fi
-      if [ -x "$BEDROCK_ASSIST_SCRIPT" ]; then
-        echo "bedrock"
-        return 0
-      fi
-      echo "ERROR: no GenAI backend available (copilot missing, bedrock-assist missing)." >&2
-      return 1
-      ;;
-    *)
-      echo "ERROR: invalid HQ_AGENTIC_BACKEND='$AGENTIC_BACKEND' (expected: auto|copilot|bedrock)" >&2
-      return 1
-      ;;
-  esac
-}
-
-GENAI_BACKEND="$(resolve_backend)" || exit 1
-
 INBOX_DIR="sessions/${AGENT_ID}/inbox"
 OUTBOX_DIR="sessions/${AGENT_ID}/outbox"
 ART_DIR="sessions/${AGENT_ID}/artifacts"
@@ -282,9 +243,17 @@ if [ -z "$next" ]; then
   exit 2
 fi
 
-# Global concurrency guard: limit total concurrent Copilot executions across ALL
-# loops/processes on this host.
-MAX_CONCURRENT_EXECUTIONS="${AGENT_EXEC_MAX_CONCURRENT:-6}"
+# Global concurrency guard: limit total concurrent agent executions across ALL
+# loops/processes on this host. Bedrock is less tolerant of bursty parallel
+# requests than Copilot, so default it to a smaller lane unless explicitly
+# overridden.
+if [ -n "${AGENT_EXEC_MAX_CONCURRENT:-}" ]; then
+  MAX_CONCURRENT_EXECUTIONS="${AGENT_EXEC_MAX_CONCURRENT}"
+elif [ "$GENAI_BACKEND" = "bedrock" ]; then
+  MAX_CONCURRENT_EXECUTIONS="${AGENT_EXEC_MAX_CONCURRENT_BEDROCK:-2}"
+else
+  MAX_CONCURRENT_EXECUTIONS=6
+fi
 SEMAPHORE_DIR="tmp/.agent-exec-semaphore"
 SLOT_FD=""
 SLOT_FILE=""
@@ -572,14 +541,117 @@ except Exception:
 PY
 }
 
+_llm_resolve_route_id() {
+  local agent="$1"
+  local routing="$ROOT_DIR/llm/routing.yaml"
+
+  [ -f "$routing" ] || return 0
+
+  local py
+  if [ -x "$ROOT_DIR/llm/.venv/bin/python3" ]; then
+    py="$ROOT_DIR/llm/.venv/bin/python3"
+  elif [ -n "${LLM_PYTHON_BIN:-}" ] && [ -x "${LLM_PYTHON_BIN}" ]; then
+    py="$LLM_PYTHON_BIN"
+  else
+    py="$(command -v python3 2>/dev/null || true)"
+  fi
+  [ -n "$py" ] || return 0
+
+  "$py" - "$agent" "$routing" 2>/dev/null <<'PY'
+import sys, pathlib
+
+agent_id = sys.argv[1]
+routing_p = pathlib.Path(sys.argv[2])
+repo_root = routing_p.parent.parent
+
+sys.path.insert(0, str(repo_root))
+try:
+    from llm.lib.routing import load_yaml, resolve_model_id
+    try:
+        routing = load_yaml(routing_p)
+    except ImportError:
+        sys.exit(0)
+    agents_yaml = repo_root / "org-chart" / "agents" / "agents.yaml"
+    route_id = resolve_model_id(agent_id, routing, agents_yaml)
+    if route_id:
+        print(str(route_id))
+except Exception:
+    sys.exit(0)
+PY
+}
+
+ROUTED_ROUTE_ID="$(_llm_resolve_route_id "$AGENT_ID")"
 LOCAL_MODEL_FILE="$(_llm_resolve_model "$AGENT_ID")"
 LOCAL_RUNNER="$ROOT_DIR/llm/runner.py"
+
+resolve_backend() {
+  case "${ROUTED_ROUTE_ID:-}" in
+    copilot)
+      if [ -n "$COPILOT_BIN" ]; then
+        echo "copilot"
+        return 0
+      fi
+      echo "ERROR: routing requested copilot for ${AGENT_ID} but copilot CLI is not available." >&2
+      return 1
+      ;;
+    bedrock)
+      if [ -x "$BEDROCK_ASSIST_SCRIPT" ]; then
+        echo "bedrock"
+        return 0
+      fi
+      echo "ERROR: routing requested bedrock for ${AGENT_ID} but bedrock-assist is not executable: $BEDROCK_ASSIST_SCRIPT" >&2
+      return 1
+      ;;
+  esac
+
+  if [ -n "${LOCAL_MODEL_FILE:-}" ]; then
+    echo "local"
+    return 0
+  fi
+
+  case "$AGENTIC_BACKEND" in
+    copilot)
+      if [ -n "$COPILOT_BIN" ]; then
+        echo "copilot"
+        return 0
+      fi
+      echo "ERROR: HQ_AGENTIC_BACKEND=copilot but copilot CLI not found in PATH." >&2
+      return 1
+      ;;
+    bedrock)
+      if [ -x "$BEDROCK_ASSIST_SCRIPT" ]; then
+        echo "bedrock"
+        return 0
+      fi
+      echo "ERROR: HQ_AGENTIC_BACKEND=bedrock but script not executable: $BEDROCK_ASSIST_SCRIPT" >&2
+      return 1
+      ;;
+    auto)
+      if [ -n "$COPILOT_BIN" ]; then
+        echo "copilot"
+        return 0
+      fi
+      if [ -x "$BEDROCK_ASSIST_SCRIPT" ]; then
+        echo "bedrock"
+        return 0
+      fi
+      echo "ERROR: no GenAI backend available (copilot missing, bedrock-assist missing)." >&2
+      return 1
+      ;;
+    *)
+      echo "ERROR: invalid HQ_AGENTIC_BACKEND='$AGENTIC_BACKEND' (expected: auto|copilot|bedrock)" >&2
+      return 1
+      ;;
+  esac
+}
+
+GENAI_BACKEND="$(resolve_backend)" || exit 1
 
 _throttle_copilot_api() {
   # Global rate-limit guard: enforces a minimum delay between Copilot API calls
   # across ALL concurrent agent executions (shared timestamp file).
-  # Override minimum delay via COPILOT_API_MIN_DELAY_SECONDS (default: 300).
-  local min_delay="${COPILOT_API_MIN_DELAY_SECONDS:-300}"
+  # Override minimum delay via COPILOT_API_MIN_DELAY_SECONDS (default: 600).
+  local min_delay="${COPILOT_API_MIN_DELAY_SECONDS:-600}"
   local ts_file="$ROOT_DIR/tmp/.last-copilot-api-call"
   local cooldown_file="$ROOT_DIR/tmp/.copilot-api-rate-limit-until"
   mkdir -p "$ROOT_DIR/tmp"
@@ -693,17 +765,31 @@ bedrock_site_for_context() {
 run_bedrock() {
   local prompt="$1"
   local site
+  local contract
   site="$(bedrock_site_for_context)"
+  contract=$'Return plain markdown only.\n'
+  contract+=$'The first line must be exactly "- Status: <value>".\n'
+  contract+=$'The second line must be exactly "- Summary: <value>".\n'
+  contract+=$'Do not emit tool calls, tool responses, XML, JSON, or analysis preambles.\n'
+  contract+=$'If you need to continue investigating, use "- Status: in_progress" and summarize the next concrete step.\n\n'
   BEDROCK_OPERATION="hq_agent_exec_${AGENT_ID}" \
-    "$BEDROCK_ASSIST_SCRIPT" "$site" "$prompt" 2>/dev/null || true
+    "$BEDROCK_ASSIST_SCRIPT" "$site" "${contract}${prompt}" 2>/dev/null || true
 }
 
 run_primary_backend() {
   local prompt="$1"
   case "$GENAI_BACKEND" in
+    local) echo "" ;;
     copilot) run_copilot "$prompt" ;;
     bedrock) run_bedrock "$prompt" ;;
     *) echo "" ;;
+  esac
+}
+
+backend_retry_delay_seconds() {
+  case "$GENAI_BACKEND" in
+    bedrock) echo "${BEDROCK_RETRY_DELAY_SECONDS:-15}" ;;
+    *) echo 0 ;;
   esac
 }
 
@@ -723,6 +809,10 @@ if [ -n "$LOCAL_MODEL_FILE" ] && [ -f "$LOCAL_RUNNER" ]; then
   if [ -z "$(printf '%s' "$response" | tr -d ' \t\r\n')" ]; then
     response="$(run_primary_backend "$PROMPT")"
     if [ -z "$(printf '%s' "$response" | tr -d ' \t\r\n')" ]; then
+      _retry_delay="$(backend_retry_delay_seconds)"
+      if [ "${_retry_delay:-0}" -gt 0 ] 2>/dev/null; then
+        sleep "$_retry_delay"
+      fi
       response="$(run_primary_backend "$PROMPT")"
     fi
   fi
@@ -732,8 +822,12 @@ else
   # selected via --model ("auto" is not a valid choice).
   # Generate response first so we can validate structure.
   response="$(run_primary_backend "$PROMPT")"
-  # Retry once if Copilot returns an empty response.
+  # Retry once if the backend returns an empty response.
   if [ -z "$(printf '%s' "$response" | tr -d ' \t\r\n')" ]; then
+    _retry_delay="$(backend_retry_delay_seconds)"
+    if [ "${_retry_delay:-0}" -gt 0 ] 2>/dev/null; then
+      sleep "$_retry_delay"
+    fi
     response="$(run_primary_backend "$PROMPT")"
   fi
 fi

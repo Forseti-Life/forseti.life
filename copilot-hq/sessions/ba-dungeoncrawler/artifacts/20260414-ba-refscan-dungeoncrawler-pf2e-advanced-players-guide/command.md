@@ -1,3 +1,6 @@
+- Status: done
+- Completed: 2026-04-16T16:55:06Z
+
 # Reference Document Scan — PF2E Advanced Players Guide
 
 **Site:** dungeoncrawler  
