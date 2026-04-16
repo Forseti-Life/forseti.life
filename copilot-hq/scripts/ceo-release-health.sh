@@ -329,15 +329,15 @@ PY
       DEV_AGENT="dev-$TEAM"
       HAS_IMPL="$(ls "sessions/${DEV_AGENT}/outbox/" 2>/dev/null | grep "$FEAT_NAME" | head -1 || true)"
       if [ -n "$HAS_IMPL" ]; then
-        warn "[$TEAM] ORPHAN: $FEAT_NAME (in_progress on OLD $F_RELEASE — dev outbox exists, mark done?)"
+        warn "[$TEAM] ORPHAN: $FEAT_NAME (in_progress on OLD $F_RELEASE — dev outbox exists, reconcile status instead of deleting)"
       else
         fail "[$TEAM] ORPHAN: $FEAT_NAME (in_progress on CLOSED $F_RELEASE — no dev work done)"
-        info "  Fix: reset to ready + clear release; or run with --fix to auto-reset"
+        info "  Fix: reset to ready + clear release; do not delete the feature record. Run with --fix to auto-reset."
         if [ "$FIX_MODE" = "1" ]; then
           FM="features/$FEAT_NAME/feature.md"
           sed -i 's/^- Status: in_progress/- Status: ready/' "$FM"
           sed -i "s|^- Release: ${F_RELEASE}|- Release: |" "$FM"
-          info "  FIX: reset $FEAT_NAME → ready, release cleared"
+          info "  FIX: reset $FEAT_NAME → ready, release cleared (feature preserved)"
         fi
       fi
       ORPHAN_COUNT=$((ORPHAN_COUNT + 1))

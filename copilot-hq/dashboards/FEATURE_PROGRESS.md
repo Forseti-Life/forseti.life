@@ -1,6 +1,6 @@
 # Feature Progress
 
-Generated: 2026-04-16T17:59:37Z
+Generated: 2026-04-16T19:41:57Z
 
 | Work item | Website | Module | Status | Priority | PM | Dev | QA |
 |-----------|---------|--------|--------|----------|----|-----|----|
@@ -91,14 +91,14 @@ Generated: 2026-04-16T17:59:37Z
 | dc-cr-gnome-weapon-expertise | dungeoncrawler | dungeoncrawler_content | done | P3 |  |  |  |
 | dc-cr-gnome-weapon-familiarity | dungeoncrawler | dungeoncrawler_content | done | P2 |  |  |  |
 | dc-cr-gnome-weapon-specialist | dungeoncrawler | dungeoncrawler_content | done | P2 |  |  |  |
-| dc-cr-goblin-ancestry | dungeoncrawler | dungeoncrawler_content | in_progress | P2 |  |  |  |
-| dc-cr-goblin-very-sneaky | dungeoncrawler | dungeoncrawler_content | in_progress | P2 |  |  |  |
-| dc-cr-goblin-weapon-familiarity | dungeoncrawler | dungeoncrawler_content | in_progress | P2 |  |  |  |
+| dc-cr-goblin-ancestry | dungeoncrawler | dungeoncrawler_content | done | P2 |  |  |  |
+| dc-cr-goblin-very-sneaky | dungeoncrawler | dungeoncrawler_content | done | P2 |  |  |  |
+| dc-cr-goblin-weapon-familiarity | dungeoncrawler | dungeoncrawler_content | done | P2 |  |  |  |
 | dc-cr-goblin-weapon-frenzy | dungeoncrawler | dungeoncrawler_content | in_progress | P3 |  |  |  |
-| dc-cr-halfling-ancestry | dungeoncrawler | dungeoncrawler_content | in_progress | P2 |  |  |  |
+| dc-cr-halfling-ancestry | dungeoncrawler | dungeoncrawler_content | done | P2 |  |  |  |
 | dc-cr-halfling-heritage-gutsy | dungeoncrawler | dungeoncrawler_content | in_progress | P3 |  |  |  |
 | dc-cr-halfling-heritage-hillock | dungeoncrawler | dungeoncrawler_content | in_progress | P3 |  |  |  |
-| dc-cr-halfling-keen-eyes | dungeoncrawler | dungeoncrawler_content | in_progress | P2 |  |  |  |
+| dc-cr-halfling-keen-eyes | dungeoncrawler | dungeoncrawler_content | done | P2 |  |  |  |
 | dc-cr-halfling-resolve | dungeoncrawler | dungeoncrawler_content | pre-triage | unset (PM will set at triage) |  |  |  |
 | dc-cr-halfling-weapon-expertise | dungeoncrawler | dungeoncrawler_content | pre-triage | unset (PM will set at triage) |  |  |  |
 | dc-cr-hazards | dungeoncrawler | dungeoncrawler_content | done | P2 |  |  |  |

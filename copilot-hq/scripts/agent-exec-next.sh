@@ -194,6 +194,18 @@ for candidate in "${candidates[@]}"; do
   lock_dir="$inbox_item_candidate/.exec-lock"
   inwork_file="$inbox_item_candidate/.inwork"
 
+  # If the companion exec-lock belongs to a dead PID, clear both markers
+  # immediately instead of waiting for TTL-based stale detection.
+  if [ -d "$lock_dir" ] && [ -f "$lock_dir/pid" ]; then
+    lock_pid="$(head -n 1 "$lock_dir/pid" 2>/dev/null | tr -d '\r' | tr -cd '0-9' || true)"
+    if [[ "$lock_pid" =~ ^[0-9]+$ ]] && [ -n "$lock_pid" ]; then
+      if [ -z "$(ps -p "$lock_pid" -o args= 2>/dev/null || true)" ]; then
+        rm -rf "$lock_dir" 2>/dev/null || true
+        rm -f "$inwork_file" 2>/dev/null || true
+      fi
+    fi
+  fi
+
   # Inwork marker: a simpler coordination layer for shared inboxes (e.g. all
   # three ceo-copilot threads share sessions/ceo-copilot/inbox/).
   # If another agent already claimed this item, skip it immediately.
@@ -233,6 +245,7 @@ for candidate in "${candidates[@]}"; do
     date -Iseconds > "$lock_dir/created" 2>/dev/null || true
     # Write inwork marker so other threads sharing this inbox skip this item.
     echo "$AGENT_ID" > "$inwork_file" 2>/dev/null || true
+    INWORK_FILE="$inwork_file"
     next="$candidate"
     LOCK_DIR="$lock_dir"
     break
@@ -243,17 +256,6 @@ if [ -z "$next" ]; then
   exit 2
 fi
 
-# Global concurrency guard: limit total concurrent agent executions across ALL
-# loops/processes on this host. Bedrock is less tolerant of bursty parallel
-# requests than Copilot, so default it to a smaller lane unless explicitly
-# overridden.
-if [ -n "${AGENT_EXEC_MAX_CONCURRENT:-}" ]; then
-  MAX_CONCURRENT_EXECUTIONS="${AGENT_EXEC_MAX_CONCURRENT}"
-elif [ "$GENAI_BACKEND" = "bedrock" ]; then
-  MAX_CONCURRENT_EXECUTIONS="${AGENT_EXEC_MAX_CONCURRENT_BEDROCK:-2}"
-else
-  MAX_CONCURRENT_EXECUTIONS=6
-fi
 SEMAPHORE_DIR="tmp/.agent-exec-semaphore"
 SLOT_FD=""
 SLOT_FILE=""
@@ -298,19 +300,14 @@ cleanup_lock() {
   if [ -n "${ACTIVE_ITEM_FILE:-}" ] && [ -f "${ACTIVE_ITEM_FILE:-}" ]; then
     rm -f "$ACTIVE_ITEM_FILE" 2>/dev/null || true
   fi
+  if [ -n "${INWORK_FILE:-}" ] && [ -f "${INWORK_FILE:-}" ]; then
+    rm -f "$INWORK_FILE" 2>/dev/null || true
+  fi
   if [ -n "${LOCK_DIR:-}" ] && [ -d "${LOCK_DIR:-}" ]; then
     rm -rf "$LOCK_DIR" 2>/dev/null || true
   fi
 }
 trap cleanup_lock EXIT
-
-# If the host is already at concurrency capacity, release the per-item lock and
-# treat this as "nothing to do" so loops don't spam errors.
-if ! acquire_global_slot "$MAX_CONCURRENT_EXECUTIONS"; then
-  rm -rf "$LOCK_DIR" 2>/dev/null || true
-  LOCK_DIR=""
-  exit 2
-fi
 
 inbox_item="$INBOX_DIR/$next"
 out_file="$OUTBOX_DIR/$next.md"
@@ -647,11 +644,31 @@ resolve_backend() {
 
 GENAI_BACKEND="$(resolve_backend)" || exit 1
 
+# Global concurrency guard: limit total concurrent agent executions across ALL
+# loops/processes on this host. Bedrock is less tolerant of bursty parallel
+# requests than Copilot, so default it to a smaller lane unless explicitly
+# overridden.
+if [ -n "${AGENT_EXEC_MAX_CONCURRENT:-}" ]; then
+  MAX_CONCURRENT_EXECUTIONS="${AGENT_EXEC_MAX_CONCURRENT}"
+elif [ "$GENAI_BACKEND" = "bedrock" ]; then
+  MAX_CONCURRENT_EXECUTIONS="${AGENT_EXEC_MAX_CONCURRENT_BEDROCK:-2}"
+else
+  MAX_CONCURRENT_EXECUTIONS=6
+fi
+
+# If the host is already at concurrency capacity, release the per-item lock and
+# treat this as "nothing to do" so loops don't spam errors.
+if ! acquire_global_slot "$MAX_CONCURRENT_EXECUTIONS"; then
+  rm -rf "$LOCK_DIR" 2>/dev/null || true
+  LOCK_DIR=""
+  exit 2
+fi
+
 _throttle_copilot_api() {
   # Global rate-limit guard: enforces a minimum delay between Copilot API calls
   # across ALL concurrent agent executions (shared timestamp file).
-  # Override minimum delay via COPILOT_API_MIN_DELAY_SECONDS (default: 600).
-  local min_delay="${COPILOT_API_MIN_DELAY_SECONDS:-600}"
+  # Override minimum delay via COPILOT_API_MIN_DELAY_SECONDS (default: 900).
+  local min_delay="${COPILOT_API_MIN_DELAY_SECONDS:-900}"
   local ts_file="$ROOT_DIR/tmp/.last-copilot-api-call"
   local cooldown_file="$ROOT_DIR/tmp/.copilot-api-rate-limit-until"
   mkdir -p "$ROOT_DIR/tmp"

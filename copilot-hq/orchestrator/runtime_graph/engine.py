@@ -196,19 +196,22 @@ def run_tick(
         ceo_agents = [a for a in all_agents if str(getattr(a, "agent_id", "")).startswith("ceo-copilot")][:1]
         other_agents = [a for a in all_agents if not str(getattr(a, "agent_id", "")).startswith("ceo-copilot")]
         other_cap = max(0, s["agent_cap"] - len(ceo_agents))
-
-        # Release-priority scheduling: when a release is active, fill slots with
-        # agents that have release-tagged inbox items first. Non-release agents
-        # only consume remaining slots — they yield to release work.
-        release_agents = [a for a in other_agents if getattr(a, "has_release_work", False)]
-        non_release_agents = [a for a in other_agents if not getattr(a, "has_release_work", False)]
-        selected_other = (release_agents + non_release_agents)[:other_cap]
+        # Respect the ordering returned by prioritized_agents(). It already
+        # encodes: current-release first, then spare-capacity spillover into
+        # next-release prep, then other work.
+        selected_other = other_agents[:other_cap]
 
         agents = ceo_agents + selected_other
         selected = [str(getattr(a, "agent_id", "")) for a in agents]
-        release_ids = [str(getattr(a, "agent_id", "")) for a in release_agents if a in agents]
+        current_release = [str(getattr(a, "agent_id", "")) for a in selected_other if getattr(a, "has_release_work", False)]
+        next_release = [str(getattr(a, "agent_id", "")) for a in selected_other if getattr(a, "has_next_release_work", False)]
         s["selected_agents"] = selected
-        s["log"].append({"step": "pick_agents", "selected": selected, "release_priority": release_ids})
+        s["log"].append({
+            "step": "pick_agents",
+            "selected": selected,
+            "release_priority": current_release,
+            "next_release_spillover": next_release,
+        })
         return s
 
     def exec_agents(s: Dict[str, Any]) -> Dict[str, Any]:
@@ -273,4 +276,3 @@ def run_tick(
         int(result.get("kpi_last_run", kpi_last_run)),
         int(result.get("release_cycle_last_run", release_cycle_last_run)),
     )
-

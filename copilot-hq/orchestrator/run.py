@@ -270,6 +270,7 @@ class ScheduledAgent:
     top_roi: int
     has_release_work: bool = False
     has_next_release_work: bool = False
+    team_id: str = ""
 
 
 def _active_release_ids() -> List[str]:
@@ -298,6 +299,13 @@ def _next_release_ids() -> List[str]:
     return ids
 
 
+def _team_id_for_agent(agent_id: str) -> str:
+    for team_id in _TEAM_WEBSITE_PREFIX:
+        if team_id in agent_id:
+            return team_id
+    return ""
+
+
 def _item_mentions_release(item_dir: pathlib.Path, release_ids: List[str]) -> bool:
     if not release_ids or not item_dir.exists():
         return False
@@ -315,66 +323,77 @@ def _item_mentions_release(item_dir: pathlib.Path, release_ids: List[str]) -> bo
     return False
 
 
-def _agent_has_release_work(agent_id: str, release_ids: List[str]) -> bool:
-    """Return True if the agent has any inbox item tagged for an active release.
+def _item_text(item_dir: pathlib.Path) -> str:
+    parts: List[str] = []
+    for rel_path in ("command.md", "README.md"):
+        path = item_dir / rel_path
+        if path.exists():
+            parts.append(path.read_text(encoding="utf-8", errors="ignore"))
+    return "\n".join(parts)
 
-    Two matching strategies:
-    1. Inbox item NAME contains the release ID substring (explicit tagging)
-    2. Agent's site team has an active release with >= 1 in_progress feature
-       (implicit: any dev/qa/pm/ba agent for that site is doing release work)
-    """
+
+def _item_mentions_current_release(item_dir: pathlib.Path, release_ids: List[str]) -> bool:
+    if _item_mentions_release(item_dir, release_ids):
+        return True
+    text = _item_text(item_dir)
+    if not text:
+        return False
+    return bool(re.search(r"\bcurrent release\b", text, re.IGNORECASE))
+
+
+def _item_mentions_next_release(item_dir: pathlib.Path, next_release_ids: List[str]) -> bool:
+    if _item_mentions_release(item_dir, next_release_ids):
+        return True
+    text = _item_text(item_dir)
+    if not text:
+        return False
+    return bool(re.search(r"\bnext release\b", text, re.IGNORECASE))
+
+
+def _agent_has_release_work(agent_id: str, release_ids: List[str]) -> bool:
+    """Return True if the agent has an inbox item explicitly tied to the current release."""
     if not release_ids:
         return False
     inbox = _agent_inbox_dir(agent_id)
     if not inbox.exists():
         return False
 
-    # Strategy 1: explicit release ID in item name
     for item in inbox.iterdir():
-        if item.is_dir() and item.name != "_archived":
-            for rid in release_ids:
-                if rid in item.name:
-                    return True
-
-    # Strategy 2: agent belongs to a site that has an active release with in_progress features
-    active_dir = REPO_ROOT / "tmp" / "release-cycle-active"
-    for site_kw, website_prefix in _TEAM_WEBSITE_PREFIX.items():
-        # Does agent_id contain this site keyword?
-        if site_kw not in agent_id:
-            continue
-        # Does this site have an active release?
-        rid_file = active_dir / f"{site_kw}.release_id"
-        if not rid_file.exists():
-            continue
-        if rid_file.read_text(encoding="utf-8").strip() not in release_ids:
-            continue
-        # Does this site have any in_progress features?
-        if _count_site_features_in_progress(website_prefix) > 0:
+        if item.is_dir() and item.name != "_archived" and _item_mentions_current_release(item, release_ids):
             return True
 
     return False
 
 
 def _agent_has_next_release_work(agent_id: str, next_release_ids: List[str]) -> bool:
-    """Return True if the agent has inbox work tied to a tracked next release."""
+    """Return True if the agent has explicit PM/BA next-release prep work queued."""
     if not next_release_ids:
+        return False
+    role = _role_for_agent(agent_id)
+    if role not in {"product-manager", "business-analyst"} and not (
+        agent_id.startswith("pm-") or agent_id.startswith("ba-")
+    ):
         return False
     inbox = _agent_inbox_dir(agent_id)
     if not inbox.exists():
         return False
     for item in inbox.iterdir():
-        if item.is_dir() and item.name != "_archived" and _item_mentions_release(item, next_release_ids):
+        if item.is_dir() and item.name != "_archived" and _item_mentions_next_release(item, next_release_ids):
             return True
     return False
 
 
 def _prioritized_agents() -> List[ScheduledAgent]:
-    """All agents (CEO included) with inbox items, sorted by release-work first,
-    then by level then ROI.
+    """All agents (CEO included) with inbox items, sorted by release-aware priority.
 
-    During an active release cycle, agents with inbox items tagged for the
-    active release ID are promoted to the front of the queue so they always
-    consume execution slots before non-release work.
+    Scheduling intent:
+      1. Current-release work always gets first priority.
+      2. One current-release seat per team is surfaced before any duplicate
+         same-team current-release seats.
+      3. Spare capacity then spills into next-release prep work instead of
+         waiting for the current release to close out completely.
+      4. Remaining current-release seats, remaining next-release seats, then
+         all other work follow in priority order.
     """
     priorities = _load_org_priorities()
     release_ids = _active_release_ids()
@@ -398,17 +417,37 @@ def _prioritized_agents() -> List[ScheduledAgent]:
             top_roi=top,
             has_release_work=has_release,
             has_next_release_work=has_next_release,
+            team_id=_team_id_for_agent(agent_id),
         ))
-    # Sort: current-release work first, then next-release planning, then all other work.
-    agents.sort(
-        key=lambda a: (
-            0 if a.has_release_work else 1 if a.has_next_release_work else 2,
-            -a.level,
-            -a.top_roi,
-            a.agent_id,
-        )
+
+    def _sort_bucket(items: List[ScheduledAgent]) -> List[ScheduledAgent]:
+        return sorted(items, key=lambda a: (-a.level, -a.top_roi, a.agent_id))
+
+    def _split_first_per_team(items: List[ScheduledAgent]) -> tuple[List[ScheduledAgent], List[ScheduledAgent]]:
+        first_pass: List[ScheduledAgent] = []
+        remainder: List[ScheduledAgent] = []
+        seen_teams: set[str] = set()
+        seen_agents_without_team = 0
+        for agent in items:
+            team_key = agent.team_id or f"__no_team__:{seen_agents_without_team}"
+            if not agent.team_id:
+                seen_agents_without_team += 1
+            if team_key not in seen_teams:
+                seen_teams.add(team_key)
+                first_pass.append(agent)
+            else:
+                remainder.append(agent)
+        return first_pass, remainder
+
+    current_first, current_remainder = _split_first_per_team(
+        _sort_bucket([a for a in agents if a.has_release_work])
     )
-    return agents
+    next_first, next_remainder = _split_first_per_team(
+        _sort_bucket([a for a in agents if not a.has_release_work and a.has_next_release_work])
+    )
+    other_agents = _sort_bucket([a for a in agents if not a.has_release_work and not a.has_next_release_work])
+
+    return current_first + next_first + next_remainder + current_remainder + other_agents
 
 
 # ── Command dispatch ──────────────────────────────────────────────────────────
