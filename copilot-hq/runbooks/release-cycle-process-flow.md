@@ -103,6 +103,13 @@ This section is intentionally explicit: if two things disagree, the SoT below wi
 - Convergence/watchdog: `scripts/hq-automation.sh`, `scripts/hq-automation-watchdog.sh`
 - Status/observability: `scripts/hq-status.sh`
 
+### Release-cycle automation control
+
+- Release-cycle on/off switch: `/var/tmp/copilot-sessions-hq/release-cycle-control.json` (legacy fallback: `tmp/release-cycle-control.json`)
+- Control command: `scripts/release-cycle-control.sh`
+- Read-only gate check: `scripts/is-release-cycle-enabled.sh`
+- Pause effect: orchestrator skips `release_cycle`, coordinated-push release automation, and health-check release dispatchers while the rest of HQ remains enabled
+
 ### Seat configuration + scope
 
 - Configured seats list + roles: `org-chart/agents/agents.yaml`

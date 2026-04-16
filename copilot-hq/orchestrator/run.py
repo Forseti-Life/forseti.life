@@ -72,6 +72,55 @@ def _mark_now(state_file: Path) -> None:
     state_file.write_text(str(_now_ts()), encoding="utf-8")
 
 
+_RELEASE_CYCLE_CONTROL_DEFAULT = Path("/var/tmp/copilot-sessions-hq/release-cycle-control.json")
+
+
+def _release_cycle_control_file() -> Path:
+    override = os.environ.get("RELEASE_CYCLE_CONTROL_FILE", "").strip()
+    if override:
+        return Path(override)
+
+    legacy = REPO_ROOT / "tmp" / "release-cycle-control.json"
+    if _RELEASE_CYCLE_CONTROL_DEFAULT.exists():
+        return _RELEASE_CYCLE_CONTROL_DEFAULT
+    if legacy.exists():
+        return legacy
+    return _RELEASE_CYCLE_CONTROL_DEFAULT
+
+
+def _release_cycle_control_state() -> Dict[str, Any]:
+    import json as _json
+
+    state_file = _release_cycle_control_file()
+    if not state_file.exists():
+        return {
+            "enabled": True,
+            "updated_at": None,
+            "updated_by": None,
+            "reason": None,
+            "state_file": str(state_file),
+        }
+
+    try:
+        data = _json.loads(state_file.read_text(encoding="utf-8", errors="ignore") or "{}")
+    except Exception:
+        data = {}
+
+    if not isinstance(data, dict):
+        data = {}
+
+    data.setdefault("enabled", True)
+    data.setdefault("updated_at", None)
+    data.setdefault("updated_by", None)
+    data.setdefault("reason", None)
+    data["state_file"] = str(state_file)
+    return data
+
+
+def _is_release_cycle_enabled() -> bool:
+    return bool(_release_cycle_control_state().get("enabled", True))
+
+
 # ── Agent / YAML helpers ─────────────────────────────────────────────────────
 
 def _load_agents_yaml_ids() -> List[str]:
@@ -1710,36 +1759,43 @@ def _health_check_step(provider: "RuntimeProvider", log: List[Any]) -> None:
     # These run every health-check tick (every health_check_interval seconds).
     # _dispatch_gate2_auto_approve is also called from _release_cycle_step as
     # a fallback for when this step returns early (hq-status.sh timeout).
+    release_control = _release_cycle_control_state()
+    if not bool(release_control.get("enabled", True)):
+        alert["release_automation"] = {
+            "status": "paused",
+            "state_file": release_control.get("state_file"),
+            "reason": release_control.get("reason"),
+        }
+    else:
+        # Always check for lagging PM signoffs regardless of blocked count
+        try:
+            _dispatch_signoff_reminders()
+        except Exception as e:
+            print(f"SIGNOFF-REMINDER-ERR: {e}")
 
-    # Always check for lagging PM signoffs regardless of blocked count
-    try:
-        _dispatch_signoff_reminders()
-    except Exception as e:
-        print(f"SIGNOFF-REMINDER-ERR: {e}")
+        # Check auto-close triggers: ≥10 features or ≥24h since release started
+        try:
+            _dispatch_release_close_triggers()
+        except Exception as e:
+            print(f"RELEASE-CLOSE-TRIGGER-ERR: {e}")
 
-    # Check auto-close triggers: ≥10 features or ≥24h since release started
-    try:
-        _dispatch_release_close_triggers()
-    except Exception as e:
-        print(f"RELEASE-CLOSE-TRIGGER-ERR: {e}")
+        # Auto-generate Gate 2 APPROVE when all suite-activates for a release are done
+        try:
+            _dispatch_gate2_auto_approve()
+        except Exception as e:
+            print(f"GATE2-AUTO-APPROVE-ERR: {e}")
 
-    # Auto-generate Gate 2 APPROVE when all suite-activates for a release are done
-    try:
-        _dispatch_gate2_auto_approve()
-    except Exception as e:
-        print(f"GATE2-AUTO-APPROVE-ERR: {e}")
+        # Nudge PM to scope features when a new release has been empty for 15+ min
+        try:
+            _dispatch_scope_activate_nudge()
+        except Exception as e:
+            print(f"SCOPE-ACTIVATE-NUDGE-ERR: {e}")
 
-    # Nudge PM to scope features when a new release has been empty for 15+ min
-    try:
-        _dispatch_scope_activate_nudge()
-    except Exception as e:
-        print(f"SCOPE-ACTIVATE-NUDGE-ERR: {e}")
-
-    # Scan for release feature gaps: in_progress features with no dev/QA inbox coverage
-    try:
-        _dispatch_feature_gap_remediation()
-    except Exception as e:
-        print(f"FEATURE-GAP-ERR: {e}")
+        # Scan for release feature gaps: in_progress features with no dev/QA inbox coverage
+        try:
+            _dispatch_feature_gap_remediation()
+        except Exception as e:
+            print(f"FEATURE-GAP-ERR: {e}")
 
     # Audit inbox data quality: clear stale locks, inject missing READMEs, patch fields
     try:
@@ -1916,6 +1972,16 @@ def _release_cycle_step(log: List[Any]) -> None:
     Calls scripts/release-cycle-start.sh which is idempotent (skips if already queued).
     """
     import json as _json
+
+    release_control = _release_cycle_control_state()
+    if not bool(release_control.get("enabled", True)):
+        log.append({
+            "step": "release_cycle",
+            "status": "paused",
+            "state_file": release_control.get("state_file"),
+            "reason": release_control.get("reason"),
+        })
+        return
 
     active_dir = REPO_ROOT / "tmp" / "release-cycle-active"
     active_dir.mkdir(parents=True, exist_ok=True)
@@ -2145,6 +2211,16 @@ def _coordinated_push_step(log: List[Any]) -> None:
     """
     import json as _json
 
+    release_control = _release_cycle_control_state()
+    if not bool(release_control.get("enabled", True)):
+        log.append({
+            "step": "coordinated_push",
+            "status": "paused",
+            "state_file": release_control.get("state_file"),
+            "reason": release_control.get("reason"),
+        })
+        return
+
     teams_path = REPO_ROOT / "org-chart" / "products" / "product-teams.json"
     try:
         teams_data = _json.loads(teams_path.read_text(encoding="utf-8"))
@@ -2328,7 +2404,7 @@ def main() -> None:
     parser.add_argument("--once", action="store_true", help="Run one tick and exit")
     parser.add_argument("--interval", type=int, default=60, help="Seconds between ticks")
     parser.add_argument("--provider", choices=["shell", "cline"], default="shell")
-    parser.add_argument("--agent-cap", type=int, default=8,
+    parser.add_argument("--agent-cap", type=int, default=6,
                         help="Max agents to execute per tick (CEO counts toward cap)")
     parser.add_argument("--non-ceo-cap", type=int, default=None,
                         help="Deprecated alias; mapped to total cap as non_ceo+1")

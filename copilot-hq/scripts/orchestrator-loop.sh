@@ -5,9 +5,11 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}" )/.." && pwd)"
 cd "$ROOT_DIR"
 
 PIDFILE=".orchestrator-loop.pid"
+LOCKFILE="tmp/.orchestrator-loop.control.lock"
 LOGDIR="inbox/responses"
 LATEST="$LOGDIR/orchestrator-latest.log"
 mkdir -p "$LOGDIR"
+mkdir -p "$(dirname "$LOCKFILE")"
 
 cmd="${1:-start}"
 interval="${2:-60}"
@@ -51,7 +53,7 @@ run_orchestrator_once() {
   [ -x "orchestrator/.venv/bin/python" ] && python_bin="orchestrator/.venv/bin/python"
 
   "$python_bin" orchestrator/run.py --once \
-    --agent-cap "${ORCHESTRATOR_AGENT_CAP:-8}" \
+    --agent-cap "${ORCHESTRATOR_AGENT_CAP:-6}" \
     ${ORCHESTRATOR_NO_PUBLISH:+--no-publish} \
     --kpi-interval "${ORCHESTRATOR_KPI_INTERVAL:-300}" \
     --log-file "$LATEST"
@@ -59,11 +61,13 @@ run_orchestrator_once() {
 
 case "$cmd" in
   start)
+    exec 9>"$LOCKFILE"
+    flock -n 9 || { echo "Start already in progress"; exit 0; }
     if is_running; then
       echo "Already running (pid $(read_pid))"
       exit 0
     fi
-    setsid bash -c "'$0' run '$interval'" >/dev/null 2>&1 &
+    setsid "$0" run "$interval" </dev/null >/dev/null 2>&1 &
     pid=$!
     echo "$pid" > "$PIDFILE"
     echo "Started (pid $pid)"
@@ -100,6 +104,8 @@ case "$cmd" in
     ;;
 
   stop)
+    exec 9>"$LOCKFILE"
+    flock -n 9 || { echo "Stop already in progress"; exit 0; }
     pid="$(read_pid)"
     stopped_any=0
     if [ -n "$pid" ] && ps -p "$pid" >/dev/null 2>&1; then

@@ -93,7 +93,7 @@ After post-push + post-release QA, CEO runs:
 - Paused agents skipped (`scripts/is-agent-paused.sh`)
 - Agents with empty inbox skipped
 - Within same level: sorted by top effective ROI (base ROI + org priority bonus)
-- `--agent-cap` (default 8): max agents executed per tick
+- `--agent-cap` (default 6): max agents executed per tick
 
 ## CEO escalation path
 
@@ -127,6 +127,14 @@ What it verifies:
 - publish + auto-checkpoint loops are running
 - release-cycle automation is enabled
 - `inbox/responses/orchestrator-latest.log` is fresh
+
+### Pause release-cycle automation
+```bash
+./scripts/release-cycle-control.sh disable --reason "Pause release automation"
+./scripts/release-cycle-control.sh status
+```
+
+When paused, the orchestrator still runs, but it skips the `release_cycle` step, coordinated-push release automation, and health-check release dispatchers.
 
 ### One-shot tick (debug)
 ```bash

@@ -7,9 +7,11 @@ deploy handoff completes.
 """
 
 import json
+import os
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 import orchestrator.run as run
 
@@ -19,8 +21,10 @@ class TestReleaseCycleHandoff(unittest.TestCase):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
             (root / "tmp" / "release-cycle-active").mkdir(parents=True)
+            control = root / "tmp" / "release-cycle-control.json"
             (root / "org-chart" / "products").mkdir(parents=True)
             (root / "sessions" / "pm-dungeoncrawler" / "artifacts" / "release-signoffs").mkdir(parents=True)
+            control.write_text('{"enabled": true}\n', encoding="utf-8")
 
             (root / "org-chart" / "products" / "product-teams.json").write_text(
                 json.dumps(
@@ -59,8 +63,9 @@ class TestReleaseCycleHandoff(unittest.TestCase):
 
             run._run = fake_run
             try:
-                log = []
-                run._release_cycle_step(log)
+                with patch.dict(os.environ, {"RELEASE_CYCLE_CONTROL_FILE": str(control)}):
+                    log = []
+                    run._release_cycle_step(log)
             finally:
                 run.REPO_ROOT = old_root
                 run._run = old_run
@@ -75,8 +80,10 @@ class TestReleaseCycleHandoff(unittest.TestCase):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
             (root / "tmp" / "release-cycle-active").mkdir(parents=True)
+            control = root / "tmp" / "release-cycle-control.json"
             (root / "org-chart" / "products").mkdir(parents=True)
             (root / "sessions" / "pm-dungeoncrawler" / "inbox").mkdir(parents=True)
+            control.write_text('{"enabled": true}\n', encoding="utf-8")
 
             (root / "org-chart" / "products" / "product-teams.json").write_text(
                 json.dumps(
@@ -113,8 +120,9 @@ class TestReleaseCycleHandoff(unittest.TestCase):
 
             run._run = fake_run
             try:
-                log = []
-                run._release_cycle_step(log)
+                with patch.dict(os.environ, {"RELEASE_CYCLE_CONTROL_FILE": str(control)}):
+                    log = []
+                    run._release_cycle_step(log)
             finally:
                 run.REPO_ROOT = old_root
                 run._run = old_run
@@ -137,9 +145,11 @@ class TestReleaseCycleHandoff(unittest.TestCase):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
             (root / "tmp" / "release-cycle-active").mkdir(parents=True)
+            control = root / "tmp" / "release-cycle-control.json"
             (root / "org-chart" / "products").mkdir(parents=True)
             pm_inbox = root / "sessions" / "pm-dungeoncrawler" / "inbox"
             pm_inbox.mkdir(parents=True)
+            control.write_text('{"enabled": true}\n', encoding="utf-8")
 
             (root / "org-chart" / "products" / "product-teams.json").write_text(
                 json.dumps(
@@ -179,8 +189,9 @@ class TestReleaseCycleHandoff(unittest.TestCase):
 
             run._run = fake_run
             try:
-                log = []
-                run._release_cycle_step(log)
+                with patch.dict(os.environ, {"RELEASE_CYCLE_CONTROL_FILE": str(control)}):
+                    log = []
+                    run._release_cycle_step(log)
             finally:
                 run.REPO_ROOT = old_root
                 run._run = old_run

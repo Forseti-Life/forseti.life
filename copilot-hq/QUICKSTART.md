@@ -63,6 +63,8 @@ These are the most important scripts for understanding how the system starts and
 
 - `scripts/org-control.sh` — enable/disable org automation
 - `scripts/is-org-enabled.sh` — runtime gate check
+- `scripts/release-cycle-control.sh` — enable/disable release-cycle automation
+- `scripts/is-release-cycle-enabled.sh` — release-cycle gate check
 - `scripts/hq-automation.sh converge` — converge loops into desired state
 - `scripts/hq-automation-watchdog.sh` — periodic enforcement and intake
 

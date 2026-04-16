@@ -103,29 +103,23 @@ elif [ -f tmp/release-cycle-control.json ]; then
   release_ctrl="tmp/release-cycle-control.json"
 fi
 
+if [ -x ./scripts/is-release-cycle-enabled.sh ]; then
+  release_enabled="$(./scripts/is-release-cycle-enabled.sh 2>/dev/null || echo invalid)"
+else
+  release_enabled="invalid"
+fi
+
 if [ -n "$release_ctrl" ]; then
-  release_enabled="$(python3 - <<'PY'
-import json
-from pathlib import Path
-p = Path("/var/tmp/copilot-sessions-hq/release-cycle-control.json")
-if not p.exists():
-    p = Path("tmp/release-cycle-control.json")
-if not p.exists():
-    print("unknown")
-    raise SystemExit(0)
-try:
-    d = json.loads(p.read_text(encoding="utf-8"))
-except Exception:
-    print("invalid")
-    raise SystemExit(0)
-print("true" if bool(d.get("enabled", True)) else "false")
-PY
-)"
   if [ "$release_enabled" = "false" ]; then
     if [ "$STRICT" -eq 1 ]; then
       fail "release-cycle automation disabled ($release_ctrl)"
     fi
     warn "release-cycle automation disabled ($release_ctrl)"
+  elif [ "$release_enabled" = "invalid" ]; then
+    if [ "$STRICT" -eq 1 ]; then
+      fail "release-cycle automation state unreadable ($release_ctrl)"
+    fi
+    warn "release-cycle automation state unreadable ($release_ctrl)"
   else
     pass "release-cycle automation enabled"
   fi
@@ -154,4 +148,3 @@ else
 fi
 
 echo "VERIFY: PASS - runtime checks complete"
-

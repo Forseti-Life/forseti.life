@@ -81,6 +81,11 @@ The org automation control path is deterministic at the control layer and agenti
 - State read gate: `scripts/is-org-enabled.sh`
 - State file default: `/var/tmp/copilot-sessions-hq/org-control.json` (legacy fallback supported)
 
+### 1b) Source of truth: release-cycle enable/disable
+- State toggle: `scripts/release-cycle-control.sh`
+- State read gate: `scripts/is-release-cycle-enabled.sh`
+- State file default: `/var/tmp/copilot-sessions-hq/release-cycle-control.json` (legacy fallback supported)
+
 ### 2) Process convergence (start/stop loops)
 - Converger: `scripts/hq-automation.sh converge`
 - Behavior:
@@ -123,6 +128,7 @@ Legacy loops (`ceo-inbox-loop`, `inbox-loop`, `ceo-health-loop`, `2-ceo-opsloop`
 ### Deterministic control-plane recovery
 - If loops drift from desired state, watchdog runs converge and repairs start/stop state.
 - If org is disabled, loops either stop or skip work at each cycle gate.
+- If release-cycle automation is disabled, orchestrator skips release-cycle advancement, coordinated-push release automation, and release-support dispatchers while the rest of HQ stays online.
 
 ### Agentic troubleshooting path
 - For stalls/uncertain states, health checks and queue loops generate actionable inbox work items.
