@@ -283,7 +283,7 @@ class CharacterManager {
    *   F: animal-accomplice, burrow-elocutionist, fey-fellowship, first-world-magic, gnome-obsession, gnome-weapon-familiarity, illusion-sense
    * - Goblin (heritages: 4, feats: 7)
    *   H: charhide, irongut, razortooth, snow
-   *   F: burn-it, city-scavenger, goblin-lore, goblin-scuttle, goblin-song, goblin-weapon-familiarity, junk-tinker
+   *   F: burn-it, city-scavenger, goblin-lore, goblin-scuttle, goblin-song, goblin-weapon-familiarity, goblin-weapon-frenzy, junk-tinker
    * - Half-Elf (heritages: 4, feats: 6)
    *   H: ancient-elf-blood, arcane-bloodline, keen-senses, wanderer
    *   F: elf-atavism, forlorn-half-elf, multitalented, mixed-heritage-adaptability, elven-instincts, cross-cultural-upbringing
@@ -850,6 +850,9 @@ class CharacterManager {
         'benefit' => 'You sing annoying songs. Attempt a Performance check against the Will DC of a single enemy within 30 feet. Success imposes frightened 1, critical success frightened 2. Target is then temporarily immune for 1 hour.'],
       ['id' => 'goblin-weapon-familiarity', 'name' => 'Goblin Weapon Familiarity', 'level' => 1, 'traits' => ['Goblin'], 'prerequisites' => '',
         'benefit' => 'Trained with dogslicers and horsechoppers. For proficiency, treat martial goblin weapons as simple, advanced goblin weapons as martial.'],
+      ['id' => 'goblin-weapon-frenzy', 'name' => 'Goblin Weapon Frenzy', 'level' => 5, 'traits' => ['Goblin'], 'prerequisites' => 'Goblin Weapon Familiarity',
+        'benefit' => 'Whenever you score a critical hit using a goblin weapon, you apply the weapon\'s critical specialization effect.',
+        'prerequisite_goblin_weapon_familiarity' => TRUE],
       ['id' => 'junk-tinker', 'name' => 'Junk Tinker', 'level' => 1, 'traits' => ['Goblin'], 'prerequisites' => '',
         'benefit' => 'Trained in Crafting. You can Craft nonmagical items from junk. Crafting DCs for such items are 5 easier, but items are shoddy (break on failed attack/check).'],
       ['id' => 'very-sneaky', 'name' => 'Very Sneaky', 'level' => 1, 'traits' => ['Goblin'], 'prerequisites' => '',

@@ -791,6 +791,15 @@ class CharacterLevelingService {
       }
     }
 
+    // Goblin Weapon Familiarity prerequisite (e.g. Goblin Weapon Frenzy).
+    if (!empty($feat['prerequisite_goblin_weapon_familiarity'])) {
+      if (!$this->characterHasGoblinWeaponFamiliarity($char_data)) {
+        throw new \InvalidArgumentException(
+          "Feat '{$feat_id}' requires Goblin Weapon Familiarity", 400
+        );
+      }
+    }
+
     return $feat;
   }
 
@@ -835,6 +844,14 @@ class CharacterLevelingService {
   private function characterHasGnomeWeaponFamiliarity(array $char_data): bool {
     $owned_ids = array_column($char_data['features']['feats'] ?? [], 'id');
     return in_array('gnome-weapon-familiarity', $owned_ids, TRUE);
+  }
+
+  /**
+   * Returns TRUE if the character has Goblin Weapon Familiarity.
+   */
+  private function characterHasGoblinWeaponFamiliarity(array $char_data): bool {
+    $owned_ids = array_column($char_data['features']['feats'] ?? [], 'id');
+    return in_array('goblin-weapon-familiarity', $owned_ids, TRUE);
   }
 
 }

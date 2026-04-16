@@ -1001,6 +1001,12 @@ class FeatEffectManager {
           $effects['applied_feats'][] = $feat_id;
           break;
 
+        case 'goblin-weapon-frenzy':
+          $effects['derived_adjustments']['flags']['goblin_weapon_frenzy_crit_spec'] = TRUE;
+          $effects['notes'][] = 'Goblin Weapon Frenzy: critical hits with goblin weapons (dogslicer, horsechopper, goblin-trait weapons) apply critical specialization effects.';
+          $effects['applied_feats'][] = $feat_id;
+          break;
+
         case 'halfling-weapon-familiarity':
           $this->addWeaponFamiliarity($effects, 'Halfling Weapons', ['sling', 'halfling sling staff']);
           $effects['applied_feats'][] = $feat_id;
