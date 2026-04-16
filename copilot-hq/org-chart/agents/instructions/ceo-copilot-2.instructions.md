@@ -215,6 +215,9 @@ This auto-creates inbox items for all findings (idempotent — skips items that 
 | Finding | Owner agent | Notes |
 |---|---|---|
 | Executor failure spike/backlog | `dev-infra` | Investigate + prune |
+| Legacy `agent-exec-loop` still running | `dev-infra` | Stop deprecated runner; only orchestrator should execute agents |
+| Duplicate top-level orchestrator loops | `dev-infra` | Clean restart orchestrator; confirm one top-level runner remains |
+| Copilot rate-limit pressure in automation logs | `dev-infra` | Check runner duplication and executor backoff/cooldown behavior |
 | Orchestrator down / no pid | `dev-infra` | Restart and verify |
 | Orchestrator heartbeat stale | `dev-infra` | Check cron/daemon |
 | PHP fatals in Apache log | `dev-forseti` or `dev-dungeoncrawler` | Fix code, verify HTTP 200 |
@@ -257,7 +260,7 @@ Before completing any improvement-round inbox item, scan session outboxes and KB
   - `--fix` flag auto-corrects stale `next_release_id` files
   - Exit 0 = healthy; exit 1 = blocked items with actionable messages
 - `scripts/ceo-system-health.sh` — **systemic health diagnostic** (run at every startup alongside release health)
-  - Checks: executor failure backlog, orchestrator running+heartbeat, Apache error logs (PHP fatals, security probes), Drupal watchdog, scoreboard freshness, feature velocity + stale in_progress, KB lesson rate, Drupal queue errors, QA audit freshness, dead-letter inbox items
+  - Checks: executor failure backlog, orchestrator running+heartbeat, duplicate scheduler / legacy runner state, recent Copilot rate-limit pressure, Apache error logs (PHP fatals, security probes), Drupal watchdog, scoreboard freshness, feature velocity + stale in_progress, KB lesson rate, Drupal queue errors, QA audit freshness, dead-letter inbox items
   - Exit 0 = healthy; exit 1 = FAILs found; warnings indicate items to review
   - `--json` flag outputs `{"fail":N,"warn":N}` for scripted use
 - `scripts/project-progress-audit.py` — **project progression audit**

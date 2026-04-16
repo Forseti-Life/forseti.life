@@ -1,20 +1,19 @@
 # Architect Session State — architect-copilot
 
 > **Rolling file. Overwrite this at the end of each working session (and briefly before starting each task).**
-> Last updated: 2026-04-15 during PROJ-009 first-candidate freeze planning
+> Last updated: 2026-04-16 during PROJ-009 candidate extract implementation
 
 ---
 
 ## Currently Working On
 
-Continuing `PROJ-009` open-source readiness by converting the scattered gate
-artifacts into one explicit freeze path for the first public code candidate,
-`drupal-ai-conversation`.
+Continuing `PROJ-009` open-source readiness by moving from freeze planning to
+implementation for the first public code candidate, `drupal-ai-conversation`.
 
-This slice focused on:
-- defining the freeze-plan structure for the first candidate
-- reconciling the main project feature doc with the current audited state
-- preserving the ordered handoff from dev/PM to QA
+This slice is focused on:
+- building a curated sanitized extract path for a standalone public candidate
+- avoiding risky in-place production behavior changes just to satisfy packaging
+- turning the refreshed candidate-local audit into an actual candidate artifact
 
 ### Current state
 

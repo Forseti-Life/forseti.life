@@ -40,6 +40,11 @@ fail()  { echo "❌ FAIL $*"; RESULTS+=("FAIL|$*"); FAIL_COUNT=$(( FAIL_COUNT + 
 warn()  { echo "⚠️  WARN $*"; RESULTS+=("WARN|$*"); WARN_COUNT=$(( WARN_COUNT + 1 )); }
 info()  { echo "   ℹ️  $*"; }
 
+runner_pids() {
+  local pattern="$1"
+  ps -eo pid=,ppid=,args= 2>/dev/null | awk -v pattern="$pattern" '$0 ~ pattern {print $1 "\t" $2}'
+}
+
 # queue_dispatch <agent> <slug> <roi> <severity> <title> <body>
 queue_dispatch() {
   local agent="$1" slug="$2" roi="$3" severity="$4" title="$5" body="$6"
@@ -165,6 +170,79 @@ if [ -f "$health_file" ]; then
   fi
 else
   warn "Orchestrator: no last-autoexec health file"
+fi
+
+# ─── 2A. AUTOMATION DUPLICATION / COPILOT PRESSURE ──────────────────────────
+echo ""
+echo "$SEP"
+echo "  Automation Duplication / Copilot Pressure"
+echo "$SEP"
+
+legacy_agent_exec_lines="$(runner_pids '[[:space:]]([.]/)?scripts/agent-exec-loop[.]sh run($|[[:space:]])')"
+legacy_agent_exec_count=$(printf '%s\n' "$legacy_agent_exec_lines" | sed '/^$/d' | wc -l | tr -d ' ')
+if [ "${legacy_agent_exec_count:-0}" -gt 0 ]; then
+  legacy_agent_exec_pids="$(printf '%s\n' "$legacy_agent_exec_lines" | awk '{print $1}' | tr '\n' ' ' | sed -E 's/[[:space:]]+/ /g; s/^ //; s/ $//')"
+  fail "Legacy agent-exec-loop is running: pid(s) ${legacy_agent_exec_pids}"
+  info "Expected state: agent-exec-loop stopped; orchestrator is the only scheduler"
+  info "Stop legacy runner: bash scripts/disable-agent-exec-loop.sh"
+  queue_dispatch "dev-infra" "legacy-agent-exec-running" "10" "FAIL" \
+    "Legacy agent-exec-loop is still running" \
+    "The deprecated agent-exec-loop is still running alongside orchestrator-driven automation.\n\nObserved pid(s): ${legacy_agent_exec_pids}\n\nThis can double agent traffic and amplify Copilot rate-limit issues.\n\nRemediate:\n\`\`\`bash\nbash scripts/disable-agent-exec-loop.sh\nbash scripts/hq-automation.sh status\n\`\`\`\nThen re-run:\n\`\`\`bash\nbash scripts/ceo-system-health.sh\n\`\`\`"
+else
+  pass "Legacy agent-exec-loop: not running"
+fi
+
+orchestrator_lines="$(runner_pids '[[:space:]]([.]/)?scripts/orchestrator-loop[.]sh run($|[[:space:]])')"
+orchestrator_root_count=$(printf '%s\n' "$orchestrator_lines" | awk '$2 == 1 {count += 1} END {print count + 0}')
+orchestrator_visible_count=$(printf '%s\n' "$orchestrator_lines" | sed '/^$/d' | wc -l | tr -d ' ')
+if [ "${orchestrator_root_count:-0}" -gt 1 ]; then
+  orchestrator_root_pids="$(printf '%s\n' "$orchestrator_lines" | awk '$2 == 1 {print $1}' | tr '\n' ' ' | sed -E 's/[[:space:]]+/ /g; s/^ //; s/ $//')"
+  fail "Duplicate orchestrator roots detected: pid(s) ${orchestrator_root_pids}"
+  info "Expected one top-level orchestrator-loop process (the launcher may also show one child shell)"
+  info "Clean restart: bash scripts/orchestrator-loop.sh stop && bash scripts/orchestrator-loop.sh start 60"
+  queue_dispatch "dev-infra" "duplicate-orchestrator-roots" "10" "FAIL" \
+    "Duplicate top-level orchestrator loops detected" \
+    "More than one top-level orchestrator-loop process is running.\n\nObserved top-level pid(s): ${orchestrator_root_pids}\n\nThis can duplicate scheduler ticks and compound agent execution / Copilot rate-limit pressure.\n\nRemediate with a clean restart:\n\`\`\`bash\nbash scripts/orchestrator-loop.sh stop\nbash scripts/orchestrator-loop.sh start 60\nbash scripts/orchestrator-loop.sh status\n\`\`\`"
+elif [ "${orchestrator_visible_count:-0}" -gt 2 ]; then
+  warn "Extra orchestrator-loop processes visible: ${orchestrator_visible_count} process(es)"
+  info "Visible pid/ppid pairs:"
+  while IFS= read -r line; do
+    [ -n "$line" ] || continue
+    info "$line"
+  done <<<"$orchestrator_lines"
+else
+  pass "Orchestrator loop visibility: ${orchestrator_visible_count:-0} process(es) (expected launcher + child)"
+fi
+
+copilot_rate_limit_hits=0
+for log in \
+  "inbox/responses/agent-exec-latest.log" \
+  "inbox/responses/agent-exec-$(date -u +%Y%m%d).log" \
+  "inbox/responses/orchestrator-latest.log" \
+  "inbox/responses/orchestrator-$(date -u +%Y%m%d).log"
+do
+  [ -f "$log" ] || continue
+  hits="$(tail -n 200 "$log" 2>/dev/null | grep -cE "hit a rate limit|Too Many Requests|Please try again in [0-9]+ (seconds?|minutes?)" || true)"
+  hits="${hits:-0}"
+  copilot_rate_limit_hits=$(( copilot_rate_limit_hits + hits ))
+done
+
+copilot_rate_limit_failures=0
+if [ -d "$failure_dir" ]; then
+  copilot_rate_limit_failures="$(find "$failure_dir" -mmin -1440 -type f -print0 2>/dev/null \
+    | xargs -0 grep -liE "Copilot rate limit|hit a rate limit|Too Many Requests|Please try again in [0-9]+ (seconds?|minutes?)" 2>/dev/null \
+    | wc -l | tr -d ' ')"
+fi
+copilot_rate_limit_failures="${copilot_rate_limit_failures:-0}"
+
+if [ "$copilot_rate_limit_hits" -gt 0 ] || [ "$copilot_rate_limit_failures" -gt 0 ]; then
+  warn "Recent Copilot rate-limit signatures: logs=${copilot_rate_limit_hits} failure-records=${copilot_rate_limit_failures}"
+  info "Check runner duplication, COPILOT_API_MIN_DELAY_SECONDS, and recent executor failures"
+  queue_dispatch "dev-infra" "copilot-rate-limit-pressure" "8" "WARN" \
+    "Recent Copilot rate-limit pressure detected" \
+    "Recent automation logs/failure records contain Copilot rate-limit signatures.\n\nCounts:\n- log hits: ${copilot_rate_limit_hits}\n- failure records (24h): ${copilot_rate_limit_failures}\n\nQuick checks:\n\`\`\`bash\nbash scripts/hq-automation.sh status\nbash scripts/orchestrator-loop.sh status\nls -t tmp/executor-failures | head -5\n\`\`\`\nConfirm only the orchestrator is running, then verify backoff/cooldown behavior in \`scripts/agent-exec-next.sh\`."
+else
+  pass "Recent Copilot rate-limit signatures: none detected"
 fi
 
 # ─── 3. MERGE HEALTH ───────────────────────────────────────────────────────

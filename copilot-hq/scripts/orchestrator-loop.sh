@@ -18,9 +18,28 @@ read_pid() {
   [[ "$pid" =~ ^[0-9]+$ ]] && echo "$pid" || echo ""
 }
 
+loop_pids() {
+  ps -eo pid=,args= 2>/dev/null | awk '/[s]cripts\/orchestrator-loop\.sh run/ {print $1}'
+}
+
+stop_pid() {
+  local pid="$1"
+  [[ "$pid" =~ ^[0-9]+$ ]] || return 0
+  if ps -p "$pid" >/dev/null 2>&1; then
+    kill "$pid" >/dev/null 2>&1 || true
+    sleep 0.2
+    if ps -p "$pid" >/dev/null 2>&1; then
+      kill -9 "$pid" >/dev/null 2>&1 || true
+    fi
+  fi
+}
+
 is_running() {
   pid="$(read_pid)"
-  [ -n "$pid" ] && ps -p "$pid" >/dev/null 2>&1
+  if [ -n "$pid" ] && ps -p "$pid" >/dev/null 2>&1; then
+    return 0
+  fi
+  [ -n "$(loop_pids)" ]
 }
 
 run_orchestrator_once() {
@@ -51,8 +70,16 @@ case "$cmd" in
     ;;
 
   status)
-    if is_running; then
-      echo "running (pid $(read_pid))"
+    tracked_pid="$(read_pid)"
+    extra_pids="$(loop_pids | tr '\n' ' ' | sed -E 's/[[:space:]]+/ /g; s/^ //; s/ $//')"
+    if [ -n "$tracked_pid" ] && ps -p "$tracked_pid" >/dev/null 2>&1; then
+      if [ -n "$extra_pids" ] && [ "$extra_pids" != "$tracked_pid" ]; then
+        echo "running (pid $tracked_pid; visible pid(s): $extra_pids)"
+      else
+        echo "running (pid $tracked_pid)"
+      fi
+    elif [ -n "$extra_pids" ]; then
+      echo "running (untracked pid(s): $extra_pids)"
     else
       echo "not running"
     fi
@@ -60,7 +87,12 @@ case "$cmd" in
 
   verify)
     if is_running; then
-      echo "ok (running pid $(read_pid))"
+      tracked_pid="$(read_pid)"
+      if [ -n "$tracked_pid" ] && ps -p "$tracked_pid" >/dev/null 2>&1; then
+        echo "ok (running pid $tracked_pid)"
+      else
+        echo "ok (running untracked pid(s): $(loop_pids | tr '\n' ' ' | sed -E 's/[[:space:]]+/ /g; s/^ //; s/ $//'))"
+      fi
       exit 0
     fi
     echo "ERROR: orchestrator loop not running" >&2
@@ -69,13 +101,20 @@ case "$cmd" in
 
   stop)
     pid="$(read_pid)"
+    stopped_any=0
     if [ -n "$pid" ] && ps -p "$pid" >/dev/null 2>&1; then
-      kill "$pid" >/dev/null 2>&1 || true
-      sleep 0.2
-      if ps -p "$pid" >/dev/null 2>&1; then
-        kill -9 "$pid" >/dev/null 2>&1 || true
-      fi
-      echo "Stopped (pid $pid)"
+      stop_pid "$pid"
+      stopped_any=1
+    fi
+    while IFS= read -r loop_pid; do
+      [[ "$loop_pid" =~ ^[0-9]+$ ]] || continue
+      [ "$loop_pid" = "$pid" ] && continue
+      stop_pid "$loop_pid"
+      stopped_any=1
+    done < <(loop_pids)
+    rm -f "$PIDFILE" >/dev/null 2>&1 || true
+    if [ "$stopped_any" -eq 1 ]; then
+      echo "Stopped orchestrator loop(s)"
       exit 0
     fi
     echo "Not running"

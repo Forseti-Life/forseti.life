@@ -7,7 +7,7 @@
 
 ## Currently Working On
 
-No active CEO inbox work in flight. The latest session closed the recurring merge-safety churn by proving there are no active PRs/conflicts and adding a structural raw-merge guard to HQ automation verification.
+Updating the recurring CEO system health check so it quickly detects duplicate scheduler/runner processes and recent Copilot rate-limit pressure, based on the live incident diagnosed on 2026-04-16.
 
 ---
 

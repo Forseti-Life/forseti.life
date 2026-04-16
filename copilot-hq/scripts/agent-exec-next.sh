@@ -578,9 +578,10 @@ LOCAL_RUNNER="$ROOT_DIR/llm/runner.py"
 _throttle_copilot_api() {
   # Global rate-limit guard: enforces a minimum delay between Copilot API calls
   # across ALL concurrent agent executions (shared timestamp file).
-  # Override minimum delay via COPILOT_API_MIN_DELAY_SECONDS (default: 60).
-  local min_delay="${COPILOT_API_MIN_DELAY_SECONDS:-60}"
+  # Override minimum delay via COPILOT_API_MIN_DELAY_SECONDS (default: 300).
+  local min_delay="${COPILOT_API_MIN_DELAY_SECONDS:-300}"
   local ts_file="$ROOT_DIR/tmp/.last-copilot-api-call"
+  local cooldown_file="$ROOT_DIR/tmp/.copilot-api-rate-limit-until"
   mkdir -p "$ROOT_DIR/tmp"
 
   # Use a separate lock file so only one agent updates the timestamp at a time.
@@ -593,6 +594,17 @@ _throttle_copilot_api() {
 
     local now elapsed wait_for
     now=$(date +%s)
+
+    if [ -f "$cooldown_file" ]; then
+      local cooldown_until
+      cooldown_until="$(cat "$cooldown_file" 2>/dev/null || echo 0)"
+      if [[ "$cooldown_until" =~ ^[0-9]+$ ]] && [ "$cooldown_until" -gt "$now" ]; then
+        wait_for=$(( cooldown_until - now ))
+        echo "THROTTLE: waiting ${wait_for}s for Copilot rate-limit cooldown (until=${cooldown_until})" >&2
+        sleep "$wait_for"
+        now=$(date +%s)
+      fi
+    fi
 
     if [ -f "$ts_file" ]; then
       local last
@@ -610,6 +622,49 @@ _throttle_copilot_api() {
   )
 }
 
+copilot_rate_limited() {
+  local text="${1:-}"
+  printf '%s\n' "$text" | grep -qiE "hit a rate limit|too many requests|please try again in [0-9]+ (seconds?|minutes?)"
+}
+
+copilot_rate_limit_backoff_seconds() {
+  local text="${1:-}"
+  local fallback="${COPILOT_RATE_LIMIT_BACKOFF_SECONDS:-300}"
+  local match value
+
+  match="$(printf '%s\n' "$text" | grep -oiE 'Please try again in [0-9]+ minutes?' | head -n 1 || true)"
+  if [ -n "$match" ]; then
+    value="$(printf '%s\n' "$match" | grep -oE '[0-9]+' | head -n 1 || true)"
+    if [[ "$value" =~ ^[0-9]+$ ]]; then
+      echo $(( value * 60 + 15 ))
+      return 0
+    fi
+  fi
+
+  match="$(printf '%s\n' "$text" | grep -oiE 'Please try again in [0-9]+ seconds?' | head -n 1 || true)"
+  if [ -n "$match" ]; then
+    value="$(printf '%s\n' "$match" | grep -oE '[0-9]+' | head -n 1 || true)"
+    if [[ "$value" =~ ^[0-9]+$ ]]; then
+      echo $(( value + 15 ))
+      return 0
+    fi
+  fi
+
+  echo "$fallback"
+}
+
+set_copilot_rate_limit_cooldown() {
+  local seconds="${1:-0}"
+  local cooldown_file="$ROOT_DIR/tmp/.copilot-api-rate-limit-until"
+  local until
+  [[ "$seconds" =~ ^[0-9]+$ ]] || seconds=0
+  [ "$seconds" -gt 0 ] 2>/dev/null || return 0
+  until=$(( $(date +%s) + seconds ))
+  mkdir -p "$ROOT_DIR/tmp"
+  printf '%s\n' "$until" > "$cooldown_file"
+  echo "THROTTLE: recorded Copilot rate-limit cooldown for ${seconds}s (until=${until})" >&2
+}
+
 run_copilot() {
   local prompt="$1"
   # Enforce inter-call rate-limit delay before hitting the Copilot API.
@@ -618,9 +673,9 @@ run_copilot() {
   # Default: 15 minutes; override via COPILOT_TIMEOUT_SEC.
   if command -v timeout >/dev/null 2>&1; then
     timeout -k "${COPILOT_TIMEOUT_KILL_SEC:-10}" "${COPILOT_TIMEOUT_SEC:-900}" \
-      "$COPILOT_BIN" --resume "$SESSION_ID" --silent --allow-all -p "$prompt" || true
+      "$COPILOT_BIN" --resume "$SESSION_ID" --silent --allow-all -p "$prompt" 2>&1 || true
   else
-    "$COPILOT_BIN" --resume "$SESSION_ID" --silent --allow-all -p "$prompt" || true
+    "$COPILOT_BIN" --resume "$SESSION_ID" --silent --allow-all -p "$prompt" 2>&1 || true
   fi
 }
 
@@ -688,23 +743,42 @@ if ! echo "$response" | grep -qiE '^\- Status:'; then
   if [ "$is_qa_findings_item" -eq 1 ]; then
     response=$'- Status: in_progress\n- Summary: QA findings item acknowledged; remediation work is in progress and will continue on this queue item until fixes are completed and handed off to QA.\n\n## Next actions\n- Review findings-summary evidence and prioritize highest-impact failures first.\n- Apply fixes and post clear QA handoff markers after each fix.\n- Continue until all required tests pass, then mark done.\n\n## Blockers\n- None right now.\n\n## Needs from CEO\n- N/A\n\n'"$response"
   else
-    # Retry up to 2 more times with 30s backoff before writing a failure record.
     _retry_count=0
-    while [ "$_retry_count" -lt 2 ]; do
-      _retry_count=$((_retry_count + 1))
-      echo "WARN: agent response missing status header; retry ${_retry_count}/2 for ${AGENT_ID} (sleep 30s)" >&2
-      sleep 30
-      response="$(run_primary_backend "$PROMPT")"
-      response="$(printf '%s\n' "$response" | sed -E 's/^[[:space:]]*-[[:space:]]+\\*\\*Status\\*\\*:/- Status:/I; s/^[[:space:]]*-[[:space:]]+\\*\\*Summary\\*\\*:/- Summary:/I; s/^[[:space:]]*\\*\\*Status\\*\\*:/- Status:/I; s/^[[:space:]]*\\*\\*Summary\\*\\*:/- Summary:/I; s/^[[:space:]]*Status:/- Status:/I; s/^[[:space:]]*Summary:/- Summary:/I')"
-      if echo "$response" | grep -qiE '^\- Status:'; then
-        break
-      fi
-    done
+    _saw_rate_limit=0
+    if copilot_rate_limited "$response"; then
+      _saw_rate_limit=1
+      _rate_limit_backoff="$(copilot_rate_limit_backoff_seconds "$response")"
+      set_copilot_rate_limit_cooldown "$_rate_limit_backoff"
+      echo "WARN: Copilot rate-limited for ${AGENT_ID}; preserving inbox item for later retry" >&2
+    else
+      # Retry up to 2 more times with 30s backoff before writing a failure record.
+      while [ "$_retry_count" -lt 2 ]; do
+        _retry_count=$((_retry_count + 1))
+        echo "WARN: agent response missing status header; retry ${_retry_count}/2 for ${AGENT_ID} (sleep 30s)" >&2
+        sleep 30
+        response="$(run_primary_backend "$PROMPT")"
+        response="$(printf '%s\n' "$response" | sed -E 's/^[[:space:]]*-[[:space:]]+\\*\\*Status\\*\\*:/- Status:/I; s/^[[:space:]]*-[[:space:]]+\\*\\*Summary\\*\\*:/- Summary:/I; s/^[[:space:]]*\\*\\*Status\\*\\*:/- Status:/I; s/^[[:space:]]*\\*\\*Summary\\*\\*:/- Summary:/I; s/^[[:space:]]*Status:/- Status:/I; s/^[[:space:]]*Summary:/- Summary:/I')"
+        if copilot_rate_limited "$response"; then
+          _saw_rate_limit=1
+          _rate_limit_backoff="$(copilot_rate_limit_backoff_seconds "$response")"
+          set_copilot_rate_limit_cooldown "$_rate_limit_backoff"
+          echo "WARN: Copilot rate-limited for ${AGENT_ID}; stopping retries for this cycle" >&2
+          break
+        fi
+        if echo "$response" | grep -qiE '^\- Status:'; then
+          break
+        fi
+      done
+    fi
     # If still no valid status header after retries, write a failure record instead of a stub outbox.
     if ! echo "$response" | grep -qiE '^\- Status:'; then
       mkdir -p "tmp/executor-failures"
       _fail_ts="$(date +%Y%m%dT%H%M%S)"
       _fail_file="tmp/executor-failures/${_fail_ts}-${AGENT_ID}.md"
+      _failure_reason="agent response missing required status header after ${_retry_count} retries"
+      if [ "$_saw_rate_limit" -eq 1 ]; then
+        _failure_reason="Copilot rate limit encountered; executor preserved inbox item for a later retry"
+      fi
       cat >"$_fail_file" <<FAILMD
 # Executor failure: ${AGENT_ID}
 
@@ -712,7 +786,7 @@ if ! echo "$response" | grep -qiE '^\- Status:'; then
 - Inbox item: ${next}
 - Failed at: $(date -Iseconds)
 - Retries attempted: ${_retry_count}
-- Failure reason: agent response missing required status header after ${_retry_count} retries
+- Failure reason: ${_failure_reason}
 - Action: no stub outbox written; stagnation detector should query tmp/executor-failures/ for systemic signal
 
 ## Raw response (first 500 chars)

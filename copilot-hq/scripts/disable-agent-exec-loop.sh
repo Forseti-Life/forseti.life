@@ -6,6 +6,10 @@ cd "$ROOT_DIR"
 
 MARKER="# copilot-sessions-hq:agent-exec"
 
+legacy_agent_exec_pids() {
+  ps -eo pid=,args= 2>/dev/null | awk '/[s]cripts\/agent-exec-loop\.sh run/ {print $1}'
+}
+
 # Remove cron entries for the legacy agent exec loop.
 current=""
 if crontab -l >/dev/null 2>&1; then
@@ -31,3 +35,15 @@ if [ -f "$PIDFILE" ]; then
     fi
   fi
 fi
+
+while IFS= read -r pid; do
+  [[ "$pid" =~ ^[0-9]+$ ]] || continue
+  if ps -p "$pid" >/dev/null 2>&1; then
+    echo "Stopping stray legacy agent-exec-loop pid $pid"
+    kill "$pid" >/dev/null 2>&1 || true
+    sleep 0.2
+    if ps -p "$pid" >/dev/null 2>&1; then
+      kill -9 "$pid" >/dev/null 2>&1 || true
+    fi
+  fi
+done < <(legacy_agent_exec_pids)

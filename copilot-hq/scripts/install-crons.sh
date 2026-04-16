@@ -21,8 +21,6 @@ LOG_DIR="${HQ_ROOT}/inbox/responses"
 ENTRIES=(
   "orchestrator-reboot|@reboot|ORCHESTRATOR_AGENT_CAP=6 ${HQ_ROOT}/scripts/orchestrator-loop.sh start 60 >> ${LOG_DIR}/orchestrator-cron.log 2>&1"
   "orchestrator-watchdog|*/5 * * * *|ORCHESTRATOR_AGENT_CAP=6 ${HQ_ROOT}/scripts/orchestrator-watchdog.sh >> ${LOG_DIR}/orchestrator-cron.log 2>&1"
-  "agent-exec-reboot|@reboot|AGENT_EXEC_MAX_CONCURRENT=6 ${HQ_ROOT}/scripts/agent-exec-loop.sh start 60 >> ${LOG_DIR}/agent-exec-cron.log 2>&1"
-  "agent-exec-watchdog|*/5 * * * *|AGENT_EXEC_MAX_CONCURRENT=6 ${HQ_ROOT}/scripts/agent-exec-watchdog.sh >> ${LOG_DIR}/agent-exec-cron.log 2>&1"
   "hq-automation|* * * * *|${HQ_ROOT}/scripts/hq-automation-watchdog.sh >> ${LOG_DIR}/hq-automation-cron.log 2>&1"
   "ceo-ops|0 */2 * * *|${HQ_ROOT}/scripts/ceo-ops-once.sh >> ${LOG_DIR}/ceo-ops-cron.log 2>&1"
   "auto-checkpoint|0 */2 * * *|${HQ_ROOT}/scripts/auto-checkpoint.sh >> ${LOG_DIR}/auto-checkpoint-cron.log 2>&1"
@@ -31,6 +29,12 @@ ENTRIES=(
 
 # Load current crontab (ignore error if empty).
 current_crontab="$(crontab -l 2>/dev/null || true)"
+current_crontab="$(printf '%s\n' "$current_crontab" \
+  | grep -vF "# copilot-sessions-hq:agent-exec-reboot" \
+  | grep -vF "# copilot-sessions-hq:agent-exec-watchdog" \
+  | grep -vF "${HQ_ROOT}/scripts/agent-exec-loop.sh" \
+  | grep -vF "${HQ_ROOT}/scripts/agent-exec-watchdog.sh" \
+  | grep -vF "${HQ_ROOT}/scripts/agent-exec-once.sh" || true)"
 
 added=0
 skipped=0
