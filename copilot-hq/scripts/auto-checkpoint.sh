@@ -4,12 +4,23 @@ set -euo pipefail
 # Auto checkpoint commit + push for multiple repos.
 # Only commits when there are changes.
 
-REPOS=(
-  "/home/ubuntu/forseti.life"
-  "/home/ubuntu/forseti.life/copilot-hq"
-)
+if [ -n "${AUTO_CHECKPOINT_REPOS:-}" ]; then
+  mapfile -t REPOS <<<"${AUTO_CHECKPOINT_REPOS}"
+else
+  REPOS=(
+    "/home/ubuntu/forseti.life"
+    "/home/ubuntu/forseti.life/copilot-hq"
+  )
+fi
 
 ISO="$(date -Iseconds)"
+LOCKFILE="${AUTO_CHECKPOINT_LOCKFILE:-/tmp/forseti-auto-checkpoint.lock}"
+
+exec 9>"$LOCKFILE"
+if ! flock -n 9; then
+  echo "[$ISO] SKIP (auto-checkpoint already running): $LOCKFILE"
+  exit 0
+fi
 
 is_dirty() {
   git --no-pager status --porcelain=v1 | grep -q .
@@ -44,6 +55,11 @@ for repo in "${REPOS[@]}"; do
 
   if ! is_dirty; then
     echo "[$ISO] CLEAN: $repo"
+    continue
+  fi
+
+  if [ -e "$repo/.git/index.lock" ]; then
+    echo "[$ISO] BLOCKED (git index.lock present): $repo"
     continue
   fi
 

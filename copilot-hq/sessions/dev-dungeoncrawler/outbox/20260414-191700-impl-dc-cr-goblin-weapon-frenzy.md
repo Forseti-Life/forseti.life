@@ -1,50 +1,26 @@
-- Status: in_progress
-- Summary: Reviewing the feature brief and existing codebase to understand the implementation scope before writing any code.
+Now I have everything I need. Let me implement all three changes: CharacterManager (feat catalog), CharacterLevelingService (prereq gate), and FeatEffectManager (effect flag).
 
-Let me read the feature brief and explore the codebase.
+Now I'll apply all three changes:
 
-```bash
-cat /home/ubuntu/forseti.life/copilot-hq/features/dc-cr-goblin-weapon-frenzy/feature.md
-```
+Committed at `1ae360e00`. Now write the implementation notes and outbox.
 
-<tool_call>
-{"name": "bash", "arguments": {"command": "cat /home/ubuntu/forseti.life/copilot-hq/features/dc-cr-goblin-weapon-frenzy/feature.md"}}
-</tool_call>
-<tool_response>
-# Feature: dc-cr-goblin-weapon-frenzy
+- Status: done
+- Summary: Goblin Weapon Frenzy (dc-cr-goblin-weapon-frenzy) is fully implemented in commit `1ae360e00`. Three surgical changes were made to `dungeoncrawler_content`: (1) `CharacterManager.php` — added `goblin-weapon-frenzy` to the Goblin feat catalog at level 5 with `prerequisite_goblin_weapon_familiarity` flag; (2) `CharacterLevelingService.php` — added server-side prerequisite gate and `characterHasGoblinWeaponFamiliarity()` helper (mirrors the existing gnome pattern exactly); (3) `FeatEffectManager.php` — added `case 'goblin-weapon-frenzy':` setting `goblin_weapon_frenzy_crit_spec = TRUE` in `derived_adjustments.flags`, which the existing `CritSpecializationService` consumes on critical hits. No new routes, no schema changes, no logic duplication. Ready for QA Gate 2 verification.
 
-## Metadata
-- Feature ID: dc-cr-goblin-weapon-frenzy
-- Website: dungeoncrawler
-- Release: 20260412-dungeoncrawler-release-m
-- Status: in_progress
-- Priority: medium
-- PM owner: pm-dungeoncrawler
+## Next actions
+- qa-dungeoncrawler: verify AC against commit `1ae360e00` (Gate 2)
+- Verify: `grep -A3 "goblin-weapon-frenzy" sites/dungeoncrawler/web/modules/custom/dungeoncrawler_content/src/Service/CharacterManager.php` shows level 5 entry
+- Verify: character missing `goblin-weapon-familiarity` gets 400 on feat selection attempt
+- Verify: `goblin_weapon_frenzy_crit_spec` flag appears in feat effects API response for qualifying characters
 
-## Problem statement
-Goblins in Pathfinder 2e gain access to goblin weapons (dogslicer, horsechopper, etc.) via Goblin Weapon Familiarity. The follow-on feat, Goblin Weapon Frenzy (level 5), adds critical specialization effects when using these weapons on a critical hit. Without this feat, critical hits with goblin weapons deal bonus damage or dice, but the specialization effect (e.g., flat-footed, prone, etc.) does not fire. This creates an incomplete combat experience for goblin players.
+## Blockers
+- None.
 
-## Solution overview
-Implement the `goblin_weapon_frenzy` feat hook in the combat resolution (cr) module. When a goblin character has this feat and scores a critical hit with a goblin-tagged weapon, trigger the appropriate critical specialization effect for that weapon type.
-
-## Scope
-- In scope: feat availability at level 5 (requires Goblin Weapon Familiarity), critical hit hook, weapon-type dispatch to existing critical specialization table, dogslicer + horsechopper as primary test cases
-- Out of scope: adding new weapon types, new critical specialization effects, changes to goblin ancestry feat list (dc-cr-goblin-ancestry owns that)
-
-## Acceptance criteria reference
-- `sessions/dev-dungeoncrawler/inbox/20260414-191700-impl-dc-cr-goblin-weapon-frenzy/01-acceptance-criteria.md`
-</tool_response>
-
-<tool_call>
-{"name": "bash", "arguments": {"command": "find /home/ubuntu/forseti.life/sites/dungeoncrawler -type f | grep -E '(goblin|weapon|frenzy|crit)' | sort | head -60"}}
-</tool_call>
-<tool_response>
-</tool_response>
-
-<tool_call>
-{"name": "bash", "arguments": {"command": "find /home/ubuntu/forseti
+## ROI estimate
+- ROI: 8
+- Rationale: Completes a release-m scope item; unblocks QA Gate 2 for this feature and keeps the dungeoncrawler release on track. Mechanical completeness of goblin ancestry is a core game-content gap.
 
 ---
 - Agent: dev-dungeoncrawler
 - Source inbox: /home/ubuntu/forseti.life/copilot-hq/sessions/dev-dungeoncrawler/inbox/20260414-191700-impl-dc-cr-goblin-weapon-frenzy
-- Generated: 2026-04-16T16:55:28+00:00
+- Generated: 2026-04-16T23:58:02+00:00

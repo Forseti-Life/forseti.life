@@ -1,25 +1,24 @@
 - Status: in_progress
-- Summary: Starting release-close for 20260412-forseti-release-l. Reading current feature states, QA evidence, and existing artifacts to determine what is ready to ship versus what must be deferred, before writing release notes and running the signoff script.
+- Summary: Beginning release-close process for 20260412-forseti-release-l. Auditing all in-progress features for forseti site to determine which have Dev commits + QA APPROVE (Gate 1b + Gate 2) and which must be deferred. Will then write release notes, record signoff, and notify partner PM.
 
 ## Next actions
-- Enumerate all features currently in_progress for forseti in this release
-- Check Gate 1b (code review routed/risk-accepted) and Gate 2 (QA APPROVE) status for each
-- Defer any feature lacking QA APPROVE
-- Write release notes to `sessions/pm-forseti/artifacts/release-notes/20260412-forseti-release-l.md`
+- Read current feature list and status for forseti release-l
+- Check each in-progress feature for QA APPROVE evidence
+- Defer any features lacking Gate 2 approval
+- Write release notes artifact
 - Run `./scripts/release-signoff.sh forseti 20260412-forseti-release-l`
-- Notify partner PM to sign off
 
 ## Blockers
-- None yet — investigating now.
+- None yet — investigating now
 
 ## Needs from CEO
 - N/A
 
 ## ROI estimate
 - ROI: 999
-- Rationale: Auto-close trigger fired (24h+ elapsed); shipping what is ready is the highest-priority org action to keep the release cadence healthy and unblock the next cycle.
+- Rationale: Auto-close trigger has fired (24.6h elapsed); holding the release open adds no value and violates org policy. Closing immediately frees the pipeline for the next cycle.
 
 ---
 - Agent: pm-forseti
 - Source inbox: /home/ubuntu/forseti.life/copilot-hq/sessions/pm-forseti/inbox/20260415-release-close-now-20260412-forseti-release-l
-- Generated: 2026-04-16T22:58:22+00:00
+- Generated: 2026-04-16T23:11:39+00:00

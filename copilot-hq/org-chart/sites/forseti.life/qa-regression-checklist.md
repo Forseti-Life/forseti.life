@@ -183,3 +183,4 @@ This file is a running list of targeted regression checks derived from completed
 - [ ] 20260414-172605-impl-forseti-jobhunter-resume-version-labeling — targeted regression check (see dev outbox: sessions/dev-forseti/outbox/20260414-172605-impl-forseti-jobhunter-resume-version-labeling.md)
 - [ ] 20260414-172606-impl-forseti-jobhunter-resume-version-tracker — targeted regression check (see dev outbox: sessions/dev-forseti/outbox/20260414-172606-impl-forseti-jobhunter-resume-version-tracker.md)
 - [ ] 20260414-172546-impl-forseti-community-incident-report — targeted regression check (see dev outbox: sessions/dev-forseti/outbox/20260414-172546-impl-forseti-community-incident-report.md)
+- [ ] 20260414-172551-impl-forseti-installation-cluster-communication — targeted regression check (see dev outbox: sessions/dev-forseti/outbox/20260414-172551-impl-forseti-installation-cluster-communication.md)
