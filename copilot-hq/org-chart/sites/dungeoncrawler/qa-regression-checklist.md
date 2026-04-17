@@ -369,3 +369,4 @@ This file is a running list of targeted regression checks derived from completed
 - [ ] 20260414-203542-impl-dc-gmg-subsystems — targeted regression check (see dev outbox: sessions/dev-dungeoncrawler/outbox/20260414-203542-impl-dc-gmg-subsystems.md)
 - [ ] 20260414-203542-impl-dc-ui-encounter-party-rail — targeted regression check (see dev outbox: sessions/dev-dungeoncrawler/outbox/20260414-203542-impl-dc-ui-encounter-party-rail.md)
 - [ ] 20260414-203542-impl-dc-ui-hexmap-thin-client — targeted regression check (see dev outbox: sessions/dev-dungeoncrawler/outbox/20260414-203542-impl-dc-ui-hexmap-thin-client.md)
+- [ ] 20260414-203542-impl-dc-ui-map-first-player-shell — targeted regression check (see dev outbox: sessions/dev-dungeoncrawler/outbox/20260414-203542-impl-dc-ui-map-first-player-shell.md)
