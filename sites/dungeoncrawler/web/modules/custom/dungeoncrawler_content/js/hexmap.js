@@ -6,6 +6,7 @@
 // Import ECS modules
 import { EntityManager, PositionComponent, RenderComponent, IdentityComponent, EntityType, RenderSystem, MovementComponent, StatsComponent, MovementSystem, MovementMode, ActionsComponent, ActionType, ActionCost, CombatComponent, Team, TurnManagementSystem, CombatState, CombatSystem, AttackResult } from './ecs/index.js';
 import combatApi from './hexmap-api.js';
+import { HexmapStateSync } from './HexmapStateSync.js';
 import { GameCoordinator } from './game-coordinator/GameCoordinator.js';
 import { ChatSessionApi } from './ChatSessionApi.js';
 import { SpriteService } from './SpriteService.js';
@@ -114,8 +115,16 @@ import { SpriteService } from './SpriteService.js';
   }
 
   /**
-   * UIManager - Handles all DOM interactions and UI updates.
-   * Decouples business logic from DOM manipulation.
+   * UIManager — [THIN-CLIENT: shell UI + chat adapter]
+   *
+   * Responsibilities (presentation only):
+   *   - DOM interactions and UI updates for the hexmap shell
+   *   - Chat adapter: rendering messages, managing channels, submitting chat
+   *
+   * NOT responsible for:
+   *   - Gameplay rules or state mutations (GameCoordinator owns that)
+   *   - Server state polling (HexmapStateSync owns that)
+   *   - API calls for combat actions (hexmap-api.js owns that)
    */
   class UIManager {
     constructor(stateManager = null) {
@@ -1715,6 +1724,11 @@ import { SpriteService } from './SpriteService.js';
     /**
      * Handle a navigate_to_location result from the chat API.
      *
+     * [THIN-CLIENT: server-authoritative] — reconciles server-returned room payload
+     * into the local dungeonData presentation cache. The room, entities, and connections
+     * all originate from the server response (nav.room, nav.entities, nav.connections).
+     * This is NOT client-originated state creation.
+     *
      * Injects the new room, entities, and connections into the live dungeonData,
      * moves the player entity to the entry hex, and switches the active room.
      *
@@ -2337,9 +2351,9 @@ import { SpriteService } from './SpriteService.js';
     stageListeners: [],
     tickerCallbacks: [],
     stateSubscriptions: [],
-    currentStateSyncTimer: null,
-    currentStateSyncInFlight: false,
-    currentStateSyncFailures: 0,
+
+    // [THIN-CLIENT: state adapter] — managed by HexmapStateSync
+    stateSync: null,
 
     attach: function (context, settings) {
       const container = once('hexmap-init', '#hexmap-canvas-container', context);
@@ -2378,7 +2392,10 @@ import { SpriteService } from './SpriteService.js';
       this.applyDungeonData();
       this.applyLaunchContext();
       this.initQuestData();
-      this.startServerStateSync();
+
+      // [THIN-CLIENT: state adapter] Initialize and start server-state polling.
+      this.stateSync = new HexmapStateSync(this);
+      this.stateSync.start();
 
       // Initialize Game Coordinator (Phase 2: server-authoritative game loop).
       const campaignId = this.resolveCampaignId?.() || Number(this.launchContext?.campaign_id || 0);
@@ -2444,7 +2461,8 @@ import { SpriteService } from './SpriteService.js';
       this.stateSubscriptions.forEach(unsubscribe => unsubscribe());
       this.stateSubscriptions = [];
 
-      this.stopServerStateSync();
+      this.stateSync?.stop();
+      this.stateSync = null;
 
       // Cleanup Game Coordinator.
       if (this.gameCoordinator) {
@@ -2489,110 +2507,6 @@ import { SpriteService } from './SpriteService.js';
       console.log('Hexmap cleanup complete');
     },
 
-    startServerStateSync: function () {
-      this.stopServerStateSync();
-
-      const intervalMs = Number(this.config?.serverStateSyncIntervalMs || 3000);
-      this.currentStateSyncTimer = setInterval(() => {
-        this.syncCurrentStateFromServer();
-      }, intervalMs);
-
-      this.syncCurrentStateFromServer({ force: true, silent: true });
-    },
-
-    stopServerStateSync: function () {
-      if (this.currentStateSyncTimer) {
-        clearInterval(this.currentStateSyncTimer);
-        this.currentStateSyncTimer = null;
-      }
-      this.currentStateSyncInFlight = false;
-      this.currentStateSyncFailures = 0;
-    },
-
-    buildCurrentStatePayload: function () {
-      return {
-        campaignId: this.resolveCampaignId(),
-        roomId: this.resolveActiveRoomId(),
-        encounterId: this.stateManager.get('encounterId') || null,
-        mapId: this.stateManager.get('mapId') || null,
-      };
-    },
-
-    syncCurrentStateFromServer: async function ({ force = false, silent = false } = {}) {
-      if (!this.canUseServerCombatApi()) {
-        return null;
-      }
-
-      if (this.currentStateSyncInFlight && !force) {
-        return null;
-      }
-
-      const payload = this.buildCurrentStatePayload();
-      if (!payload.campaignId && !payload.encounterId) {
-        return null;
-      }
-
-      this.currentStateSyncInFlight = true;
-
-      try {
-        const serverState = await combatApi.getCurrentState(payload);
-        this.currentStateSyncFailures = 0;
-
-        if (!serverState || typeof serverState !== 'object') {
-          return null;
-        }
-
-        if (serverState.success && serverState.data) {
-          this.applyServerCurrentState(serverState.data);
-          return serverState.data;
-        }
-
-        this.applyServerCurrentState(serverState);
-        return serverState;
-      } catch (err) {
-        this.currentStateSyncFailures += 1;
-        console.error('Current state sync failed:', err);
-        if (!silent && this.currentStateSyncFailures === 1) {
-          this.notifyServerUnavailable();
-        }
-        return null;
-      } finally {
-        this.currentStateSyncInFlight = false;
-      }
-    },
-
-    applyServerCurrentState: function (serverState = {}) {
-      if (!serverState || typeof serverState !== 'object') {
-        return;
-      }
-
-      if (serverState.encounter_id) {
-        this.stateManager.set('encounterId', serverState.encounter_id);
-      }
-
-      if (serverState.map_id) {
-        this.stateManager.set('mapId', serverState.map_id);
-      }
-
-      if (typeof this.turnManagementSystem?.hydrateFromServer === 'function' && Array.isArray(serverState.initiative_order)) {
-        this.stateManager.set('serverCombatMode', true);
-        if (this.combatSystem && typeof this.combatSystem.setServerResultRequirement === 'function') {
-          this.combatSystem.setServerResultRequirement(true);
-        }
-        this.turnManagementSystem.hydrateFromServer(serverState);
-        this.syncSelectedToCurrentTurn();
-      }
-
-      if (serverState.world_delta) {
-        this.applyWorldDelta(serverState.world_delta);
-      }
-
-      const characterState = serverState.character_state || serverState.player_character || serverState.current_character || null;
-      if (characterState && this.uiManager && typeof this.uiManager.showLaunchCharacter === 'function') {
-        this.uiManager.showLaunchCharacter(characterState);
-      }
-    },
-    
     /**
      * Initialize ECS architecture.
      */
@@ -4531,6 +4445,11 @@ import { SpriteService } from './SpriteService.js';
 
     /**
      * Apply backend-authoritative world delta returned by combat action API.
+     *
+     * [THIN-CLIENT: server-authoritative] — reconciles server-originated world state
+     * changes (open_passage, open_door, move_object) into the local dungeonData cache.
+     * All mutations originate from the server; this method is presentation cache sync only.
+     *
      * @param {Object|null} worldDelta
      */
     applyWorldDelta: function (worldDelta) {
