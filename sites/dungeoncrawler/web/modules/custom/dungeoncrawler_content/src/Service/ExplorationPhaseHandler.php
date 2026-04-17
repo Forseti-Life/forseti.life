@@ -2677,6 +2677,12 @@ class ExplorationPhaseHandler implements PhaseHandlerInterface {
     foreach ($dungeon_data['entities'] as &$entity) {
       if (($entity['entity_id'] ?? $entity['id'] ?? '') === $effective_target) {
         $entity['state']['last_treated_wounds_at'] = $now_minutes;
+        // REQ dc-cr-halfling-heritage-hillock: snack rider — +level HP on a successful Treat Wounds action.
+        // Applied once per action (one function call = one result). Success only; failures/crit-fails excluded.
+        if ($healed > 0 && ($entity['heritage'] ?? '') === 'hillock') {
+          $target_level = max(1, (int) ($entity['level'] ?? ($entity['stats']['level'] ?? 1)));
+          $healed += $target_level;
+        }
         $mutations[] = ['type' => 'entity_state', 'entity_id' => $effective_target, 'state' => $entity['state']];
         break;
       }

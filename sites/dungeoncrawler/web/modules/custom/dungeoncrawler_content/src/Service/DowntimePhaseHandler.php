@@ -764,6 +764,10 @@ class DowntimePhaseHandler implements PhaseHandlerInterface {
           $con_mod = (int) ($entity['stats']['con_modifier'] ?? 0);
           $level = max(1, (int) ($entity['stats']['level'] ?? 1));
           $hp_per_rest = max(1, $con_mod) * $level;
+          // REQ dc-cr-halfling-heritage-hillock: Hillock Halfling regains extra HP = level on overnight rest.
+          if (($entity['heritage'] ?? '') === 'hillock') {
+            $hp_per_rest += $level;
+          }
           if (!$healing_blocked) {
             $new_hp = min($max_hp, $current_hp + $hp_per_rest);
             $entity['state']['hit_points']['current'] = $new_hp;

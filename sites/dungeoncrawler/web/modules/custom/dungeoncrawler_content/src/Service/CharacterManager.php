@@ -467,7 +467,7 @@ class CharacterManager {
     ],
     'Halfling' => [
       ['id' => 'gutsy', 'name' => 'Gutsy Halfling', 'benefit' => 'Success on emotion saves upgrades to critical success'],
-      ['id' => 'hillock', 'name' => 'Hillock Halfling', 'benefit' => 'Faster healing'],
+      ['id' => 'hillock', 'name' => 'Hillock Halfling', 'benefit' => 'Regain extra HP equal to level on overnight rest; same bonus as snack rider on Treat Wounds'],
       ['id' => 'nomadic', 'name' => 'Nomadic Halfling', 'benefit' => 'Extra languages'],
       ['id' => 'twilight', 'name' => 'Twilight Halfling', 'benefit' => 'Low-light vision'],
     ],

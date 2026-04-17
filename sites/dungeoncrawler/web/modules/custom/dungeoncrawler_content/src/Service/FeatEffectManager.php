@@ -1629,6 +1629,15 @@ class FeatEffectManager {
         $effects['derived_adjustments']['flags']['gutsy_halfling_emotion_save_upgrade'] = TRUE;
         $effects['notes'][] = 'Gutsy Halfling: success on a saving throw against an emotion effect upgrades to critical success. Only affects emotion-tagged effects; failures/crit-fails are unchanged.';
         break;
+
+      case 'hillock':
+        // AC: Hillock Halfling — regain extra HP equal to character level on
+        // overnight (long) rest; same bonus applies as a snack rider when
+        // another character successfully Treats Wounds on this character.
+        // Server-side: handled in processLongRest() and processTreatWounds().
+        $effects['derived_adjustments']['flags']['hillock_halfling_bonus_healing'] = TRUE;
+        $effects['notes'][] = 'Hillock Halfling: +level HP on overnight rest; +level HP snack rider when receiving a successful Treat Wounds action.';
+        break;
     }
 
     $computed_speed = $base_speed + (int) ($effects['derived_adjustments']['speed_bonus'] ?? 0);
