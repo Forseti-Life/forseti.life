@@ -102,3 +102,4 @@ This file is a running list of targeted regression checks derived from completed
 - [ ] 20260416-syshealth-merge-health-remediation — targeted regression check (see dev outbox: sessions/dev-infra/outbox/20260416-syshealth-merge-health-remediation.md)
 - [ ] 20260417-syshealth-merge-health-remediation — targeted regression check (see dev outbox: sessions/dev-infra/outbox/20260417-syshealth-merge-health-remediation.md)
 - [ ] 20260417-syshealth-copilot-rate-limit-pressure — targeted regression check (see dev outbox: sessions/dev-infra/outbox/20260417-syshealth-copilot-rate-limit-pressure.md)
+- [ ] 20260417-syshealth-executor-failures-prune — targeted regression check (see dev outbox: sessions/dev-infra/outbox/20260417-syshealth-executor-failures-prune.md)
