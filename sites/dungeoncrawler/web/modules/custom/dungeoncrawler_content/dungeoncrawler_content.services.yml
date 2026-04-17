@@ -24,7 +24,7 @@ services:
 
   dungeoncrawler_content.character_manager:
     class: Drupal\dungeoncrawler_content\Service\CharacterManager
-    arguments: ['@database', '@current_user', '@uuid', '@dungeoncrawler_content.inventory_management']
+    arguments: ['@database', '@current_user', '@uuid', '@dungeoncrawler_content.inventory_management', '@dungeoncrawler_content.deity_catalog']
 
   dungeoncrawler_content.character_state:
     class: Drupal\dungeoncrawler_content\Service\CharacterStateService
@@ -47,6 +47,7 @@ services:
     arguments:
       - '@database'
       - '@dungeoncrawler_content.multiclass_archetype_service'
+      - '@dungeoncrawler_content.deity_catalog'
 
   dungeoncrawler_content.inventory_management:
     class: Drupal\dungeoncrawler_content\Service\InventoryManagementService
@@ -654,3 +655,8 @@ services:
     arguments:
       - '@database'
       - '@logger.factory'
+
+  dungeoncrawler_content.deity_catalog:
+    class: Drupal\dungeoncrawler_content\Service\DeityService
+    arguments:
+      - '@database'

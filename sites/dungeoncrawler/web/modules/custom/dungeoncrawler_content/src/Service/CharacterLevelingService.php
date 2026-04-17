@@ -31,7 +31,8 @@ class CharacterLevelingService {
 
   public function __construct(
     protected readonly Connection $database,
-    protected readonly MulticlassArchetypeService $multiclassArchetypeService = new MulticlassArchetypeService()
+    protected readonly MulticlassArchetypeService $multiclassArchetypeService = new MulticlassArchetypeService(),
+    protected readonly ?DeityService $deityService = NULL
   ) {}
 
   // ── Public API ─────────────────────────────────────────────────────────────
@@ -517,7 +518,15 @@ class CharacterLevelingService {
       $catalog = array_merge($catalog, $archetype_feats);
     }
 
-    return array_values(array_filter($catalog, static function (array $feat) use ($level, $owned_ids, $gm_unlocked): bool {
+    // Resolve character's deity for domain feat eligibility filtering.
+    $deity_id = $char_data['personality']['deity'] ?? $char_data['basicInfo']['deity'] ?? '';
+    $deity_domains = [];
+    if ($deity_id !== '' && $this->deityService !== NULL) {
+      $deity_domains = $this->deityService->getDomains($deity_id);
+    }
+    $deityService = $this->deityService;
+
+    return array_values(array_filter($catalog, static function (array $feat) use ($level, $owned_ids, $gm_unlocked, $deity_domains, $deityService): bool {
       if (isset($feat['level']) && (int) $feat['level'] > $level) {
         return FALSE;
       }
@@ -527,6 +536,13 @@ class CharacterLevelingService {
       // Uncommon feats require GM unlock in character data.
       if (!empty($feat['uncommon']) && !in_array($feat['id'] ?? '', $gm_unlocked, TRUE)) {
         return FALSE;
+      }
+      // Domain feats (Domain Initiate, Advanced Domain) require matching deity domains.
+      if (!empty($feat['requires_domain']) && $deityService !== NULL) {
+        $required_domain = $feat['requires_domain'];
+        if (!in_array($required_domain, $deity_domains, TRUE)) {
+          return FALSE;
+        }
       }
       return TRUE;
     }));

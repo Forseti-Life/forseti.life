@@ -16,6 +16,7 @@ class CharacterManager {
   protected AccountProxyInterface $currentUser;
   protected UuidInterface $uuid;
   protected ?InventoryManagementService $inventoryManagement = NULL;
+  protected ?DeityService $deityService = NULL;
 
   /**
    * PF2e ancestries with base stats.
@@ -9143,11 +9144,12 @@ the triggering spell. You then attempt to counteract the triggering spell.'],
     return (int) round($entry['base_price_cp'] * $multiplier);
   }
 
-  public function __construct(Connection $database, AccountProxyInterface $current_user, UuidInterface $uuid, ?InventoryManagementService $inventory_management = NULL) {
+  public function __construct(Connection $database, AccountProxyInterface $current_user, UuidInterface $uuid, ?InventoryManagementService $inventory_management = NULL, ?DeityService $deity_service = NULL) {
     $this->database = $database;
     $this->currentUser = $current_user;
     $this->uuid = $uuid;
     $this->inventoryManagement = $inventory_management;
+    $this->deityService = $deity_service;
   }
 
   /**
@@ -9429,6 +9431,25 @@ the triggering spell. You then attempt to counteract the triggering spell.'],
       }
     }
 
+    // Resolve deity-granted features (Cleric/Champion favored weapon, divine font type).
+    $deity_features = [];
+    $deity_id = $options['deity'] ?? '';
+    if ($deity_id !== '' && $this->deityService !== NULL && $this->deityService->isValid($deity_id)) {
+      $deity_data = $this->deityService->getById($deity_id);
+      $favored_weapon = $deity_data['favored_weapon'] ?? '';
+      if ($favored_weapon !== '') {
+        $deity_features['favored_weapon_proficiency'] = [
+          'weapon' => $favored_weapon,
+          'proficiency' => 'trained',
+          'source' => 'deity',
+          'deity_id' => $deity_id,
+        ];
+      }
+      $deity_features['divine_font_type'] = $deity_data['divine_font'] ?? 'heal';
+      $deity_features['divine_skill'] = $deity_data['divine_skill'] ?? '';
+      $deity_features['domains'] = $deity_data['domains'] ?? ['primary' => [], 'alternate' => []];
+    }
+
     return [
       'pf2e_version' => '2.0',
       'character' => [
@@ -9517,6 +9538,7 @@ the triggering spell. You then attempt to counteract the triggering spell.'],
           'traits' => [],
           'backstory' => $options['backstory'] ?? '',
         ],
+        'deity_features' => $deity_features,
         'granted_abilities' => $granted_ability_ids,
         'reactions' => $granted_reactions,
       ],
@@ -12333,11 +12355,13 @@ the triggering spell. You then attempt to counteract the triggering spell.'],
       'id' => 'holy-symbol-wooden', 'name' => 'Holy Symbol (Wooden)',
       'price_cp' => 10, 'bulk' => '-', 'level' => 0,
       'note' => 'Divine focus for divine spellcasters; must be held in one hand to use.',
+      'deity_affiliation' => NULL,
     ],
     'holy-symbol-metal' => [
       'id' => 'holy-symbol-metal', 'name' => 'Holy Symbol (Metal)',
       'price_cp' => 500, 'bulk' => '-', 'level' => 0,
       'note' => 'As wooden, but more durable. Often serves as a backup divine focus.',
+      'deity_affiliation' => NULL,
     ],
     'lantern-hooded' => [
       'id' => 'lantern-hooded', 'name' => 'Lantern (Hooded)',

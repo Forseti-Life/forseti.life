@@ -5577,3 +5577,116 @@ function dungeoncrawler_content_update_10043() {
 
   return 'Added NPC Gallery columns (npc_archetype, alignment, is_gallery_entry, scene_ref, gallery_source_id) to dc_npc (dc-gmg-hazards).';
 }
+
+/**
+ * Implements hook_update_N().
+ *
+ * dc-gam-gods-magic: create dc_deities table and import seed catalog.
+ */
+function dungeoncrawler_content_update_10044() {
+  $schema = \Drupal::database()->schema();
+
+  if (!$schema->tableExists('dc_deities')) {
+    $schema->createTable('dc_deities', [
+      'description' => 'Deity catalog for DungeonCrawler (dc-gam-gods-magic).',
+      'fields' => [
+        'id' => [
+          'type'        => 'serial',
+          'unsigned'    => TRUE,
+          'not null'    => TRUE,
+        ],
+        'deity_id' => [
+          'type'     => 'varchar',
+          'length'   => 64,
+          'not null' => TRUE,
+          'default'  => '',
+          'description' => 'Machine-readable slug (e.g. "pharasma").',
+        ],
+        'name' => [
+          'type'     => 'varchar',
+          'length'   => 128,
+          'not null' => TRUE,
+          'default'  => '',
+        ],
+        'alignment' => [
+          'type'     => 'varchar',
+          'length'   => 4,
+          'not null' => TRUE,
+          'default'  => 'N',
+          'description' => 'PF2e alignment code (LG, NG, CG, LN, N, CN, LE, NE, CE).',
+        ],
+        'edicts' => [
+          'type'     => 'text',
+          'size'     => 'normal',
+          'not null' => TRUE,
+          'description' => 'JSON-encoded array of edict strings.',
+        ],
+        'anathema' => [
+          'type'     => 'text',
+          'size'     => 'normal',
+          'not null' => TRUE,
+          'description' => 'JSON-encoded array of anathema strings.',
+        ],
+        'domains' => [
+          'type'     => 'text',
+          'size'     => 'normal',
+          'not null' => TRUE,
+          'description' => 'JSON-encoded {primary: [], alternate: []} domain lists.',
+        ],
+        'divine_font' => [
+          'type'     => 'varchar',
+          'length'   => 8,
+          'not null' => TRUE,
+          'default'  => 'heal',
+          'description' => 'heal | harm | both',
+        ],
+        'divine_skill' => [
+          'type'     => 'varchar',
+          'length'   => 32,
+          'not null' => TRUE,
+          'default'  => '',
+        ],
+        'favored_weapon' => [
+          'type'     => 'varchar',
+          'length'   => 64,
+          'not null' => TRUE,
+          'default'  => '',
+          'description' => 'Equipment catalog slug for the deity\'s favored weapon.',
+        ],
+        'cleric_spells' => [
+          'type'     => 'text',
+          'size'     => 'normal',
+          'not null' => TRUE,
+          'description' => 'JSON-encoded {level: spell_id} map of signature cleric spells.',
+        ],
+        'divine_ability' => [
+          'type'     => 'text',
+          'size'     => 'normal',
+          'not null' => TRUE,
+          'description' => 'JSON-encoded array of two ability score options (e.g. ["WIS","CHA"]).',
+        ],
+        'changed' => [
+          'type'     => 'int',
+          'not null' => TRUE,
+          'default'  => 0,
+          'description' => 'Unix timestamp of last update.',
+        ],
+      ],
+      'primary key' => ['id'],
+      'unique keys' => [
+        'deity_id' => ['deity_id'],
+      ],
+      'indexes' => [
+        'alignment'    => ['alignment'],
+        'divine_font'  => ['divine_font'],
+      ],
+    ]);
+  }
+
+  // Import seed catalog into the new table.
+  /** @var \Drupal\dungeoncrawler_content\Service\DeityService $deity_service */
+  $deity_service = \Drupal::service('dungeoncrawler_content.deity_catalog');
+  $count = $deity_service->importSeedCatalog();
+
+  return "Created dc_deities table and imported {$count} seed deities (dc-gam-gods-magic).";
+}

@@ -975,6 +975,65 @@ class FeatEffectManager {
           $effects['applied_feats'][] = $feat_id;
           break;
 
+        case 'channel-smite':
+          // Channel Smite (Cleric L4): set flag so combat layer can resolve the
+          // 2-action Strike + Divine Font expenditure. Font slot management is
+          // tracked client-side; this flag signals the feat is active.
+          $effects['derived_adjustments']['flags']['channel_smite_available'] = TRUE;
+          $effects['available_actions']['at_will'][] = [
+            'id'          => 'channel-smite',
+            'name'        => 'Channel Smite',
+            'action_cost' => 2,
+            'description' => '[two-actions] Make a melee Strike. On hit, expend a Divine Font slot to deal the channeled spell\'s damage in addition to weapon damage (no attack roll for the spell portion).',
+          ];
+          $effects['notes'][] = 'Channel Smite: expend a Healing/Harmful Font slot on a hit to channel the spell through your weapon strike.';
+          $effects['applied_feats'][] = $feat_id;
+          break;
+
+        case 'domain-initiate':
+          // Domain Initiate (Cleric L1): flag grants one initial domain spell
+          // as a focus spell. Domain selection is tracked in feat selection data.
+          $selected_domain = $this->resolveFeatSelectionValue($character_data, 'domain-initiate', ['selected_domain', 'domain']);
+          $effects['derived_adjustments']['flags']['domain_initiate'] = TRUE;
+          if ($selected_domain !== NULL) {
+            $effects['derived_adjustments']['flags']['domain_initiate_domain'] = $selected_domain;
+            $effects['notes'][] = 'Domain Initiate: initial domain spell for "' . $selected_domain . '" added as a focus spell. Focus pool +1 (max 3).';
+          }
+          else {
+            $this->addSelectionGrant(
+              $effects,
+              'domain-initiate',
+              'domain_initiate_domain_choice',
+              1,
+              'Select one domain from your deity\'s domain list for Domain Initiate.'
+            );
+            $effects['notes'][] = 'Domain Initiate: select a domain from your deity\'s list.';
+          }
+          $effects['applied_feats'][] = $feat_id;
+          break;
+
+        case 'advanced-domain':
+          // Advanced Domain (Cleric L4): grants the advanced domain spell for a
+          // domain you already have Domain Initiate for. Focus pool +1 (max 3).
+          $selected_domain = $this->resolveFeatSelectionValue($character_data, 'advanced-domain', ['selected_domain', 'domain']);
+          $effects['derived_adjustments']['flags']['advanced_domain'] = TRUE;
+          if ($selected_domain !== NULL) {
+            $effects['derived_adjustments']['flags']['advanced_domain_domain'] = $selected_domain;
+            $effects['notes'][] = 'Advanced Domain: advanced domain spell for "' . $selected_domain . '" added as a focus spell. Focus pool +1 (max 3).';
+          }
+          else {
+            $this->addSelectionGrant(
+              $effects,
+              'advanced-domain',
+              'advanced_domain_domain_choice',
+              1,
+              'Select one domain you have Domain Initiate for to gain its advanced domain spell.'
+            );
+            $effects['notes'][] = 'Advanced Domain: select a domain you already have Domain Initiate for.';
+          }
+          $effects['applied_feats'][] = $feat_id;
+          break;
+
         case 'gnome-weapon-expertise':
           $cascade_rank = $this->getClassWeaponExpertiseRank($character_data['class_features'] ?? []);
           if ($cascade_rank !== '') {
