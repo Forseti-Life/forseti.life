@@ -2358,3 +2358,305 @@ dungeoncrawler_content.api.deity_catalog.get:
     _access: 'TRUE'
   options:
     _format: json
+
+# ── GM Running Guide (dc-gmg-running-guide) ───────────────────────────────────
+
+dungeoncrawler_content.api.gm.reference.search:
+  path: '/api/gm/reference'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\GmRunningGuideController::searchReference'
+  methods: [GET]
+  requirements:
+    _access: 'TRUE'
+  options:
+    _format: json
+
+dungeoncrawler_content.api.gm.reference.upsert:
+  path: '/api/gm/reference'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\GmRunningGuideController::upsertReferenceEntry'
+  methods: [POST]
+  requirements:
+    _access: 'TRUE'
+  options:
+    _format: json
+
+dungeoncrawler_content.api.gm.reference.section:
+  path: '/api/gm/reference/section/{section}'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\GmRunningGuideController::getReferenceBySection'
+  methods: [GET]
+  requirements:
+    _access: 'TRUE'
+  options:
+    _format: json
+
+dungeoncrawler_content.api.gm.reference.get:
+  path: '/api/gm/reference/{id}'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\GmRunningGuideController::getReferenceEntry'
+  methods: [GET]
+  requirements:
+    _access: 'TRUE'
+    id: '\d+'
+  options:
+    _format: json
+
+dungeoncrawler_content.api.gm.session_zero.get:
+  path: '/api/campaign/{campaign_id}/gm/session-zero'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\GmRunningGuideController::getSessionZero'
+  methods: [GET]
+  requirements:
+    _access: 'TRUE'
+    campaign_id: '\d+'
+  options:
+    _format: json
+
+dungeoncrawler_content.api.gm.session_zero.set:
+  path: '/api/campaign/{campaign_id}/gm/session-zero'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\GmRunningGuideController::setSessionZero'
+  methods: [POST]
+  requirements:
+    _access: 'TRUE'
+    campaign_id: '\d+'
+  options:
+    _format: json
+
+dungeoncrawler_content.api.gm.dashboard.get:
+  path: '/api/campaign/{campaign_id}/gm/dashboard'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\GmRunningGuideController::getDashboard'
+  methods: [GET]
+  requirements:
+    _access: 'TRUE'
+    campaign_id: '\d+'
+  options:
+    _format: json
+
+dungeoncrawler_content.api.gm.dashboard.refresh:
+  path: '/api/campaign/{campaign_id}/gm/dashboard/refresh'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\GmRunningGuideController::refreshDashboard'
+  methods: [POST]
+  requirements:
+    _access: 'TRUE'
+    campaign_id: '\d+'
+  options:
+    _format: json
+
+dungeoncrawler_content.api.gm.secret_check.reveal:
+  path: '/api/campaign/{campaign_id}/gm/secret-check/reveal'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\GmRunningGuideController::revealSecretCheck'
+  methods: [POST]
+  requirements:
+    _access: 'TRUE'
+    campaign_id: '\d+'
+  options:
+    _format: json
+
+dungeoncrawler_content.api.gm.rulings.list:
+  path: '/api/campaign/{campaign_id}/gm/rulings'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\GmRunningGuideController::listRulings'
+  methods: [GET]
+  requirements:
+    _access: 'TRUE'
+    campaign_id: '\d+'
+  options:
+    _format: json
+
+dungeoncrawler_content.api.gm.rulings.create:
+  path: '/api/campaign/{campaign_id}/gm/rulings'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\GmRunningGuideController::createRuling'
+  methods: [POST]
+  requirements:
+    _access: 'TRUE'
+    campaign_id: '\d+'
+  options:
+    _format: json
+
+dungeoncrawler_content.api.gm.rulings.review:
+  path: '/api/campaign/{campaign_id}/gm/rulings/{ruling_id}/review'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\GmRunningGuideController::reviewRuling'
+  methods: [PATCH]
+  requirements:
+    _access: 'TRUE'
+    campaign_id: '\d+'
+    ruling_id: '\d+'
+  options:
+    _format: json
+
+dungeoncrawler_content.api.gm.safety.get:
+  path: '/api/campaign/{campaign_id}/gm/safety'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\GmRunningGuideController::getSafety'
+  methods: [GET]
+  requirements:
+    _access: 'TRUE'
+    campaign_id: '\d+'
+  options:
+    _format: json
+
+dungeoncrawler_content.api.gm.safety.set:
+  path: '/api/campaign/{campaign_id}/gm/safety'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\GmRunningGuideController::setSafety'
+  methods: [POST]
+  requirements:
+    _access: 'TRUE'
+    campaign_id: '\d+'
+  options:
+    _format: json
+
+dungeoncrawler_content.api.gm.story_points.get:
+  path: '/api/campaign/{campaign_id}/gm/story-points/{player_id}'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\GmRunningGuideController::getStoryPoints'
+  methods: [GET]
+  requirements:
+    _access: 'TRUE'
+    campaign_id: '\d+'
+    player_id: '\d+'
+  options:
+    _format: json
+
+dungeoncrawler_content.api.gm.story_points.award:
+  path: '/api/campaign/{campaign_id}/gm/story-points/{player_id}/award'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\GmRunningGuideController::awardStoryPoints'
+  methods: [POST]
+  requirements:
+    _access: 'TRUE'
+    campaign_id: '\d+'
+    player_id: '\d+'
+  options:
+    _format: json
+
+dungeoncrawler_content.api.gm.story_points.spend:
+  path: '/api/campaign/{campaign_id}/gm/story-points/{player_id}/spend'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\GmRunningGuideController::spendStoryPoint'
+  methods: [POST]
+  requirements:
+    _access: 'TRUE'
+    campaign_id: '\d+'
+    player_id: '\d+'
+  options:
+    _format: json
+
+dungeoncrawler_content.api.gm.story_points.reset:
+  path: '/api/campaign/{campaign_id}/gm/story-points/reset'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\GmRunningGuideController::resetStoryPoints'
+  methods: [POST]
+  requirements:
+    _access: 'TRUE'
+    campaign_id: '\d+'
+  options:
+    _format: json
+
+dungeoncrawler_content.api.gm.rarity.get:
+  path: '/api/campaign/{campaign_id}/gm/rarity'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\GmRunningGuideController::getRarityAllowlist'
+  methods: [GET]
+  requirements:
+    _access: 'TRUE'
+    campaign_id: '\d+'
+  options:
+    _format: json
+
+dungeoncrawler_content.api.gm.rarity.set:
+  path: '/api/campaign/{campaign_id}/gm/rarity'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\GmRunningGuideController::setRarityAllowlist'
+  methods: [POST]
+  requirements:
+    _access: 'TRUE'
+    campaign_id: '\d+'
+  options:
+    _format: json
+
+dungeoncrawler_content.api.gm.rarity.evaluate:
+  path: '/api/campaign/{campaign_id}/gm/rarity/evaluate'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\GmRunningGuideController::evaluateRarity'
+  methods: [POST]
+  requirements:
+    _access: 'TRUE'
+    campaign_id: '\d+'
+  options:
+    _format: json
+
+dungeoncrawler_content.api.gm.encounter_metadata.get:
+  path: '/api/campaign/{campaign_id}/gm/encounter/{encounter_id}/metadata'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\GmRunningGuideController::getEncounterMetadata'
+  methods: [GET]
+  requirements:
+    _access: 'TRUE'
+    campaign_id: '\d+'
+    encounter_id: '\d+'
+  options:
+    _format: json
+
+dungeoncrawler_content.api.gm.encounter_metadata.set:
+  path: '/api/campaign/{campaign_id}/gm/encounter/{encounter_id}/metadata'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\GmRunningGuideController::setEncounterMetadata'
+  methods: [POST]
+  requirements:
+    _access: 'TRUE'
+    campaign_id: '\d+'
+    encounter_id: '\d+'
+  options:
+    _format: json
+
+dungeoncrawler_content.api.gm.adventure.scene:
+  path: '/api/campaign/{campaign_id}/gm/adventure/scene'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\GmRunningGuideController::recordSceneDesign'
+  methods: [POST]
+  requirements:
+    _access: 'TRUE'
+    campaign_id: '\d+'
+  options:
+    _format: json
+
+dungeoncrawler_content.api.gm.adventure.scene_summary:
+  path: '/api/campaign/{campaign_id}/gm/adventure/scene-summary'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\GmRunningGuideController::getSceneTypeSummary'
+  methods: [GET]
+  requirements:
+    _access: 'TRUE'
+    campaign_id: '\d+'
+  options:
+    _format: json
+
+dungeoncrawler_content.api.gm.campaign_design.get:
+  path: '/api/campaign/{campaign_id}/gm/campaign-design'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\GmRunningGuideController::getCampaignDesign'
+  methods: [GET]
+  requirements:
+    _access: 'TRUE'
+    campaign_id: '\d+'
+  options:
+    _format: json
+
+dungeoncrawler_content.api.gm.campaign_design.set:
+  path: '/api/campaign/{campaign_id}/gm/campaign-design'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\GmRunningGuideController::setCampaignDesign'
+  methods: [POST]
+  requirements:
+    _access: 'TRUE'
+    campaign_id: '\d+'
+  options:
+    _format: json

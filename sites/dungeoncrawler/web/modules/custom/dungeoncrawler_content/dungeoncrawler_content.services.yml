@@ -660,3 +660,14 @@ services:
     class: Drupal\dungeoncrawler_content\Service\DeityService
     arguments:
       - '@database'
+
+  dungeoncrawler_content.gm_reference:
+    class: Drupal\dungeoncrawler_content\Service\GmReferenceService
+    arguments:
+      - '@database'
+
+  dungeoncrawler_content.gm_running_guide:
+    class: Drupal\dungeoncrawler_content\Service\GmRunningGuideService
+    arguments:
+      - '@database'
+      - '@current_user'

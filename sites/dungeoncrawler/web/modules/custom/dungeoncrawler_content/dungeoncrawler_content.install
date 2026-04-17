@@ -5690,3 +5690,246 @@ function dungeoncrawler_content_update_10044() {
 
   return "Created dc_deities table and imported {$count} seed deities (dc-gam-gods-magic).";
 }
+
+/**
+ * dc-gmg-running-guide: Create GM Running Guide operational tables.
+ *
+ * Tables created:
+ *  - dc_gm_reference       — GMG reference content entries
+ *  - dc_gm_session_zero    — Session zero records per campaign
+ *  - dc_gm_dashboard       — GM dashboard modifier cache
+ *  - dc_gm_secret_reveal   — Secret check reveal log
+ *  - dc_gm_ruling          — Ruling records with precedent linkage
+ *  - dc_gm_safety          — Safety tool configuration per campaign
+ *  - dc_story_point        — Story Point economy ledger
+ *  - dc_gm_rarity          — Content rarity allowlist per campaign
+ *  - dc_encounter_metadata — Encounter narrative metadata
+ *  - dc_gm_adventure_design — Adventure/scene design records
+ *  - dc_gm_campaign_design  — Campaign design preferences
+ */
+function dungeoncrawler_content_update_10046() {
+  $schema = \Drupal::database()->schema();
+
+  // ── dc_gm_reference ────────────────────────────────────────────────────
+  if (!$schema->tableExists('dc_gm_reference')) {
+    $schema->createTable('dc_gm_reference', [
+      'fields' => [
+        'id'                   => ['type' => 'serial', 'unsigned' => TRUE, 'not null' => TRUE],
+        'section'              => ['type' => 'varchar', 'length' => 64,   'not null' => TRUE, 'default' => ''],
+        'title'                => ['type' => 'varchar', 'length' => 255,  'not null' => TRUE, 'default' => ''],
+        'content_markdown'     => ['type' => 'text',   'size' => 'big',  'not null' => TRUE],
+        'tags_json'            => ['type' => 'text',   'size' => 'normal','not null' => TRUE, 'default' => '[]'],
+        'structured_data_json' => ['type' => 'text',   'size' => 'big'],
+        'source_book'          => ['type' => 'varchar', 'length' => 32,   'not null' => TRUE, 'default' => 'gmg'],
+        'created'              => ['type' => 'int',    'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0],
+        'updated'              => ['type' => 'int',    'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0],
+      ],
+      'primary key' => ['id'],
+      'indexes' => [
+        'section'    => ['section'],
+        'source_book'=> ['source_book'],
+      ],
+    ]);
+  }
+
+  // ── dc_gm_session_zero ─────────────────────────────────────────────────
+  if (!$schema->tableExists('dc_gm_session_zero')) {
+    $schema->createTable('dc_gm_session_zero', [
+      'fields' => [
+        'id'                   => ['type' => 'serial', 'unsigned' => TRUE, 'not null' => TRUE],
+        'campaign_id'          => ['type' => 'int',    'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0],
+        'pc_links_json'        => ['type' => 'text',   'size' => 'big',   'not null' => TRUE, 'default' => '[]'],
+        'character_hooks_json' => ['type' => 'text',   'size' => 'big',   'not null' => TRUE, 'default' => '[]'],
+        'player_prefs_json'    => ['type' => 'text',   'size' => 'big',   'not null' => TRUE, 'default' => '[]'],
+        'adventure_hooks_json' => ['type' => 'text',   'size' => 'big',   'not null' => TRUE, 'default' => '[]'],
+        'created'              => ['type' => 'int',    'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0],
+        'updated'              => ['type' => 'int',    'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0],
+      ],
+      'primary key' => ['id'],
+      'unique keys' => ['campaign' => ['campaign_id']],
+    ]);
+  }
+
+  // ── dc_gm_dashboard ────────────────────────────────────────────────────
+  if (!$schema->tableExists('dc_gm_dashboard')) {
+    $schema->createTable('dc_gm_dashboard', [
+      'fields' => [
+        'id'                 => ['type' => 'serial', 'unsigned' => TRUE, 'not null' => TRUE],
+        'campaign_id'        => ['type' => 'int',    'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0],
+        'pc_snapshots_json'  => ['type' => 'text',   'size' => 'big',   'not null' => TRUE, 'default' => '[]'],
+        'refreshed_at'       => ['type' => 'int',    'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0],
+      ],
+      'primary key' => ['id'],
+      'unique keys' => ['campaign' => ['campaign_id']],
+    ]);
+  }
+
+  // ── dc_gm_secret_reveal ────────────────────────────────────────────────
+  if (!$schema->tableExists('dc_gm_secret_reveal')) {
+    $schema->createTable('dc_gm_secret_reveal', [
+      'fields' => [
+        'id'          => ['type' => 'serial', 'unsigned' => TRUE, 'not null' => TRUE],
+        'campaign_id' => ['type' => 'int',    'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0],
+        'session_id'  => ['type' => 'int',    'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0],
+        'roll_ref'    => ['type' => 'varchar', 'length' => 128,   'not null' => TRUE, 'default' => ''],
+        'revealed'    => ['type' => 'int',    'size' => 'tiny',   'not null' => TRUE, 'default' => 0],
+        'actual_roll' => ['type' => 'int'],
+        'gm_id'       => ['type' => 'int',    'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0],
+        'created'     => ['type' => 'int',    'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0],
+      ],
+      'primary key' => ['id'],
+      'indexes' => [
+        'campaign_session' => ['campaign_id', 'session_id'],
+      ],
+    ]);
+  }
+
+  // ── dc_gm_ruling ───────────────────────────────────────────────────────
+  if (!$schema->tableExists('dc_gm_ruling')) {
+    $schema->createTable('dc_gm_ruling', [
+      'fields' => [
+        'id'              => ['type' => 'serial', 'unsigned' => TRUE, 'not null' => TRUE],
+        'campaign_id'     => ['type' => 'int',    'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0],
+        'gm_id'           => ['type' => 'int',    'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0],
+        'title'           => ['type' => 'varchar', 'length' => 255,   'not null' => TRUE, 'default' => ''],
+        'description'     => ['type' => 'text',   'size' => 'big'],
+        'is_provisional'  => ['type' => 'int',    'size' => 'tiny',   'not null' => TRUE, 'default' => 0],
+        'deferred_review' => ['type' => 'int',    'size' => 'tiny',   'not null' => TRUE, 'default' => 0],
+        'precedent_ref'   => ['type' => 'int',    'unsigned' => TRUE],
+        'is_exception'    => ['type' => 'int',    'size' => 'tiny',   'not null' => TRUE, 'default' => 0],
+        'review_notes'    => ['type' => 'text',   'size' => 'big'],
+        'reviewed_at'     => ['type' => 'int',    'unsigned' => TRUE],
+        'created'         => ['type' => 'int',    'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0],
+        'updated'         => ['type' => 'int',    'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0],
+      ],
+      'primary key' => ['id'],
+      'indexes' => [
+        'campaign'      => ['campaign_id'],
+        'provisional'   => ['campaign_id', 'is_provisional'],
+      ],
+    ]);
+  }
+
+  // ── dc_gm_safety ───────────────────────────────────────────────────────
+  if (!$schema->tableExists('dc_gm_safety')) {
+    $schema->createTable('dc_gm_safety', [
+      'fields' => [
+        'id'                  => ['type' => 'serial', 'unsigned' => TRUE, 'not null' => TRUE],
+        'campaign_id'         => ['type' => 'int',    'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0],
+        'lethality_level'     => ['type' => 'varchar', 'length' => 16,   'not null' => TRUE, 'default' => 'heroic'],
+        'tpk_handling'        => ['type' => 'varchar', 'length' => 32,   'not null' => TRUE, 'default' => 'pause_and_discuss'],
+        'xcard_enabled'       => ['type' => 'int',    'size' => 'tiny',   'not null' => TRUE, 'default' => 1],
+        'lines_json'          => ['type' => 'text',   'size' => 'big',   'not null' => TRUE, 'default' => '[]'],
+        'veils_json'          => ['type' => 'text',   'size' => 'big',   'not null' => TRUE, 'default' => '[]'],
+        'governance_policy'   => ['type' => 'text',   'size' => 'big'],
+        'zero_tolerance_json' => ['type' => 'text',   'size' => 'big',   'not null' => TRUE, 'default' => '[]'],
+        'created'             => ['type' => 'int',    'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0],
+        'updated'             => ['type' => 'int',    'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0],
+      ],
+      'primary key' => ['id'],
+      'unique keys' => ['campaign' => ['campaign_id']],
+    ]);
+  }
+
+  // ── dc_story_point ─────────────────────────────────────────────────────
+  if (!$schema->tableExists('dc_story_point')) {
+    $schema->createTable('dc_story_point', [
+      'fields' => [
+        'id'               => ['type' => 'serial', 'unsigned' => TRUE, 'not null' => TRUE],
+        'campaign_id'      => ['type' => 'int',    'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0],
+        'player_id'        => ['type' => 'int',    'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0],
+        'points_available' => ['type' => 'int',    'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0],
+        'points_used'      => ['type' => 'int',    'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0],
+        'last_updated'     => ['type' => 'int',    'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0],
+      ],
+      'primary key' => ['id'],
+      'unique keys' => ['campaign_player' => ['campaign_id', 'player_id']],
+    ]);
+  }
+
+  // ── dc_gm_rarity ───────────────────────────────────────────────────────
+  if (!$schema->tableExists('dc_gm_rarity')) {
+    $schema->createTable('dc_gm_rarity', [
+      'fields' => [
+        'id'             => ['type' => 'serial', 'unsigned' => TRUE, 'not null' => TRUE],
+        'campaign_id'    => ['type' => 'int',    'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0],
+        'allowlist_json' => ['type' => 'text',   'size' => 'big',   'not null' => TRUE, 'default' => '[]'],
+        'denylist_json'  => ['type' => 'text',   'size' => 'big',   'not null' => TRUE, 'default' => '[]'],
+        'organized_play' => ['type' => 'int',    'size' => 'tiny',   'not null' => TRUE, 'default' => 0],
+        'created'        => ['type' => 'int',    'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0],
+        'updated'        => ['type' => 'int',    'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0],
+      ],
+      'primary key' => ['id'],
+      'unique keys' => ['campaign' => ['campaign_id']],
+    ]);
+  }
+
+  // ── dc_encounter_metadata ──────────────────────────────────────────────
+  if (!$schema->tableExists('dc_encounter_metadata')) {
+    $schema->createTable('dc_encounter_metadata', [
+      'fields' => [
+        'id'                  => ['type' => 'serial', 'unsigned' => TRUE, 'not null' => TRUE],
+        'campaign_id'         => ['type' => 'int',    'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0],
+        'encounter_id'        => ['type' => 'int',    'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0],
+        'purpose'             => ['type' => 'text',   'size' => 'big'],
+        'adversary_rationale' => ['type' => 'text',   'size' => 'big'],
+        'location_hooks_json' => ['type' => 'text',   'size' => 'big',   'not null' => TRUE, 'default' => '[]'],
+        'setup_profile'       => ['type' => 'varchar', 'length' => 32],
+        'dynamic_twists_json' => ['type' => 'text',   'size' => 'big',   'not null' => TRUE, 'default' => '[]'],
+        'emotional_beat'      => ['type' => 'varchar', 'length' => 128,  'not null' => TRUE, 'default' => ''],
+        'created'             => ['type' => 'int',    'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0],
+        'updated'             => ['type' => 'int',    'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0],
+      ],
+      'primary key' => ['id'],
+      'unique keys' => ['campaign_encounter' => ['campaign_id', 'encounter_id']],
+    ]);
+  }
+
+  // ── dc_gm_adventure_design ─────────────────────────────────────────────
+  if (!$schema->tableExists('dc_gm_adventure_design')) {
+    $schema->createTable('dc_gm_adventure_design', [
+      'fields' => [
+        'id'             => ['type' => 'serial', 'unsigned' => TRUE, 'not null' => TRUE],
+        'campaign_id'    => ['type' => 'int',    'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0],
+        'session_id'     => ['type' => 'int',    'unsigned' => TRUE],
+        'scene_type'     => ['type' => 'varchar', 'length' => 32,   'not null' => TRUE, 'default' => 'combat'],
+        'pc_hooks_json'  => ['type' => 'text',   'size' => 'big',   'not null' => TRUE, 'default' => '[]'],
+        'spotlight_pc'   => ['type' => 'int',    'unsigned' => TRUE],
+        'emotional_beat' => ['type' => 'varchar', 'length' => 128,  'not null' => TRUE, 'default' => ''],
+        'created'        => ['type' => 'int',    'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0],
+      ],
+      'primary key' => ['id'],
+      'indexes' => [
+        'campaign'         => ['campaign_id'],
+        'campaign_session' => ['campaign_id', 'session_id'],
+      ],
+    ]);
+  }
+
+  // ── dc_gm_campaign_design ──────────────────────────────────────────────
+  if (!$schema->tableExists('dc_gm_campaign_design')) {
+    $schema->createTable('dc_gm_campaign_design', [
+      'fields' => [
+        'id'                   => ['type' => 'serial', 'unsigned' => TRUE, 'not null' => TRUE],
+        'campaign_id'          => ['type' => 'int',    'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0],
+        'scope'                => ['type' => 'varchar', 'length' => 16,   'not null' => TRUE, 'default' => 'extended'],
+        'level_ceiling'        => ['type' => 'int',    'unsigned' => TRUE, 'not null' => TRUE, 'default' => 20],
+        'downtime_depth'       => ['type' => 'varchar', 'length' => 16,   'not null' => TRUE, 'default' => 'medium'],
+        'collaboration_mode'   => ['type' => 'varchar', 'length' => 32,   'not null' => TRUE, 'default' => 'gm_led'],
+        'touchstones_json'     => ['type' => 'text',   'size' => 'big',   'not null' => TRUE, 'default' => '[]'],
+        'character_goals_json' => ['type' => 'text',   'size' => 'big',   'not null' => TRUE, 'default' => '[]'],
+        'created'              => ['type' => 'int',    'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0],
+        'updated'              => ['type' => 'int',    'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0],
+      ],
+      'primary key' => ['id'],
+      'unique keys' => ['campaign' => ['campaign_id']],
+    ]);
+  }
+
+  // Import seed reference content.
+  /** @var \Drupal\dungeoncrawler_content\Service\GmReferenceService $ref */
+  $ref = \Drupal::service('dungeoncrawler_content.gm_reference');
+  $seeded = $ref->importSeedCatalog();
+
+  return "Created 11 GM Running Guide tables and seeded {$seeded} GMG reference entries (dc-gmg-running-guide).";
+}
