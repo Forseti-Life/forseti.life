@@ -633,4 +633,129 @@ class NpcService {
     return $level < 1 ? 'low' : 'high';
   }
 
+  // ── Elite / Weak overlay (GMG ch02 / dc-gmg-npc-gallery) ──────────────────
+
+  /**
+   * Stores the elite_weak_template overlay on a campaign-scoped NPC.
+   *
+   * @param int $campaign_id
+   * @param int $npc_id
+   * @param string|null $template  'elite', 'weak', or NULL to clear.
+   *
+   * @return array  The record with overlay applied.
+   * @throws \InvalidArgumentException  On invalid template value, access denied, or mutually exclusive check.
+   */
+  public function setEliteWeakTemplate(int $campaign_id, int $npc_id, ?string $template): array {
+    $this->validateCampaignAccess($campaign_id);
+
+    if ($template !== NULL && !in_array($template, ['elite', 'weak'], TRUE)) {
+      throw new \InvalidArgumentException('template must be "elite", "weak", or null', 400);
+    }
+
+    $npc = $this->getNpc($campaign_id, $npc_id);
+    if ($npc === NULL) {
+      throw new \InvalidArgumentException("NPC {$npc_id} not found in campaign {$campaign_id}", 404);
+    }
+
+    $this->database->update('dc_npc')
+      ->fields(['elite_weak_template' => $template, 'updated' => time()])
+      ->condition('id', $npc_id)
+      ->condition('campaign_id', $campaign_id)
+      ->execute();
+
+    $updated = $this->getNpc($campaign_id, $npc_id);
+    return $this->applyEliteWeakOverlay($updated ?? $npc);
+  }
+
+  /**
+   * Applies the Elite or Weak stat overlay to a stat block array.
+   *
+   * This is a pure computation: the original DB record is unchanged.
+   * Called at read time to provide the fully-resolved stats.
+   *
+   * PF2e Elite/Weak rules (GMG):
+   *   Elite:  +1 level; +2 AC, perception, saves; HP +10 (L1-4), +15 (L5-19), +20 (L20+)
+   *   Weak:   –1 level; –2 AC, perception, saves; HP –10 (L1-4), –15 (L5-19), –20 (L20+)
+   *
+   * @param array $npc  NPC record (DB row as assoc array).
+   *
+   * @return array  Stat block with overlay stats under 'derived' key; base stats unchanged.
+   */
+  public function applyEliteWeakOverlay(array $npc): array {
+    $template = $npc['elite_weak_template'] ?? NULL;
+    if ($template === NULL) {
+      $npc['derived'] = NULL;
+      return $npc;
+    }
+
+    $sign   = ($template === 'elite') ? 1 : -1;
+    $level  = (int) ($npc['level'] ?? 1);
+
+    $hp_delta = match (TRUE) {
+      $level <= 4  => $sign * 10,
+      $level <= 19 => $sign * 15,
+      default      => $sign * 20,
+    };
+
+    $npc['derived'] = [
+      'template'     => $template,
+      'level'        => $level + $sign,
+      'armor_class'  => (int) ($npc['armor_class'] ?? 10) + ($sign * 2),
+      'perception'   => (int) ($npc['perception'] ?? 0)   + ($sign * 2),
+      'fort_save'    => (int) ($npc['fort_save'] ?? 0)    + ($sign * 2),
+      'ref_save'     => (int) ($npc['ref_save'] ?? 0)     + ($sign * 2),
+      'will_save'    => (int) ($npc['will_save'] ?? 0)    + ($sign * 2),
+      'hit_points'   => max(1, (int) ($npc['hit_points'] ?? 0) + $hp_delta),
+      'hp_delta'     => $hp_delta,
+      'modifier_delta' => $sign * 2,
+    ];
+
+    return $npc;
+  }
+
+  // ── Creature selector (GMG ch02 / dc-gmg-npc-gallery) ─────────────────────
+
+  /**
+   * Returns NPC Gallery entries suitable for use in the creature selector.
+   *
+   * Results are tagged with source="npc_gallery" and type="npc" so the
+   * frontend creature selector can filter or display them alongside Bestiary
+   * entries when that system is available.
+   *
+   * @param array $filters
+   *   Optional: level, level_range, npc_archetype, alignment.
+   * @param int $limit
+   *
+   * @return array[]
+   */
+  public function getCreatureSelectorEntries(array $filters = [], int $limit = 100): array {
+    $entries = $this->searchGallery($filters, $limit);
+
+    return array_map(function (array $npc): array {
+      return array_merge($npc, [
+        'source'       => 'npc_gallery',
+        'type'         => 'npc',
+        'selector_tag' => 'NPC',
+        'level_range'  => $this->getLevelRange((int) ($npc['level'] ?? 1)),
+      ]);
+    }, $entries);
+  }
+
+  // ── Private helpers ────────────────────────────────────────────────────────
+
+  /**
+   * Load any dc_npc row by primary key (no campaign check — internal use only).
+   *
+   * @param int $id
+   * @return array|null
+   */
+  private function getById(int $id): ?array {
+    $row = $this->database->select('dc_npc', 'n')
+      ->fields('n')
+      ->condition('id', $id)
+      ->execute()
+      ->fetchAssoc();
+    return $row ?: NULL;
+  }
+
 }
