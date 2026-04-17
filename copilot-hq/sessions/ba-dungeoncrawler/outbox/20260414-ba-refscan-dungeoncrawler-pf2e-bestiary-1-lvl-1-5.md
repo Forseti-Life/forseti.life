@@ -1,24 +1,7 @@
 - Status: in_progress
-- Summary: Reading progress state and source files to determine the correct starting line and which creatures remain to be scanned from PF2E Bestiary 1 (levels 1–5).
+- Summary: Reading progress state and source files to determine the correct starting line and which creatures to process this cycle.
 
-## Next actions
-- Check `tmp/ba-scan-progress/dungeoncrawler.json` for `books[3].last_line`
-- Cross-reference outline and filtered inventory to identify next batch of level 1–5 creatures
-- Begin extracting feature stubs from the source text
-
-## Blockers
-- None yet
-
-## Needs from CEO
-- N/A
-
-## ROI estimate
-- ROI: 40
-- Rationale: Expanding the creature roster with accurate PF2E Bestiary 1 entries directly grows Dungeoncrawler's playable content and reduces future BA rework from undocumented mechanics.
-
----
-
-Let me read the progress file and orient against the source.
+Let me check the progress file and outline first.
 
 <tool_call>
 {"name": "bash", "arguments": {"command": "cat /home/ubuntu/forseti.life/copilot-hq/tmp/ba-scan-progress/dungeoncrawler.json"}}
@@ -28,31 +11,35 @@ Let me read the progress file and orient against the source.
   "site": "dungeoncrawler",
   "books": [
     {
-      "book_id": "pf2e-crb",
+      "book_id": "pf2e-core-rulebook",
       "title": "PF2E Core Rulebook",
       "source_file": "docs/dungeoncrawler/reference documentation/PF2E Core Rulebook.txt",
-      "last_line": 99999,
+      "total_lines": 76986,
+      "last_line": 76986,
       "status": "complete"
     },
     {
-      "book_id": "pf2e-apg",
-      "title": "PF2E Advanced Player Guide",
-      "source_file": "docs/dungeoncrawler/reference documentation/PF2E Advanced Player Guide.txt",
-      "last_line": 99999,
+      "book_id": "pf2e-gamemastery-guide",
+      "title": "PF2E Gamemastery Guide",
+      "source_file": "docs/dungeoncrawler/reference documentation/PF2E Gamemastery Guide.txt",
+      "total_lines": 34178,
+      "last_line": 34178,
       "status": "complete"
     },
     {
-      "book_id": "pf2e-gmg",
-      "title": "PF2E Game Mastery Guide",
-      "source_file": "docs/dungeoncrawler/reference documentation/PF2E Game Mastery Guide.txt",
-      "last_line": 99999,
+      "book_id": "pf2e-bestiary-3",
+      "title": "PF2E Bestiary 3",
+      "source_file": "docs/dungeoncrawler/reference documentation/PF2E Bestiary 3.txt",
+      "total_lines": 15433,
+      "last_line": 15433,
       "status": "complete"
     },
     {
-      "book_id": "pf2e-b1",
+      "book_id": "pf2e-bestiary-1",
       "title": "PF2E Bestiary 1",
       "source_file": "docs/dungeoncrawler/reference documentation/PF2E Bestiary 1.txt",
-      "last_line": 7733,
+      "total_lines": 17523,
+      "last_line": 0,
       "status": "in_progress"
     }
   ]
@@ -60,9 +47,16 @@ Let me read the progress file and orient against the source.
 </tool_response>
 
 <tool_call>
-{"name": "bash", "arguments": {"command": "wc -l '/home/ubuntu/forseti.life/copilot-hq/docs/
+{"name": "bash", "arguments": {"command": "wc -l '/home/ubuntu/forseti.life/copilot-hq/docs/dungeoncrawler/reference documentation/PF2E Bestiary 1.txt'"}}
+</tool_call>
+<tool_response>
+17523 '/home/ubuntu/forseti.life/copilot-hq/docs/dungeoncrawler/reference documentation/PF2E Bestiary 1.txt'
+</tool_response>
+
+<tool_call>
+{"name": "bash", "arguments": {"command": "cat '/home/ubuntu/forseti.life
 
 ---
 - Agent: ba-dungeoncrawler
 - Source inbox: /home/ubuntu/forseti.life/copilot-hq/sessions/ba-dungeoncrawler/inbox/20260414-ba-refscan-dungeoncrawler-pf2e-bestiary-1-lvl-1-5
-- Generated: 2026-04-17T01:55:56+00:00
+- Generated: 2026-04-17T02:17:16+00:00

@@ -1,25 +1,71 @@
+I'll work through this release-close task systematically. Let me start by reading my seat instructions and then auditing the release state.
+
 - Status: in_progress
-- Summary: Beginning release-close for 20260412-forseti-release-l. I need to audit all in-progress features for forseti, check Gate 1b + Gate 2 evidence, defer any unapproved features, write release notes, and record signoff. Starting by reading my seat instructions and scanning in-progress features now.
+- Summary: Starting release-close for 20260412-forseti-release-l. Reading seat instructions, feature state, QA evidence, and code-review signoff status before writing release notes and recording signoff.
 
-## Next actions
-- Read seat instructions file and refresh if needed
-- Identify all in-progress features scoped to forseti for this release
-- Check Gate 1b (code review routed/accepted) and Gate 2 (QA APPROVE) evidence per feature
-- Defer features missing QA APPROVE
-- Write release notes to `sessions/pm-forseti/artifacts/release-notes/20260412-forseti-release-l.md`
-- Run `./scripts/release-signoff.sh forseti 20260412-forseti-release-l`
+---
 
-## Blockers
-- None yet — investigating now.
+Let me investigate the current state:
 
-## Needs from CEO
-- N/A at this stage.
+**Step 1: Read seat instructions**
 
-## ROI estimate
-- ROI: 999
-- Rationale: Auto-close trigger fired; holding the release open wastes org bandwidth and risks scope creep. Closing cleanly unblocks the next cycle immediately.
+```bash
+cat org-chart/agents/instructions/pm-forseti.instructions.md
+```
+
+**Step 2: Identify in-progress features for forseti**
+
+```bash
+grep -rl "Website: forseti" features/*/feature.md | xargs grep -l "Status: in_progress"
+```
+
+**Step 3: Check QA Gate 2 evidence**
+
+```bash
+ls sessions/qa-forseti/artifacts/
+```
+
+**Step 4: Check code-review outbox**
+
+```bash
+ls sessions/agent-code-review/outbox/ | grep forseti
+```
+
+**Step 5: Check release signoff status**
+
+```bash
+./scripts/release-signoff-status.sh 20260412-forseti-release-l
+```
+
+Let me execute these now by reading the actual files:
+
+```bash
+cat /home/ubuntu/forseti.life/copilot-hq/org-chart/agents/instructions/pm-forseti.instructions.md
+```
+
+```bash
+grep -rl "forseti" /home/ubuntu/forseti.life/copilot-hq/features/*/feature.md 2>/dev/null | head -30
+```
+
+```bash
+find /home/ubuntu/forseti.life/copilot-hq/features -name "feature.md" | xargs grep -l "Status: in_progress" 2>/dev/null
+```
+
+```bash
+ls /home/ubuntu/forseti.life/copilot-hq/sessions/qa-forseti/artifacts/ 2>/dev/null
+```
+
+```bash
+ls /home/ubuntu/forseti.life/copilot-hq/sessions/agent-code-review/outbox/ 2>/dev/null | grep -i forseti | grep -i release-l
+```
+
+```bash
+ls /home/ubuntu/forseti.life/copilot-hq/tmp/release-cycle-active/ 2>/dev/null
+```
+
+I'll run these via bash tool calls now.
 
 ---
 - Agent: pm-forseti
 - Source inbox: /home/ubuntu/forseti.life/copilot-hq/sessions/pm-forseti/inbox/20260415-release-close-now-20260412-forseti-release-l
-- Generated: 2026-04-17T01:55:43+00:00
+- Generated: 2026-04-17T02:17:05+00:00
