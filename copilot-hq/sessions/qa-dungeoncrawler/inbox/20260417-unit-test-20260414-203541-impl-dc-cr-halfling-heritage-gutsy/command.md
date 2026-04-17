@@ -1,9 +1,9 @@
 - command: |
     Targeted QA unit test for completed Dev item.
 
-    - Completed item: 20260414-191700-impl-dc-cr-goblin-weapon-frenzy
+    - Completed item: 20260414-203541-impl-dc-cr-halfling-heritage-gutsy
     - Dev seat: dev-dungeoncrawler
-    - Dev outbox: sessions/dev-dungeoncrawler/outbox/20260414-191700-impl-dc-cr-goblin-weapon-frenzy.md
+    - Dev outbox: sessions/dev-dungeoncrawler/outbox/20260414-203541-impl-dc-cr-halfling-heritage-gutsy.md
 
     Required actions:
     1) Run a targeted verification for *this item* (derive steps from Dev outbox + acceptance criteria).

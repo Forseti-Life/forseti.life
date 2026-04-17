@@ -1,72 +1,25 @@
-- Status: in_progress
-- Summary: Reading feature brief and existing codebase structure before implementing the Gutsy Halfling heritage.
+Now I have everything I need. The heritage switch in `FeatEffectManager.php` handles all heritages but `gutsy` (and other halfling heritages) have no case yet. I'll add it using the flag pattern matching goblin/gnome.
 
-Let me review the feature file and relevant codebase.
+Now update the benefit text in CharacterManager to be accurate:
 
-```bash
-cat /home/ubuntu/forseti.life/copilot-hq/features/dc-cr-halfling-heritage-gutsy/feature.md
-```
+Committed at `cd05a682e`. Now write the artifact and outbox.
 
-<tool_call>
-{"name": "bash", "arguments": {"command": "cat /home/ubuntu/forseti.life/copilot-hq/features/dc-cr-halfling-heritage-gutsy/feature.md"}}
-</tool_call>
-<tool_response>
-# Feature: dc-cr-halfling-heritage-gutsy
+- Status: done
+- Summary: Gutsy Halfling heritage (dc-cr-halfling-heritage-gutsy) is implemented in commit `cd05a682e`. Two surgical changes were made: (1) `FeatEffectManager.php` — added `case 'gutsy':` to the heritage switch, setting flag `gutsy_halfling_emotion_save_upgrade = TRUE` in `derived_adjustments.flags` with a note documenting that success on an emotion-trait saving throw upgrades to critical success (failed/crit-failed saves and non-emotion effects unaffected); (2) `CharacterManager.php` — corrected the gutsy heritage benefit stub from the inaccurate `'Bonus vs fear'` to the accurate mechanic description. The heritage was already in the CharacterManager catalog; only the FeatEffectManager effect logic was missing. Pattern follows existing gnome heritage implementations exactly. No new routes, no schema changes, no combat logic added.
 
-## Metadata
-- Feature ID: dc-cr-halfling-heritage-gutsy
-- Website: dungeoncrawler
-- Status: in_progress
-- Release: 20260412-dungeoncrawler-release-m
-- Priority: medium
-- Created: 2026-04-12
+## Next actions
+- qa-dungeoncrawler: verify AC against commit `cd05a682e` (Gate 2)
+- Verify: character with heritage `gutsy` has `gutsy_halfling_emotion_save_upgrade: true` in feat effects API response
+- Verify: consuming save-resolution layer checks emotion trait before applying upgrade (existing responsibility; no new combat code added)
 
-## Problem statement
-Halfling ancestry is partially implemented. The Gutsy heritage — which upgrades successful saves against emotion effects to critical successes — is missing.
+## Blockers
+- None.
 
-## Acceptance criteria file
-`features/dc-cr-halfling-heritage-gutsy/01-acceptance-criteria.md`
-
-## Implementation notes file
-`features/dc-cr-halfling-heritage-gutsy/02-implementation-notes.md`
-
-## What / Summary
-Add the Gutsy Halfling heritage to the dungeoncrawler character creation system, including:
-- Heritage entry registered under Halfling ancestry
-- Passive rule: on a success vs. emotion effect, upgrade to critical success
-
-## Why / Value
-Completes the Halfling ancestry heritage set, giving players a mechanically meaningful option that rewards resisting fear and charm effects.
-
-## Scope
-- In scope: heritage data, save upgrade logic, character creation selectable option
-- Non-goals: UI/visual restyling, other ancestry heritages
-
-## Dependencies
-- dc-cr-halfling-ancestry
-- dc-cr-heritage-system
-
-## Definition of done
-- Gutsy heritage is selectable at character creation
-- Save upgrade logic fires correctly on emotion effects
-- No regression in existing heritage/ancestry tests
-</tool_response>
-
-<tool_call>
-{"name": "bash", "arguments": {"command": "find /home/ubuntu/forseti.life/sites/dungeoncrawler -type f | grep -i halfling | head -40"}}
-</tool_call>
-<tool_response>
-find: '/home/ubuntu/forseti.life/sites/dungeoncrawler': No such file or directory
-</tool_response>
-
-<tool_call>
-{"name": "bash", "arguments": {"command": "find /home/ubuntu/forseti.life -maxdepth 4 -type d | head -40"}}
-</tool_call>
-<tool_response>
-/home/ubuntu/forseti.life
-/home/ubuntu/forseti.
+## ROI estimate
+- ROI: 7
+- Rationale: Completes a release-m scope item for halfling ancestry; unblocks Gate 2 for this feature and keeps Halfling heritage completeness on track for the dungeoncrawler release.
 
 ---
 - Agent: dev-dungeoncrawler
 - Source inbox: /home/ubuntu/forseti.life/copilot-hq/sessions/dev-dungeoncrawler/inbox/20260414-203541-impl-dc-cr-halfling-heritage-gutsy
-- Generated: 2026-04-16T17:00:49+00:00
+- Generated: 2026-04-17T00:13:08+00:00

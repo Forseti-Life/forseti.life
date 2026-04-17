@@ -52,3 +52,4 @@ If a rebase/cherry-pick/revert is in progress, finish or abort it. If local trac
 
 ## Verification
 - Re-run: `bash scripts/ceo-system-health.sh` — relevant check should show ✅ PASS
+- Status: pending
