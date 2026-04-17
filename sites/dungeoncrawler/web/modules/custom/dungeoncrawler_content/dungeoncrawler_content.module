@@ -227,6 +227,7 @@ function dungeoncrawler_content_theme(array $existing, string $type, string $the
       'variables' => [
         'launch_context' => [],
         'dungeon_payload' => [],
+        'is_admin' => FALSE,
       ],
       'template' => 'hexmap-demo',
       'path' => $path . '/templates',

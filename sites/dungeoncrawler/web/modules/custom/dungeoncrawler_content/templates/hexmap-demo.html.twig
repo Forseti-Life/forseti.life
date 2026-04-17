@@ -9,17 +9,22 @@
  */
 #}
 
-  <div class="hexmap-container" id="hexmap-container">
+  <div class="hexmap-container" id="hexmap-container"{% if is_admin %} data-admin="1"{% endif %}>
   <div class="hexmap-header">
     <div class="hexmap-header__top">
       <div>
         <h1>{{ 'Hex Map Demo'|t }}</h1>
         <p>{{ 'Interactive hexagonal grid powered by PixiJS'|t }}</p>
       </div>
-      <button id="fullscreen-toggle" class="btn btn-icon" title="{{ 'Enter fullscreen'|t }}">{{ '⛶'|t }}</button>
+      <div class="hexmap-header__actions">
+        {% if is_admin %}
+        <button id="debug-panel-toggle" class="btn btn-icon btn--debug-toggle" title="{{ 'Toggle dev panels'|t }}" aria-pressed="false">{{ '🛠'|t }}</button>
+        {% endif %}
+        <button id="fullscreen-toggle" class="btn btn-icon" title="{{ 'Enter fullscreen'|t }}">{{ '⛶'|t }}</button>
+      </div>
     </div>
     
-    <div class="hexmap-controls">
+    <div class="hexmap-controls hexmap-debug-panel">
       <div class="control-group control-group--config">
         <label class="control-group__title">{{ 'Map Size:'|t }}</label>
         <select id="grid-size">
@@ -456,7 +461,7 @@
   </div>{# /.game-layout__sidebar #}
   </div>{# /.game-layout #}
 
-  <div class="dungeon-state" id="dungeon-state">
+  <div class="dungeon-state hexmap-debug-panel" id="dungeon-state">
     <div class="dungeon-state__header">
       <h3>{{ 'Dungeon Objects & JSON State'|t }}</h3>
       <p id="dungeon-state-summary" class="muted">{{ 'Loading dungeon state…'|t }}</p>
@@ -519,7 +524,7 @@
     </div>
 
     {% if launch_context and (launch_context.campaign_id or launch_context.room_id or launch_context.dungeon_level_id or launch_context.map_id) %}
-      <div class="info-panel">
+      <div class="info-panel hexmap-debug-panel">
         <h3>{{ 'Launch Context'|t }}</h3>
         <div class="info-content">
           <p><strong>{{ 'Campaign:'|t }}</strong> {{ launch_context.campaign_id ?: 'n/a' }}</p>
@@ -534,7 +539,7 @@
     {% endif %}
 
     {% if dungeon_payload and dungeon_payload.active_room_id and dungeon_payload.rooms[dungeon_payload.active_room_id] is defined %}
-      <div class="info-panel">
+      <div class="info-panel hexmap-debug-panel">
         <h3>{{ 'Active Room'|t }}</h3>
         <div class="info-content">
           <p><strong>{{ 'Room:'|t }}</strong> {{ dungeon_payload.rooms[dungeon_payload.active_room_id].name }}</p>
@@ -626,6 +631,38 @@
 
     slider.addEventListener('change', function () {
       localStorage.setItem(STORAGE_KEY, this.value);
+    });
+  })();
+
+  /* ---- Debug Panel Toggle (admin only) ---- */
+  (function () {
+    const btn = document.getElementById('debug-panel-toggle');
+    if (!btn) return;
+    const container = document.getElementById('hexmap-container');
+    const DEBUG_KEY = 'dc_debug_mode';
+    const CSS_CLASS = 'hexmap-debug-active';
+
+    function setDebugMode(on) {
+      if (on) {
+        container.classList.add(CSS_CLASS);
+        btn.setAttribute('aria-pressed', 'true');
+        btn.title = Drupal.t('Hide dev panels');
+      } else {
+        container.classList.remove(CSS_CLASS);
+        btn.setAttribute('aria-pressed', 'false');
+        btn.title = Drupal.t('Show dev panels');
+      }
+      localStorage.setItem(DEBUG_KEY, on ? '1' : '0');
+    }
+
+    // Restore saved debug preference
+    const savedDebug = localStorage.getItem(DEBUG_KEY);
+    if (savedDebug === '1') {
+      setDebugMode(true);
+    }
+
+    btn.addEventListener('click', function () {
+      setDebugMode(!container.classList.contains(CSS_CLASS));
     });
   })();
 

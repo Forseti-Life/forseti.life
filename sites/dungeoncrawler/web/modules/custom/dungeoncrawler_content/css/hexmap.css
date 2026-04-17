@@ -2941,3 +2941,43 @@
     transform: scale(1.05);
   }
 }
+
+/* ==========================================================================
+   Debug Panel Gating (map-first player shell)
+   ========================================================================== */
+
+/* Debug panels hidden by default; only shown when admin toggles them on */
+.hexmap-debug-panel {
+  display: none;
+}
+
+.hexmap-debug-active .hexmap-debug-panel {
+  display: block;
+}
+
+/* Header actions group (houses fullscreen + debug toggle buttons) */
+.hexmap-header__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-shrink: 0;
+}
+
+/* Debug toggle button — only rendered server-side for admins */
+.btn--debug-toggle {
+  background: var(--gray-100);
+  color: var(--gray-600);
+  border: 1px solid var(--gray-300);
+  border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-lg);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.btn--debug-toggle:hover,
+.btn--debug-toggle[aria-pressed="true"] {
+  background: var(--primary);
+  color: #fff;
+  border-color: var(--primary);
+}

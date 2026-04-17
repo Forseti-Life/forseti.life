@@ -73,11 +73,13 @@ class HexMapController extends ControllerBase {
       'persist_template' => (string) ($query->get('persist_template') ?? ''),
     ];
 
+    // Determine admin status for shell gating (debug panels, dev controls).
+    $is_admin = in_array('administrator', $account->getRoles(), TRUE)
+      || (int) $account->id() === 1;
+
     // Verify the current user owns the campaign before exposing data.
     // Administrators may access any campaign for testing/debugging.
     if ($launch_context['campaign_id'] > 0) {
-      $is_admin = in_array('administrator', $account->getRoles(), TRUE)
-        || (int) $account->id() === 1;
       if (!$is_admin) {
         $campaign_uid = $this->database->select('dc_campaigns', 'c')
           ->fields('c', ['uid'])
@@ -117,6 +119,7 @@ class HexMapController extends ControllerBase {
       '#theme' => 'hexmap_demo',
       '#launch_context' => $launch_context,
       '#dungeon_payload' => $dungeon_payload,
+      '#is_admin' => $is_admin,
       '#attached' => [
         'library' => [
           'dungeoncrawler_content/hexmap',
