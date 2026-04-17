@@ -2615,12 +2615,18 @@ import { SpriteService } from './SpriteService.js';
      * @param {number} y - Y coordinate
      */
     setWorldPosition: function (x, y) {
+      this.backgroundContainer.x = x;
+      this.backgroundContainer.y = y;
       this.hexContainer.x = x;
       this.hexContainer.y = y;
       this.gridContainer.x = x;
       this.gridContainer.y = y;
+      this.propsContainer.x = x;
+      this.propsContainer.y = y;
       this.objectContainer.x = x;
       this.objectContainer.y = y;
+      this.fxContainer.x = x;
+      this.fxContainer.y = y;
       this.uiContainer.x = x;
       this.uiContainer.y = y;
       if (this.interactionContainer) {
@@ -2634,9 +2640,12 @@ import { SpriteService } from './SpriteService.js';
      * @param {number} scale - Uniform scale value
      */
     setWorldScale: function (scale) {
+      this.backgroundContainer.scale.set(scale);
       this.hexContainer.scale.set(scale);
       this.gridContainer.scale.set(scale);
+      this.propsContainer.scale.set(scale);
       this.objectContainer.scale.set(scale);
+      this.fxContainer.scale.set(scale);
       this.uiContainer.scale.set(scale);
       if (this.interactionContainer) {
         this.interactionContainer.scale.set(scale);
@@ -2736,39 +2745,69 @@ import { SpriteService } from './SpriteService.js';
 
       container.appendChild(this.app.view);
 
-      // Create containers for layers
+      // Scene Layer Contract — deterministic render stack.
+      // World-space layers (z 5–45) move with pan/zoom via setWorldPosition/setWorldScale.
+      // Screen-space layers (z 50+) remain fixed during pan/zoom.
+      //
+      // Layer       | zIndex | Space       | Purpose
+      // ------------|--------|-------------|------------------------------------------
+      // background  |      5 | world       | Room background art, atmosphere assets
+      // hex         |     10 | world       | Terrain base hexes
+      // grid        |     20 | world       | Grid lines, coordinates, measurement overlays
+      // props       |     25 | world       | Static scene props (furniture, obstacles)
+      // object      |     30 | world       | Tokens (characters, NPCs, enemies)
+      // fx          |     35 | world       | Fog, lighting, move/attack/reveal effects
+      // ui          |     40 | world       | Overlays, templates, world-space UI elements
+      // interaction |     45 | world       | Hit areas, pointer capture
+      // hud         |     50 | screen      | HUD, initiative rail, action buttons
+
+      this.backgroundContainer = new PIXI.Container();
       this.hexContainer = new PIXI.Container();
       this.gridContainer = new PIXI.Container();
+      this.propsContainer = new PIXI.Container();
       this.objectContainer = new PIXI.Container();
+      this.fxContainer = new PIXI.Container();
       this.uiContainer = new PIXI.Container();
       this.interactionContainer = new PIXI.Container();
 
-      // Keep overlay layers deterministic; ui sits on top of sprites.
       this.app.stage.sortableChildren = true;
+      this.backgroundContainer.zIndex = 5;
       this.hexContainer.zIndex = 10;
       this.gridContainer.zIndex = 20;
+      this.propsContainer.zIndex = 25;
       this.objectContainer.zIndex = 30;
+      this.fxContainer.zIndex = 35;
       this.uiContainer.zIndex = 40;
       this.interactionContainer.zIndex = 45;
-      
-      // Add layers in order: hexes (terrain), grid (coords), objects (sprites), ui (overlays)
+
+      this.app.stage.addChild(this.backgroundContainer);
       this.app.stage.addChild(this.hexContainer);
       this.app.stage.addChild(this.gridContainer);
+      this.app.stage.addChild(this.propsContainer);
       this.app.stage.addChild(this.objectContainer);
+      this.app.stage.addChild(this.fxContainer);
       this.app.stage.addChild(this.uiContainer);
       this.app.stage.addChild(this.interactionContainer);
 
-      // Center the view
-      this.hexContainer.x = this.app.screen.width / 2;
-      this.hexContainer.y = this.app.screen.height / 2;
-      this.gridContainer.x = this.hexContainer.x;
-      this.gridContainer.y = this.hexContainer.y;
-      this.uiContainer.x = this.hexContainer.x;
-      this.uiContainer.y = this.hexContainer.y;
-      this.interactionContainer.x = this.hexContainer.x;
-      this.interactionContainer.y = this.hexContainer.y;
-      this.objectContainer.x = this.hexContainer.x;
-      this.objectContainer.y = this.hexContainer.y;
+      // Center world-space layers
+      const cx = this.app.screen.width / 2;
+      const cy = this.app.screen.height / 2;
+      this.backgroundContainer.x = cx;
+      this.backgroundContainer.y = cy;
+      this.hexContainer.x = cx;
+      this.hexContainer.y = cy;
+      this.gridContainer.x = cx;
+      this.gridContainer.y = cy;
+      this.propsContainer.x = cx;
+      this.propsContainer.y = cy;
+      this.objectContainer.x = cx;
+      this.objectContainer.y = cy;
+      this.fxContainer.x = cx;
+      this.fxContainer.y = cy;
+      this.uiContainer.x = cx;
+      this.uiContainer.y = cy;
+      this.interactionContainer.x = cx;
+      this.interactionContainer.y = cy;
 
       this.interactionContainer.eventMode = 'passive';
       this.interactionContainer.interactiveChildren = true;
@@ -2777,7 +2816,7 @@ import { SpriteService } from './SpriteService.js';
       this.app.stage.interactive = true;
       this.app.stage.hitArea = this.app.screen;
 
-      // Fixed HUD layer (screen-space, not affected by pan/zoom)
+      // Screen-space HUD — not affected by pan/zoom
       this.hudContainer = new PIXI.Container();
       this.hudContainer.zIndex = 50;
       this.app.stage.addChild(this.hudContainer);

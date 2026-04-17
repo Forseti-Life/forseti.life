@@ -4503,15 +4503,16 @@
           "description": "Anon GET /jobhunter/offers returns 403 or redirect; CSRF-missing POST to offer save returns 403"
         }
       ]
-    }
-  ,
+    },
     {
       "id": "forseti-ai-local-llm-provider-selection-admin-form",
       "label": "Admin provider config form loads at /admin/config/forseti/ai-provider (200 as admin)",
       "type": "functional",
       "feature_id": "forseti-ai-local-llm-provider-selection",
       "command": "curl -s -o /dev/null -w \"%{http_code}\" -b \"$FORSETI_COOKIE_ADMIN\" https://forseti.life/admin/config/forseti/ai-provider | grep -Eq \"^200\"",
-      "artifacts": ["sessions/qa-forseti/artifacts/forseti-ai-local-llm-provider-selection-results.json"],
+      "artifacts": [
+        "sessions/qa-forseti/artifacts/forseti-ai-local-llm-provider-selection-results.json"
+      ],
       "required_for_release": true,
       "test_cases": [
         {
@@ -4526,7 +4527,9 @@
       "type": "functional",
       "feature_id": "forseti-ai-local-llm-provider-selection",
       "command": "curl -s -o /dev/null -w \"%{http_code}\" -b \"$FORSETI_COOKIE_ADMIN\" -X POST https://forseti.life/admin/config/forseti/ai-provider | grep -Eq \"^(200|302)\"",
-      "artifacts": ["sessions/qa-forseti/artifacts/forseti-ai-local-llm-provider-selection-results.json"],
+      "artifacts": [
+        "sessions/qa-forseti/artifacts/forseti-ai-local-llm-provider-selection-results.json"
+      ],
       "required_for_release": true,
       "test_cases": [
         {
@@ -4541,7 +4544,9 @@
       "type": "functional",
       "feature_id": "forseti-ai-local-llm-provider-selection",
       "command": "curl -s -o /dev/null -w \"%{http_code}\" -b \"$FORSETI_COOKIE_AUTHENTICATED\" https://forseti.life/user | grep -Eq \"^(200|301|302)\"",
-      "artifacts": ["sessions/qa-forseti/artifacts/forseti-ai-local-llm-provider-selection-results.json"],
+      "artifacts": [
+        "sessions/qa-forseti/artifacts/forseti-ai-local-llm-provider-selection-results.json"
+      ],
       "required_for_release": true,
       "test_cases": [
         {
@@ -4552,11 +4557,13 @@
     },
     {
       "id": "forseti-ai-local-llm-provider-selection-openai-chat",
-      "label": "Chat uses user provider preference — OpenAI path works without regression",
+      "label": "Chat uses user provider preference \u2014 OpenAI path works without regression",
       "type": "functional",
       "feature_id": "forseti-ai-local-llm-provider-selection",
       "command": "curl -s -o /dev/null -w \"%{http_code}\" -b \"$FORSETI_COOKIE_AUTHENTICATED\" https://forseti.life/forseti/chat | grep -Eq \"^(200|302)\"",
-      "artifacts": ["sessions/qa-forseti/artifacts/forseti-ai-local-llm-provider-selection-results.json"],
+      "artifacts": [
+        "sessions/qa-forseti/artifacts/forseti-ai-local-llm-provider-selection-results.json"
+      ],
       "required_for_release": true,
       "test_cases": [
         {
@@ -4567,11 +4574,13 @@
     },
     {
       "id": "forseti-ai-local-llm-provider-selection-ollama-disabled-unset",
-      "label": "Ollama option disabled when OLLAMA_BASE_URL unset — inline error shown",
+      "label": "Ollama option disabled when OLLAMA_BASE_URL unset \u2014 inline error shown",
       "type": "functional",
       "feature_id": "forseti-ai-local-llm-provider-selection",
       "command": "echo 'Manual: verify Ollama selector disabled when OLLAMA_BASE_URL not configured; inline error displayed'",
-      "artifacts": ["sessions/qa-forseti/artifacts/forseti-ai-local-llm-provider-selection-results.json"],
+      "artifacts": [
+        "sessions/qa-forseti/artifacts/forseti-ai-local-llm-provider-selection-results.json"
+      ],
       "required_for_release": true,
       "test_cases": [
         {
@@ -4586,7 +4595,9 @@
       "type": "functional",
       "feature_id": "forseti-ai-local-llm-provider-selection",
       "command": "echo 'Manual: configure bad Ollama URL, send chat message, verify provider-error banner and org-default fallback'",
-      "artifacts": ["sessions/qa-forseti/artifacts/forseti-ai-local-llm-provider-selection-results.json"],
+      "artifacts": [
+        "sessions/qa-forseti/artifacts/forseti-ai-local-llm-provider-selection-results.json"
+      ],
       "required_for_release": true,
       "test_cases": [
         {
@@ -4601,7 +4612,9 @@
       "type": "regression",
       "feature_id": "forseti-ai-local-llm-provider-selection",
       "command": "curl -s -o /dev/null -w \"%{http_code}\" -b \"$FORSETI_COOKIE_AUTHENTICATED\" https://forseti.life/forseti/chat | grep -Eq \"^(200|302)\" && curl -s -o /dev/null -w \"%{http_code}\" -b \"$FORSETI_COOKIE_AUTHENTICATED\" https://forseti.life/forseti/conversations | grep -Eq \"^(200|302|403)\"",
-      "artifacts": ["sessions/qa-forseti/artifacts/forseti-ai-local-llm-provider-selection-results.json"],
+      "artifacts": [
+        "sessions/qa-forseti/artifacts/forseti-ai-local-llm-provider-selection-results.json"
+      ],
       "required_for_release": true,
       "test_cases": [
         {
@@ -4616,7 +4629,9 @@
       "type": "security",
       "feature_id": "forseti-ai-local-llm-provider-selection",
       "command": "curl -s -o /dev/null -w \"%{http_code}\" -b \"$FORSETI_COOKIE_AUTHENTICATED\" https://forseti.life/admin/config/forseti/ai-provider | grep -Eq \"^(403|302)\"",
-      "artifacts": ["sessions/qa-forseti/artifacts/forseti-ai-local-llm-provider-selection-results.json"],
+      "artifacts": [
+        "sessions/qa-forseti/artifacts/forseti-ai-local-llm-provider-selection-results.json"
+      ],
       "required_for_release": true,
       "test_cases": [
         {
@@ -4624,14 +4639,16 @@
           "description": "Non-admin authenticated user GET /admin/config/forseti/ai-provider returns 403 Forbidden"
         }
       ]
-    }
-  ,{
+    },
+    {
       "id": "forseti-langgraph-console-run-session-smoke",
-      "label": "Run panel loads without error — GET /langgraph-console/run returns 200 as admin",
+      "label": "Run panel loads without error \u2014 GET /langgraph-console/run returns 200 as admin",
       "type": "functional",
       "feature_id": "forseti-langgraph-console-run-session",
       "command": "curl -s -o /dev/null -w \"%{http_code}\" -b \"$FORSETI_COOKIE_AUTHENTICATED\" https://forseti.life/admin/reports/copilot-agent-tracker/langgraph-console/run | grep -Eq \"^200\"",
-      "artifacts": ["sessions/qa-forseti/artifacts/forseti-langgraph-console-run-session-results.json"],
+      "artifacts": [
+        "sessions/qa-forseti/artifacts/forseti-langgraph-console-run-session-results.json"
+      ],
       "required_for_release": true,
       "test_cases": [
         {
@@ -4646,7 +4663,9 @@
       "type": "functional",
       "feature_id": "forseti-langgraph-console-run-session",
       "command": "curl -s -b \"$FORSETI_COOKIE_AUTHENTICATED\" https://forseti.life/admin/reports/copilot-agent-tracker/langgraph-console/run | grep -i \"Threads\"",
-      "artifacts": ["sessions/qa-forseti/artifacts/forseti-langgraph-console-run-session-results.json"],
+      "artifacts": [
+        "sessions/qa-forseti/artifacts/forseti-langgraph-console-run-session-results.json"
+      ],
       "required_for_release": true,
       "test_cases": [
         {
@@ -4661,7 +4680,9 @@
       "type": "functional",
       "feature_id": "forseti-langgraph-console-run-session",
       "command": "echo 'Manual: rename langgraph-ticks.jsonl, reload /langgraph-console/run, verify empty-state message rendered'",
-      "artifacts": ["sessions/qa-forseti/artifacts/forseti-langgraph-console-run-session-results.json"],
+      "artifacts": [
+        "sessions/qa-forseti/artifacts/forseti-langgraph-console-run-session-results.json"
+      ],
       "required_for_release": true,
       "test_cases": [
         {
@@ -4676,7 +4697,9 @@
       "type": "functional",
       "feature_id": "forseti-langgraph-console-run-session",
       "command": "curl -s -b \"$FORSETI_COOKIE_AUTHENTICATED\" https://forseti.life/admin/reports/copilot-agent-tracker/langgraph-console/run | grep -i \"Stream Events\"",
-      "artifacts": ["sessions/qa-forseti/artifacts/forseti-langgraph-console-run-session-results.json"],
+      "artifacts": [
+        "sessions/qa-forseti/artifacts/forseti-langgraph-console-run-session-results.json"
+      ],
       "required_for_release": true,
       "test_cases": [
         {
@@ -4691,7 +4714,9 @@
       "type": "functional",
       "feature_id": "forseti-langgraph-console-run-session",
       "command": "curl -s -b \"$FORSETI_COOKIE_AUTHENTICATED\" https://forseti.life/admin/reports/copilot-agent-tracker/langgraph-console/run | grep -iE \"blocked|needs-info\"",
-      "artifacts": ["sessions/qa-forseti/artifacts/forseti-langgraph-console-run-session-results.json"],
+      "artifacts": [
+        "sessions/qa-forseti/artifacts/forseti-langgraph-console-run-session-results.json"
+      ],
       "required_for_release": true,
       "test_cases": [
         {
@@ -4706,7 +4731,9 @@
       "type": "functional",
       "feature_id": "forseti-langgraph-console-run-session",
       "command": "curl -s -b \"$FORSETI_COOKIE_AUTHENTICATED\" https://forseti.life/admin/reports/copilot-agent-tracker/langgraph-console/run | grep -iE \"parity|health\"",
-      "artifacts": ["sessions/qa-forseti/artifacts/forseti-langgraph-console-run-session-results.json"],
+      "artifacts": [
+        "sessions/qa-forseti/artifacts/forseti-langgraph-console-run-session-results.json"
+      ],
       "required_for_release": true,
       "test_cases": [
         {
@@ -4721,7 +4748,9 @@
       "type": "functional",
       "feature_id": "forseti-langgraph-console-run-session",
       "command": "curl -s -b \"$FORSETI_COOKIE_AUTHENTICATED\" https://forseti.life/admin/reports/copilot-agent-tracker/langgraph-console/run | grep -c \"COPILOT_HQ_ROOT environment variable is not configured\" | grep -Eq \"^0\"",
-      "artifacts": ["sessions/qa-forseti/artifacts/forseti-langgraph-console-run-session-results.json"],
+      "artifacts": [
+        "sessions/qa-forseti/artifacts/forseti-langgraph-console-run-session-results.json"
+      ],
       "required_for_release": true,
       "test_cases": [
         {
@@ -4736,7 +4765,9 @@
       "type": "security",
       "feature_id": "forseti-langgraph-console-run-session",
       "command": "curl -s -o /dev/null -w \"%{http_code}\" https://forseti.life/admin/reports/copilot-agent-tracker/langgraph-console/run | grep -Eq \"^(403|302)\"",
-      "artifacts": ["sessions/qa-forseti/artifacts/forseti-langgraph-console-run-session-results.json"],
+      "artifacts": [
+        "sessions/qa-forseti/artifacts/forseti-langgraph-console-run-session-results.json"
+      ],
       "required_for_release": true,
       "test_cases": [
         {
@@ -4747,16 +4778,104 @@
     },
     {
       "id": "forseti-langgraph-console-run-session-readonly",
-      "label": "No state mutations from Run panel — no POST/PATCH/DELETE handlers exposed",
+      "label": "No state mutations from Run panel \u2014 no POST/PATCH/DELETE handlers exposed",
       "type": "security",
       "feature_id": "forseti-langgraph-console-run-session",
       "command": "grep -E \"langgraph-console.*run\" /home/ubuntu/forseti.life/sites/forseti/web/modules/custom/copilot_agent_tracker/copilot_agent_tracker.routing.yml | grep -v \"methods.*GET\" | wc -l | grep -Eq \"^0\"",
-      "artifacts": ["sessions/qa-forseti/artifacts/forseti-langgraph-console-run-session-results.json"],
+      "artifacts": [
+        "sessions/qa-forseti/artifacts/forseti-langgraph-console-run-session-results.json"
+      ],
       "required_for_release": true,
       "test_cases": [
         {
           "id": "TC-9",
           "description": "All panel actions are GET requests; no POST/PATCH/DELETE handlers on /langgraph-console/run routes"
+        }
+      ]
+    },
+    {
+      "id": "forseti-installation-cluster-communication",
+      "label": "Installation Cluster Communication (federation handshake + service layer)",
+      "type": "integration",
+      "feature_id": "forseti-installation-cluster-communication",
+      "required_for_release": true,
+      "notes": [
+        "Requires two local Forseti installations with distinct base URLs.",
+        "Trust/bootstrap material must be configured outside synced public config.",
+        "Most tests require manual execution until CI multi-node environment is available."
+      ],
+      "test_cases": [
+        {
+          "id": "CRM-HS-001",
+          "description": "Register a peer installation and complete a successful signed handshake; peer enters pending_review before operator approval",
+          "type": "integration",
+          "feature_id": "forseti-installation-cluster-communication",
+          "status": "active",
+          "execution": "manual"
+        },
+        {
+          "id": "CRM-HS-004",
+          "description": "Operator can review mission/value attestation and elevate or deny admission based on alignment",
+          "type": "integration",
+          "feature_id": "forseti-installation-cluster-communication",
+          "status": "active",
+          "execution": "manual"
+        },
+        {
+          "id": "CRM-SVC-001",
+          "description": "Publish at least one agent_expertise capability and one institutional_service capability across two admitted nodes",
+          "type": "integration",
+          "feature_id": "forseti-installation-cluster-communication",
+          "status": "active",
+          "execution": "manual"
+        },
+        {
+          "id": "CRM-SVC-004",
+          "description": "Submit a valid service request from node A to node B, accept it, issue status update, mark completed",
+          "type": "integration",
+          "feature_id": "forseti-installation-cluster-communication",
+          "status": "active",
+          "execution": "manual"
+        },
+        {
+          "id": "CRM-POL-003",
+          "description": "Mark a capability as approval_required; verify request pauses for operator decision before execution",
+          "type": "integration",
+          "feature_id": "forseti-installation-cluster-communication",
+          "status": "active",
+          "execution": "manual"
+        },
+        {
+          "id": "CRM-SEC-001",
+          "description": "Send a message with an invalid signature; confirm rejection with explicit audit log output",
+          "type": "security",
+          "feature_id": "forseti-installation-cluster-communication",
+          "status": "active",
+          "execution": "manual"
+        },
+        {
+          "id": "CRM-SEC-002",
+          "description": "Replay a previously accepted message; confirm rejection or idempotent handling without duplicate state changes",
+          "type": "security",
+          "feature_id": "forseti-installation-cluster-communication",
+          "status": "active",
+          "execution": "manual"
+        },
+        {
+          "id": "CRM-HS-008",
+          "description": "Suspend a peer; confirm outbound and inbound cluster exchanges are blocked",
+          "type": "integration",
+          "feature_id": "forseti-installation-cluster-communication",
+          "status": "active",
+          "execution": "manual"
+        },
+        {
+          "id": "CRM-OPS-002",
+          "description": "Admin UI shows peer status, last handshake, mission alignment state, recent message outcomes, and request lifecycle history",
+          "type": "acl",
+          "feature_id": "forseti-installation-cluster-communication",
+          "status": "active",
+          "execution": "manual"
         }
       ]
     }
