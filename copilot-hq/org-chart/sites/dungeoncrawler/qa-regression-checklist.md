@@ -364,3 +364,4 @@ This file is a running list of targeted regression checks derived from completed
 - [ ] 20260414-203542-impl-dc-cr-halfling-heritage-hillock — targeted regression check (see dev outbox: sessions/dev-dungeoncrawler/outbox/20260414-203542-impl-dc-cr-halfling-heritage-hillock.md)
 - [ ] 20260414-203542-impl-dc-cr-vivacious-conduit — targeted regression check (see dev outbox: sessions/dev-dungeoncrawler/outbox/20260414-203542-impl-dc-cr-vivacious-conduit.md)
 - [ ] 20260414-203542-impl-dc-gam-gods-magic — targeted regression check (see dev outbox: sessions/dev-dungeoncrawler/outbox/20260414-203542-impl-dc-gam-gods-magic.md)
+- [ ] 20260414-203542-impl-dc-gmg-npc-gallery — targeted regression check (see dev outbox: sessions/dev-dungeoncrawler/outbox/20260414-203542-impl-dc-gmg-npc-gallery.md)
