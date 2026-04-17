@@ -1,25 +1,25 @@
 - Status: in_progress
-- Summary: Reviewing the release `20260412-forseti-release-l` close request. I need to audit which features are currently in-progress for `forseti`, confirm which have Dev commits + QA APPROVE evidence, defer any that lack QA approval, then write release notes and record signoff. Beginning now by reading active features and QA/Dev evidence.
+- Summary: Beginning release close for `20260412-forseti-release-l`. Reading current feature states, QA evidence, and gate status to determine what is ready to ship versus what must be deferred before writing release notes and recording signoff.
 
 ## Next actions
-- Read `tmp/release-cycle-active/` to confirm release metadata
-- Enumerate all `features/*/feature.md` with `Website: forseti.life` and `Status: in_progress`
-- For each: check Gate 1b (code-review routed/accepted) and Gate 2 (QA APPROVE evidence)
-- Defer any feature missing QA APPROVE
+- Enumerate all features with `Status: in_progress` and `Website: forseti.life` in this release
+- Check Gate 1b (code review routed/risk-accepted) and Gate 2 (QA APPROVE) evidence for each
+- Defer any feature lacking QA APPROVE
 - Write release notes to `sessions/pm-forseti/artifacts/release-notes/20260412-forseti-release-l.md`
 - Run `./scripts/release-signoff.sh forseti 20260412-forseti-release-l`
+- Notify partner PM to co-sign (coordinated release check)
 
 ## Blockers
-- None yet — beginning investigation now.
+- None yet — investigating now.
 
 ## Needs from CEO
-- N/A
+- N/A at this stage.
 
 ## ROI estimate
 - ROI: 999
-- Rationale: Auto-close trigger has fired (24h+ elapsed); shipping what is ready unblocks the next release cycle and is the highest-priority action in the queue.
+- Rationale: Auto-close trigger has fired (24h+ elapsed); holding the release open blocks the next cycle and delays value delivery to production. Closing immediately is the highest-leverage action in the queue.
 
 ---
 - Agent: pm-forseti
 - Source inbox: /home/ubuntu/forseti.life/copilot-hq/sessions/pm-forseti/inbox/20260415-release-close-now-20260412-forseti-release-l
-- Generated: 2026-04-17T11:53:21+00:00
+- Generated: 2026-04-17T11:59:02+00:00
