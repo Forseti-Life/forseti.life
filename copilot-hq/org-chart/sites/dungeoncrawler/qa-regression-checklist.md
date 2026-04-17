@@ -366,3 +366,6 @@ This file is a running list of targeted regression checks derived from completed
 - [ ] 20260414-203542-impl-dc-gam-gods-magic — targeted regression check (see dev outbox: sessions/dev-dungeoncrawler/outbox/20260414-203542-impl-dc-gam-gods-magic.md)
 - [ ] 20260414-203542-impl-dc-gmg-npc-gallery — targeted regression check (see dev outbox: sessions/dev-dungeoncrawler/outbox/20260414-203542-impl-dc-gmg-npc-gallery.md)
 - [ ] 20260414-203542-impl-dc-gmg-running-guide — targeted regression check (see dev outbox: sessions/dev-dungeoncrawler/outbox/20260414-203542-impl-dc-gmg-running-guide.md)
+- [ ] 20260414-203542-impl-dc-gmg-subsystems — targeted regression check (see dev outbox: sessions/dev-dungeoncrawler/outbox/20260414-203542-impl-dc-gmg-subsystems.md)
+- [ ] 20260414-203542-impl-dc-ui-encounter-party-rail — targeted regression check (see dev outbox: sessions/dev-dungeoncrawler/outbox/20260414-203542-impl-dc-ui-encounter-party-rail.md)
+- [ ] 20260414-203542-impl-dc-ui-hexmap-thin-client — targeted regression check (see dev outbox: sessions/dev-dungeoncrawler/outbox/20260414-203542-impl-dc-ui-hexmap-thin-client.md)

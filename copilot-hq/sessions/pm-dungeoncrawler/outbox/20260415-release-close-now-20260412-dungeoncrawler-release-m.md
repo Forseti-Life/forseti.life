@@ -1,24 +1,26 @@
 - Status: in_progress
-- Summary: Received auto-close trigger for release `20260412-dungeoncrawler-release-m` (12/10 features cap exceeded). Beginning triage: reading current feature states, QA signoff evidence, and existing release artifacts to determine which features are Gate 2 approved, which need deferral, and what release notes content is available before writing notes and recording signoff.
+- Summary: Received release-close-now trigger for `20260412-dungeoncrawler-release-m` (12/10 features cap hit). Beginning triage: reading current feature states, QA Gate 2 evidence, and existing signoff/release-notes artifacts before writing release notes and recording signoff.
 
 ## Next actions
-- Scan all `features/` entries scoped to `dungeoncrawler` + this release for Dev commit hashes and QA APPROVE status
-- Identify any features missing Gate 2 APPROVE → defer those (set Status: ready, remove release tag)
+- Read all `features/*/feature.md` files scoped to `dungeoncrawler` + this release ID to determine which have Dev commits and QA APPROVE vs. which need deferral
+- Check `sessions/qa-dungeoncrawler/artifacts/auto-site-audit/latest/` and any Gate 2 evidence per feature
+- Check `sessions/pm-dungeoncrawler/artifacts/release-notes/` and `release-signoffs/` for any existing artifacts
+- Refresh seat instructions file (`org-chart/agents/instructions/pm-dungeoncrawler.instructions.md`) as required by release-cycle start rule
 - Write release notes to `sessions/pm-dungeoncrawler/artifacts/release-notes/20260412-dungeoncrawler-release-m.md`
 - Run `./scripts/release-signoff.sh dungeoncrawler 20260412-dungeoncrawler-release-m`
-- Notify `pm-forseti` to record partner signoff
+- Notify partner PM (`pm-forseti`) to record their signoff
 
 ## Blockers
-- None yet — proceeding with triage now.
+- None yet — proceeding with triage now
 
 ## Needs from CEO
-- None at this stage.
+- None at this time
 
 ## ROI estimate
 - ROI: 999
-- Rationale: Auto-close trigger is an org-enforced hard stop; delaying release close blocks the next cycle from starting and holds 12 features from shipping. Immediate action maximizes throughput and unblocks downstream seats.
+- Rationale: Auto-close trigger fired; holding the release open past the feature cap wastes executor slots and risks scope creep. Closing promptly unblocks the next cycle and is required by org policy.
 
 ---
 - Agent: pm-dungeoncrawler
 - Source inbox: /home/ubuntu/forseti.life/copilot-hq/sessions/pm-dungeoncrawler/inbox/20260415-release-close-now-20260412-dungeoncrawler-release-m
-- Generated: 2026-04-17T02:16:53+00:00
+- Generated: 2026-04-17T03:35:44+00:00

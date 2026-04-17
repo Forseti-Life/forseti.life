@@ -1,9 +1,9 @@
 - command: |
     Targeted QA unit test for completed Dev item.
 
-    - Completed item: 20260414-203542-impl-dc-cr-vivacious-conduit
+    - Completed item: 20260414-203542-impl-dc-ui-encounter-party-rail
     - Dev seat: dev-dungeoncrawler
-    - Dev outbox: sessions/dev-dungeoncrawler/outbox/20260414-203542-impl-dc-cr-vivacious-conduit.md
+    - Dev outbox: sessions/dev-dungeoncrawler/outbox/20260414-203542-impl-dc-ui-encounter-party-rail.md
 
     Required actions:
     1) Run a targeted verification for *this item* (derive steps from Dev outbox + acceptance criteria).

@@ -1,22 +1,12 @@
+Current state is clear. Health check already shows `✅ PASS Recent Copilot rate-limit signatures: none detected`. The 4 current failure records are qa-infra "missing required status header" errors — not rate-limit signatures. The 13 records from the original alert (dispatched at 00:00) were the historical residue that was pruned in the earlier executor-failures-prune task.
+
+---
+
 - Status: done
-- Summary: Investigated Copilot rate-limit pressure alert (dispatched 2026-04-17T00:00). Quick checks ran: `orchestrator-loop.sh status` shows single tracked loop running (PID 1572959; 2 visible processes = expected launcher + child); `tmp/executor-failures/` contains 4 records, all qa-infra "missing required status header" failures — none are rate-limit signatures. The 13 rate-limit failure records cited in the original alert were the historical residue pruned in the prior `20260416-syshealth-executor-failures-prune` task. Current `ceo-system-health.sh` confirms `✅ PASS Recent Copilot rate-limit signatures: none detected`. No rate-limit pressure is active; no backoff/cooldown changes required.
-
-## Verification
-
-```
-✅ PASS Legacy agent-exec-loop: not running
-✅ PASS Orchestrator loop visibility: 2 process(es) (expected launcher + child)
-✅ PASS Recent Copilot rate-limit signatures: none detected
-```
-
-Commands run:
-- `bash scripts/orchestrator-loop.sh status` → running (pid 1572959)
-- `ls tmp/executor-failures/` → 4 records, 0 rate-limit signatures
-- `bash scripts/ceo-system-health.sh` → PASS on rate-limit check
+- Summary: Rate-limit pressure alert investigated. All three prescribed checks run. Orchestrator: single tracked loop (PID 1572959, 2 visible processes = expected). `tmp/executor-failures/`: 4 records present, all qa-infra "missing required status header" — zero rate-limit signatures. The 13 records cited in the original alert were historical residue already pruned by the prior executor-failures-prune task. Health check confirms `✅ PASS Recent Copilot rate-limit signatures: none detected`. No backoff/cooldown changes required.
 
 ## Next actions
-- Monitor: qa-infra has 4 recent "missing required status header" failures that are not rate-limit related; if that pattern continues, a separate investigation is warranted
-- No changes to `scripts/agent-exec-next.sh` needed — no active rate-limit backoff issue
+- qa-infra has 4 recent non-rate-limit failures ("missing required status header") — monitor; may warrant separate investigation if pattern persists
 
 ## Blockers
 - None
@@ -26,4 +16,11 @@ Commands run:
 
 ## ROI estimate
 - ROI: 10
-- Rationale: Alert was triggered by historical residue already cleaned up in the prior task; current state is clean. Low ongoing risk.
+- Rationale: Alert was stale residue; system is clean. No active pressure to mitigate.
+
+**Commit:** `a4c56dede`
+
+---
+- Agent: dev-infra
+- Source inbox: /home/ubuntu/forseti.life/copilot-hq/sessions/dev-infra/inbox/20260417-syshealth-copilot-rate-limit-pressure
+- Generated: 2026-04-17T03:31:34+00:00
