@@ -1620,6 +1620,15 @@ class FeatEffectManager {
 
         $effects['notes'][] = 'Wellspring Gnome: ' . $ws_tradition . ' tradition; at-will cantrip (heightened ceil(level/2)); all gnome ancestry primal innate spells override to ' . $ws_tradition . '.';
         break;
+
+      case 'gutsy':
+        // AC: Gutsy Halfling — when rolling a success on a saving throw against
+        // an emotion effect, upgrade the result to a critical success.
+        // Critical success stays critical success; failed/crit-failed saves are
+        // unaffected; non-emotion effects resolve normally.
+        $effects['derived_adjustments']['flags']['gutsy_halfling_emotion_save_upgrade'] = TRUE;
+        $effects['notes'][] = 'Gutsy Halfling: success on a saving throw against an emotion effect upgrades to critical success. Only affects emotion-tagged effects; failures/crit-fails are unchanged.';
+        break;
     }
 
     $computed_speed = $base_speed + (int) ($effects['derived_adjustments']['speed_bonus'] ?? 0);

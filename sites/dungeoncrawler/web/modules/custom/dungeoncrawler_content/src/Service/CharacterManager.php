@@ -466,7 +466,7 @@ class CharacterManager {
       ['id' => 'snow', 'name' => 'Snow Goblin', 'benefit' => 'Cold resistance'],
     ],
     'Halfling' => [
-      ['id' => 'gutsy', 'name' => 'Gutsy Halfling', 'benefit' => 'Bonus vs fear'],
+      ['id' => 'gutsy', 'name' => 'Gutsy Halfling', 'benefit' => 'Success on emotion saves upgrades to critical success'],
       ['id' => 'hillock', 'name' => 'Hillock Halfling', 'benefit' => 'Faster healing'],
       ['id' => 'nomadic', 'name' => 'Nomadic Halfling', 'benefit' => 'Extra languages'],
       ['id' => 'twilight', 'name' => 'Twilight Halfling', 'benefit' => 'Low-light vision'],
