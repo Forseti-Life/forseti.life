@@ -1,54 +1,25 @@
-I'll work through the release-close steps systematically.
-
-**Step 1: Read my seat instructions and survey the release state.**
-
 - Status: in_progress
-- Summary: Beginning release-close for 20260412-forseti-release-l. First action: read seat instructions, then audit in-progress features for this release to determine which have Gate 1b + Gate 2 evidence and which must be deferred.
-
-Let me execute this now.
-
-**Reading seat instructions and surveying the release state:**
-
-```bash
-cat /home/ubuntu/forseti.life/copilot-hq/org-chart/agents/instructions/pm-forseti.instructions.md
-```
-
-```bash
-ls /home/ubuntu/forseti.life/copilot-hq/features/ | head -40
-```
-
-```bash
-grep -rl "forseti" /home/ubuntu/forseti.life/copilot-hq/features/*/feature.md 2>/dev/null | xargs grep -l "in_progress" 2>/dev/null
-```
-
-Let me run these:
-
----
-
-I'll execute the actual file reads now.
-
-- Status: in_progress
-- Summary: Executing release-close for 20260412-forseti-release-l. Reading seat instructions and auditing all in-progress Forseti features to determine Gate 1b + Gate 2 status before writing release notes and recording signoff.
+- Summary: Beginning release-close for 20260412-forseti-release-l. I need to audit all in-progress features for forseti, check Gate 1b + Gate 2 evidence, defer any unapproved features, write release notes, and record signoff. Starting by reading my seat instructions and scanning in-progress features now.
 
 ## Next actions
-- Read seat instructions file
-- List all features with Website: forseti and Status: in_progress
-- Check each for QA APPROVE evidence
-- Defer any without Gate 2 approval
-- Write release notes
-- Run release-signoff.sh
+- Read seat instructions file and refresh if needed
+- Identify all in-progress features scoped to forseti for this release
+- Check Gate 1b (code review routed/accepted) and Gate 2 (QA APPROVE) evidence per feature
+- Defer features missing QA APPROVE
+- Write release notes to `sessions/pm-forseti/artifacts/release-notes/20260412-forseti-release-l.md`
+- Run `./scripts/release-signoff.sh forseti 20260412-forseti-release-l`
 
 ## Blockers
-- None yet — executing now
+- None yet — investigating now.
 
 ## Needs from CEO
-- N/A
+- N/A at this stage.
 
 ## ROI estimate
 - ROI: 999
-- Rationale: Auto-close trigger fired (24.6h elapsed). Holding the release open wastes org capacity and blocks the next cycle. Ship what is ready immediately.
+- Rationale: Auto-close trigger fired; holding the release open wastes org bandwidth and risks scope creep. Closing cleanly unblocks the next cycle immediately.
 
 ---
 - Agent: pm-forseti
 - Source inbox: /home/ubuntu/forseti.life/copilot-hq/sessions/pm-forseti/inbox/20260415-release-close-now-20260412-forseti-release-l
-- Generated: 2026-04-17T01:18:16+00:00
+- Generated: 2026-04-17T01:55:43+00:00

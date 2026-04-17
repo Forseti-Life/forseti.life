@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-04-17T01:04:19.063591+00:00",
+  "generated_at": "2026-04-17T01:29:22.284216+00:00",
   "parity_ok": true,
   "selected_agents": {
     "match": true,
@@ -9,7 +9,7 @@
       "ba-dungeoncrawler",
       "dev-dungeoncrawler",
       "qa-forseti",
-      "pm-infra"
+      "dev-infra"
     ]
   },
   "steps": {

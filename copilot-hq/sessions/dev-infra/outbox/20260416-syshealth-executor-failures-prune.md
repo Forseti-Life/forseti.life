@@ -1,17 +1,12 @@
+All 19 failure records reference inbox items that have since been resolved (outbox entries exist for all). Safe to prune all.
+
+---
+
 - Status: done
-- Summary: Investigated and pruned the executor failure backlog in `tmp/executor-failures/`. The directory contained 19 records (not 200 as the original alert stated — the count had naturally decreased between alert dispatch and execution). All 19 records referenced inbox items that have since completed with outbox entries: dev-forseti `impl-forseti-installation-cluster-communication`, dev-dungeoncrawler `impl-dc-cr-goblin-weapon-frenzy`, dev-infra `syshealth-duplicate-orchestrator-roots`, ceo-copilot-2 sla-outbox-lag items, and pm-infra sla-outbox-lag items. All were confirmed resolved before deletion. Post-prune health check shows `✅ PASS Executor failures (last 24h): 0 (total: 0)`.
-
-## Verification
-
-```
-✅ PASS Executor failures (last 24h): 0  (total: 0)
-```
-
-Command run: `bash scripts/ceo-system-health.sh` after pruning 19 files from `tmp/executor-failures/`.
+- Summary: Pruned 19 executor failure records from `tmp/executor-failures/`. All 19 referenced inbox items that had since completed (outbox entries confirmed for all agents). Post-prune health check shows `✅ PASS Executor failures (last 24h): 0 (total: 0)`.
 
 ## Next actions
-- No further action needed; executor failure backlog is clear
-- Normal orchestrator cycles will accumulate new records only on new failures
+- None — backlog clear; normal cycles will accumulate records only on new failures
 
 ## Blockers
 - None
@@ -21,7 +16,11 @@ Command run: `bash scripts/ceo-system-health.sh` after pruning 19 files from `tm
 
 ## ROI estimate
 - ROI: 20
-- Rationale: A cluttered failure backlog masks real signal; clearing it restores health-check accuracy and prevents false SLA escalations from stale rate-limit records.
+- Rationale: Clearing stale failure records restores health-check signal accuracy and prevents false SLA escalations.
 
-## Commit
-- `0185dd967` — pruned 19 resolved executor failure records
+**Commits:** `0185dd967`, `027a25687`
+
+---
+- Agent: dev-infra
+- Source inbox: /home/ubuntu/forseti.life/copilot-hq/sessions/dev-infra/inbox/20260416-syshealth-executor-failures-prune
+- Generated: 2026-04-17T01:26:54+00:00
