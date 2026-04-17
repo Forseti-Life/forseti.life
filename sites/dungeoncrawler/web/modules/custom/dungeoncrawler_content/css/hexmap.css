@@ -2466,55 +2466,176 @@
   overflow-y: auto;
 }
 
-.initiative-item {
-  display: flex;
-  align-items: center;
+/* ==========================================================================
+   Party Rail Cards — rich encounter participant cards (AC-001, AC-003, AC-004)
+   ========================================================================== */
+
+.rail-card {
+  display: block;
   padding: var(--space-2) var(--space-3);
   background: var(--overlay-white-04);
   border-radius: var(--radius-lg);
   margin-bottom: 6px;
   border-left: 4px solid var(--overlay-white-08);
   transition: all var(--transition-fast) var(--ease-smooth);
+  cursor: pointer;
+  outline: none;
 }
 
-.initiative-item:hover {
+.rail-card:hover,
+.rail-card:focus-visible {
   transform: translateX(4px);
   box-shadow: var(--shadow-md);
 }
 
-.initiative-item.active-turn {
+.rail-card--active {
   background: linear-gradient(90deg, var(--overlay-accent-18) 0%, var(--overlay-success-18) 100%);
   border-left-color: var(--accent);
   box-shadow: 0 2px 10px var(--overlay-accent-25);
 }
 
-.initiative-item.defeated {
-  opacity: 0.5;
-  background: var(--overlay-white-02);
+.rail-card--defeated {
+  opacity: 0.45;
   text-decoration: line-through;
+  cursor: default;
 }
 
-.init-value {
+/* Header row: initiative badge + name + team badge */
+.rail-card__header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.rail-card__init {
   background: var(--accent);
   color: var(--accent-dark);
-  padding: var(--space-1) var(--space-2);
+  padding: 2px var(--space-2);
   border-radius: var(--radius-full);
   font-weight: 700;
   font-size: var(--text-md);
-  min-width: 30px;
+  min-width: 28px;
   text-align: center;
-  margin-right: var(--space-3);
+  flex-shrink: 0;
 }
 
-.initiative-item.active-turn .init-value {
+.rail-card--active .rail-card__init {
   background: var(--gradient-success);
   animation: pulse 2s var(--ease-in-out) infinite;
 }
 
-.init-name {
+.rail-card__name {
   flex: 1;
   color: var(--text);
   font-weight: 600;
+  font-size: var(--text-md);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Team badges */
+.rail-card__team-badge {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 2px 6px;
+  border-radius: var(--radius-full);
+  flex-shrink: 0;
+}
+
+.rail-card__team--player  { background: hsl(215 80% 55% / 0.25); color: hsl(215 90% 75%); }
+.rail-card__team--ally    { background: hsl(140 60% 40% / 0.25); color: hsl(140 70% 65%); }
+.rail-card__team--enemy   { background: hsl(0   70% 50% / 0.25); color: hsl(0   80% 70%); }
+.rail-card__team--neutral { background: var(--overlay-white-08);  color: var(--text-muted); }
+
+/* HP bar */
+.rail-card__hp-wrap {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-1);
+}
+
+.rail-card__hp-track {
+  flex: 1;
+  height: 5px;
+  background: var(--overlay-white-08);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+.rail-card__hp-bar {
+  height: 100%;
+  border-radius: var(--radius-full);
+  transition: width var(--transition-fast) var(--ease-smooth);
+}
+
+.hp-bar--healthy  { background: hsl(140 65% 45%); }
+.hp-bar--bloodied { background: hsl(40  85% 50%); }
+.hp-bar--critical { background: hsl(0   75% 50%); }
+.hp-bar--defeated { background: hsl(0   0%  30%); }
+
+.rail-card__hp-label {
+  font-size: 10px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* Action pips (active combatant only) */
+.rail-card__actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: var(--space-1);
+}
+
+.rail-card__pip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  border-radius: var(--radius-full);
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.pip--ready         { background: var(--accent); }
+.pip--spent         { background: var(--overlay-white-08); border: 1px solid var(--overlay-white-15); }
+.pip--reaction-ready  { background: hsl(50 90% 55%); color: hsl(30 80% 20%); }
+.pip--reaction-spent  { background: var(--overlay-white-08); color: var(--text-muted); border: 1px solid var(--overlay-white-15); }
+
+/* Narrow-screen responsive: horizontal compact strip (AC-003) */
+@media (max-width: 600px) {
+  .initiative-list {
+    max-height: none;
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    gap: 6px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+
+  .rail-card {
+    flex: 0 0 auto;
+    min-width: 80px;
+    max-width: 120px;
+    margin-bottom: 0;
+    transform: none !important;
+  }
+
+  .rail-card:hover,
+  .rail-card:focus-visible {
+    transform: none;
+    box-shadow: var(--shadow-md);
+  }
+
+  .rail-card__team-badge { display: none; }
+  .rail-card__hp-label   { display: none; }
 }
 
 /* ==========================================================================

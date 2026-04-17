@@ -134,6 +134,7 @@ import { SpriteService } from './SpriteService.js';
       this.setupActionFooterToggle();
       this.setupFullscreenToggle();
       this.cacheElements();
+      this.setupPartyRailHandlers();
       this.setupChatLog();
       this.setupChannelTabs();
       this.setupSessionViewTabs();
@@ -364,6 +365,31 @@ import { SpriteService } from './SpriteService.js';
     }
 
     /**
+     * Bind delegated click/keyboard handlers on the initiative list for party-rail card selection.
+     * Called once from constructor; works with dynamically replaced card HTML.
+     */
+    setupPartyRailHandlers() {
+      const list = this.elements.initiativeList;
+      if (!list) return;
+
+      list.addEventListener('click', (e) => {
+        const card = e.target.closest('.rail-card[data-entity-id]');
+        if (!card) return;
+        const entityId = card.dataset.entityId;
+        const hexmap = this.stateManager?.hexmap;
+        if (!hexmap || !entityId) return;
+        const entity = hexmap.entityManager?.getEntity(entityId);
+        if (entity) hexmap.selectEntity(entity);
+      });
+
+      list.addEventListener('keydown', (e) => {
+        if (e.key !== 'Enter' && e.key !== ' ') return;
+        const card = e.target.closest('.rail-card[data-entity-id]');
+        if (card) card.click();
+      });
+    }
+
+    /**
      * Setup collapsible character sheet sections.
      */
     setupCharacterSheetSections() {
@@ -590,19 +616,64 @@ import { SpriteService } from './SpriteService.js';
     }
 
     /**
-     * Update initiative tracker.
+     * Update initiative tracker with rich party-rail participant cards.
+     * Each card shows: initiative badge, name, team badge, HP bar, and (for the
+     * active combatant) action-pip state.  Enemy HP is shown as a coloured state
+     * bar only; player-team HP is shown with exact values.
+     * Clicking a card selects the corresponding entity on the board.
      */
     updateInitiativeTracker(initiativeOrder) {
       if (!this.elements.initiativeList) return;
 
       let html = '';
       initiativeOrder.forEach((data) => {
-        const activeClass = data.isCurrent ? 'active-turn' : '';
-        const defeatedClass = data.isDefeated ? 'defeated' : '';
-        html += `<div class="initiative-item ${activeClass} ${defeatedClass}">
-          <span class="init-value">${data.initiative}</span>
-          <span class="init-name">${data.name}</span>
-        </div>`;
+        const combat = data.entity?.getComponent('CombatComponent');
+        const stats = data.entity?.getComponent('StatsComponent');
+        const actions = data.entity?.getComponent('ActionsComponent');
+        const team = combat?.team || 'neutral';
+        const teamLabels = { player: 'Player', enemy: 'Enemy', ally: 'Ally', neutral: 'NPC' };
+        const teamLabel = teamLabels[team] || team;
+
+        // HP bar — exact values only for player team (AC-004 visibility rule)
+        let hpHtml = '';
+        if (stats && stats.maxHp > 0) {
+          const pct = Math.max(0, Math.min(100, Math.round((stats.currentHp / stats.maxHp) * 100)));
+          let hpStateClass = 'hp-bar--healthy';
+          if (pct <= 0) hpStateClass = 'hp-bar--defeated';
+          else if (pct <= 25) hpStateClass = 'hp-bar--critical';
+          else if (pct <= 50) hpStateClass = 'hp-bar--bloodied';
+          const hpLabel = team === 'player' ? `${stats.currentHp}/${stats.maxHp}` : '';
+          hpHtml = `<div class="rail-card__hp-wrap" title="${hpLabel || 'HP status'}">
+              <div class="rail-card__hp-track"><div class="rail-card__hp-bar ${hpStateClass}" style="width:${pct}%"></div></div>
+              ${hpLabel ? `<span class="rail-card__hp-label">${hpLabel}</span>` : ''}
+            </div>`;
+        }
+
+        // Action pips — only shown on active combatant (AC-001 compact status cues)
+        let actionsHtml = '';
+        if (data.isCurrent && actions) {
+          const maxA = actions.maxActions || 3;
+          let pips = '';
+          for (let i = 0; i < maxA; i++) {
+            const spent = i >= actions.actionsRemaining;
+            pips += `<span class="rail-card__pip ${spent ? 'pip--spent' : 'pip--ready'}" title="${spent ? 'Action spent' : 'Action ready'}"></span>`;
+          }
+          const rxClass = actions.hasReaction ? 'pip--reaction-ready' : 'pip--reaction-spent';
+          pips += `<span class="rail-card__pip rail-card__pip--reaction ${rxClass}" title="${actions.hasReaction ? 'Reaction ready' : 'Reaction spent'}">R</span>`;
+          actionsHtml = `<div class="rail-card__actions">${pips}</div>`;
+        }
+
+        const activeClass = data.isCurrent ? 'rail-card--active' : '';
+        const defeatedClass = data.isDefeated ? 'rail-card--defeated' : '';
+        html += `<div class="initiative-item rail-card ${activeClass} ${defeatedClass}" data-entity-id="${data.entityId}" role="button" tabindex="0" aria-label="${data.name}${data.isCurrent ? ' — active turn' : ''}">
+            <div class="rail-card__header">
+              <span class="rail-card__init">${data.initiative}</span>
+              <span class="rail-card__name">${data.name}</span>
+              <span class="rail-card__team-badge rail-card__team--${team}">${teamLabel}</span>
+            </div>
+            ${hpHtml}
+            ${actionsHtml}
+          </div>`;
       });
       this.elements.initiativeList.innerHTML = html;
     }
