@@ -2053,10 +2053,34 @@ class ExplorationPhaseHandler implements PhaseHandlerInterface {
       // AC-007: Short rest allows Refocus — restore focus points via refocus action.
       // Short rest itself (10 min) does not automatically restore focus; player must
       // take the Refocus exploration activity. This case is a fallback catch-breath rest.
+      // REQ dc-cr-vivacious-conduit: 10-minute rest heals con_mod × floor(level/2) HP.
+      $mutations = [];
+      $vc_healed = 0;
+      $entity_sr = &$this->findEntityInDungeon($actor_id, $dungeon_data, TRUE);
+      if ($entity_sr) {
+        $feat_ids = array_column($entity_sr['feats'] ?? [], 'id');
+        if (in_array('vivacious-conduit', $feat_ids, TRUE)) {
+          $con_mod = (int) ($entity_sr['stats']['con_modifier'] ?? 0);
+          $level_sr = max(1, (int) ($entity_sr['stats']['level'] ?? ($entity_sr['level'] ?? 1)));
+          $half_level = (int) floor($level_sr / 2);
+          $bonus = max(0, $con_mod) * $half_level;
+          if ($bonus > 0) {
+            $current_hp = (int) ($entity_sr['state']['hit_points']['current'] ?? 0);
+            $max_hp = (int) ($entity_sr['state']['hit_points']['max'] ?? 20);
+            $new_hp = min($max_hp, $current_hp + $bonus);
+            $entity_sr['state']['hit_points']['current'] = $new_hp;
+            $vc_healed = $new_hp - $current_hp;
+            $this->persistDungeonData($campaign_id, $dungeon_data);
+            $mutations[] = ['type' => 'entity_state', 'entity_id' => $actor_id, 'state' => $entity_sr['state']];
+          }
+        }
+      }
+      unset($entity_sr);
       return [
         'rested' => TRUE,
         'rest_type' => 'short',
-        'mutations' => [],
+        'vivacious_conduit_healed' => $vc_healed,
+        'mutations' => $mutations,
       ];
     }
 

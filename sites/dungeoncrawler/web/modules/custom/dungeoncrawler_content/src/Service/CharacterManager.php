@@ -830,6 +830,8 @@ class CharacterManager {
       ['id' => 'first-world-adept', 'name' => 'First World Adept', 'level' => 9, 'traits' => ['Gnome'], 'prerequisites' => 'At least one primal innate spell',
         'benefit' => 'You gain faerie fire and invisibility as 2nd-level primal innate spells. You can cast each of these primal innate spells once per day.',
         'prerequisite_primal_innate_spell' => TRUE],
+      ['id' => 'vivacious-conduit', 'name' => 'Vivacious Conduit', 'level' => 9, 'traits' => ['Gnome'], 'prerequisites' => '',
+        'benefit' => 'If you rest for 10 minutes, you regain Hit Points equal to your Constitution modifier × half your level. This is cumulative with any healing you receive from Treat Wounds.'],
       ['id' => 'gnome-weapon-specialist', 'name' => 'Gnome Weapon Specialist', 'level' => 5, 'traits' => ['Gnome'], 'prerequisites' => 'Gnome Weapon Familiarity',
         'benefit' => 'Whenever you critically hit with a glaive, kukri, or any weapon with the gnome trait, you apply the weapon\'s critical specialization effect.',
         'prerequisite_gnome_weapon_familiarity' => TRUE],

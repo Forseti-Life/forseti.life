@@ -969,6 +969,12 @@ class FeatEffectManager {
           $effects['applied_feats'][] = $feat_id;
           break;
 
+        case 'vivacious-conduit':
+          $effects['derived_adjustments']['flags']['vivacious_conduit_short_rest_heal'] = TRUE;
+          $effects['notes'][] = 'Vivacious Conduit: 10-minute rest restores HP = Constitution modifier × half level (stacks with Treat Wounds).';
+          $effects['applied_feats'][] = $feat_id;
+          break;
+
         case 'gnome-weapon-expertise':
           $cascade_rank = $this->getClassWeaponExpertiseRank($character_data['class_features'] ?? []);
           if ($cascade_rank !== '') {
