@@ -5933,3 +5933,56 @@ function dungeoncrawler_content_update_10046() {
 
   return "Created 11 GM Running Guide tables and seeded {$seeded} GMG reference entries (dc-gmg-running-guide).";
 }
+
+/**
+ * Implements hook_update_N() for dc-gmg-subsystems.
+ *
+ * Creates:
+ *   dc_subsystem_session — subsystem session state (chase/influence/research/infiltration/etc.)
+ *   dc_variant_rule      — per-campaign variant rule feature flags
+ */
+function dungeoncrawler_content_update_10047() {
+  $schema = \Drupal::database()->schema();
+
+  // ── dc_subsystem_session ──────────────────────────────────────────────────
+  if (!$schema->tableExists('dc_subsystem_session')) {
+    $schema->createTable('dc_subsystem_session', [
+      'fields' => [
+        'id'             => ['type' => 'serial',  'unsigned' => TRUE,  'not null' => TRUE],
+        'campaign_id'    => ['type' => 'int',      'unsigned' => TRUE,  'not null' => TRUE, 'default' => 0],
+        'subsystem_type' => ['type' => 'varchar',  'length' => 32,      'not null' => TRUE, 'default' => ''],
+        'status'         => ['type' => 'varchar',  'length' => 16,      'not null' => TRUE, 'default' => 'active'],
+        'progress_state' => ['type' => 'text',     'size' => 'big',     'not null' => TRUE, 'default' => '{}'],
+        'initiated_by'   => ['type' => 'int',      'unsigned' => TRUE,  'not null' => TRUE, 'default' => 0],
+        'created'        => ['type' => 'int',      'unsigned' => TRUE,  'not null' => TRUE, 'default' => 0],
+        'updated'        => ['type' => 'int',      'unsigned' => TRUE,  'not null' => TRUE, 'default' => 0],
+      ],
+      'primary key' => ['id'],
+      'indexes' => [
+        'campaign'        => ['campaign_id'],
+        'campaign_status' => ['campaign_id', 'status'],
+        'campaign_type'   => ['campaign_id', 'subsystem_type'],
+      ],
+    ]);
+  }
+
+  // ── dc_variant_rule ───────────────────────────────────────────────────────
+  if (!$schema->tableExists('dc_variant_rule')) {
+    $schema->createTable('dc_variant_rule', [
+      'fields' => [
+        'id'          => ['type' => 'serial',  'unsigned' => TRUE,  'not null' => TRUE],
+        'campaign_id' => ['type' => 'int',      'unsigned' => TRUE,  'not null' => TRUE, 'default' => 0],
+        'rule_name'   => ['type' => 'varchar',  'length' => 64,      'not null' => TRUE, 'default' => ''],
+        'enabled'     => ['type' => 'int',      'size' => 'tiny',    'not null' => TRUE, 'default' => 0],
+        'config_json' => ['type' => 'text',     'size' => 'big',     'not null' => TRUE, 'default' => '{}'],
+        'created'     => ['type' => 'int',      'unsigned' => TRUE,  'not null' => TRUE, 'default' => 0],
+        'updated'     => ['type' => 'int',      'unsigned' => TRUE,  'not null' => TRUE, 'default' => 0],
+      ],
+      'primary key' => ['id'],
+      'unique keys' => ['campaign_rule' => ['campaign_id', 'rule_name']],
+      'indexes' => [
+        'campaign' => ['campaign_id'],
+      ],
+    ]);
+  }
+}

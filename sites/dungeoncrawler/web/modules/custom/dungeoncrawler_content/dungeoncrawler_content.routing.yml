@@ -2660,3 +2660,200 @@ dungeoncrawler_content.api.gm.campaign_design.set:
     campaign_id: '\d+'
   options:
     _format: json
+
+# ── dc-gmg-subsystems: Subsystem sessions ─────────────────────────────────
+
+dungeoncrawler_content.api.subsystem.initiate:
+  path: '/api/campaign/{campaign_id}/subsystems'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\SubsystemController::initiateSubsystem'
+  methods: [POST]
+  requirements:
+    _csrf_request_header_mode: TRUE
+    _permission: 'administer dungeoncrawler content'
+    campaign_id: '\d+'
+  options:
+    _format: json
+
+dungeoncrawler_content.api.subsystem.list:
+  path: '/api/campaign/{campaign_id}/subsystems'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\SubsystemController::listSubsystems'
+  methods: [GET]
+  requirements:
+    _permission: 'access dungeoncrawler characters'
+    campaign_id: '\d+'
+  options:
+    _format: json
+
+dungeoncrawler_content.api.subsystem.active:
+  path: '/api/campaign/{campaign_id}/subsystems/active'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\SubsystemController::listActiveSubsystems'
+  methods: [GET]
+  requirements:
+    _permission: 'access dungeoncrawler characters'
+    campaign_id: '\d+'
+  options:
+    _format: json
+
+dungeoncrawler_content.api.subsystem.get:
+  path: '/api/campaign/{campaign_id}/subsystems/{session_id}'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\SubsystemController::getSubsystem'
+  methods: [GET]
+  requirements:
+    _permission: 'access dungeoncrawler characters'
+    campaign_id: '\d+'
+    session_id: '\d+'
+  options:
+    _format: json
+
+dungeoncrawler_content.api.subsystem.turn:
+  path: '/api/campaign/{campaign_id}/subsystems/{session_id}/turn'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\SubsystemController::takeTurn'
+  methods: [POST]
+  requirements:
+    _csrf_request_header_mode: TRUE
+    _permission: 'access dungeoncrawler characters'
+    campaign_id: '\d+'
+    session_id: '\d+'
+  options:
+    _format: json
+
+dungeoncrawler_content.api.subsystem.win_condition:
+  path: '/api/campaign/{campaign_id}/subsystems/{session_id}/win-condition'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\SubsystemController::checkWinCondition'
+  methods: [GET]
+  requirements:
+    _permission: 'access dungeoncrawler characters'
+    campaign_id: '\d+'
+    session_id: '\d+'
+  options:
+    _format: json
+
+dungeoncrawler_content.api.subsystem.fail_condition:
+  path: '/api/campaign/{campaign_id}/subsystems/{session_id}/fail-condition'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\SubsystemController::checkFailCondition'
+  methods: [GET]
+  requirements:
+    _permission: 'access dungeoncrawler characters'
+    campaign_id: '\d+'
+    session_id: '\d+'
+  options:
+    _format: json
+
+dungeoncrawler_content.api.subsystem.resolve:
+  path: '/api/campaign/{campaign_id}/subsystems/{session_id}/resolve'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\SubsystemController::resolveSubsystem'
+  methods: [POST]
+  requirements:
+    _csrf_request_header_mode: TRUE
+    _permission: 'administer dungeoncrawler content'
+    campaign_id: '\d+'
+    session_id: '\d+'
+  options:
+    _format: json
+
+# ── dc-gmg-subsystems: Variant rules (campaign-scoped) ─────────────────────
+
+dungeoncrawler_content.api.variant_rules.get:
+  path: '/api/campaign/{campaign_id}/variant-rules'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\SubsystemController::getVariantRules'
+  methods: [GET]
+  requirements:
+    _permission: 'access dungeoncrawler characters'
+    campaign_id: '\d+'
+  options:
+    _format: json
+
+dungeoncrawler_content.api.variant_rules.set:
+  path: '/api/campaign/{campaign_id}/variant-rules/{rule}'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\SubsystemController::setVariantRule'
+  methods: [POST]
+  requirements:
+    _csrf_request_header_mode: TRUE
+    _permission: 'administer dungeoncrawler content'
+    campaign_id: '\d+'
+  options:
+    _format: json
+
+dungeoncrawler_content.api.variant_rules.compatibility:
+  path: '/api/campaign/{campaign_id}/variant-rules/{rule}/compatibility'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\SubsystemController::checkRuleCompatibility'
+  methods: [GET]
+  requirements:
+    _permission: 'access dungeoncrawler characters'
+    campaign_id: '\d+'
+  options:
+    _format: json
+
+# ── dc-gmg-subsystems: Variant rules (reference, no campaign scope) ─────────
+
+dungeoncrawler_content.api.variant_rules.abp.level:
+  path: '/api/variant-rules/abp/{level}'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\SubsystemController::getAbpBonuses'
+  methods: [GET]
+  requirements:
+    _permission: 'access dungeoncrawler characters'
+    level: '\d+'
+  options:
+    _format: json
+
+dungeoncrawler_content.api.variant_rules.abp.table:
+  path: '/api/variant-rules/abp-table'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\SubsystemController::getAbpTable'
+  methods: [GET]
+  requirements:
+    _permission: 'access dungeoncrawler characters'
+  options:
+    _format: json
+
+dungeoncrawler_content.api.variant_rules.pwl.rank:
+  path: '/api/variant-rules/pwl/{rank}'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\SubsystemController::getPwlBonus'
+  methods: [GET]
+  requirements:
+    _permission: 'access dungeoncrawler characters'
+  options:
+    _format: json
+
+dungeoncrawler_content.api.variant_rules.pwl.table:
+  path: '/api/variant-rules/pwl-table'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\SubsystemController::getPwlTable'
+  methods: [GET]
+  requirements:
+    _permission: 'access dungeoncrawler characters'
+  options:
+    _format: json
+
+dungeoncrawler_content.api.variant_rules.free_archetype.schedule:
+  path: '/api/variant-rules/free-archetype/schedule'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\SubsystemController::getFreeArchetypeSchedule'
+  methods: [GET]
+  requirements:
+    _permission: 'access dungeoncrawler characters'
+  options:
+    _format: json
+
+dungeoncrawler_content.api.variant_rules.ancestry_paragon.schedule:
+  path: '/api/variant-rules/ancestry-paragon/schedule'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\SubsystemController::getAncestryParagonSchedule'
+  methods: [GET]
+  requirements:
+    _permission: 'access dungeoncrawler characters'
+  options:
+    _format: json

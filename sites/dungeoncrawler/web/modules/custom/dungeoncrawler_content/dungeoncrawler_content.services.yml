@@ -671,3 +671,14 @@ services:
     arguments:
       - '@database'
       - '@current_user'
+
+  dungeoncrawler_content.subsystem:
+    class: Drupal\dungeoncrawler_content\Service\SubsystemService
+    arguments:
+      - '@database'
+      - '@current_user'
+
+  dungeoncrawler_content.variant_rules:
+    class: Drupal\dungeoncrawler_content\Service\VariantRulesService
+    arguments:
+      - '@database'
