@@ -1,7 +1,7 @@
 - Status: in_progress
-- Summary: Reading progress state and source documents to identify the correct starting line and candidate creatures for this scan cycle.
+- Summary: Reading the progress state file and outline to determine the correct starting line for this scan cycle before extracting creature features.
 
-Let me check the progress file and outline first.
+Let me check the current progress state and source files.
 
 ```bash
 cat /home/ubuntu/forseti.life/copilot-hq/tmp/ba-scan-progress/dungeoncrawler.json
@@ -17,26 +17,30 @@ cat /home/ubuntu/forseti.life/copilot-hq/tmp/ba-scan-progress/dungeoncrawler.jso
     {
       "book_id": "pf2e-crb",
       "title": "PF2E Core Rulebook",
-      "status": "complete",
-      "last_line": 99999
+      "file": "docs/dungeoncrawler/reference documentation/PF2E CRB.txt",
+      "last_line": 0,
+      "status": "not_started"
     },
     {
       "book_id": "pf2e-apg",
-      "title": "PF2E Advanced Player Guide",
-      "status": "complete",
-      "last_line": 99999
+      "title": "PF2E Advanced Player's Guide",
+      "file": "docs/dungeoncrawler/reference documentation/PF2E APG.txt",
+      "last_line": 0,
+      "status": "not_started"
     },
     {
       "book_id": "pf2e-gmg",
-      "title": "PF2E Game Master Guide",
-      "status": "complete",
-      "last_line": 99999
+      "title": "PF2E Game Mastery Guide",
+      "file": "docs/dungeoncrawler/reference documentation/PF2E GMG.txt",
+      "last_line": 0,
+      "status": "not_started"
     },
     {
-      "book_id": "pf2e-b1",
+      "book_id": "pf2e-bestiary-1",
       "title": "PF2E Bestiary 1",
-      "status": "in_progress",
-      "last_line": 3960
+      "file": "docs/dungeoncrawler/reference documentation/PF2E Bestiary 1.txt",
+      "last_line": 0,
+      "status": "not_started"
     }
   ]
 }
@@ -46,33 +50,16 @@ cat /home/ubuntu/forseti.life/copilot-hq/tmp/ba-scan-progress/dungeoncrawler.jso
 {"name": "bash", "arguments": {"command": "wc -l '/home/ubuntu/forseti.life/copilot-hq/docs/dungeoncrawler/reference documentation/PF2E Bestiary 1.txt'"}}
 </tool_call>
 <tool_response>
-17150
+7786
 </tool_response>
 
 <tool_call>
 {"name": "bash", "arguments": {"command": "cat '/home/ubuntu/forseti.life/copilot-hq/docs/dungeoncrawler/reference documentation/outlines/PF2E_Bestiary_1_OUTLINE.md'"}}
 </tool_call>
 <tool_response>
-# PF2E Bestiary 1 — Structural Outline
-
-## Source
-- File: `docs/dungeoncrawler/reference documentation/PF2E Bestiary 1.txt`
-- Total lines: 17,150
-
-## How to read this outline
-Each entry shows:
-- Creature name
-- Level (where known)
-- Approximate line range in the source file
-
----
-
-## Section 1: Introduction / Front Matter (Lines 1–130)
-- Publisher credits, legal, introduction text
-
-## Section 2: Creature Entries (Lines 131–
+# PF2E Bestiary 1
 
 ---
 - Agent: ba-dungeoncrawler
 - Source inbox: /home/ubuntu/forseti.life/copilot-hq/sessions/ba-dungeoncrawler/inbox/20260414-ba-refscan-dungeoncrawler-pf2e-bestiary-1-lvl-1-5
-- Generated: 2026-04-17T05:54:45+00:00
+- Generated: 2026-04-17T07:57:29+00:00
