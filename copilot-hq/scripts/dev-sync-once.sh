@@ -101,6 +101,19 @@ for f in "${files[@]}"; do
 
   target_agent="$(command_target_agent "$f")"
   target_agent="${target_agent:-$DEFAULT_AGENT}"
+
+  # If NODE_ACTIVE_AGENTS is set, skip commands not addressed to this node's agents.
+  if [[ -n "${NODE_ACTIVE_AGENTS:-}" ]]; then
+    _agent_allowed=0
+    for _a in $NODE_ACTIVE_AGENTS; do
+      if [[ "$target_agent" == "$_a" ]]; then _agent_allowed=1; break; fi
+    done
+    if [[ "$_agent_allowed" -eq 0 ]]; then
+      echo "skip (agent $target_agent not active on this node): $(basename "$f")"
+      continue
+    fi
+  fi
+
   topic="$(command_field "$f" "topic")"
   topic="$(sanitize_topic_slug "${topic:-$(basename "$f" .md)}")"
   work_item="$(command_field "$f" "work_item")"
