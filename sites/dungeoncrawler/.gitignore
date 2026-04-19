@@ -1,0 +1,10 @@
+/.editorconfig
+/.gitattributes
+/.phpunit.cache
+/vendor
+/phpunit.xml
+<<<<<<< copilot/fix-campaign-state-validation-test-3362f6db-2923-481c-995d-b9003a20e00b
+*.phar
+=======
+/phpunit.phar
+>>>>>>> main

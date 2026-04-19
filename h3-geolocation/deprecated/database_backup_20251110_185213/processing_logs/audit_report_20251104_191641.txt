@@ -1,0 +1,38 @@
+
+================================================================================
+AMISAFE TRANSFORM LAYER - EXCLUSION REPORT
+================================================================================
+
+PROCESSING SUMMARY:
+------------------
+Total Raw Records Processed: 3,406,192
+Successfully Transformed:    3,406,175 (100.0%)
+Excluded Records:            17 (0.0%)
+Processing Batches:          137
+Batch Failures:             0
+
+EXCLUSION BREAKDOWN:
+-------------------
+  Invalid Coordinates      :       17 (  0.0%)
+
+EXCLUSION REASONS EXPLAINED:
+----------------------------
+• Missing Coordinates:     Records without lat/lng values
+• Invalid Coordinates:     Coordinates outside Philadelphia bounds
+• Missing Datetime:        Records without dispatch_date_time
+• Invalid Datetime:        Unparseable or invalid date/time formats
+• Duplicate Full Record:   Records that are complete duplicates (all fields match)
+• Data Quality Too Low:    Records failing quality score threshold (calculated but not used for exclusion)
+• H3 Indexing Failed:      Records that couldn't be spatially indexed (processed with NULL H3 values)
+
+NOTE: Missing crime types and invalid districts are now handled with defaults:
+• Missing UCR codes default to '900' (Unknown, least severe)
+• Invalid districts default to '99' (Unknown district)
+
+DATA QUALITY ASSESSMENT:
+-----------------------
+Records meeting all validation criteria: 3,406,175
+Data completeness rate: 100.0%
+Primary exclusion reason: Invalid Coordinates
+
+================================================================================

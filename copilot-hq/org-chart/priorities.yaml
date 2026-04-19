@@ -1,0 +1,6 @@
+# CEO priority ranking (higher = more important)
+# This is a simple ROI proxy used for triage/resource allocation.
+priorities:
+  agent-management: 200
+  jobhunter: 100
+  dungeoncrawler: 80

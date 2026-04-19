@@ -1,0 +1,151 @@
+# St. Louis Integration - Drupal Job Application Automation
+# Repository .gitignore
+
+# Drupal cache and temporary files
+drupal/web/sites/default/files/php/
+drupal/web/sites/default/files/css/
+drupal/web/sites/default/files/js/
+drupal/web/sites/default/files/styles/
+drupal/web/sites/*/files/twig/
+**/twig/
+
+# Drupal configuration and settings
+drupal/web/sites/*/settings.local.php
+drupal/web/sites/*/services.local.yml
+drupal/web/sites/*/local.settings.php
+drupal/web/.ht.router.php
+
+# Drupal log files
+drupal/web/sites/default/files/logs/
+**/logs/
+*.log
+error.log
+access.log
+
+# Drupal temporary files
+drupal/web/sites/default/files/tmp/
+drupal/web/sites/default/files/private/
+drupal/web/sites/default/files/translations/
+drupal/web/sites/default/files/config_*/
+**/tmp/
+**/temp/
+
+# System files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE files
+.vscode/settings.json
+.idea/
+*.swp
+*.swo
+*~
+
+# Environment files
+.env.local
+.env
+.env.*
+!.env.example
+!**/.env.example
+!**/.env.*.example
+
+# APK files - ignore all except production download location
+*.apk
+!sites/forseti/web/sites/default/files/forseti/mobile/*.apk
+.env.*.local
+
+# Resume artifacts
+resume/
+
+# Node modules and package files
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Apache/Nginx logs
+*_error.log
+*_access.log
+
+# Backup files
+*.bak
+*.backup
+*.orig
+
+# Backup directories (system-wide backup locations)
+/var/backups/
+/var/private/stlouisintegration/
+/tmp/backups/
+
+# Backup and Migrate module files
+drupal/web/sites/default/files/backup_migrate/
+drupal/web/sites/*/files/backup_migrate/
+private://backup_migrate/
+
+# Composer cache (keep composer.json and composer.lock)
+drupal/vendor/
+drupal/composer.phar
+sites/forseti/vendor/
+sites/*/vendor/
+
+# Database dumps
+*.sql
+*.sql.gz
+*.mysql
+
+# File uploads (but allow structure)
+drupal/web/sites/default/files/*
+!drupal/web/sites/default/files/.htaccess
+!drupal/web/sites/default/files/README.txt
+
+# Drush cache
+.drush/
+
+# Testing results
+testing/results/
+testing/artifacts/
+
+# Local verification artifacts (keep in issues, not git)
+sites/forseti/FORM_FIELD_MAPPING_REPORT.md
+sites/forseti/verify-form-field-mapping.php
+
+# Drupal/PHPUnit test runtime artifacts
+**/.phpunit.result.cache
+sites/*/web/sites/simpletest/
+sites/*/web/sites/*/simpletest/
+sites/dungeoncrawler/web/sites/simpletest/*
+sites/forseti/web/sites/simpletest/*
+
+# Drupal generated images (do not commit)
+sites/*/web/sites/*/files/generated-images/
+
+# OS generated files
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+sites/dungeoncrawler/web/sites/simpletest/*
+
+# Generated prompt cache artifacts
+sites/dungeoncrawler/web/modules/custom/dungeoncrawler_content/content/images/prompt_cache.json
+
+# OSS PREP: Private key files — never publish
+sites/forseti/keys/
+sites/forseti/web/keys/
+
+# OSS PREP: Production config — contains OAuth secrets and live credentials
+prod-config/
+
+# OSS PREP: Database exports — never publish
+database-exports/
+
+# OSS PREP: Mobile environment files — contain per-environment credentials
+forseti-mobile/.env.production
+forseti-mobile/.env.development
+forseti-mobile/.env.staging

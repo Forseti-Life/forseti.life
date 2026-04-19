@@ -1,0 +1,73 @@
+{#
+/**
+ * @file
+ * Template for individual Forseti project roadmap pages.
+ */
+#}
+<div class="container py-3">
+  <div class="row">
+    <div class="col-lg-10 mx-auto">
+      <div class="mb-3">
+        {% for link in nav_links %}
+          <a href="{{ link.url }}" class="btn {% if link.style == 'primary' %}btn-outline-primary{% else %}btn-outline-secondary{% endif %} me-2 mb-2">{{ link.text }}</a>
+        {% endfor %}
+      </div>
+
+      <h1 class="text-center mb-3 text-cyan">{{ title }}</h1>
+
+      <div class="lead mb-4 text-muted-light">
+        {{ summary }}
+      </div>
+
+      <div class="card card-forseti p-4 mb-4">
+        <h2 class="h4 text-cyan">{{ 'Project metadata'|t }}</h2>
+        <div class="row">
+          {% for label, value in meta %}
+            {% if value %}
+              <div class="col-md-6 mb-2">
+                <strong>{{ label }}:</strong> {{ value }}
+              </div>
+            {% endif %}
+          {% endfor %}
+          {% if roadmap_reference %}
+            <div class="col-12 mb-2">
+              <strong>{{ 'Source reference'|t }}:</strong> <code>{{ roadmap_reference }}</code>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+
+      {% if current_state %}
+        <div class="card card-forseti p-4 mb-4">
+          <h2 class="h4 text-cyan">{{ 'Current state'|t }}</h2>
+          <p class="mb-0">{{ current_state }}</p>
+        </div>
+      {% endif %}
+
+      {% if next_step %}
+        <div class="card card-forseti p-4 mb-4">
+          <h2 class="h4 text-cyan">{{ 'Next step'|t }}</h2>
+          <p class="mb-0">{{ next_step }}</p>
+        </div>
+      {% endif %}
+
+      {% if queue_status %}
+        <div class="card card-forseti p-4 mb-4">
+          <h2 class="h4 text-cyan">{{ 'Queue status'|t }}</h2>
+          <p class="mb-0">{{ queue_status }}</p>
+        </div>
+      {% endif %}
+
+      {% if goals %}
+        <div class="card card-forseti p-4 mb-4">
+          <h2 class="h4 text-cyan">{{ 'Goals'|t }}</h2>
+          <ul class="mb-0">
+            {% for goal in goals %}
+              <li class="mb-2">{{ goal }}</li>
+            {% endfor %}
+          </ul>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</div>

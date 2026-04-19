@@ -1,0 +1,18 @@
+{
+  "followup_due_epoch": 0,
+  "last_auto_remediate_epoch": 0,
+  "last_auto_requeue_epoch": 0,
+  "last_changed_epoch": 1776358726,
+  "last_followup_epoch": 0,
+  "last_handoff_escalated_epoch": 0,
+  "last_handoff_investigated_epoch": 0,
+  "last_handoff_recovery_epoch": 0,
+  "last_investigated_epoch": 0,
+  "last_run": "20260416-161728",
+  "last_session_analysis_epoch": 0,
+  "last_session_escalated_epoch": 0,
+  "last_session_reset_epoch": 0,
+  "last_total": 0,
+  "last_total_changed_epoch": 1775408974,
+  "session_reset_failures": 0
+}

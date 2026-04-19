@@ -1,0 +1,71 @@
+{
+  "resolutions": {
+    "9": {
+      "status": "complete",
+      "start_time": "2025-11-20T17:23:26.949755",
+      "total_hexes": 3150,
+      "end_time": "2025-11-20T17:32:48.630958",
+      "elapsed_seconds": 561.66,
+      "completion": {
+        "alltime_basic": 100.0,
+        "alltime_risk": 100.0,
+        "windowed_12mo": 100.0,
+        "windowed_6mo": 100.0,
+        "overall": 100.0
+      }
+    },
+    "10": {
+      "status": "error",
+      "start_time": "2025-11-20T19:45:51.790958",
+      "total_hexes": 16740,
+      "end_time": "2025-11-20T20:11:07.748401",
+      "elapsed_seconds": 1512.73,
+      "completion": {
+        "alltime_basic": 100.0,
+        "alltime_risk": 100.0,
+        "windowed_12mo": 100.0,
+        "windowed_6mo": 100.0,
+        "overall": 100.0
+      },
+      "error": "unsupported operand type(s) for +=: 'float' and 'decimal.Decimal'"
+    },
+    "11": {
+      "status": "error",
+      "start_time": "2025-11-20T20:15:25.831281",
+      "total_hexes": 69514,
+      "end_time": "2025-11-20T21:23:04.264279",
+      "elapsed_seconds": 4058.18,
+      "completion": {
+        "alltime_basic": 100.0,
+        "alltime_risk": 100.0,
+        "windowed_12mo": 100.0,
+        "windowed_6mo": 100.0,
+        "overall": 100.0
+      },
+      "error": "unsupported operand type(s) for +=: 'float' and 'decimal.Decimal'"
+    },
+    "12": {
+      "status": "error",
+      "start_time": "2025-11-21T06:50:49.526665",
+      "total_hexes": 145983,
+      "error": "Failed calling stored routine; Deadlock found when trying to get lock; try restarting transaction"
+    },
+    "13": {
+      "status": "error",
+      "start_time": "2025-11-21T07:48:58.664097",
+      "total_hexes": 177129,
+      "end_time": "2025-11-21T10:04:11.726697",
+      "elapsed_seconds": 8112.73,
+      "completion": {
+        "alltime_basic": 100.0,
+        "alltime_risk": 100.0,
+        "windowed_12mo": 100.0,
+        "windowed_6mo": 100.0,
+        "overall": 0.0
+      },
+      "error": "unsupported operand type(s) for +=: 'float' and 'decimal.Decimal'"
+    }
+  },
+  "last_updated": "2025-11-21T10:04:11.731298",
+  "total_hexagons_processed": 3150.0
+}
