@@ -324,6 +324,12 @@ Run one-command delegation smoke test (master node to worker node):
 ./scripts/local-master-worker-smoke.sh
 ```
 
+Run release-cycle verification (logic + tests + health diagnostics):
+
+```bash
+./scripts/verify-local-release-cycle.sh
+```
+
 Expected result:
 
 - `PASS`

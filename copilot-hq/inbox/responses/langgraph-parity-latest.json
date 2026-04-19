@@ -1,18 +1,16 @@
 {
-  "generated_at": "2026-04-17T11:52:59.115588+00:00",
-  "parity_ok": true,
+  "generated_at": "2026-04-19T22:05:41.631024+00:00",
+  "parity_ok": false,
   "selected_agents": {
     "match": true,
     "actual": [
-      "pm-dungeoncrawler",
+      "dev-forseti",
       "pm-forseti",
-      "ba-dungeoncrawler",
-      "qa-dungeoncrawler",
-      "qa-infra"
+      "qa-forseti"
     ]
   },
   "steps": {
-    "match": true,
+    "match": false,
     "expected": [
       "consume_replies",
       "dispatch_commands",
@@ -25,15 +23,12 @@
     ],
     "actual": [
       "consume_replies",
-      "dispatch_commands",
-      "release_cycle",
-      "coordinated_push",
       "pick_agents",
       "exec_agents",
-      "health_check",
-      "kpi_monitor",
       "publish"
     ]
   },
-  "errors": []
+  "errors": [
+    "missing steps: coordinated_push, dispatch_commands, health_check, release_cycle"
+  ]
 }

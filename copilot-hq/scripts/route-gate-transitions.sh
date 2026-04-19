@@ -116,6 +116,10 @@ OUTBOX_CONTENT="$(cat "$OUTBOX_FILE" 2>/dev/null || true)"
 [ -n "$OUTBOX_CONTENT" ] || exit 0
 
 OUTBOX_BASE="$(basename "$OUTBOX_FILE" .md)"
+ROUTE_DATE="$(printf '%s' "$OUTBOX_BASE" | sed -n 's/^\([0-9]\{8\}\).*/\1/p')"
+if ! [[ "$ROUTE_DATE" =~ ^[0-9]{8}$ ]]; then
+  ROUTE_DATE="$TIMESTAMP"
+fi
 
 # ─── Pattern 1 & 2: QA seat gate signals ──────────────────────────────────────
 if [[ "$AGENT" == qa-* ]]; then
@@ -142,7 +146,7 @@ if [[ "$AGENT" == qa-* ]]; then
         ROI="$(extract_roi "$OUTBOX_CONTENT" 10)"
         NEXT_ACTIONS="$(printf '%s' "$OUTBOX_CONTENT" | awk '/^## Next actions/{found=1; next} found && /^## /{exit} found{print}' | head -20 | sed '/^[[:space:]]*$/d')"
 
-        ITEM_NAME_OUT="${TIMESTAMP}-fix-from-qa-block-${TEAM_ID}"
+        ITEM_NAME_OUT="${ROUTE_DATE}-fix-from-qa-block-${TEAM_ID}"
         CMD="# Dev fix: QA BLOCK from ${AGENT}
 
 QA issued a BLOCK. Address all failing tests and re-submit for verification.
@@ -177,7 +181,7 @@ ${NEXT_ACTIONS}
     if echo "$STATUS_LINE" | grep -qi "done" && printf '%s' "$OUTBOX_CONTENT" | grep -q "APPROVE" && [ "$IS_GATE2_APPROVE" = "true" ]; then
       if [ -n "$PM_AGENT" ]; then
         RELEASE_ID="$(extract_release_id "$OUTBOX_CONTENT" "$OUTBOX_BASE")"
-        ITEM_NAME_OUT="${TIMESTAMP}-release-signoff-${RELEASE_ID}"
+        ITEM_NAME_OUT="${ROUTE_DATE}-release-signoff-${RELEASE_ID}"
         CMD="# Release signoff: ${RELEASE_ID}
 
 Gate 2 QA APPROVE received from ${AGENT}. PM signoff required.
@@ -207,7 +211,7 @@ if [[ "$AGENT" == pm-* ]] && [[ "$AGENT" != "pm-forseti" ]]; then
         RELEASE_ID="$(grep -m1 'Release id:' "$LATEST_SIGNOFF" 2>/dev/null | sed 's/.*:\s*//' | tr -d '\r' | xargs 2>/dev/null || true)"
         if [ -n "$RELEASE_ID" ]; then
           SLUG="$(printf '%s' "$RELEASE_ID" | tr -cs 'A-Za-z0-9._-' '-' | sed 's/^-//;s/-$//' | cut -c1-80)"
-          ITEM_NAME_OUT="${TIMESTAMP}-coordinated-signoff-${SLUG}"
+          ITEM_NAME_OUT="${ROUTE_DATE}-coordinated-signoff-${SLUG}"
           CMD="# Coordinated signoff: ${RELEASE_ID}
 
 ${AGENT} has signed off on release ${RELEASE_ID}. Coordinated signoff required from pm-forseti.

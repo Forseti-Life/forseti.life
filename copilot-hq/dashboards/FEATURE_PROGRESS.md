@@ -1,6 +1,6 @@
 # Feature Progress
 
-Generated: 2026-04-17T11:57:39Z
+Generated: 2026-04-19T22:05:41Z
 
 | Work item | Website | Module | Status | Priority | PM | Dev | QA |
 |-----------|---------|--------|--------|----------|----|-----|----|
@@ -172,6 +172,7 @@ Generated: 2026-04-17T11:57:39Z
 | forseti-copilot-agent-tracker | forseti.life | copilot_agent_tracker | shipped | P1 |  |  |  |
 | forseti-csrf-fix | forseti.life | job_hunter | shipped | P0 |  |  |  |
 | forseti-csrf-post-routes-fix | forseti.life | job_hunter | shipped | P1 (security) |  |  |  |
+| forseti-dev-master-worker-sync | infrastructure | copilot-hq | in-progress | P1 |  |  |  |
 | forseti-financial-health-home | forseti.life | institutional_management (MVP host) | in_progress |  |  |  |  |
 | forseti-installation-cluster-communication | forseti.life | forseti_cluster (new) | in_progress |  |  |  |  |
 | forseti-jobhunter-application-analytics | forseti.life | job_hunter | shipped | medium |  |  |  |
@@ -219,6 +220,7 @@ Generated: 2026-04-17T11:57:39Z
 | forseti-langgraph-console-run-session | forseti.life | copilot_agent_tracker | shipped | P1 |  |  |  |
 | forseti-langgraph-console-test-sections | forseti.life | copilot_agent_tracker | done | high |  |  |  |
 | forseti-langgraph-ui | forseti.life | copilot_agent_tracker | shipped | P1 |  |  |  |
+| forseti-mobile-google-maps-key-hardening | forseti.life | forseti-mobile | ready | P0 |  |  |  |
 | forseti-open-source-initiative |  |  | in_progress | high |  |  |  |
 | forseti-qa-e2e-auth-pipeline | forseti.life | qa_suites | shipped | low |  |  |  |
 | forseti-qa-suite-fill-agent-tracker | forseti.life | qa_suites | shipped | medium |  |  |  |
