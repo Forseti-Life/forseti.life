@@ -57,6 +57,10 @@ For a practical first-read path, startup script map, and full-stack orientation,
 ## Orchestration
 See `runbooks/orchestration.md` for the current end-to-end process flow (LangGraph orchestrator + systemd runtime + publishing).
 
+Production-master to local-worker control-plane:
+
+- `runbooks/production-master-dev-worker.md` — protocol, routing rules, mermaid diagrams, and implementation plan for production-dispatched local development work.
+
 ## Technology stack
 See `runbooks/technology-stack.md` for a full map of the agentic system stack (queues, executors, local LLM layer, publishing, control plane, and observability).
 

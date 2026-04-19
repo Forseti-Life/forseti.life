@@ -37,6 +37,20 @@ This is a multi-site Drupal workspace featuring:
 4. **Documentation Required**: Update README files after all changes
 5. **Process Over Speed**: Understand systems thoroughly before implementing solutions
 
+### AI Agent Execution Default (MANDATORY)
+
+**Default mode for this repository is AGGRESSIVE AUTONOMOUS CONTINUATION.**
+
+- Implement requested changes immediately without asking for permission.
+- Minimize exploratory reads/searches to only what is needed to make safe edits.
+- After completing a requested task, immediately start the next obvious, high-value step without waiting for additional user input.
+- Continue advancing work end-to-end until blocked, complete, or explicitly stopped by the user.
+- Run validation based on impact and risk; do not let routine checks block obvious forward progress.
+- Report only changed files and a concise summary after implementation.
+- If blocked, make one reasonable assumption and proceed; only ask a question when absolutely required to continue.
+
+**Validation behavior:** if the user explicitly requests checks (for example, "run checks", "run tests", "lint", "build", "validate"), run them and report outcomes.
+
 ### Work Tracking and Status Policy
 
 - Do not create new `Summary.md` files for work tracking.

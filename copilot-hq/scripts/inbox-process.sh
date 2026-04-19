@@ -4,6 +4,9 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 
+# shellcheck source=lib/command-routing.sh
+source "$ROOT_DIR/scripts/lib/command-routing.sh"
+
 shopt -s nullglob
 files=(inbox/commands/*.md)
 shopt -u nullglob
@@ -14,6 +17,11 @@ if [ "${#files[@]}" -eq 0 ]; then
 fi
 
 for f in "${files[@]}"; do
+  if ! command_is_hq_target "$f"; then
+    echo "Skipping non-HQ target: $f"
+    continue
+  fi
+
   pm=$(grep -m1 '^\- pm:' "$f" | sed 's/^- pm: *//' || true)
   wi=$(grep -m1 '^\- work_item:' "$f" | sed 's/^- work_item: *//' || true)
   topic=$(grep -m1 '^\- topic:' "$f" | sed 's/^- topic: *//' || true)

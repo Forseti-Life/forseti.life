@@ -1,0 +1,44 @@
+{
+  "version": 1,
+  "default": {
+    "target": "dev-laptop",
+    "execute": "dispatch-only"
+  },
+  "projects": {
+    "forseti-jobhunter-automation": {
+      "target": "dev-laptop",
+      "target_agent": "dev-forseti",
+      "module": "job_hunter",
+      "website": "forseti.life",
+      "execute": "dispatch-only"
+    },
+    "forseti-safety-application": {
+      "target": "dev-laptop",
+      "target_agent": "dev-forseti",
+      "module": "forseti_content",
+      "website": "forseti.life",
+      "execute": "dispatch-only"
+    },
+    "forseti-agent-tracker": {
+      "target": "dev-laptop",
+      "target_agent": "dev-forseti-agent-tracker",
+      "module": "copilot_agent_tracker",
+      "website": "forseti.life",
+      "execute": "dispatch-only"
+    },
+    "dungeoncrawler": {
+      "target": "dev-laptop",
+      "target_agent": "dev-dungeoncrawler",
+      "module": "dungeoncrawler_content",
+      "website": "dungeoncrawler",
+      "execute": "dispatch-only"
+    },
+    "infrastructure": {
+      "target": "dev-laptop",
+      "target_agent": "dev-infra",
+      "module": "infrastructure",
+      "website": "infrastructure",
+      "execute": "dispatch-only"
+    }
+  }
+}

@@ -399,18 +399,59 @@ while true; do
     append_bedrock_history "User" "$line"
   fi
 
-  if ! out="$(run_prompt "$line" 2>&1)"; then
+  start_ts="$(date +%s)"
+  echo "[working...]" >&2
+
+  tmp_out="$(mktemp)"
+  : > "$tmp_out"
+  rc=0
+
+  run_prompt "$line" >"$tmp_out" 2>&1 &
+  prompt_pid=$!
+
+  tail -n +1 -f "$tmp_out" &
+  tail_pid=$!
+
+  while kill -0 "$prompt_pid" 2>/dev/null; do
+    sleep 5
+    if kill -0 "$prompt_pid" 2>/dev/null; then
+      now_ts="$(date +%s)"
+      tick_elapsed=$((now_ts - start_ts))
+      if [ "$tick_elapsed" -lt 0 ]; then
+        tick_elapsed=0
+      fi
+      echo "[working... ${tick_elapsed}s]" >&2
+    fi
+  done
+
+  if ! wait "$prompt_pid"; then
     rc=$?
+  fi
+
+  sleep 0.1
+  kill "$tail_pid" >/dev/null 2>&1 || true
+  wait "$tail_pid" 2>/dev/null || true
+
+  end_ts="$(date +%s)"
+  elapsed_sec=$((end_ts - start_ts))
+  if [ "$elapsed_sec" -lt 0 ]; then
+    elapsed_sec=0
+  fi
+
+  out="$(cat "$tmp_out")"
+  rm -f "$tmp_out"
+
+  if [ "$rc" -ne 0 ]; then
     persisted_out="$out"
     if [ "$CLI_MODE" = "bedrock" ]; then
       persisted_out="$(sanitize_persisted_output "$out")"
     fi
     echo "[copilot exited with code $rc]"
-    echo "$out"
     append_log "Copilot (error $rc)" "$persisted_out"
     if [ "$CLI_MODE" = "bedrock" ]; then
       append_bedrock_history "Assistant (error $rc)" "$persisted_out"
     fi
+    echo "[done in ${elapsed_sec}s]" >&2
     continue
   fi
 
@@ -419,11 +460,11 @@ while true; do
     persisted_out="$(sanitize_persisted_output "$out")"
   fi
 
-  echo "$out"
   append_log "Copilot" "$persisted_out"
   if [ "$CLI_MODE" = "bedrock" ]; then
     append_bedrock_history "Assistant" "$persisted_out"
   fi
+  echo "[done in ${elapsed_sec}s]" >&2
   echo
 
 done

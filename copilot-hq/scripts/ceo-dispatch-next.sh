@@ -9,6 +9,9 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 
+# shellcheck source=lib/command-routing.sh
+source "$ROOT_DIR/scripts/lib/command-routing.sh"
+
 shopt -s nullglob
 files=(inbox/commands/*.md)
 shopt -u nullglob
@@ -21,6 +24,9 @@ IFS=$'\n' files_sorted=($(printf '%s\n' "${files[@]}" | sort))
 unset IFS
 f=""
 for candidate in "${files_sorted[@]}"; do
+  if ! command_is_hq_target "$candidate"; then
+    continue
+  fi
   # CEO commands do NOT include an explicit PM; those are handled by inbox-loop.
   if ! grep -q '^\- pm:' "$candidate"; then
     f="$candidate"

@@ -4,6 +4,9 @@
 
 Prevent lost work and accidental overwrite when both the local dev machine and production server create commits.
 
+For the production-master to local-worker command protocol used by HQ automation,
+see `copilot-hq/runbooks/production-master-dev-worker.md`.
+
 ## Source of truth and deployment
 
 - `main` in GitHub is the source of truth for code history.

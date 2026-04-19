@@ -14,6 +14,21 @@ That page is rendered from this file. CEO and architect seats must treat the roa
 
 **Required per-project fields:** `Scope`, `Current state`, `Last scoped release`, `Progress SLA`, `Next step`, `Queue status`
 
+## Development Node Assignment Registry
+
+This table is the source of truth for which development node/seat is assigned
+to each project for CEO dispatch routing.
+
+**Used by:** `scripts/ceo-dispatch-project-task.sh`
+
+| Project key | Target node | Target agent | Website | Module | Execute |
+|---|---|---|---|---|---|
+| forseti-jobhunter-automation | dev-laptop | dev-forseti | forseti.life | job_hunter | dispatch-only |
+| forseti-safety-application | dev-laptop | dev-forseti | forseti.life | forseti_content | dispatch-only |
+| forseti-agent-tracker | dev-laptop | dev-forseti-agent-tracker | forseti.life | copilot_agent_tracker | dispatch-only |
+| dungeoncrawler | dev-laptop | dev-dungeoncrawler | dungeoncrawler | dungeoncrawler_content | dispatch-only |
+| infrastructure | dev-laptop | dev-infra | infrastructure | infrastructure | dispatch-only |
+
 ---
 
 ## Registry

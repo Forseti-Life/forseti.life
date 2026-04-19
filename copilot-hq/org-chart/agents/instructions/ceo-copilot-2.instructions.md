@@ -249,6 +249,22 @@ When `scripts/release-signoff-status.sh <release-id>` shows one PM signed and on
 ### Proposal-to-passthrough enforcement
 Before completing any improvement-round inbox item, scan session outboxes and KB proposals for unactioned improvement proposals. For each found: if a passthrough inbox item doesn't already exist for the implementing seat, create one.
 
+### Project-to-node delegation (required)
+For development-node dispatch, CEO must route by project id/alias (not ad-hoc seat selection):
+
+```bash
+./scripts/ceo-dispatch-project-task.sh <project-id-or-alias> <work-item-id> <short-topic> "<command text>"
+```
+
+Routing source of truth:
+
+- `dashboards/PROJECTS.md` → section `## Development Node Assignment Registry` (project -> target node + target seat)
+- `org-chart/products/product-teams.json` (aliases + default dev seat fallback)
+
+Location quick path: open `dashboards/PROJECTS.md` and edit the row under `Development Node Assignment Registry` for the target project.
+
+CEO controls which development node works each project by editing the roadmap registry in `PROJECTS.md`.
+
 ---
 
 ## Key scripts
@@ -268,6 +284,7 @@ Before completing any improvement-round inbox item, scan session outboxes and KB
   - Default threshold: 7 days without scoped release progress or PM re-baseline/grooming update = breach
   - Exit 0 = all active projects on track or queued for re-baseline; exit 1 = one or more active projects missing progression evidence
 - `scripts/improvement-round.sh` — generates improvement-round items (skips `paused: true` agents)
+- `scripts/ceo-dispatch-project-task.sh` — dispatch project work to the assigned dev node/seat using project alias resolution
 - `scripts/lib/agents.sh configured_agent_ids` — yaml-based, paused-aware agent list
 - `scripts/release-signoff-status.sh <release-id>` — cross-site signoff state
 - `scripts/agent-instructions.sh <agent-id>` — print resolved instruction stack for any seat

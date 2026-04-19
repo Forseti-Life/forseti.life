@@ -92,6 +92,15 @@ services:
     tags:
       - { name: drush.command }
 
+  job_hunter.cio_auto_apply_commands:
+    class: Drupal\job_hunter\Commands\CioAutoApplyCommands
+    arguments:
+      - '@database'
+      - '@job_hunter.application_submission_service'
+      - '@logger.factory'
+    tags:
+      - { name: drush.command }
+
   job_hunter.error_queue_service:
     class: Drupal\job_hunter\Service\ErrorQueueService
     arguments: ['@entity_type.manager', '@logger.factory']

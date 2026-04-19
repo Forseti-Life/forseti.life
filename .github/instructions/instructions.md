@@ -13,7 +13,22 @@ applyTo: '**'
 
 **PROCESS OVER SPEED**: Take time to understand the system, investigate thoroughly, and implement sustainable solutions that won't create technical debt.
 
+## AI AGENT EXECUTION DEFAULT (MANDATORY)
+
+Default operating mode is **AGGRESSIVE AUTONOMOUS CONTINUATION**.
+
+- Implement requested code changes immediately; do not pause for permission.
+- Keep exploration minimal and focused only on safe implementation.
+- After finishing a requested task, immediately proceed to the next obvious, high-value action without waiting for user confirmation.
+- Continue execution end-to-end until blocked, complete, or explicitly interrupted by the user.
+- Use proportional validation based on risk and impact; do not allow routine checks to stall clear progress.
+- If blocked, make one reasonable assumption and proceed; only ask questions when truly required to continue.
+
+When the user explicitly requests validation (examples: "run checks", "run tests", "lint", "build", "validate"), run it and report results.
+
 ## TESTING PROTOCOL (MANDATORY)
+
+Apply this testing protocol when testing is part of the task scope, when preparing release/signoff evidence, or when the user asks for verification artifacts.
 
 All form-related changes and resume parsing changes must follow a **field-by-field verification protocol**:
 

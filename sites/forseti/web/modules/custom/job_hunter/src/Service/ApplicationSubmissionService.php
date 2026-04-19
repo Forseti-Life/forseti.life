@@ -244,11 +244,20 @@ class ApplicationSubmissionService {
         throw new \Exception('User not found or anonymous');
       }
 
-      // Check profile completeness
+      // Check profile completeness.
+      // Default threshold aligns with UserProfileService readiness guidance.
+      $required_completeness = (int) $this->configFactory
+        ->get('job_hunter.settings')
+        ->get('application_min_profile_completeness');
+      if ($required_completeness <= 0 || $required_completeness > 100) {
+        $required_completeness = 70;
+      }
+
       $profile_completion = $this->userProfileService->calculateProfileCompleteness($user);
-      if ($profile_completion < 90) {
-        $errors[] = 'Your profile is only ' . $profile_completion . '% complete. Please complete your profile to at least 90% before applying.';
+      if ($profile_completion < $required_completeness) {
+        $errors[] = 'Your profile is only ' . $profile_completion . '% complete. Please complete your profile to at least ' . $required_completeness . '% before applying.';
         $details['profile_completion'] = $profile_completion;
+        $details['required_profile_completion'] = $required_completeness;
       }
 
       // Check job still exists and active

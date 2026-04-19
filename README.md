@@ -39,6 +39,7 @@ We use a full-stack, fully automated development process with an architecture-fi
 - GitHub `main` is source-of-truth for shared history.
 - Production deployment is manual-only (explicit run), not automatic on push.
 - Conflict-safe sync workflow: `docs/technical/DEVELOPMENT_SYNC_WORKFLOW.md`
+- Production-master to local-worker protocol: `copilot-hq/runbooks/production-master-dev-worker.md`
 
 ## Quick Start
 

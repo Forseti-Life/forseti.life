@@ -75,6 +75,33 @@ resolve_drupal_root() {
     return 0
   fi
 
+  local local_candidates=()
+  if [ -n "${HOME:-}" ]; then
+    local_candidates+=("$HOME/forseti.life/sites/forseti")
+    local_candidates+=("$HOME/forseti.life/sites/dungeoncrawler")
+  fi
+  local_candidates+=("$ROOT_DIR/../sites/forseti")
+  local_candidates+=("$ROOT_DIR/../sites/dungeoncrawler")
+
+  case "$SITE" in
+    forseti|forseti.life|forseti-life)
+      for candidate in "${local_candidates[@]}"; do
+        if [ -d "$candidate" ] && [ "$(basename "$candidate")" = "forseti" ]; then
+          printf '%s\n' "$candidate"
+          return 0
+        fi
+      done
+      ;;
+    dungeoncrawler|dungeoncrawler.forseti.life)
+      for candidate in "${local_candidates[@]}"; do
+        if [ -d "$candidate" ] && [ "$(basename "$candidate")" = "dungeoncrawler" ]; then
+          printf '%s\n' "$candidate"
+          return 0
+        fi
+      done
+      ;;
+  esac
+
   case "$SITE" in
     forseti|forseti.life|forseti-life)
       if [ -d "/var/www/html/forseti" ]; then printf '%s\n' "/var/www/html/forseti"; return 0; fi
@@ -124,8 +151,15 @@ if [ -z "$DRUPAL_ROOT" ] || [ ! -d "$DRUPAL_ROOT" ]; then
 fi
 
 DRUSH="$DRUPAL_ROOT/vendor/bin/drush"
-if [ ! -x "$DRUSH" ]; then
-  echo "ERROR: drush not found at $DRUSH" >&2
+WEB_ROOT="$DRUPAL_ROOT/web"
+if [ ! -d "$WEB_ROOT" ]; then
+  echo "ERROR: Drupal web root not found at $WEB_ROOT" >&2
+  exit 2
+fi
+
+PHP_BIN="${PHP_BIN:-$(command -v php 2>/dev/null || true)}"
+if [ -z "$PHP_BIN" ]; then
+  echo "ERROR: php binary not found in PATH" >&2
   exit 2
 fi
 
@@ -133,6 +167,7 @@ MAX_TOKENS="${BEDROCK_MAX_TOKENS:-700}"
 OPERATION="${BEDROCK_OPERATION:-hq_bedrock_assistant}"
 SYSTEM_PROMPT_NODE_ID="${BEDROCK_SYSTEM_PROMPT_NODE_ID:-10}"
 SUPPRESS_DRUSH_WARNINGS="${BEDROCK_SUPPRESS_DRUSH_WARNINGS:-1}"
+MODEL_ID="${BEDROCK_MODEL_ID:-us.anthropic.claude-sonnet-4-6}"
 
 PHP_CODE=$(cat <<'PHP'
 $prompt = (string) (getenv('BEDROCK_PROMPT') ?: '');
@@ -149,6 +184,7 @@ if ($max_tokens <= 0) {
 $op = (string) (getenv('BEDROCK_OPERATION') ?: 'hq_bedrock_assistant');
 $site = (string) (getenv('BEDROCK_SITE') ?: 'unknown');
 $prompt_node_id = (int) (getenv('BEDROCK_SYSTEM_PROMPT_NODE_ID') ?: '10');
+$model_id = (string) (getenv('BEDROCK_MODEL_ID') ?: 'us.anthropic.claude-sonnet-4-6');
 
 $pm = \Drupal::service('ai_conversation.prompt_manager');
 $system_prompt = $pm->getSystemPrompt($prompt_node_id);
@@ -164,6 +200,73 @@ $result = $svc->invokeModelDirect(
     'ts' => date('c'),
   ],
   [
+    'model_id' => $model_id,
+    'max_tokens' => $max_tokens,
+    'skip_cache' => TRUE,
+    'system_prompt' => $system_prompt,
+  ]
+);
+
+if (!empty($result['success'])) {
+  echo (string) ($result['response'] ?? '') . PHP_EOL;
+  exit(0);
+}
+
+$error = (string) ($result['error'] ?? 'Unknown Bedrock error');
+fwrite(STDERR, 'ERROR: ' . $error . PHP_EOL);
+exit(1);
+PHP
+)
+
+PHP_BOOTSTRAP_CODE=$(cat <<'PHP'
+declare(strict_types=1);
+
+use Drupal\Core\DrupalKernel;
+use Symfony\Component\HttpFoundation\Request;
+
+$prompt = (string) (getenv('BEDROCK_PROMPT') ?: '');
+if (trim($prompt) === '') {
+  fwrite(STDERR, "ERROR: BEDROCK_PROMPT is empty\n");
+  exit(2);
+}
+
+$max_tokens = (int) (getenv('BEDROCK_MAX_TOKENS') ?: '700');
+if ($max_tokens <= 0) {
+  $max_tokens = 700;
+}
+
+$op = (string) (getenv('BEDROCK_OPERATION') ?: 'hq_bedrock_assistant');
+$site = (string) (getenv('BEDROCK_SITE') ?: 'unknown');
+$prompt_node_id = (int) (getenv('BEDROCK_SYSTEM_PROMPT_NODE_ID') ?: '10');
+$model_id = (string) (getenv('BEDROCK_MODEL_ID') ?: 'us.anthropic.claude-sonnet-4-6');
+$web_root = (string) (getenv('BEDROCK_WEB_ROOT') ?: '');
+if ($web_root === '' || !is_dir($web_root)) {
+  fwrite(STDERR, "ERROR: BEDROCK_WEB_ROOT is invalid\n");
+  exit(2);
+}
+
+chdir($web_root);
+$autoloader = require_once 'autoload.php';
+$request = Request::createFromGlobals();
+$kernel = DrupalKernel::createFromRequest($request, $autoloader, 'prod');
+$kernel->boot();
+$kernel->preHandle($request);
+
+$pm = \Drupal::service('ai_conversation.prompt_manager');
+$system_prompt = $pm->getSystemPrompt($prompt_node_id);
+
+$svc = \Drupal::service('ai_conversation.ai_api_service');
+$result = $svc->invokeModelDirect(
+  $prompt,
+  'ai_conversation',
+  $op,
+  [
+    'source' => 'hq-script',
+    'site' => $site,
+    'ts' => date('c'),
+  ],
+  [
+    'model_id' => $model_id,
     'max_tokens' => $max_tokens,
     'skip_cache' => TRUE,
     'system_prompt' => $system_prompt,
@@ -183,28 +286,60 @@ PHP
 
 echo "[bedrock-assist] site=$SITE drupal_root=$DRUPAL_ROOT max_tokens=$MAX_TOKENS op=$OPERATION" >&2
 run_drush_eval() {
+  if [ ! -x "$DRUSH" ]; then
+    return 2
+  fi
+
   if [ "$(id -un)" = "www-data" ]; then
     BEDROCK_PROMPT="$PROMPT" \
     BEDROCK_MAX_TOKENS="$MAX_TOKENS" \
     BEDROCK_OPERATION="$OPERATION" \
     BEDROCK_SITE="$SITE" \
     BEDROCK_SYSTEM_PROMPT_NODE_ID="$SYSTEM_PROMPT_NODE_ID" \
+    BEDROCK_MODEL_ID="$MODEL_ID" \
     "$DRUSH" php:eval "$PHP_CODE" 2>&1
     return $?
   fi
 
-  if ! command -v sudo >/dev/null 2>&1; then
-    echo "ERROR: must run as www-data or with sudo available" >&2
-    return 2
+  BEDROCK_PROMPT="$PROMPT" \
+  BEDROCK_MAX_TOKENS="$MAX_TOKENS" \
+  BEDROCK_OPERATION="$OPERATION" \
+  BEDROCK_SITE="$SITE" \
+  BEDROCK_SYSTEM_PROMPT_NODE_ID="$SYSTEM_PROMPT_NODE_ID" \
+  BEDROCK_MODEL_ID="$MODEL_ID" \
+  "$DRUSH" php:eval "$PHP_CODE" 2>&1
+  local direct_rc=$?
+  if [ $direct_rc -eq 0 ]; then
+    return 0
   fi
 
-  sudo -u www-data -E \
+  if ! command -v sudo >/dev/null 2>&1; then
+    return $direct_rc
+  fi
+
+  if ! sudo -n true >/dev/null 2>&1; then
+    return $direct_rc
+  fi
+
+  sudo -n -u www-data -E \
     BEDROCK_PROMPT="$PROMPT" \
     BEDROCK_MAX_TOKENS="$MAX_TOKENS" \
     BEDROCK_OPERATION="$OPERATION" \
     BEDROCK_SITE="$SITE" \
     BEDROCK_SYSTEM_PROMPT_NODE_ID="$SYSTEM_PROMPT_NODE_ID" \
+    BEDROCK_MODEL_ID="$MODEL_ID" \
     "$DRUSH" php:eval "$PHP_CODE" 2>&1
+}
+
+run_php_bootstrap_eval() {
+  BEDROCK_PROMPT="$PROMPT" \
+  BEDROCK_MAX_TOKENS="$MAX_TOKENS" \
+  BEDROCK_OPERATION="$OPERATION" \
+  BEDROCK_SITE="$SITE" \
+  BEDROCK_SYSTEM_PROMPT_NODE_ID="$SYSTEM_PROMPT_NODE_ID" \
+  BEDROCK_MODEL_ID="$MODEL_ID" \
+  BEDROCK_WEB_ROOT="$WEB_ROOT" \
+  "$PHP_BIN" -r "$PHP_BOOTSTRAP_CODE" 2>&1
 }
 
 set +e
@@ -215,6 +350,14 @@ set -e
 SANITIZED_OUTPUT="$RAW_OUTPUT"
 if [ "$SUPPRESS_DRUSH_WARNINGS" = "1" ]; then
   SANITIZED_OUTPUT="$(printf '%s\n' "$RAW_OUTPUT" | awk 'BEGIN{IGNORECASE=1} index(tolower($0), "drush command terminated abnormally") == 0 { print }')"
+fi
+
+if [ $DRUSH_EXIT -ne 0 ]; then
+  set +e
+  RAW_OUTPUT="$(run_php_bootstrap_eval)"
+  DRUSH_EXIT=$?
+  set -e
+  SANITIZED_OUTPUT="$RAW_OUTPUT"
 fi
 
 if [ $DRUSH_EXIT -eq 0 ]; then

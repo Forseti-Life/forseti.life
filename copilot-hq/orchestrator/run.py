@@ -486,6 +486,7 @@ def _dispatch_commands_step(log: List[Any]) -> None:
     """Route inbox/commands/*.md to PM inboxes or CEO inbox.
 
     Routing priority:
+            0. Has '- target:' for a non-HQ target (for example dev-laptop) → leave queued
       1. Has '- pm:' field → dispatch to that PM via dispatch-pm-request.sh
       2. Has '- work_item:' with matching features/<wi>/feature.md → look up PM owner
       3. Anything else → CEO inbox (CEO GenAI call will triage/action/escalate)
@@ -498,11 +499,16 @@ def _dispatch_commands_step(log: List[Any]) -> None:
     dispatched: List[str] = []
     for f in sorted(commands_dir.glob("*.md")):
         content = f.read_text(encoding="utf-8", errors="ignore")
+        target = (_parse_md_field(content, "target") or "").strip().lower()
         pm = _parse_md_field(content, "pm")
         work_item = _parse_md_field(content, "work_item")
         topic = _parse_md_field(content, "topic") or f.stem
 
         dest = processed_dir / f.name
+
+        if target and target not in {"hq", "orchestrator", "ceo"}:
+            dispatched.append(f"deferred:{target} topic:{topic}")
+            continue
 
         if pm:
             _run(["bash", "scripts/dispatch-pm-request.sh", pm, work_item or "", topic], timeout=60)
