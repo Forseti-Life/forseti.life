@@ -30,7 +30,7 @@ NODE_DEFAULT_AGENT=dev-forseti
 # dev-sync-once.sh will ONLY claim commands addressed to these agents.
 # Commands for other agents are skipped — they belong to other nodes.
 # ---------------------------------------------------------------------------
-NODE_ACTIVE_AGENTS="dev-forseti qa-forseti ba-forseti agent-explore-forseti agent-task-runner agent-code-review"
+NODE_ACTIVE_AGENTS="pm-forseti ba-forseti dev-forseti qa-forseti sec-analyst-forseti agent-explore-forseti agent-task-runner agent-code-review"
 
 # ---------------------------------------------------------------------------
 # Canonical project-roadmap URL (raw GitHub content).
