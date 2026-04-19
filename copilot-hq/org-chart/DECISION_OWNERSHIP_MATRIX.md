@@ -49,6 +49,7 @@ Use this with:
 | Release gate failure (QA BLOCK at Gate 2/4) | Dev (fix), QA (verify) | PM | — | Human owner (if persistent) | Yes (single-cycle fix path) | 3 unclean cycles, repeated identical failures, or no viable rollback |
 | Production outage / severe regression | Dev | PM | QA, Security | Human owner | No | Immediate human escalation after containment starts |
 | Missing access/credentials/environment path | Agent owning task | PM | — | Affected team | No | Blocker persists >1 execution cycle |
+| KPI stall: CIO submissions not increasing this tick | Dev (runtime triage), PM (scope/priority) | PM (`pm-jobhunter`) | QA | CEO/human owner (if unknown/persistent) | Yes (if blocker is known) | Root blocker unknown in current cycle, or unknown/persistent stall repeats across configured threshold cycles |
 | Process/rule ambiguity (who decides?) | Current seat | PM | Relevant role owner | Team | No | Any ambiguity that blocks execution >1 cycle |
 | Coordinated release go/no-go (multi-site) | PMs + Dev + QA | Release operator PM (`pm-forseti`) | — | Human owner | No | Any required signoff missing or rollback plan incomplete |
 

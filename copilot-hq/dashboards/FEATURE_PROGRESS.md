@@ -1,6 +1,6 @@
 # Feature Progress
 
-Generated: 2026-04-19T22:44:07Z
+Generated: 2026-04-19T23:06:52Z
 
 | Work item | Website | Module | Status | Priority | PM | Dev | QA |
 |-----------|---------|--------|--------|----------|----|-----|----|
@@ -198,6 +198,7 @@ Generated: 2026-04-19T22:44:07Z
 | forseti-jobhunter-hook-install-fix | forseti.life | job_hunter | shipped | P1 |  |  |  |
 | forseti-jobhunter-interview-outcome-tracker | forseti.life | job_hunter | shipped | high |  |  |  |
 | forseti-jobhunter-interview-prep | forseti.life | job_hunter | shipped | high |  |  |  |
+| forseti-jobhunter-interview-scheduler | forseti.life | job_hunter | in_progress | high |  |  |  |
 | forseti-jobhunter-job-board-preferences | forseti.life | job_hunter | in_progress | low |  |  |  |
 | forseti-jobhunter-job-match-score | forseti.life | job_hunter | shipped | low |  |  |  |
 | forseti-jobhunter-offer-tracker | forseti.life | job_hunter | shipped | high |  |  |  |
@@ -206,11 +207,13 @@ Generated: 2026-04-19T22:44:07Z
 | forseti-jobhunter-profile-form-db-extraction | forseti.life | job_hunter | shipped | P2 |  |  |  |
 | forseti-jobhunter-profile-form-static-db-extraction | forseti.life | job_hunter | shipped | P3 |  |  |  |
 | forseti-jobhunter-profile-refactor | forseti.life | job_hunter | shipped | P2 |  |  |  |
+| forseti-jobhunter-rejection-analysis |  | job_hunter | in_progress | medium |  |  |  |
 | forseti-jobhunter-resume-tailoring-display | forseti.life | job_hunter | shipped | high |  |  |  |
 | forseti-jobhunter-resume-tailoring-queue-hardening | forseti.life | job_hunter | shipped | P3 |  |  |  |
 | forseti-jobhunter-resume-version-labeling | forseti.life | job_hunter | in_progress | medium |  |  |  |
 | forseti-jobhunter-resume-version-tracker | forseti.life | job_hunter | in_progress | medium |  |  |  |
 | forseti-jobhunter-return-to-open-redirect | forseti.life | job_hunter | shipped | P2 |  |  |  |
+| forseti-jobhunter-salary-tracker |  | job_hunter | in_progress | high |  |  |  |
 | forseti-jobhunter-saved-search | forseti.life | job_hunter | shipped | medium |  |  |  |
 | forseti-jobhunter-schema-fix | forseti.life | job_hunter | shipped | P2 |  |  |  |
 | forseti-jobhunter-tailoring-feedback | forseti.life | job_hunter | shipped | medium |  |  |  |

@@ -174,6 +174,22 @@ Forseti development may occur on both the local dev machine and production serve
 - If production hotfix commits landed while local work was in progress, local branches must rebase on latest `main` before merge.
 - Never force-push over shared `main`; resolve conflicts explicitly and preserve production-tested behavior for urgent paths first.
 
+## Shared codebase node compatibility policy (required)
+
+Master and worker nodes operate on the same repository and branch history. Any change made for worker-node execution must remain safe and workable on master without interrupting unrelated projects.
+
+Required rules:
+- Do not hardcode worker-only behavior as global defaults in tracked files.
+- Gate node-specific behavior by explicit runtime identity (`NODE_ROLE`, `NODE_ID`, `NODE_ACTIVE_AGENTS`) and safe defaults.
+- Master-safe default is required: if node identity is missing/invalid, behavior must not break other projects.
+- Keep machine-local settings in gitignored files (for example `node-identity.conf`), never in committed environment-specific overrides.
+- Avoid cross-project coupling: a JobHunter optimization must not alter execution paths for unrelated product streams unless explicitly intended and documented.
+
+Before merging node-affecting changes, verify:
+- Worker path works with `NODE_ROLE=worker`.
+- Master path works with `NODE_ROLE=master` (or identity absent) and continues normal orchestration.
+- No project routing regressions for non-target projects.
+
 ## Blocker research protocol (required)
 If you are blocked (or about to mark `Status: blocked` / `Status: needs-info`), you MUST do this first:
 

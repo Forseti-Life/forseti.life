@@ -161,7 +161,7 @@ Which node/agent handles each project. CEO edits this to reassign work between n
 
 **Current state (2026-04-13):** The effort is active and the `Forseti-Life` GitHub org now exists, so the governance prerequisite is no longer the blocker. Readiness assets already exist: `PUBLIC_REPO_PREP.md`, publication-readiness runbooks, public positioning docs, mirror/export scripts, and community/legal files (`LICENSE`, `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `SECURITY.md`). Publication model is now explicit: use curated mirrors / extracted repos and keep live operational artifacts private. Current-tree AWS credentials have been stripped from the tracked Drupal config sync files; the remaining critical blocker is publication security in history and candidate packaging: credential rotation, full history scrub / sensitive-data audit, candidate freeze, and validation evidence still remain.
 
-**Last scoped release:** none yet (portfolio initiative; not release-scoped to a product release)
+**Last scoped release:** `20260413-orgwide-release-baseline` (portfolio initiative baseline; not tied to product release scope)
 
 **Progress SLA:** 7 days without a PM-open-source re-baseline, dev-open-source publication audit, or Board/org-setup step = breach
 
@@ -177,7 +177,7 @@ Which node/agent handles each project. CEO edits this to reassign work between n
 
 **Current state (2026-04-13):** Project opened and first-pass inventory completed at `dashboards/integrations/server-integration-inventory-2026-04.md`. The Phase 1 operator entrypoint now exists at `dashboards/integrations/README.md`, and the first machine-readable registry now exists at `dashboards/integrations/integration-registry.yaml`. The centralization plan remains at `dashboards/integrations/centralized-integration-management-plan.md`. The current baseline confirms multiple integration storage planes already in use: Drupal sync config, active Drupal config, environment variables, local token files, and GitHub Actions secrets. Verified integration surfaces include AWS Bedrock, AWS Cost Explorer billing, GitHub billing APIs, GitHub deploy/push workflows, SerpAPI, Google Cloud Talent Solution config, Adzuna, USAJobs, Google Tag, Google social auth, reCAPTCHA, USFA NERIS, and Hugging Face model downloads. The first critical finding remains a tracked `serpapi_api_key` in `sites/forseti/config/sync/job_hunter.settings.yml`.
 
-**Last scoped release:** none yet (org-wide audit project)
+**Last scoped release:** `20260413-orgwide-release-baseline` (org-wide audit baseline; tracked outside product release scope)
 
 **Progress SLA:** 7 days without a CEO update, inventory expansion, or remediation dispatch = breach
 
@@ -193,7 +193,7 @@ Which node/agent handles each project. CEO edits this to reassign work between n
 
 **Current state (2026-04-13):** Project created and initial delivery feature stub opened as `forseti-installation-cluster-communication`. MVP architecture, daemon/runtime design, protocol schemas, state machines, pseudocode, and a sequenced roadmap now exist. No implementation is active yet. The intended MVP is autonomous-peer communication plus resource-mesh primitives, not full multi-primary data replication: each installation should have a stable installation identity, a peer registry, a trust/auth model, signed request handling, capability/need advertisement, cluster message logging, a standalone `forseti-meshd` backend, and a Drupal admin interface for peer status and operator decisions. Initial value focus is shared agent capacity and institutional-management workflows; compute and storage are intentionally deferred.
 
-**Last scoped release:** none yet (new strategic delivery project)
+**Last scoped release:** `20260413-forseti-release-baseline` (strategic project baseline; pre-activation planning phase)
 
 **Progress SLA:** 7 days without PM/BA decomposition, MVP scope refinement, or release-slot planning = breach
 

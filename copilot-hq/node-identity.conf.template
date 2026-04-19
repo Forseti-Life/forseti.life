@@ -2,6 +2,9 @@
 # Copy this file to node-identity.conf and edit for THIS machine.
 # node-identity.conf is gitignored — it is NOT committed to git.
 # Each machine in the fleet has its own local copy.
+# Master and worker nodes share the same codebase/history.
+# Keep node-specific behavior in this local file only; committed changes must
+# remain master-compatible and must not interrupt unrelated projects.
 #
 # Setup:
 #   cp node-identity.conf.template node-identity.conf

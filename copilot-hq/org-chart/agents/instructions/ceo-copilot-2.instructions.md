@@ -254,6 +254,15 @@ Before completing any improvement-round inbox item, scan session outboxes and KB
 > Project assignment and task dispatch are exclusively performed by the CEO running on the master node.
 > If `node-identity.conf` has `NODE_ROLE=worker`, `ceo-dispatch-project-task.sh` will refuse to run.
 
+### Shared-codebase guardrail (required)
+Master and worker nodes share one codebase. CEO must enforce that worker-targeted changes are master-compatible and non-disruptive to other projects.
+
+Before approving/merging node-affecting changes:
+1. Confirm node-specific behavior is role-gated (`NODE_ROLE`/`NODE_ACTIVE_AGENTS`) rather than globally hardcoded.
+2. Confirm safe fallback behavior when node identity is absent or stale.
+3. Confirm non-target projects keep their normal routing/execution behavior.
+4. Reject changes that encode machine-local assumptions in tracked files; require gitignored local config instead.
+
 For development-node dispatch, CEO must route by project id/alias (not ad-hoc seat selection):
 
 ```bash
