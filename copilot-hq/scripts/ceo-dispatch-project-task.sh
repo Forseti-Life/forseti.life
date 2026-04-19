@@ -9,9 +9,31 @@ WORK_ITEM_ID="${2:?work item id required}"
 TOPIC_RAW="${3:?topic required}"
 TEXT="${4:?command text required}"
 
-ROADMAP_FILE="${CEO_ROADMAP_FILE:-$ROOT_DIR/dashboards/PROJECTS.md}"
 ASSIGN_FILE="${CEO_DEV_NODE_ASSIGNMENTS_FILE:-$ROOT_DIR/org-chart/products/dev-node-assignments.json}"
 TEAMS_FILE="${CEO_PRODUCT_TEAMS_FILE:-$ROOT_DIR/org-chart/products/product-teams.json}"
+
+# Load node identity for the canonical remote URL (if present)
+IDENTITY_FILE="$ROOT_DIR/node-identity.conf"
+if [[ -f "$IDENTITY_FILE" ]]; then
+  # shellcheck source=../node-identity.conf
+  # shellcheck disable=SC1091
+  source "$IDENTITY_FILE"
+fi
+PROJECTS_REMOTE_URL="${CEO_PROJECTS_URL:-${NODE_PROJECTS_URL:-}}"
+LOCAL_ROADMAP="$ROOT_DIR/dashboards/PROJECTS.md"
+
+# Prefer the live remote roadmap; fall back to local copy.
+if [[ -n "$PROJECTS_REMOTE_URL" ]] && command -v curl &>/dev/null; then
+  _REMOTE_TMP="$(mktemp /tmp/projects-roadmap-XXXXXX.md)"
+  if curl -fsSL --max-time 10 "$PROJECTS_REMOTE_URL" -o "$_REMOTE_TMP" 2>/dev/null; then
+    ROADMAP_FILE="$_REMOTE_TMP"
+  else
+    ROADMAP_FILE="$LOCAL_ROADMAP"
+    echo "[warn] could not fetch remote roadmap; using local copy" >&2
+  fi
+else
+  ROADMAP_FILE="${CEO_ROADMAP_FILE:-$LOCAL_ROADMAP}"
+fi
 
 if [ ! -f "$ROADMAP_FILE" ]; then
   echo "ERROR: roadmap file not found: $ROADMAP_FILE" >&2
