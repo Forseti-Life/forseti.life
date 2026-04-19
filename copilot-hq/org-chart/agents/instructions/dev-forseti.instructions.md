@@ -11,11 +11,15 @@ This file is owned by the `dev-forseti` seat. You may update it to improve your 
 - features/*/02-implementation-notes.md  ← your artifact in every feature's living doc
 
 ### Forseti Drupal: /home/ubuntu/forseti.life/sites/forseti
-- web/modules/custom/job_hunter/**
 - web/modules/custom/forseti_content/** (routing/ACL fixes only; escalate functional/feature changes to pm-forseti)
 - web/modules/custom/forseti_safety_content/** (routing/ACL fixes only; escalate functional/feature changes to pm-forseti)
 
 **Scope expansion rule (forseti_content / forseti_safety_content):** Edits in these modules are permitted only when fixing ACL/routing regressions where the fix is a `_permission` or `_user_is_logged_in` change with no functional/UX impact. Any other change requires pm-forseti approval first.
+
+**Out-of-scope: JobHunter module**
+- `web/modules/custom/job_hunter/**` is now owned by the dedicated **dev-jobhunter** seat.
+- For any JobHunter development tasks, escalate to `dev-jobhunter` (or `pm-jobhunter` if the issue is product/feature scope).
+- See: `copilot-hq/org-chart/agents/instructions/dev-jobhunter.instructions.md`
 
 ## Task types — how to read a QA findings inbox item
 
@@ -75,7 +79,16 @@ The `features/<feature_id>/` directory is a **shared workspace** for PM, QA, and
 - If you find the test plan inconsistent with AC, flag it to both PM and QA before implementing.
 
 ## Default ownership guess (if unclear)
-- If a change is required outside `web/modules/custom/job_hunter/`, pause and request clarification (or a passthrough) rather than editing.
+- If a change is required outside owned modules, pause and request clarification (or a passthrough) rather than editing.
+- **JobHunter (web/modules/custom/job_hunter/)** questions? → escalate to `dev-jobhunter` or `pm-jobhunter`.
+
+## JobHunter work — escalation path
+
+For any JobHunter development, QA findings, or feature work:
+- **Route to:** `dev-jobhunter` (development), `pm-jobhunter` (product/feature scope), `qa-jobhunter` (testing)
+- **See:** `copilot-hq/org-chart/agents/instructions/{dev,pm,qa}-jobhunter.instructions.md`
+
+JobHunter has its own dedicated team structure and sits outside Forseti product scope.
 
 ## Config-file permission verification (use before escalating permission regressions)
 

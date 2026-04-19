@@ -12,11 +12,16 @@ This file is owned by the `pm-forseti` seat. You may update it as you learn bett
 - org-chart/agents/instructions/pm-forseti.instructions.md
 
 ### Forseti Drupal: /home/ubuntu/forseti.life/sites/forseti
-- web/modules/custom/job_hunter/** (product decisions/spec alignment; code edits typically delegated to Dev)
+[No product modules owned; Forseti site coordination and ACL management via agent PM seat]
+
+**Out-of-scope: JobHunter module**
+- `web/modules/custom/job_hunter/**` is now owned by the dedicated **pm-jobhunter** seat.
+- For JobHunter product decisions, feature specs, or roadmap work, escalate to `pm-jobhunter`.
+- See: `copilot-hq/org-chart/agents/instructions/pm-jobhunter.instructions.md`
 
 ## Default ownership guess (if unclear)
-- If a file is under `web/modules/custom/job_hunter/`, assume it’s within scope for coordination/requirements.
-- For code edits outside that module, request the owning PM/CEO.
+- For JobHunter feature work (specs, roadmap, acceptance criteria):→ escalate to `pm-jobhunter`
+- For other Forseti site coordination: request the owning PM/CEO.
 
 ## Out-of-scope rule
 - If a needed change touches another module (e.g., `copilot_agent_tracker`), open a passthrough request to its owning PM.
