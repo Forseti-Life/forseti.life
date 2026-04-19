@@ -53,3 +53,4 @@ llm/lib/__pycache__/
 # are the org's primary audit trail and must be fully tracked in version control.
 sessions/**/artifacts/**/latest
 sessions/**/artifacts/**/latest.*
+copilot-hq/node-identity.conf
