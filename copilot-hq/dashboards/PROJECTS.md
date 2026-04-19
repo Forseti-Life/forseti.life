@@ -16,10 +16,26 @@ That page is rendered from this file. CEO and architect seats must treat the roa
 
 ## Development Node Assignment Registry
 
-This table is the source of truth for which development node/seat is assigned
-to each project for CEO dispatch routing.
+This section is the source of truth for all nodes and project assignments.
+**The CEO on the master node is the sole owner of this section.**
+Worker nodes identify themselves by matching `NODE_ID` in their local
+`node-identity.conf` against the Node ID column below, then claim only the
+projects assigned to that node.
 
-**Used by:** `scripts/ceo-dispatch-project-task.sh`
+**Used by:** `scripts/ceo-dispatch-project-task.sh`, `scripts/dev-sync-once.sh`
+
+### Node Registry
+
+Each row is a registered machine in the fleet. Nodes self-identify by `Node ID`.
+
+| Node ID | Role | Hostname | Environment | Owner | Status |
+|---|---|---|---|---|---|
+| production | master | forseti.life | AWS EC2 Ubuntu 24.04 | ceo-copilot-2 | active |
+| dev-laptop | worker | pop-os | Keith's Dev Laptop (Pop!_OS) | dev-forseti | active |
+
+### Project Assignments
+
+Which node/agent handles each project. CEO edits this to reassign work between nodes.
 
 | Project key | Target node | Target agent | Website | Module | Execute |
 |---|---|---|---|---|---|

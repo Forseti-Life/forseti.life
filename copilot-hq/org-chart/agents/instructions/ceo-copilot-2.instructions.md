@@ -250,6 +250,10 @@ When `scripts/release-signoff-status.sh <release-id>` shows one PM signed and on
 Before completing any improvement-round inbox item, scan session outboxes and KB proposals for unactioned improvement proposals. For each found: if a passthrough inbox item doesn't already exist for the implementing seat, create one.
 
 ### Project-to-node delegation (required)
+> **Master node only.** The CEO on a worker/slave node does NOT assign projects or dispatch work.
+> Project assignment and task dispatch are exclusively performed by the CEO running on the master node.
+> If `node-identity.conf` has `NODE_ROLE=worker`, `ceo-dispatch-project-task.sh` will refuse to run.
+
 For development-node dispatch, CEO must route by project id/alias (not ad-hoc seat selection):
 
 ```bash

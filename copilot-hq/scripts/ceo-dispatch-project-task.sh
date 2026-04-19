@@ -19,6 +19,16 @@ if [[ -f "$IDENTITY_FILE" ]]; then
   # shellcheck disable=SC1091
   source "$IDENTITY_FILE"
 fi
+
+# Project assignment is a master-node-only operation.
+# Worker nodes do not assign or dispatch project tasks.
+_NODE_ROLE="${NODE_ROLE:-master}"
+if [[ "$_NODE_ROLE" == "worker" ]]; then
+  echo "ERROR: ceo-dispatch-project-task.sh must only run on the master node." >&2
+  echo "       This machine is registered as NODE_ROLE=worker (NODE_ID=${NODE_ID:-unknown})." >&2
+  echo "       Project assignment is performed by the CEO on the master node." >&2
+  exit 1
+fi
 PROJECTS_REMOTE_URL="${CEO_PROJECTS_URL:-${NODE_PROJECTS_URL:-}}"
 LOCAL_ROADMAP="$ROOT_DIR/dashboards/PROJECTS.md"
 
