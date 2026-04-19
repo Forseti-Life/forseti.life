@@ -8,8 +8,15 @@ cd "$ROOT_DIR"
 # shellcheck source=lib/command-routing.sh
 source "$ROOT_DIR/scripts/lib/command-routing.sh"
 
-TARGET_NAME="${DEV_SYNC_TARGET:-dev-laptop}"
-DEFAULT_AGENT="${DEV_SYNC_DEFAULT_AGENT:-dev-forseti}"
+# Load local node identity if present (overridable by env vars)
+IDENTITY_FILE="$ROOT_DIR/node-identity.conf"
+if [[ -f "$IDENTITY_FILE" ]]; then
+  # shellcheck source=../node-identity.conf
+  source "$IDENTITY_FILE"
+fi
+
+TARGET_NAME="${DEV_SYNC_TARGET:-${NODE_ID:-dev-laptop}}"
+DEFAULT_AGENT="${DEV_SYNC_DEFAULT_AGENT:-${NODE_DEFAULT_AGENT:-dev-forseti}}"
 AUTO_PULL="${DEV_SYNC_AUTO_PULL:-1}"
 EXECUTE_DEFAULT="${DEV_SYNC_EXECUTE:-0}"
 AUTO_COMMIT="${DEV_SYNC_AUTO_COMMIT:-0}"
