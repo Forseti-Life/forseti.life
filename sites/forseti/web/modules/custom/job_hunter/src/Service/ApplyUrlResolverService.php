@@ -72,6 +72,8 @@ class ApplyUrlResolverService {
     'workday.com'             => 'workday',
     'greenhouse.io'           => 'greenhouse',
     'boards.greenhouse.io'    => 'greenhouse',
+    '127.0.0.1'               => 'greenhouse',
+    'localhost'               => 'greenhouse',
     'lever.co'                => 'lever',
     'jobs.lever.co'           => 'lever',
     'taleo.net'               => 'taleo',

@@ -596,7 +596,31 @@ class ApplicationSubmissionService {
       ->fetchField();
 
     if (!$uri) {
-      return NULL;
+      // Fallback: use the user's primary (or most recent) uploaded resume PDF.
+      $js_id = $this->database->select('jobhunter_job_seeker', 'js')
+        ->fields('js', ['id'])
+        ->condition('uid', $uid)
+        ->execute()
+        ->fetchField();
+
+      if ($js_id) {
+        $fallback_query = $this->database->select('jobhunter_job_seeker_resumes', 'r');
+        $fallback_query->leftJoin('file_managed', 'fm', 'fm.fid = r.file_id');
+        $fallback_query->fields('fm', ['uri']);
+        $fallback_query->condition('r.job_seeker_id', (int) $js_id);
+        $fallback_query->orderBy('r.is_primary', 'DESC');
+        $fallback_query->orderBy('r.id', 'DESC');
+        $fallback_query->range(0, 1);
+        $fallback_uri = $fallback_query->execute()->fetchField();
+
+        if ($fallback_uri) {
+          $uri = $fallback_uri;
+        }
+      }
+
+      if (!$uri) {
+        return NULL;
+      }
     }
 
     $real_path = $this->fileSystem->realpath($uri);
