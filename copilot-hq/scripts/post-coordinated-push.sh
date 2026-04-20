@@ -118,7 +118,8 @@ if team_release_ids:
     # script after a pre-existing signoff doesn't skip the advance.
     # Per-team sentinel (<team_id>.advanced) records the new release_id we advanced
     # to; if current release_id already matches, this is a re-run — skip.
-    today = datetime.now(timezone.utc).strftime("%Y%m%d")
+    # Use local time to match release-cycle-start.sh which uses `date +%Y%m%d`.
+    today = datetime.now().strftime("%Y%m%d")
     for team in sorted(coord_teams, key=lambda t: t['id']):
         team_id = team['id']
         next_rid_file = runtime_dir / f"{team_id}.next_release_id"

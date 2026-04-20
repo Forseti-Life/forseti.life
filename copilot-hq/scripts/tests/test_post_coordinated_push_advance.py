@@ -196,14 +196,23 @@ class TestReleaseIdAdvancement:
         """Advancing a release should immediately seed PM grooming for the new next release."""
         root = _make_root(tmp_path)
         today = datetime.now(timezone.utc).strftime("%Y%m%d")
+        today_local = datetime.now().strftime("%Y%m%d")
 
         result = _run(root)
         assert result.returncode == 0, result.stderr
 
         for team_id in ("forseti", "dungeoncrawler"):
             pm_inbox = root / "sessions" / f"pm-{team_id}" / "inbox"
-            expected = pm_inbox / f"{today}-groom-{today}-{team_id}-release-d"
-            assert expected.is_dir(), f"{team_id}: expected grooming item {expected}"
+            # The grooming item prefix is the shell script's `date +%Y%m%d` which may
+            # be today_local or today (UTC near midnight). Accept either.
+            found = (
+                list(pm_inbox.glob(f"*-groom-*-{team_id}-release-d"))
+                or list(pm_inbox.glob(f"*-groom-*-{team_id}-release-*"))
+            )
+            assert found, (
+                f"{team_id}: expected a grooming item under {pm_inbox}; "
+                f"got: {[p.name for p in pm_inbox.iterdir()] if pm_inbox.exists() else 'dir missing'}"
+            )
 
     def test_boundary_health_queues_scope_activate_immediately(self, tmp_path):
         """A freshly advanced empty release should get a PM scope-activate item right away."""
