@@ -301,5 +301,14 @@ MD
   echo "QUEUED: agent-code-review ${cr_item_id} (current release: ${release_id})"
 fi
 
+# Trigger a fresh site audit immediately so the Gate 2 clean-audit backstop can
+# evaluate the new release cycle as soon as it starts (rather than waiting up to
+# 2 hours for the next CEO ops cycle or up to 1 hour for the audit cron).
+# GAP-GATE2-AUDIT-TIMING: audit must be ≤1 cycle old relative to release activation.
+if [ -n "${team_id:-}" ]; then
+  echo "Triggering site audit for ${team_id} at release cycle start..."
+  bash scripts/site-audit-run.sh "${team_id}" </dev/null 2>&1 | tail -5 || true
+fi
+
 echo "QUEUED: ${qa_agent} ${item_id} (current release: ${release_id})"
 echo "RELEASE_CYCLE_ACTIVE: ${team_id} current=${release_id} next=${next_release_id}"
