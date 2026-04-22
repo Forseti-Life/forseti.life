@@ -8,6 +8,20 @@
 use Drupal\Core\Routing\RouteMatchInterface;
 
 /**
+ * Implements hook_url_outbound_alter().
+ *
+ * Apache mod_rewrite may not be enabled, causing Drupal to detect
+ * SCRIPT_NAME=/index.php and generate all route URLs with an index.php/
+ * prefix. Strip that prefix so links are clean regardless of mod_rewrite
+ * availability.
+ */
+function forseti_content_url_outbound_alter(&$path, array &$options, $original_path) {
+  if (str_starts_with($path, '/index.php/')) {
+    $path = '/' . substr($path, strlen('/index.php/'));
+  }
+}
+
+/**
  * Implements hook_help().
  */
 function forseti_content_help($route_name, RouteMatchInterface $route_match) {
