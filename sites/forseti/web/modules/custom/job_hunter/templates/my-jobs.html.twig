@@ -180,6 +180,16 @@
                                   data-token="{{ job.notes_csrf_token }}">
                             {{ 'Notes'|t }}
                           </button>
+
+                          {% if job.workflow_status != 'rejected' and job.workflow_status != 'closed' %}
+                          <button type="button"
+                                  class="button button--small button--danger btn-close-toggle"
+                                  data-job-id="{{ job.id }}"
+                                  data-save-url="{{ job.close_url }}"
+                                  data-token="{{ job.close_token }}">
+                            {{ 'Close'|t }}
+                          </button>
+                          {% endif %}
                         </td>
                       </tr>
                       <tr class="job-notes-panel job-notes-panel--{{ job.id }}" style="display:none">
@@ -200,6 +210,51 @@
                           </div>
                         </td>
                       </tr>
+                      {% if job.workflow_status != 'rejected' and job.workflow_status != 'closed' %}
+                      <tr class="job-close-panel job-close-panel--{{ job.id }}" style="display:none">
+                        <td colspan="5">
+                          <div class="close-reject-panel-inline">
+                            <div class="close-field-row-inline">
+                              <label>{{ 'Status'|t }} <span style="color:red">*</span></label>
+                              <select class="close-user-status">
+                                <option value="">{{ '— select —'|t }}</option>
+                                <option value="closed">{{ 'Closed (position filled / withdrew)'|t }}</option>
+                                <option value="rejected">{{ 'Rejected by company'|t }}</option>
+                              </select>
+                            </div>
+                            <div class="close-field-row-inline">
+                              <label>{{ 'Reason'|t }} <span style="color:red">*</span></label>
+                              <select class="close-rejection-reason">
+                                <option value="">{{ '— select —'|t }}</option>
+                                <option value="no_response">{{ 'No Response'|t }}</option>
+                                <option value="resume_screen">{{ 'Resume Screen'|t }}</option>
+                                <option value="phone_screen">{{ 'Phone Screen'|t }}</option>
+                                <option value="technical_screen">{{ 'Technical Screen'|t }}</option>
+                                <option value="interview_round">{{ 'Interview Round'|t }}</option>
+                                <option value="offer_declined_by_company">{{ 'Offer Declined by Company'|t }}</option>
+                                <option value="offer_declined_by_me">{{ 'Offer Declined by Me'|t }}</option>
+                                <option value="position_cancelled">{{ 'Position Cancelled'|t }}</option>
+                                <option value="other">{{ 'Other'|t }}</option>
+                              </select>
+                            </div>
+                            <div class="close-field-row-inline">
+                              <label>{{ 'Notes (optional)'|t }}</label>
+                              <textarea class="close-rejection-notes" rows="2" maxlength="2000" placeholder="{{ 'Optional context (not logged)'|t }}"></textarea>
+                            </div>
+                            <div class="close-actions-inline">
+                              <button type="button"
+                                      class="button button--small button--primary btn-close-save-inline"
+                                      data-job-id="{{ job.id }}"
+                                      data-save-url="{{ job.close_url }}"
+                                      data-token="{{ job.close_token }}">
+                                {{ 'Save'|t }}
+                              </button>
+                              <span class="close-status-inline"></span>
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                      {% endif %}
                     {% endfor %}
                   </tbody>
                 </table>
@@ -289,6 +344,17 @@
 .interview-scheduled--today { background: #dbeafe; color: #1e40af; border: 1px solid #93c5fd; }
 .interview-scheduled--overdue { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
 .job-row--interview-scheduled > td:first-child { border-left: 3px solid #3b82f6; }
+.btn-close-toggle { background: #dc2626; color: #fff; }
+.btn-close-toggle:hover { background: #b91c1c; }
+.btn-close-toggle.active { background: #991b1b; }
+.close-reject-panel-inline { padding: 12px 16px; background: #fef2f2; border-left: 3px solid #ef4444; }
+.close-field-row-inline { margin-bottom: 8px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.close-field-row-inline label { font-weight: 600; font-size: 0.9em; color: #374151; min-width: 80px; }
+.close-field-row-inline select, .close-field-row-inline textarea { padding: 4px 8px; border: 1px solid #d1d5db; border-radius: 4px; font-size: 0.9em; min-width: 220px; }
+.close-actions-inline { margin-top: 8px; }
+.close-status-inline { margin-left: 10px; font-size: 0.9em; }
+.close-status-inline.success { color: #065f46; }
+.close-status-inline.error { color: #991b1b; }
 </style>
 
 <script>
@@ -347,6 +413,55 @@
           .catch(function() {
             saveBtn.disabled = false;
             statusEl.className = 'notes-status-inline error';
+            statusEl.textContent = 'Network error.';
+          });
+        });
+      }
+    });
+  });
+
+  // Close / Reject panel toggle + AJAX submit.
+  document.querySelectorAll('.btn-close-toggle').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var jobId = btn.dataset.jobId;
+      var panel = document.querySelector('.job-close-panel--' + jobId);
+      if (!panel) { return; }
+      var isOpen = panel.style.display !== 'none';
+      panel.style.display = isOpen ? 'none' : '';
+      btn.classList.toggle('active', !isOpen);
+      if (!panel.dataset.wired) {
+        panel.dataset.wired = '1';
+        var saveBtn = panel.querySelector('.btn-close-save-inline');
+        saveBtn.addEventListener('click', function() {
+          var statusEl = panel.querySelector('.close-status-inline');
+          var us = panel.querySelector('.close-user-status').value;
+          var rr = panel.querySelector('.close-rejection-reason').value;
+          var rn = panel.querySelector('.close-rejection-notes').value;
+          if (!us) { statusEl.className = 'close-status-inline error'; statusEl.textContent = 'Select a status.'; return; }
+          if (!rr) { statusEl.className = 'close-status-inline error'; statusEl.textContent = 'Select a reason.'; return; }
+          var url = saveBtn.dataset.saveUrl + '?token=' + encodeURIComponent(saveBtn.dataset.token);
+          saveBtn.disabled = true;
+          fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'same-origin',
+            body: JSON.stringify({ user_closed_status: us, rejection_reason: rr, rejection_notes: rn })
+          })
+          .then(function(r) { return r.json().then(function(d) { return { status: r.status, data: d }; }); })
+          .then(function(res) {
+            if (res.status === 200) {
+              statusEl.className = 'close-status-inline success';
+              statusEl.textContent = res.data.message || 'Saved.';
+              setTimeout(function() { location.reload(); }, 800);
+            } else {
+              saveBtn.disabled = false;
+              statusEl.className = 'close-status-inline error';
+              statusEl.textContent = res.data.error || 'Save failed.';
+            }
+          })
+          .catch(function() {
+            saveBtn.disabled = false;
+            statusEl.className = 'close-status-inline error';
             statusEl.textContent = 'Network error.';
           });
         });

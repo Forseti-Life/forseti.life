@@ -1708,3 +1708,16 @@ job_hunter.offer_save:
     _user_is_logged_in: 'TRUE'
     _csrf_token: 'TRUE'
     job_id: \d+
+
+# Close / Reject Job — per-user terminal state (POST, CSRF-protected)
+job_hunter.close_job_ajax:
+  path: '/jobhunter/jobs/{job_id}/close'
+  defaults:
+    _controller: '\Drupal\job_hunter\Controller\CompanyController::closeJobAjax'
+    _title: 'Close or Reject Job'
+  methods: [POST]
+  requirements:
+    _permission: 'access job hunter'
+    _user_is_logged_in: 'TRUE'
+    _csrf_token: 'TRUE'
+    job_id: \d+

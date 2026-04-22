@@ -111,6 +111,27 @@ function _job_hunter_create_saved_jobs_table() {
         'default' => 0,
         'description' => 'Per-user archive flag (1 = archived by this user).',
       ],
+      'follow_up_date' => ['type' => 'varchar', 'length' => 10, 'not null' => FALSE, 'default' => NULL, 'description' => 'Per-user follow-up date (Y-m-d).'],
+      'deadline_date' => ['type' => 'varchar', 'length' => 10, 'not null' => FALSE, 'default' => NULL, 'description' => 'Per-user application deadline date (Y-m-d).'],
+      'user_closed_status' => [
+        'type' => 'varchar',
+        'length' => 20,
+        'not null' => FALSE,
+        'default' => NULL,
+        'description' => 'Per-user terminal state: rejected | closed. NULL = still active.',
+      ],
+      'rejection_reason' => [
+        'type' => 'varchar',
+        'length' => 50,
+        'not null' => FALSE,
+        'default' => NULL,
+        'description' => 'Why the user considers this application closed (see VALID_REJECTION_REASONS).',
+      ],
+      'rejection_notes' => [
+        'type' => 'text',
+        'not null' => FALSE,
+        'description' => 'Free-text notes for rejection — NOT logged to watchdog.',
+      ],
       'created' => ['type' => 'int', 'not null' => TRUE, 'default' => 0],
       'updated' => ['type' => 'int', 'not null' => TRUE, 'default' => 0],
     ],
@@ -3659,4 +3680,45 @@ function job_hunter_update_9061() {
   }
 
   return t('Added scheduled_at and interviewer_name to jobhunter_interview_rounds.');
+}
+
+/**
+ * Add user_closed_status, rejection_reason, rejection_notes to jobhunter_saved_jobs.
+ */
+function job_hunter_update_9062() {
+  $schema = \Drupal::database()->schema();
+
+  if (!$schema->tableExists('jobhunter_saved_jobs')) {
+    return t('jobhunter_saved_jobs does not exist — skipped.');
+  }
+
+  if (!$schema->fieldExists('jobhunter_saved_jobs', 'user_closed_status')) {
+    $schema->addField('jobhunter_saved_jobs', 'user_closed_status', [
+      'type' => 'varchar',
+      'length' => 20,
+      'not null' => FALSE,
+      'default' => NULL,
+      'description' => 'Per-user terminal state: rejected | closed. NULL = still active.',
+    ]);
+  }
+
+  if (!$schema->fieldExists('jobhunter_saved_jobs', 'rejection_reason')) {
+    $schema->addField('jobhunter_saved_jobs', 'rejection_reason', [
+      'type' => 'varchar',
+      'length' => 50,
+      'not null' => FALSE,
+      'default' => NULL,
+      'description' => 'Why the user considers this application closed.',
+    ]);
+  }
+
+  if (!$schema->fieldExists('jobhunter_saved_jobs', 'rejection_notes')) {
+    $schema->addField('jobhunter_saved_jobs', 'rejection_notes', [
+      'type' => 'text',
+      'not null' => FALSE,
+      'description' => 'Free-text notes for rejection — NOT logged to watchdog.',
+    ]);
+  }
+
+  return t('Added user_closed_status, rejection_reason, rejection_notes to jobhunter_saved_jobs.');
 }

@@ -298,6 +298,10 @@ class JobDiscoveryService {
       // Include per-saved-job fields needed for follow-up and deadline display.
       $query->addField('sj', 'follow_up_date', 'follow_up_date');
       $query->addField('sj', 'deadline_date', 'sj_deadline_date');
+      if ($this->database->schema()->fieldExists('jobhunter_saved_jobs', 'user_closed_status')) {
+        $query->addField('sj', 'user_closed_status', 'user_closed_status');
+        $query->addField('sj', 'rejection_reason', 'rejection_reason');
+      }
 
       $query->leftJoin('jobhunter_companies', 'c', 'j.company_id = c.id');
       $query->addField('c', $company_name_field, 'company_name');

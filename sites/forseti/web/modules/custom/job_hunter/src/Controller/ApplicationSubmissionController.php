@@ -785,6 +785,8 @@ class ApplicationSubmissionController extends ControllerBase {
       $job->notes_load_url = \Drupal\Core\Url::fromRoute('job_hunter.application_notes_load', ['job_id' => (int) $job->id])->toString();
       $job->notes_save_url = \Drupal\Core\Url::fromRoute('job_hunter.application_notes_save', ['job_id' => (int) $job->id])->toString();
       $job->notes_csrf_token = \Drupal::csrfToken()->get('jobhunter/jobs/' . (int) $job->id . '/notes/save');
+      $job->close_url   = \Drupal\Core\Url::fromRoute('job_hunter.close_job_ajax', ['job_id' => (int) $job->id])->toString();
+      $job->close_token = \Drupal::csrfToken()->get('jobhunter/jobs/' . (int) $job->id . '/close');
       $job->match_score = $this->computeMatchScore($user_skill_tokens, $job);
 
       // AC-2/AC-3: follow-up overdue badge — set when follow_up_date has passed
@@ -939,6 +941,11 @@ class ApplicationSubmissionController extends ControllerBase {
   *   approval_pending, application_pending, pending_response, closed.
    */
   private function deriveWorkflowStatus(object $job, bool $has_profile): string {
+    // User-scoped closure takes precedence over system-level status.
+    if (!empty($job->user_closed_status)) {
+      return (string) $job->user_closed_status;
+    }
+
     // Closed takes priority.
     if (($job->status ?? '') === 'closed') {
       return 'closed';
@@ -2281,6 +2288,19 @@ HTML;
       [':uid' => $uid, ':cutoff' => $eight_weeks_ago]
     )->fetchAllKeyed();
 
+    // AC-4 / AC-5: rejection reason breakdown (per-user, user_closed_status).
+    $rejection_raw = [];
+    if ($db->schema()->fieldExists('jobhunter_saved_jobs', 'rejection_reason')) {
+      $rejection_raw = $db->query(
+        "SELECT rejection_reason, COUNT(*) AS cnt
+         FROM {jobhunter_saved_jobs}
+         WHERE uid = :uid AND rejection_reason IS NOT NULL
+         GROUP BY rejection_reason
+         ORDER BY cnt DESC",
+        [':uid' => $uid]
+      )->fetchAllKeyed();
+    }
+
     // ── Build HTML ───────────────────────────────────────────────────────────
 
     // Funnel table.
@@ -2331,6 +2351,58 @@ HTML;
       $weekly_html = '<p style="color:#718096;font-style:italic;">No activity in the last 8 weeks.</p>';
     }
 
+    // AC-4: rejection reasons section HTML.
+    $rejection_reasons_html = '';
+    if (!empty($rejection_raw)) {
+      $rej_max = max($rejection_raw) ?: 1;
+      $rej_rows = '';
+      foreach ($rejection_raw as $slug => $cnt) {
+        $label   = \Drupal\job_hunter\Controller\CompanyController::REJECTION_REASON_LABELS[$slug] ?? ucwords(str_replace('_', ' ', $slug));
+        $bar_pct = (int) round(((int) $cnt / $rej_max) * 100);
+        $rej_rows .= '<tr>
+          <td style="padding:6px 12px;white-space:nowrap;">' . htmlspecialchars($label) . '</td>
+          <td style="padding:6px 12px;width:60%;">
+            <div style="background:#e2e8f0;border-radius:4px;height:18px;">
+              <div style="background:#ef4444;height:18px;width:' . $bar_pct . '%;border-radius:4px;"></div>
+            </div>
+          </td>
+          <td style="padding:6px 12px;text-align:right;font-weight:bold;">' . (int) $cnt . '</td>
+        </tr>';
+      }
+      $rejection_reasons_html = '
+<div class="rejection-reasons" style="background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:20px;margin-bottom:24px;">
+  <h3 style="margin:0 0 14px 0;">❌ Rejection Reasons (your applications)</h3>
+  <table style="width:100%;border-collapse:collapse;">' . $rej_rows . '</table>
+</div>';
+    }
+
+    // AC-5: stage heat-map — show if ≥5 total stage-level rejections.
+    $stage_chart_html = '';
+    $stage_reasons  = ['phone_screen', 'technical_screen', 'interview_round'];
+    $stage_total    = 0;
+    foreach ($stage_reasons as $sr) {
+      $stage_total += (int) ($rejection_raw[$sr] ?? 0);
+    }
+    if ($stage_total >= 5) {
+      $sm_max = max(array_map(fn($sr) => (int) ($rejection_raw[$sr] ?? 0), $stage_reasons)) ?: 1;
+      $sm_cols = '';
+      foreach ($stage_reasons as $sr) {
+        $cnt    = (int) ($rejection_raw[$sr] ?? 0);
+        $bar_h  = (int) round(($cnt / $sm_max) * 80);
+        $label  = \Drupal\job_hunter\Controller\CompanyController::REJECTION_REASON_LABELS[$sr] ?? ucwords(str_replace('_', ' ', $sr));
+        $sm_cols .= '<div style="display:inline-block;text-align:center;margin:0 12px;vertical-align:bottom;">
+          <div style="background:#f97316;width:40px;height:' . $bar_h . 'px;border-radius:4px 4px 0 0;margin:0 auto;"></div>
+          <div style="font-size:0.85em;color:#374151;margin-top:4px;font-weight:600;">' . $cnt . '</div>
+          <div style="font-size:0.75em;color:#6b7280;margin-top:2px;">' . htmlspecialchars($label) . '</div>
+        </div>';
+      }
+      $stage_chart_html = '
+<div class="rejection-stage-chart" style="background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:20px;margin-bottom:24px;">
+  <h3 style="margin:0 0 14px 0;">🔥 Rejection Stage Heat-Map</h3>
+  <div style="display:flex;align-items:flex-end;gap:0;min-height:100px;">' . $sm_cols . '</div>
+</div>';
+    }
+
     $content = [
       '#type' => 'container',
       '#attributes' => ['class' => ['analytics-page']],
@@ -2378,6 +2450,10 @@ HTML;
   <h3 style="margin:0 0 14px 0;">📅 Weekly Activity (last 8 weeks)</h3>
   <div style="display:flex;align-items:flex-end;gap:0;min-height:80px;">' . $weekly_html . '</div>
 </div>
+
+' . $rejection_reasons_html . '
+
+' . $stage_chart_html . '
 ',
     ];
 

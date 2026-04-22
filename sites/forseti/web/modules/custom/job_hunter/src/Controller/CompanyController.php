@@ -46,6 +46,36 @@ class CompanyController extends ControllerBase {
   const INTERVIEW_ROUND_OUTCOMES = ['pending', 'passed', 'failed', 'withdrawn'];
 
   /**
+   * Valid values for rejection_reason on jobhunter_saved_jobs.
+   */
+  const VALID_REJECTION_REASONS = [
+    'no_response',
+    'resume_screen',
+    'phone_screen',
+    'technical_screen',
+    'interview_round',
+    'offer_declined_by_company',
+    'offer_declined_by_me',
+    'position_cancelled',
+    'other',
+  ];
+
+  /**
+   * Rejection reason labels (keyed by reason slug).
+   */
+  const REJECTION_REASON_LABELS = [
+    'no_response'             => 'No Response',
+    'resume_screen'           => 'Resume Screen',
+    'phone_screen'            => 'Phone Screen',
+    'technical_screen'        => 'Technical Screen',
+    'interview_round'         => 'Interview Round',
+    'offer_declined_by_company' => 'Offer Declined by Company',
+    'offer_declined_by_me'    => 'Offer Declined by Me',
+    'position_cancelled'      => 'Position Cancelled',
+    'other'                   => 'Other',
+  ];
+
+  /**
    * The database connection.
    *
    * @var \Drupal\Core\Database\Connection
@@ -149,7 +179,7 @@ class CompanyController extends ControllerBase {
    */
   private function loadOwnedSavedJob(int $uid, int $job_id): ?object {
     $saved_job = $this->database->select('jobhunter_saved_jobs', 'sj')
-      ->fields('sj', ['id', 'deadline_date', 'follow_up_date'])
+      ->fields('sj', ['id', 'deadline_date', 'follow_up_date', 'user_closed_status', 'rejection_reason', 'rejection_notes'])
       ->condition('sj.uid', $uid)
       ->condition('sj.job_id', $job_id)
       ->execute()
@@ -2166,6 +2196,120 @@ class CompanyController extends ControllerBase {
         '@jid' => $job_id,
         '@error' => $e->getMessage(),
       ]);
+    }
+
+    // Rejection / Close section — AC-2: show read-only details if already closed; otherwise show close action.
+    if ($saved_job && $this->database->schema()->fieldExists('jobhunter_saved_jobs', 'user_closed_status')) {
+      $close_url   = Url::fromRoute('job_hunter.close_job_ajax', ['job_id' => (int) $job_id])->toString();
+      $close_token = \Drupal::csrfToken()->get('jobhunter/jobs/' . (int) $job_id . '/close');
+
+      $user_closed = (string) ($saved_job->user_closed_status ?? '');
+      $rej_reason  = (string) ($saved_job->rejection_reason ?? '');
+      $rej_notes   = (string) ($saved_job->rejection_notes ?? '');
+
+      if ($user_closed !== '') {
+        // Read-only view (already closed/rejected).
+        $reason_label = self::REJECTION_REASON_LABELS[$rej_reason] ?? ucwords(str_replace('_', ' ', $rej_reason));
+        $status_label = $user_closed === 'rejected' ? '❌ Rejected' : '🔒 Closed';
+        $notes_html   = $rej_notes !== '' ? '<p class="rejection-notes-display">' . nl2br(htmlspecialchars($rej_notes)) . '</p>' : '<p class="rejection-notes-display"><em>No notes recorded.</em></p>';
+        $markup = '<div class="rejection-detail-section">'
+          . '<h3>' . $status_label . '</h3>'
+          . '<p><strong>Reason:</strong> ' . htmlspecialchars($reason_label) . '</p>'
+          . $notes_html
+          . '</div>';
+      }
+      else {
+        // Action view — offer close/reject form.
+        $reason_options = '';
+        foreach (self::VALID_REJECTION_REASONS as $slug) {
+          $label = self::REJECTION_REASON_LABELS[$slug] ?? ucwords(str_replace('_', ' ', $slug));
+          $reason_options .= '<option value="' . htmlspecialchars($slug, ENT_QUOTES) . '">' . htmlspecialchars($label) . '</option>';
+        }
+        $markup = '<div class="rejection-action-section" id="rejection-action-section">'
+          . '<button type="button" class="button btn-close-job-toggle">Close / Reject This Application</button>'
+          . '<div id="close-reject-panel" style="display:none;margin-top:12px;">'
+          . '<div class="close-field-row"><label for="close-user-status">Status <span style="color:red">*</span></label>'
+          . '<select id="close-user-status"><option value="">— select —</option>'
+          . '<option value="closed">Closed (position filled / withdrew)</option>'
+          . '<option value="rejected">Rejected by company</option>'
+          . '</select></div>'
+          . '<div class="close-field-row"><label for="close-rejection-reason">Reason <span style="color:red">*</span></label>'
+          . '<select id="close-rejection-reason"><option value="">— select —</option>' . $reason_options . '</select></div>'
+          . '<div class="close-field-row"><label for="close-rejection-notes">Notes (optional)</label>'
+          . '<textarea id="close-rejection-notes" rows="3" maxlength="2000" placeholder="Optional context (not logged)"></textarea></div>'
+          . '<div class="close-actions">'
+          . '<button type="button" class="button button--primary btn-close-job-save" data-save-url="' . htmlspecialchars($close_url, ENT_QUOTES) . '" data-token="' . htmlspecialchars($close_token, ENT_QUOTES) . '">Save</button>'
+          . '<div id="close-status-msg"></div>'
+          . '</div>'
+          . '</div>'
+          . '</div>'
+          . '<script>
+(function() {
+  var toggle = document.querySelector(".btn-close-job-toggle");
+  var panel  = document.getElementById("close-reject-panel");
+  if (toggle && panel) {
+    toggle.addEventListener("click", function() {
+      panel.style.display = panel.style.display === "none" ? "block" : "none";
+    });
+  }
+  var saveBtn = document.querySelector(".btn-close-job-save");
+  if (saveBtn) {
+    saveBtn.addEventListener("click", function() {
+      var statusEl = document.getElementById("close-status-msg");
+      var us = document.getElementById("close-user-status").value;
+      var rr = document.getElementById("close-rejection-reason").value;
+      var rn = document.getElementById("close-rejection-notes").value;
+      if (!us) { if (statusEl) { statusEl.className = "error"; statusEl.textContent = "Please select a status."; } return; }
+      if (!rr) { if (statusEl) { statusEl.className = "error"; statusEl.textContent = "Please select a reason."; } return; }
+      var url = saveBtn.getAttribute("data-save-url") + "?token=" + encodeURIComponent(saveBtn.getAttribute("data-token"));
+      saveBtn.disabled = true;
+      fetch(url, {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({user_closed_status: us, rejection_reason: rr, rejection_notes: rn})
+      }).then(function(r) { return r.json(); }).then(function(d) {
+        if (d.message) {
+          if (statusEl) { statusEl.className = "success"; statusEl.textContent = d.message; }
+          setTimeout(function() { location.reload(); }, 800);
+        } else {
+          if (statusEl) { statusEl.className = "error"; statusEl.textContent = d.error || "Save failed."; }
+          saveBtn.disabled = false;
+        }
+      }).catch(function() {
+        if (statusEl) { statusEl.className = "error"; statusEl.textContent = "Network error. Please try again."; }
+        saveBtn.disabled = false;
+      });
+    });
+  }
+})();
+</script>';
+      }
+
+      $content['rejection_section'] = [
+        '#type'       => 'container',
+        '#attributes' => ['class' => ['rejection-section']],
+        '#markup'     => $markup,
+      ];
+
+      $content['#attached']['html_head'][] = [
+        [
+          '#tag'   => 'style',
+          '#value' => '
+            .rejection-section { margin-top: 24px; }
+            .rejection-action-section { padding: 16px; background: #fef3c7; border-radius: 8px; border-left: 4px solid #f59e0b; }
+            .rejection-detail-section { padding: 16px; background: #fef2f2; border-radius: 8px; border-left: 4px solid #ef4444; }
+            .rejection-detail-section h3 { margin: 0 0 8px 0; color: #991b1b; }
+            .rejection-notes-display { margin: 8px 0 0 0; color: #555; white-space: pre-wrap; }
+            .close-field-row { margin-bottom: 10px; }
+            .close-field-row label { display: block; font-weight: 600; color: #555; margin-bottom: 4px; font-size: 0.9em; }
+            .close-field-row select, .close-field-row textarea { width: 100%; max-width: 480px; padding: 6px 8px; border: 1px solid #d1d5db; border-radius: 4px; font-size: 0.95em; }
+            #close-status-msg { margin-top: 8px; font-size: 0.9em; padding: 6px 10px; border-radius: 4px; display: none; }
+            #close-status-msg.success { background: #d1fae5; color: #065f46; display: block; }
+            #close-status-msg.error   { background: #fee2e2; color: #991b1b; display: block; }
+          ',
+        ],
+        'rejection_styles',
+      ];
     }
 
     return $this->wrapWithNavigation($content);
@@ -5247,6 +5391,72 @@ HTML;
     ]);
 
     return new JsonResponse(['message' => 'Offer details saved.'], 200);
+  }
+
+  /**
+   * AJAX: record user_closed_status, rejection_reason, rejection_notes on a saved job.
+   *
+   * POST /jobhunter/jobs/{job_id}/close  (CSRF-protected)
+   *
+   * @param int $job_id
+   *   The job_requirements ID.
+   */
+  public function closeJobAjax(int $job_id): JsonResponse {
+    if (!$this->database->schema()->fieldExists('jobhunter_saved_jobs', 'user_closed_status')) {
+      return new JsonResponse(['error' => 'Rejection tracking not available.'], 503);
+    }
+
+    $uid    = (int) $this->currentUser->id();
+    $job_id = (int) $job_id;
+
+    // SEC-3: ownership check via (uid, job_id) unique key.
+    $saved_job = $this->loadOwnedSavedJob($uid, $job_id);
+    if (!$saved_job) {
+      return new JsonResponse(['error' => 'Access denied.'], 403);
+    }
+
+    $request = $this->requestStack->getCurrentRequest();
+    $body    = json_decode((string) $request->getContent(), TRUE) ?? [];
+
+    $user_closed_status = (string) ($body['user_closed_status'] ?? '');
+    $rejection_reason   = (string) ($body['rejection_reason'] ?? '');
+    $rejection_notes    = strip_tags((string) ($body['rejection_notes'] ?? ''));
+
+    // Validate user_closed_status.
+    if (!in_array($user_closed_status, ['rejected', 'closed'], TRUE)) {
+      return new JsonResponse(['error' => 'Invalid status. Must be "rejected" or "closed".'], 422);
+    }
+
+    // Validate rejection_reason (required).
+    if (!in_array($rejection_reason, self::VALID_REJECTION_REASONS, TRUE)) {
+      return new JsonResponse(['error' => 'Invalid rejection reason.'], 422);
+    }
+
+    // Validate rejection_notes length (optional field).
+    if (mb_strlen($rejection_notes) > 2000) {
+      return new JsonResponse(['error' => 'Notes may not exceed 2000 characters.'], 400);
+    }
+
+    $this->database->update('jobhunter_saved_jobs')
+      ->fields([
+        'user_closed_status' => $user_closed_status,
+        'rejection_reason'   => $rejection_reason,
+        'rejection_notes'    => $rejection_notes ?: NULL,
+        'updated'            => time(),
+      ])
+      ->condition('uid', $uid)
+      ->condition('job_id', $job_id)
+      ->execute();
+
+    // SEC-4: log only uid + job_id, never rejection_notes.
+    $this->getLogger('job_hunter')->info('Job closed: uid=@uid job_id=@jid status=@status reason=@reason', [
+      '@uid'    => $uid,
+      '@jid'    => $job_id,
+      '@status' => $user_closed_status,
+      '@reason' => $rejection_reason,
+    ]);
+
+    return new JsonResponse(['message' => 'Application closed.'], 200);
   }
 
 }
