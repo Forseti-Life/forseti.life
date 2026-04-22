@@ -57,6 +57,13 @@ set -e
 section "CEO inbox"
 find sessions/ceo-copilot-2/inbox -mindepth 1 -maxdepth 1 -type d -printf '%f\n' 2>/dev/null | sort || true
 
+section "Sync latest repo state (GAP-MASTER-WORKER-SYNC fix)"
+# Pull latest before reading runtime state files (release_id, etc.) to avoid
+# filing Gate 2 artifacts for stale/superseded releases.
+# KB: knowledgebase/lessons/20260422-gate2-backstop-stale-master-release-id.md
+git fetch origin --prune --quiet 2>/dev/null || true
+git pull --rebase origin main --quiet 2>/dev/null || true
+
 section "Clean-audit Gate 2 backstop"
 python3 ./scripts/gate2-clean-audit-backstop.py --source "ceo-ops-once.sh" --queue-followup || true
 

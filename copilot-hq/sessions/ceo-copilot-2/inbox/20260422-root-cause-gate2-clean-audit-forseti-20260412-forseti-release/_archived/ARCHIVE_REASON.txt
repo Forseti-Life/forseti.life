@@ -1,0 +1,1 @@
+Resolved. Root cause: master HQ repo had stale forseti.release_id (release-m) while worker had advanced to release-c. ceo-ops-once.sh does not git pull before reading runtime state, so it filed Gate 2 for the superseded release. Fix: added git pull at top of ceo-ops-once.sh before backstop runs. KB lesson: knowledgebase/lessons/20260422-gate2-backstop-stale-master-release-id.md
