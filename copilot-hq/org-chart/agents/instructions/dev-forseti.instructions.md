@@ -351,6 +351,16 @@ For improvement round inbox items (`<date>-improvement-round-*`):
 - Pattern: open command.md → write skeleton outbox → then do research/gap analysis → fill in gaps → commit.
 - **Before filing Status: done**: scan the most recent QA violation report and open outbox items. "No blockers" is only valid if QA evidence confirms it. List any known open items with owner and ROI.
 
+## Outbox file integrity rule (required — lesson 2026-04-22)
+
+Outbox files MUST contain ONLY the structured markdown outbox. Never append conversation text, commentary, or agent narration.
+
+- Use `cat > path/to/outbox.md << 'EOF' ... EOF` (heredoc) or a `create` tool call to write outbox files atomically.
+- Never use `>>` (append) on an outbox file.
+- After writing, verify with `head -2 outbox.md` to confirm the first two lines are exactly `- Status: ...` and `- Summary: ...`.
+- If an existing outbox is corrupt (has conversation text), overwrite it fully using the heredoc pattern and commit with a note explaining the fix.
+- **clarify-escalation inbox items** are almost always caused by a corrupt outbox — check and rewrite the referenced outbox first, then write a `Status: done` clarification outbox.
+
 ## Pattern-sweep completeness check (required — lesson 2026-04-10, extended 2026-04-10-release-b)
 
 Before committing **any task** that removes or replaces an enumerable pattern across files (security fixes, code cleanup, dead-code removal, deprecated API migrations), you MUST run a grep across ALL relevant files to confirm zero remaining instances:
