@@ -25,6 +25,7 @@ ENTRIES=(
   "ceo-ops|0 */2 * * *|${HQ_ROOT}/scripts/ceo-ops-once.sh >> ${LOG_DIR}/ceo-ops-cron.log 2>&1"
   "auto-checkpoint|0 */2 * * *|${HQ_ROOT}/scripts/auto-checkpoint.sh >> ${LOG_DIR}/auto-checkpoint-cron.log 2>&1"
   "hq-health-heartbeat|*/2 * * * *|${HQ_ROOT}/scripts/hq-health-heartbeat.sh >> /tmp/hq-health-heartbeat.log 2>&1"
+  "qa-site-audit-forseti|15 * * * *|ALLOW_PROD_QA=1 ${HQ_ROOT}/scripts/site-audit-run.sh forseti-life >> ${LOG_DIR}/qa-site-audit-forseti-cron.log 2>&1"
 )
 
 # Load current crontab (ignore error if empty).
