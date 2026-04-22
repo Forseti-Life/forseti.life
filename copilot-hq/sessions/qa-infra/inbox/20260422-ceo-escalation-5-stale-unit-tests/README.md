@@ -36,3 +36,4 @@ The following qa-infra inbox items have been pending since April 17 with no outb
 - Each item has a corresponding qa-infra outbox with APPROVE or BLOCK
 - All 5 entries marked `[x]` in `qa-regression-checklist.md`
 - `bash scripts/sla-report.sh` no longer shows `BREACH outbox-lag: qa-infra inbox=20260417-unit-test-*`
+- Status: pending
