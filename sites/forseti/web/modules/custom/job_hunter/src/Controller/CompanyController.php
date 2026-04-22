@@ -170,7 +170,7 @@ class CompanyController extends ControllerBase {
     }
 
     return $this->database->select('jobhunter_interview_rounds', 'ir')
-      ->fields('ir', ['id', 'round_type', 'outcome', 'conducted_date', 'notes'])
+      ->fields('ir', ['id', 'round_type', 'outcome', 'conducted_date', 'notes', 'scheduled_at', 'interviewer_name'])
       ->condition('ir.uid', $uid)
       ->condition('ir.saved_job_id', $saved_job_id)
       ->orderBy('ir.conducted_date', 'ASC')
@@ -232,19 +232,23 @@ class CompanyController extends ControllerBase {
         . '<td>' . htmlspecialchars($this->getInterviewRoundTypeLabel((string) $round->round_type)) . '</td>'
         . '<td><span class="interview-outcome-badge ' . htmlspecialchars($outcome_meta['class']) . '">' . htmlspecialchars($outcome_meta['label']) . '</span></td>'
         . '<td>' . htmlspecialchars((string) $round->conducted_date) . '</td>'
+        . '<td>' . htmlspecialchars(substr((string) ($round->scheduled_at ?? ''), 0, 16)) . '</td>'
+        . '<td>' . htmlspecialchars((string) ($round->interviewer_name ?? '')) . '</td>'
         . '<td>' . $notes_display . '</td>'
         . '<td><button type="button" class="button button--small button--secondary btn-interview-round-edit"'
         . ' data-round-id="' . (int) $round->id . '"'
         . ' data-round-type="' . htmlspecialchars((string) $round->round_type, ENT_QUOTES) . '"'
         . ' data-outcome="' . htmlspecialchars((string) $round->outcome, ENT_QUOTES) . '"'
         . ' data-conducted-date="' . htmlspecialchars((string) $round->conducted_date, ENT_QUOTES) . '"'
+        . ' data-scheduled-at="' . htmlspecialchars(str_replace(' ', 'T', substr((string) ($round->scheduled_at ?? ''), 0, 16)), ENT_QUOTES) . '"'
+        . ' data-interviewer-name="' . htmlspecialchars((string) ($round->interviewer_name ?? ''), ENT_QUOTES) . '"'
         . ' data-notes="' . htmlspecialchars($notes, ENT_QUOTES) . '">'
         . 'Edit</button></td>'
         . '</tr>';
     }
 
     return '<table class="interview-rounds-table">'
-      . '<thead><tr><th>Round</th><th>Outcome</th><th>Date</th><th>Notes</th><th>Actions</th></tr></thead>'
+      . '<thead><tr><th>Round</th><th>Outcome</th><th>Date Conducted</th><th>Scheduled</th><th>Interviewer</th><th>Notes</th><th>Actions</th></tr></thead>'
       . '<tbody>' . $rows_html . '</tbody>'
       . '</table>';
   }
@@ -1574,7 +1578,9 @@ class CompanyController extends ControllerBase {
           . '<div class="interview-round-form-grid">'
           . '<div class="interview-round-field"><label for="interview-round-type">Round Type</label><select id="interview-round-type">' . $round_type_options . '</select></div>'
           . '<div class="interview-round-field"><label for="interview-round-outcome">Outcome</label><select id="interview-round-outcome">' . $outcome_options . '</select></div>'
-          . '<div class="interview-round-field"><label for="interview-round-date">Date Conducted</label><input type="date" id="interview-round-date"></div>'
+          . '<div class="interview-round-field"><label for="interview-round-date">Date Conducted <span class="field-optional">(optional if scheduling ahead)</span></label><input type="date" id="interview-round-date"></div>'
+          . '<div class="interview-round-field"><label for="interview-round-scheduled-at">Schedule Date &amp; Time <span class="field-optional">(optional)</span></label><input type="datetime-local" id="interview-round-scheduled-at"></div>'
+          . '<div class="interview-round-field"><label for="interview-round-interviewer-name">Interviewer Name <span class="field-optional">(optional)</span></label><input type="text" id="interview-round-interviewer-name" maxlength="255" placeholder="e.g. Jane Smith"></div>'
           . '</div>'
           . '<div class="interview-round-field"><label for="interview-round-notes">Notes</label><textarea id="interview-round-notes" rows="4" maxlength="4000" placeholder="Optional"></textarea></div>'
           . '<div class="interview-round-actions">'
@@ -1603,7 +1609,10 @@ class CompanyController extends ControllerBase {
             .interview-round-field label { font-weight: 600; color: #555; font-size: 0.9em; }
             .interview-round-field select,
             .interview-round-field input[type="date"],
+            .interview-round-field input[type="datetime-local"],
+            .interview-round-field input[type="text"],
             .interview-round-field textarea { width: 100%; max-width: 420px; padding: 8px 10px; border: 1px solid #d1d5db; border-radius: 4px; font-size: 0.95em; }
+            .field-optional { font-weight: 400; color: #9ca3af; font-size: 0.85em; }
             .interview-round-actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
             .interview-rounds-table { width: 100%; border-collapse: collapse; background: #fff; }
             .interview-rounds-table th, .interview-rounds-table td { padding: 10px 12px; border-bottom: 1px solid #e5e7eb; text-align: left; vertical-align: top; }
@@ -1637,6 +1646,8 @@ class CompanyController extends ControllerBase {
   var roundTypeEl = document.getElementById("interview-round-type");
   var outcomeEl = document.getElementById("interview-round-outcome");
   var dateEl = document.getElementById("interview-round-date");
+  var scheduledAtEl = document.getElementById("interview-round-scheduled-at");
+  var interviewerNameEl = document.getElementById("interview-round-interviewer-name");
   var notesEl = document.getElementById("interview-round-notes");
   var headingEl = document.querySelector(".interview-round-form-heading");
   var logEl = document.getElementById("interview-round-log");
@@ -1652,6 +1663,8 @@ class CompanyController extends ControllerBase {
     roundTypeEl.value = "phone-screen";
     outcomeEl.value = "pending";
     dateEl.value = "";
+    if (scheduledAtEl) { scheduledAtEl.value = ""; }
+    if (interviewerNameEl) { interviewerNameEl.value = ""; }
     notesEl.value = "";
     headingEl.textContent = "Add Interview Round";
     saveBtn.textContent = "Save Interview Round";
@@ -1669,6 +1682,8 @@ class CompanyController extends ControllerBase {
     roundTypeEl.value = editBtn.dataset.roundType || "phone-screen";
     outcomeEl.value = editBtn.dataset.outcome || "pending";
     dateEl.value = editBtn.dataset.conductedDate || "";
+    if (scheduledAtEl) { scheduledAtEl.value = editBtn.dataset.scheduledAt || ""; }
+    if (interviewerNameEl) { interviewerNameEl.value = editBtn.dataset.interviewerName || ""; }
     notesEl.value = editBtn.dataset.notes || "";
     headingEl.textContent = "Edit Interview Round";
     saveBtn.textContent = "Update Interview Round";
@@ -1683,6 +1698,8 @@ class CompanyController extends ControllerBase {
       round_type: roundTypeEl.value,
       outcome: outcomeEl.value,
       conducted_date: dateEl.value,
+      scheduled_at: scheduledAtEl ? scheduledAtEl.value : "",
+      interviewer_name: interviewerNameEl ? interviewerNameEl.value : "",
       notes: notesEl.value
     };
 
@@ -2793,19 +2810,39 @@ class CompanyController extends ControllerBase {
     $conducted_date = trim((string) ($body['conducted_date'] ?? ''));
     $notes = strip_tags(trim((string) ($body['notes'] ?? '')));
 
+    // Parse scheduled_at from datetime-local format (YYYY-MM-DDTHH:MM) → Y-m-d H:i:00.
+    $scheduled_at_raw = trim((string) ($body['scheduled_at'] ?? ''));
+    $scheduled_at = NULL;
+    if ($scheduled_at_raw !== '') {
+      // Accept both datetime-local format (T separator) and space separator.
+      $scheduled_at_normalized = str_replace('T', ' ', $scheduled_at_raw);
+      $parsed_dt = \DateTime::createFromFormat('Y-m-d H:i', $scheduled_at_normalized)
+        ?: \DateTime::createFromFormat('Y-m-d H:i:s', $scheduled_at_normalized);
+      if (!$parsed_dt) {
+        return new JsonResponse(['error' => 'Invalid scheduled date/time format. Use YYYY-MM-DDTHH:MM.'], 400);
+      }
+      $scheduled_at = $parsed_dt->format('Y-m-d H:i:00');
+    }
+
+    // interviewer_name is optional PII — strip tags, enforce length, never log.
+    $interviewer_name_raw = strip_tags(trim((string) ($body['interviewer_name'] ?? '')));
+    $interviewer_name = $interviewer_name_raw !== '' ? $interviewer_name_raw : NULL;
+    if ($interviewer_name !== NULL && mb_strlen($interviewer_name) > 255) {
+      return new JsonResponse(['error' => 'Interviewer name may not exceed 255 characters.'], 400);
+    }
+
     if (!in_array($round_type, self::INTERVIEW_ROUND_TYPES, TRUE)) {
       return new JsonResponse(['error' => 'Invalid interview round type.'], 400);
     }
     if (!in_array($outcome, self::INTERVIEW_ROUND_OUTCOMES, TRUE)) {
       return new JsonResponse(['error' => 'Invalid interview outcome.'], 400);
     }
-    if ($conducted_date === '') {
-      return new JsonResponse(['error' => 'Interview date is required.'], 400);
-    }
-
-    $parsed_date = \DateTime::createFromFormat('Y-m-d', $conducted_date);
-    if (!$parsed_date || $parsed_date->format('Y-m-d') !== $conducted_date) {
-      return new JsonResponse(['error' => 'Invalid interview date format. Use YYYY-MM-DD.'], 400);
+    // conducted_date is optional (future/scheduled interviews may not have one yet).
+    if ($conducted_date !== '') {
+      $parsed_date = \DateTime::createFromFormat('Y-m-d', $conducted_date);
+      if (!$parsed_date || $parsed_date->format('Y-m-d') !== $conducted_date) {
+        return new JsonResponse(['error' => 'Invalid interview date format. Use YYYY-MM-DD.'], 400);
+      }
     }
     if (mb_strlen($notes) > 4000) {
       return new JsonResponse(['error' => 'Notes may not exceed 4000 characters.'], 400);
@@ -2813,6 +2850,10 @@ class CompanyController extends ControllerBase {
 
     $saved_job_id = (int) $saved_job->id;
     $now = time();
+
+    // Only include scheduled_at and interviewer_name if the columns exist (update hook may not have run yet).
+    $schema = $this->database->schema();
+    $has_scheduler_cols = $schema->fieldExists('jobhunter_interview_rounds', 'scheduled_at');
 
     if ($round_id !== NULL) {
       $existing_round = $this->database->select('jobhunter_interview_rounds', 'ir')
@@ -2827,14 +2868,20 @@ class CompanyController extends ControllerBase {
         return new JsonResponse(['error' => 'Interview round not found.'], 404);
       }
 
+      $update_fields = [
+        'round_type' => $round_type,
+        'outcome' => $outcome,
+        'conducted_date' => $conducted_date,
+        'notes' => $notes !== '' ? $notes : NULL,
+        'changed' => $now,
+      ];
+      if ($has_scheduler_cols) {
+        $update_fields['scheduled_at'] = $scheduled_at;
+        $update_fields['interviewer_name'] = $interviewer_name;
+      }
+
       $this->database->update('jobhunter_interview_rounds')
-        ->fields([
-          'round_type' => $round_type,
-          'outcome' => $outcome,
-          'conducted_date' => $conducted_date,
-          'notes' => $notes !== '' ? $notes : NULL,
-          'changed' => $now,
-        ])
+        ->fields($update_fields)
         ->condition('id', $round_id)
         ->condition('uid', $uid)
         ->condition('saved_job_id', $saved_job_id)
@@ -2843,17 +2890,23 @@ class CompanyController extends ControllerBase {
       $message = 'Interview round updated.';
     }
     else {
+      $insert_fields = [
+        'uid' => $uid,
+        'saved_job_id' => $saved_job_id,
+        'round_type' => $round_type,
+        'outcome' => $outcome,
+        'conducted_date' => $conducted_date,
+        'notes' => $notes !== '' ? $notes : NULL,
+        'created' => $now,
+        'changed' => $now,
+      ];
+      if ($has_scheduler_cols) {
+        $insert_fields['scheduled_at'] = $scheduled_at;
+        $insert_fields['interviewer_name'] = $interviewer_name;
+      }
+
       $this->database->insert('jobhunter_interview_rounds')
-        ->fields([
-          'uid' => $uid,
-          'saved_job_id' => $saved_job_id,
-          'round_type' => $round_type,
-          'outcome' => $outcome,
-          'conducted_date' => $conducted_date,
-          'notes' => $notes !== '' ? $notes : NULL,
-          'created' => $now,
-          'changed' => $now,
-        ])
+        ->fields($insert_fields)
         ->execute();
 
       $message = 'Interview round saved.';

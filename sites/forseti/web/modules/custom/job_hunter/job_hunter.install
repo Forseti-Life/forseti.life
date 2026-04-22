@@ -2903,6 +2903,20 @@ function _job_hunter_create_interview_rounds_table() {
         'not null' => FALSE,
         'description' => 'Optional interview round notes.',
       ],
+      'scheduled_at' => [
+        'type' => 'varchar',
+        'length' => 20,
+        'not null' => FALSE,
+        'default' => NULL,
+        'description' => 'Scheduled interview datetime in Y-m-d H:i:s format. NULL = not yet scheduled.',
+      ],
+      'interviewer_name' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => FALSE,
+        'default' => NULL,
+        'description' => 'Optional interviewer name (PII — do not log to watchdog).',
+      ],
       'created' => [
         'type' => 'int',
         'not null' => TRUE,
@@ -3612,4 +3626,37 @@ function job_hunter_update_9060() {
   }
 
   return t('Added email and linkedin_url columns to jobhunter_contacts.');
+}
+
+/**
+ * Add scheduled_at and interviewer_name to jobhunter_interview_rounds (AC-1, AC-4).
+ */
+function job_hunter_update_9061() {
+  $schema = \Drupal::database()->schema();
+
+  if (!$schema->tableExists('jobhunter_interview_rounds')) {
+    return t('jobhunter_interview_rounds does not exist — skipped.');
+  }
+
+  if (!$schema->fieldExists('jobhunter_interview_rounds', 'scheduled_at')) {
+    $schema->addField('jobhunter_interview_rounds', 'scheduled_at', [
+      'type' => 'varchar',
+      'length' => 20,
+      'not null' => FALSE,
+      'default' => NULL,
+      'description' => 'Scheduled interview datetime in Y-m-d H:i:s format (UTC). NULL = not yet scheduled.',
+    ]);
+  }
+
+  if (!$schema->fieldExists('jobhunter_interview_rounds', 'interviewer_name')) {
+    $schema->addField('jobhunter_interview_rounds', 'interviewer_name', [
+      'type' => 'varchar',
+      'length' => 255,
+      'not null' => FALSE,
+      'default' => NULL,
+      'description' => 'Optional interviewer name (PII — do not log to watchdog).',
+    ]);
+  }
+
+  return t('Added scheduled_at and interviewer_name to jobhunter_interview_rounds.');
 }

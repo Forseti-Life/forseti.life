@@ -794,6 +794,12 @@ class ApplicationSubmissionController extends ControllerBase {
       $job->follow_up_overdue = ($fu_date !== '' && $fu_date < $today_str && !$advanced);
     }
 
+    // AC-2/AC-3 (interview-scheduler): badge for jobs with a pending scheduled interview.
+    $interview_scheduled_map = $this->loadInterviewScheduledBadges($uid);
+    foreach ($all_jobs as $job) {
+      $job->interview_scheduled = $interview_scheduled_map[(int) $job->id] ?? NULL;
+    }
+
     // AC-2: Apply workflow_status filter (post-derivation).
     if ($filter_status !== '') {
       $all_jobs = array_values(array_filter($all_jobs, fn($j) => $j->workflow_status === $filter_status));
@@ -857,6 +863,58 @@ class ApplicationSubmissionController extends ControllerBase {
    */
   private function userHasCompletedProfile(): bool {
     return $this->repository->hasCompletedProfile((int) $this->currentUser()->id());
+  }
+
+  /**
+   * Build a map of job_req_id → badge string for pending scheduled interviews.
+   *
+   * Returns an array keyed by job_req_id (integer) with values 'today' or 'overdue'.
+   * Jobs with scheduled_at matching today take precedence over 'overdue'.
+   *
+   * @param int $uid
+   *   The user account ID.
+   *
+   * @return array
+   *   Map of job_req_id => 'today'|'overdue'.
+   */
+  private function loadInterviewScheduledBadges(int $uid): array {
+    $schema = \Drupal::database()->schema();
+    if (!$schema->fieldExists('jobhunter_interview_rounds', 'scheduled_at')) {
+      return [];
+    }
+
+    $today_str = (new \DateTime('today', new \DateTimeZone('UTC')))->format('Y-m-d');
+
+    $rows = \Drupal::database()->query(
+      'SELECT sj.job_id, ir.scheduled_at
+       FROM {jobhunter_interview_rounds} ir
+       INNER JOIN {jobhunter_saved_jobs} sj ON ir.saved_job_id = sj.id
+       WHERE ir.uid = :uid
+         AND ir.outcome = :outcome
+         AND ir.scheduled_at IS NOT NULL',
+      [':uid' => $uid, ':outcome' => 'pending']
+    )->fetchAll();
+
+    $map = [];
+    foreach ($rows as $row) {
+      $job_id = (int) $row->job_id;
+      $scheduled_date = substr((string) $row->scheduled_at, 0, 10);
+      if ($scheduled_date < $today_str) {
+        $badge = 'overdue';
+      }
+      elseif ($scheduled_date === $today_str) {
+        $badge = 'today';
+      }
+      else {
+        continue;
+      }
+      // 'today' takes precedence over 'overdue' for the same job.
+      if (!isset($map[$job_id]) || ($badge === 'today' && $map[$job_id] === 'overdue')) {
+        $map[$job_id] = $badge;
+      }
+    }
+
+    return $map;
   }
 
   /**
