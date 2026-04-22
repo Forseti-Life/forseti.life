@@ -1,47 +1,49 @@
-# Board Action: Production Git Pull — Roadmap 404 Fix
+# Board Action: Production Deploy — Roadmap 404 Fix (Updated)
 
 - Agent: ceo-copilot-2
-- Escalated agent: ceo-copilot-2
-- Escalated item: 20260422-needs-escalated-dev-forseti-20260422-161501-qa-findings-forseti-life-3
-- Escalated-at: 2026-04-22T22:12:00Z
+- Updated: 2026-04-22T23:12:00Z
 - Priority: HIGH / ROI 40
 
 ## Current state
 
-**Homepage 500 — RESOLVED** ✅
+**Homepage 500 — RESOLVED** ✅ (HTTP 200 confirmed)
+**Roadmap 404s — STILL FAILING** ❌ (3 live 404s on `/index.php/roadmap/PROJ-*`)
 
-**Roadmap 404s — STILL FAILING** ❌
-- `https://forseti.life/index.php/roadmap/PROJ-002` → 404
-- Same for PROJ-008, PROJ-011
-- Fix commit `6f82d6e92` is on `origin/main` (`.htaccess` mod_rewrite redirect stripping `index.php/` prefix)
-- Production has NOT yet pulled this commit
+Two fixes are on `origin/main`, neither yet deployed to production:
+- `6f82d6e92` — `.htaccess` R=301 redirect (belt)
+- `7b31fb415` — `hook_url_outbound_alter` in `forseti_content.module` stripping `index.php/` prefix from all generated nav URLs (suspenders — the real fix; requires `drush cr`)
 
-**Root blocker:** GitHub Actions `PRIVATE_KEY` SSH secret missing — all automated deploys failing (run 24789047622).
+This is dev-forseti's **4th consecutive blocked cycle** on the same deploy blocker.
 
 ## Action required from Board (Keith)
 
-**Step 1 — Deploy the .htaccess fix (2 minutes, zero risk):**
+**Two commands — 2 minutes:**
 ```bash
 ssh ubuntu@forseti.life
-cd /home/ubuntu/forseti.life
-git pull --rebase origin main
+cd /home/ubuntu/forseti.life && git pull --rebase origin main
+cd sites/forseti && vendor/bin/drush cr
 ```
-No `drush cr` needed — `.htaccess` change only; Apache picks it up immediately.
 
-Verify after pull:
+Verify nav links after deploy:
+```bash
+curl -s https://forseti.life/ | grep roadmap
+# Expected: /roadmap (NOT /index.php/roadmap)
+```
+
+Verify 404s cleared:
 ```bash
 curl -sI https://forseti.life/index.php/roadmap/PROJ-002
 # Expected: HTTP/1.1 301 → Location: /roadmap/PROJ-002
 ```
 
-**Step 2 — Fix automated deploys (prevents all future blockers of this class):**
-Restore `PRIVATE_KEY` secret in:
+## Also still needed
+
+Restore `PRIVATE_KEY` GitHub Actions secret:
 `Forseti-Life/forseti.life` → Settings → Secrets → Actions → `PRIVATE_KEY`
 
-Then re-trigger `deploy.yml` to verify automation works.
+This permanently fixes the automated deploy pipeline and prevents this class of blocker from recurring.
 
 ## Evidence
-- CEO outbox: `sessions/ceo-copilot-2/outbox/20260422-needs-escalated-dev-forseti-20260422-161501-qa-findings-forseti-life-3.md`
-- dev-forseti outbox: `sessions/dev-forseti/outbox/20260422-161501-qa-findings-forseti-life-3.md`
-- Fix commit: `6f82d6e92` (on `origin/main`)
+- dev-forseti outbox: `sessions/dev-forseti/outbox/20260422-171501-qa-findings-forseti.life-3.md`
+- Commits on `origin/main`: `6f82d6e92`, `7b31fb415`
 - Failed deploy run: https://github.com/Forseti-Life/forseti.life/actions/runs/24789047622
