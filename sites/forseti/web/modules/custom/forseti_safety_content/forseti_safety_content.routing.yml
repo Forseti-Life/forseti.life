@@ -1,13 +1,3 @@
-forseti.root:
-  path: '/'
-  defaults:
-    _controller: '\Drupal\forseti_safety_content\Controller\ForsetiHomeController::content'
-    _title: 'Forseti - AI-Powered Community Safety'
-  requirements:
-    _permission: 'access content'
-  options:
-    no_cache: TRUE
-
 forseti.home:
   path: '/home'
   defaults:
