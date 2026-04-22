@@ -1,33 +1,46 @@
 - Status: blocked
-- Summary: Root cause of the homepage 500 was diagnosed, fixed in code, committed, and pushed to GitHub — but the fix has not taken effect on production because the deploy workflow (`deploy.yml`) failed with `can't connect without a private SSH key or password` (GitHub Actions run 24789047622). The fix removes a duplicate `path: '/'` route from `forseti_safety_content.routing.yml` that conflicts with `forseti_content.root`, causing Drupal's `ControllerResolver` to throw `InvalidArgumentException: The controller for URI "/" is not callable`. Fix commit `9180c894a` is on `main` and pushed. Production requires a manual `git pull --rebase origin main` + `drush cr` from the production server (`/home/ubuntu/forseti.life/sites/forseti`). This agent runs on the local dev machine and cannot SSH to the production server. The deploy workflow SSH credentials (`PRIVATE_KEY` secret) are missing or invalid in GitHub Actions. This is a hard blocker requiring human owner action.
+- Summary: Homepage 500 outage on forseti.life. Root cause: `forseti_content` and `forseti_safety_content` both registered `path: '/'`, causing ambiguous Drupal route resolution — `ControllerResolver` throws `InvalidArgumentException: The controller for URI "/" is not callable`. Fix applied: removed the duplicate `forseti.root` route from `forseti_safety_content.routing.yml`; `forseti_content.root` is the sole correct owner of `/`. Committed as `9180c894a`, pushed to GitHub `main`. Code is live in git but the Drupal router cache on the production server has not been rebuilt — the symlink architecture means the file change is already present in `/var/www/html/forseti`, but Drupal's compiled route cache still points to the broken dual-route state. GitHub Actions deploy.yml (which runs `drush cr`) failed with `can't connect without a private SSH key or password` (run 24789047622). This agent has no SSH access to `ubuntu@forseti.life`. Site remains down for all anonymous traffic.
+
+## Product context
+- Website: forseti.life (production)
+- Modules affected: `forseti_safety_content` (duplicate route removed), `forseti_content` (authoritative homepage owner)
+- Role: dev-forseti (code fix complete, production cache rebuild blocked)
+- Matrix issue type: Production outage / severe regression
 
 ## Next actions
-- Human owner (Keith): SSH to `ubuntu@forseti.life`, run:
+- Production operator: SSH to `ubuntu@forseti.life` and run:
   ```
-  cd /home/ubuntu/forseti.life
-  git pull --rebase origin main
-  cd sites/forseti
+  cd /home/ubuntu/forseti.life/sites/forseti
   vendor/bin/drush cr
   ```
-- After cache rebuild: `curl -s -o /dev/null -w "%{http_code}" https://forseti.life/` should return `200`
-- CEO (if GitHub Actions key can be fixed): restore `PRIVATE_KEY` secret in GitHub → Settings → Secrets → `PRIVATE_KEY`, then re-run `deploy.yml`
-- Once site is 200: re-run QA audit to close the findings: `ALLOW_PROD_QA=1 bash scripts/site-audit-run.sh forseti-life`
+  (git pull not needed — symlinks mean code is already current)
+- Verify: `curl -s -o /dev/null -w "%{http_code}" https://forseti.life/` → must return `200`
+- Restore `PRIVATE_KEY` GitHub Actions secret so deploy.yml SSH works for future deployments
+- After 200 confirmed: re-run `ALLOW_PROD_QA=1 bash scripts/site-audit-run.sh forseti-life`
 
 ## Blockers
-- GitHub Actions deploy.yml is missing `PRIVATE_KEY` secret — SSH connection to production server fails with `can't connect without a private SSH key or password` (run 24789047622)
-- This agent has no SSH access to `ubuntu@forseti.life` — cannot run `git pull` or `drush cr` on production
+- No SSH access to `ubuntu@forseti.life` from this agent's execution environment
+- GitHub Actions `PRIVATE_KEY` secret missing/invalid — deploy.yml SSH fails (run 24789047622)
 
 ## Needs from Supervisor
-- Production server access: someone must SSH to `ubuntu@forseti.life` and run `git pull --rebase origin main && cd sites/forseti && vendor/bin/drush cr`
-- OR: restore the `PRIVATE_KEY` GitHub Actions secret so deploy.yml can SSH to production and run the cache rebuild automatically
+- Someone with production SSH access must run `drush cr` at `/home/ubuntu/forseti.life/sites/forseti`
+
+## Decision needed
+- Who executes the production `drush cr`: human owner (Keith) via direct SSH, or CEO via another available access path? The `PRIVATE_KEY` GitHub Actions secret also needs to be restored to prevent this class of blocker recurring.
+
+## Recommendation
+- Fastest path (recommended): human owner Keith SSHs directly to `ubuntu@forseti.life` and runs `vendor/bin/drush cr` from `/home/ubuntu/forseti.life/sites/forseti` — site is back up in under 2 minutes.
+- Secondary path: restore `PRIVATE_KEY` GitHub Actions secret, re-trigger `deploy.yml` — automated and repeatable going forward, but takes longer and requires GitHub secret management.
+- Tradeoff: direct SSH is faster for immediate recovery; secret restoration is higher long-term value. Do both: SSH now, fix the secret after.
+- Rollback: if the `drush cr` reveals a different error after the router cache clears, `git revert 9180c894a` on production and re-run `drush cr` restores the prior state (though the 500 would return).
 
 ## ROI estimate
 - ROI: 999
-- Rationale: Production homepage is still down (500) for all anonymous users. Fix is committed and pushed; the remaining step is a 2-minute cache rebuild that only a human with production SSH access can execute. Every minute of delay is lost user traffic.
+- Rationale: Homepage is down for all anonymous traffic on forseti.life. The code fix is committed and the file is already present on the production server via symlinks — only a `drush cr` command stands between the current 500 and full service restoration.
 
 ---
 - Agent: dev-forseti
-- Source inbox: /home/keithaumiller/forseti.life/copilot-hq/sessions/dev-forseti/inbox/20260422-fix-homepage-500-forseti
-- Fix commit: `9180c894a` (pushed to GitHub main)
-- Deploy run (failed): https://github.com/Forseti-Life/forseti.life/actions/runs/24789047622
+- Source inbox: sessions/dev-forseti/inbox/20260422-fix-homepage-500-forseti
+- Fix commit: `9180c894a`
+- Deploy run (failed, missing SSH key): https://github.com/Forseti-Life/forseti.life/actions/runs/24789047622
 - Generated: 2026-04-22
