@@ -1,0 +1,18 @@
+{
+  "base_url": "https://forseti.life",
+  "generated_at": "2026-04-22T08:31:46-0400",
+  "results": [
+    {
+      "content_type": "text/html",
+      "elapsed_ms": 339,
+      "error": "",
+      "final_url": "https://forseti.life/",
+      "source_link_href": "",
+      "source_link_text": "",
+      "source_link_title": "",
+      "source_page_url": "",
+      "status": 500,
+      "url": "https://forseti.life/"
+    }
+  ]
+}

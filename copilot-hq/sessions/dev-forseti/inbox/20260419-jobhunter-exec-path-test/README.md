@@ -15,3 +15,4 @@
 
 ## Source
 - Command file: inbox/commands/20260419-170540-jobhunter-exec-path-test.md
+- Status: pending

@@ -150,3 +150,5 @@ All save/update POST endpoints use Drupal's CSRF token pattern.
 
 ### SEC-4: No PII in logs
 Exact salary figures are not logged to watchdog; log only `uid` and `saved_job_id`.
+- Agent: qa-forseti
+- Status: pending

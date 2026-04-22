@@ -13,3 +13,5 @@ As release operator, proceed with the official push:
 4. **Advance team release cycles**: `bash scripts/post-coordinated-push.sh`
    (Files each coordinated team's own release signoff so their cycle can advance.)
 5. Complete post-push steps (config import, smoke test, SLA report update).
+- Agent: pm-forseti
+- Status: pending

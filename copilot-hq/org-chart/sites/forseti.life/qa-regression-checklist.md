@@ -185,3 +185,5 @@ This file is a running list of targeted regression checks derived from completed
 - [ ] 20260414-172546-impl-forseti-community-incident-report — targeted regression check (see dev outbox: sessions/dev-forseti/outbox/20260414-172546-impl-forseti-community-incident-report.md)
 - [ ] 20260414-172551-impl-forseti-installation-cluster-communication — targeted regression check (see dev outbox: sessions/dev-forseti/outbox/20260414-172551-impl-forseti-installation-cluster-communication.md)
 - [ ] 20260414-205816-impl-forseti-financial-health-home — targeted regression check (see dev outbox: sessions/dev-forseti/outbox/20260414-205816-impl-forseti-financial-health-home.md)
+- [ ] 20260419-185440-impl-forseti-jobhunter-interview-scheduler — targeted regression check (see dev outbox: sessions/dev-forseti/outbox/20260419-185440-impl-forseti-jobhunter-interview-scheduler.md)
+- [ ] 20260419-185456-impl-forseti-jobhunter-rejection-analysis — targeted regression check (see dev outbox: sessions/dev-forseti/outbox/20260419-185456-impl-forseti-jobhunter-rejection-analysis.md)

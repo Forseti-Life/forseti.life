@@ -15,3 +15,4 @@
 
 ## Source
 - Command file: inbox/commands/20260419-162706-jobhunter-master-worker-smoke.md
+- Status: pending

@@ -154,3 +154,5 @@ All form submissions use Drupal's form API CSRF protection.
 
 ### SEC-4: No PII in logs
 Free-form `rejection_notes` text is not logged to watchdog; log only `uid` and `saved_job_id`.
+- Agent: qa-forseti
+- Status: pending

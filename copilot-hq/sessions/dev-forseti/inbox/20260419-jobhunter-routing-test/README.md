@@ -15,3 +15,4 @@
 
 ## Source
 - Command file: inbox/commands/20260419-170525-jobhunter-routing-test.md
+- Status: pending

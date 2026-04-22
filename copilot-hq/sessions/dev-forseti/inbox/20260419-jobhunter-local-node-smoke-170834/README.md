@@ -15,3 +15,4 @@
 
 ## Source
 - Command file: inbox/commands/20260419-170834-jobhunter-local-node-smoke-170834.md
+- Status: pending

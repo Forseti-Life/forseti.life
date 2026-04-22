@@ -1,16 +1,19 @@
 {
-  "generated_at": "2026-04-19T23:43:21.323533+00:00",
+  "generated_at": "2026-04-22T11:53:15.173484+00:00",
   "parity_ok": false,
   "selected_agents": {
     "match": true,
     "actual": [
-      "dev-forseti",
+      "ceo-copilot-2",
+      "pm-dungeoncrawler",
       "pm-forseti",
-      "qa-forseti"
+      "agent-code-review",
+      "ba-dungeoncrawler",
+      "dev-forseti"
     ]
   },
   "steps": {
-    "match": false,
+    "match": true,
     "expected": [
       "consume_replies",
       "dispatch_commands",
@@ -23,12 +26,18 @@
     ],
     "actual": [
       "consume_replies",
+      "dispatch_commands",
+      "release_cycle",
+      "coordinated_push",
       "pick_agents",
       "exec_agents",
+      "health_check",
+      "kpi_monitor",
       "publish"
     ]
   },
   "errors": [
-    "missing steps: coordinated_push, dispatch_commands, health_check, release_cycle"
+    "step consume_replies: rc=1",
+    "step publish: rc=1"
   ]
 }
