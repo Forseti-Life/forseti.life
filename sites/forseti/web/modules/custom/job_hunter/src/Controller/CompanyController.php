@@ -179,7 +179,7 @@ class CompanyController extends ControllerBase {
    */
   private function loadOwnedSavedJob(int $uid, int $job_id): ?object {
     $saved_job = $this->database->select('jobhunter_saved_jobs', 'sj')
-      ->fields('sj', ['id', 'deadline_date', 'follow_up_date', 'user_closed_status', 'rejection_reason', 'rejection_notes'])
+      ->fields('sj', ['id', 'deadline_date', 'follow_up_date', 'user_closed_status', 'rejection_reason', 'rejection_notes', 'salary_expectation_min', 'salary_expectation_max', 'salary_currency'])
       ->condition('sj.uid', $uid)
       ->condition('sj.job_id', $job_id)
       ->execute()
@@ -1558,6 +1558,114 @@ class CompanyController extends ControllerBase {
       ];
     }
 
+    // Salary expectation form — visible on saved-job detail pages once the salary columns exist.
+    if ($saved_job && $this->database->schema()->fieldExists('jobhunter_saved_jobs', 'salary_expectation_min')) {
+      $sal_min      = htmlspecialchars((string) ($saved_job->salary_expectation_min ?? ''));
+      $sal_max      = htmlspecialchars((string) ($saved_job->salary_expectation_max ?? ''));
+      $sal_currency = htmlspecialchars((string) ($saved_job->salary_currency ?? 'USD'));
+      $sal_save_url   = Url::fromRoute('job_hunter.salary_expectation_save', ['job_id' => (int) $job_id])->toString();
+      $sal_csrf_token = \Drupal::csrfToken()->get('jobhunter/jobs/' . (int) $job_id . '/salary-expectation/save');
+
+      $currency_options = '';
+      foreach (['USD', 'EUR', 'GBP', 'CAD', 'AUD', 'JPY', 'CHF', 'CNY', 'INR', 'MXN', 'BRL', 'SGD', 'HKD', 'NZD', 'SEK', 'NOK', 'DKK', 'ZAR', 'KRW', 'THB'] as $code) {
+        $selected = $sal_currency === $code ? ' selected' : '';
+        $currency_options .= '<option value="' . $code . '"' . $selected . '>' . $code . '</option>';
+      }
+
+      $content['salary_expectation'] = [
+        '#type' => 'container',
+        '#attributes' => ['class' => ['salary-expectation-section']],
+        '#markup' => '
+<h3>&#128176; Salary Expectation</h3>
+<div class="salary-expectation-form">
+  <div class="salary-field-row">
+    <label for="salary-exp-min">Minimum ($)</label>
+    <input type="number" id="salary-exp-min" min="0" max="9999999" value="' . $sal_min . '" placeholder="Optional" />
+  </div>
+  <div class="salary-field-row">
+    <label for="salary-exp-max">Maximum ($)</label>
+    <input type="number" id="salary-exp-max" min="0" max="9999999" value="' . $sal_max . '" placeholder="Optional" />
+  </div>
+  <div class="salary-field-row">
+    <label for="salary-exp-currency">Currency</label>
+    <select id="salary-exp-currency">' . $currency_options . '</select>
+  </div>
+  <button type="button" class="btn-salary-save" data-save-url="' . $sal_save_url . '" data-token="' . htmlspecialchars($sal_csrf_token, ENT_QUOTES) . '">Save Expectation</button>
+  <div id="salary-status-msg"></div>
+</div>',
+      ];
+
+      $content['#attached']['html_head'][] = [
+        [
+          '#tag' => 'style',
+          '#value' => '
+            .salary-expectation-section { margin-top: 24px; padding: 20px; background: #f0f9ff; border-radius: 8px; border-left: 4px solid #0ea5e9; }
+            .salary-expectation-section h3 { margin: 0 0 14px 0; color: #333; }
+            .salary-expectation-form { background: #fff; border: 1px solid #bae6fd; border-radius: 8px; padding: 16px; }
+            .salary-field-row { margin-bottom: 12px; }
+            .salary-field-row label { display: block; font-weight: 600; color: #555; margin-bottom: 4px; font-size: 0.9em; }
+            .salary-field-row input[type="number"],
+            .salary-field-row select { padding: 7px 10px; border: 1px solid #d1d5db; border-radius: 4px; font-size: 0.95em; width: 200px; }
+            .btn-salary-save { margin-top: 4px; background: #0ea5e9; color: #fff; border: none; padding: 8px 18px; border-radius: 4px; cursor: pointer; font-size: 0.95em; }
+            .btn-salary-save:hover { background: #0284c7; }
+            .btn-salary-save:disabled { opacity: 0.6; cursor: not-allowed; }
+            #salary-status-msg { margin-top: 8px; font-size: 0.9em; padding: 8px 12px; border-radius: 4px; display: none; }
+            #salary-status-msg.success { background: #e0f2fe; color: #075985; display: block; }
+            #salary-status-msg.error { background: #fee2e2; color: #991b1b; display: block; }
+          ',
+        ],
+        'salary_expectation_styles',
+      ];
+
+      $content['#attached']['html_head'][] = [
+        [
+          '#tag' => 'script',
+          '#value' => '
+(function() {
+  var saveBtn = document.querySelector(".btn-salary-save");
+  if (!saveBtn) { return; }
+  var statusEl = document.getElementById("salary-status-msg");
+  saveBtn.addEventListener("click", function() {
+    var minVal = document.getElementById("salary-exp-min").value.trim();
+    var maxVal = document.getElementById("salary-exp-max").value.trim();
+    var currency = document.getElementById("salary-exp-currency").value;
+    var payload = {
+      salary_expectation_min: minVal !== "" ? parseInt(minVal, 10) : null,
+      salary_expectation_max: maxVal !== "" ? parseInt(maxVal, 10) : null,
+      salary_currency: currency
+    };
+    saveBtn.disabled = true;
+    saveBtn.textContent = "Saving\u2026";
+    var url = saveBtn.getAttribute("data-save-url") + "?token=" + encodeURIComponent(saveBtn.getAttribute("data-token"));
+    fetch(url, {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      credentials: "same-origin",
+      body: JSON.stringify(payload)
+    })
+    .then(function(r) { return r.json().then(function(d) { return {status: r.status, data: d}; }); })
+    .then(function(res) {
+      saveBtn.disabled = false;
+      saveBtn.textContent = "Save Expectation";
+      if (statusEl) {
+        statusEl.className = res.status === 200 ? "success" : "error";
+        statusEl.textContent = res.status === 200 ? (res.data.message || "Saved.") : (res.data.error || "Save failed.");
+        setTimeout(function() { if (statusEl) { statusEl.className = ""; statusEl.textContent = ""; } }, 4000);
+      }
+    })
+    .catch(function() {
+      saveBtn.disabled = false;
+      saveBtn.textContent = "Save Expectation";
+      if (statusEl) { statusEl.className = "error"; statusEl.textContent = "Network error. Please try again."; }
+    });
+  });
+})();
+          ',
+        ],
+        'salary_expectation_js',
+      ];
+    }
+
     // Interview outcome tracker — visible on saved-job detail pages once the
     // interview rounds table exists.
     if ($saved_job && $this->database->schema()->tableExists('jobhunter_interview_rounds')) {
@@ -1799,6 +1907,32 @@ class CompanyController extends ControllerBase {
       $f_notes    = htmlspecialchars((string) ($existing_offer->notes ?? ''));
       $offers_url = Url::fromRoute('job_hunter.offers')->toString();
 
+      // Build salary delta HTML (AC-2 / AC-3): only shown when both expectation_min and base_salary are set.
+      $salary_delta_html = '';
+      $exp_min = isset($saved_job->salary_expectation_min) && $saved_job->salary_expectation_min !== NULL
+        ? (int) $saved_job->salary_expectation_min : NULL;
+      $exp_max = isset($saved_job->salary_expectation_max) && $saved_job->salary_expectation_max !== NULL
+        ? (int) $saved_job->salary_expectation_max : NULL;
+      $offer_base = isset($existing_offer->base_salary) && $existing_offer->base_salary !== NULL
+        ? (int) $existing_offer->base_salary : NULL;
+      if ($exp_min !== NULL && $offer_base !== NULL) {
+        $currency = htmlspecialchars((string) ($saved_job->salary_currency ?? 'USD'));
+        $exp_range = $currency . ' ' . number_format($exp_min);
+        if ($exp_max !== NULL) {
+          $exp_range .= ' – ' . $currency . ' ' . number_format($exp_max);
+        }
+        $delta = $offer_base - $exp_min;
+        $delta_sign = $delta >= 0 ? '+' : '';
+        $delta_class = $delta >= 0 ? 'salary-delta-positive' : 'salary-delta-negative';
+        $salary_delta_html = '<div class="salary-delta" style="margin-top:16px;padding:14px 16px;background:#f8fafc;border:1px solid #cbd5e1;border-radius:6px;">'
+          . '<strong>Salary Comparison</strong>'
+          . '<div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:16px;">'
+          . '<span>Expectation: <strong>' . $exp_range . '</strong></span>'
+          . '<span>Offered: <strong>' . $currency . ' ' . number_format($offer_base) . '</strong></span>'
+          . '<span>Delta: <strong class="' . $delta_class . '">' . $delta_sign . $currency . ' ' . number_format($delta) . '</strong></span>'
+          . '</div></div>';
+      }
+
       $content['offer_details'] = [
         '#type' => 'container',
         '#attributes' => ['class' => ['offer-details-section']],
@@ -1819,6 +1953,7 @@ class CompanyController extends ControllerBase {
           . '<button type="button" class="button button--primary btn-offer-save" data-save-url="' . $offer_save_url . '" data-token="' . htmlspecialchars($offer_save_token, ENT_QUOTES) . '">Save Offer Details</button>'
           . '<div id="offer-status-msg"></div>'
           . '</div>'
+          . $salary_delta_html
           . '</div>',
       ];
 
@@ -1840,6 +1975,9 @@ class CompanyController extends ControllerBase {
             #offer-status-msg { font-size: 0.9em; padding: 8px 12px; border-radius: 4px; display: none; }
             #offer-status-msg.success { display: block; background: #d1fae5; color: #065f46; }
             #offer-status-msg.error { display: block; background: #fee2e2; color: #991b1b; }
+            .salary-delta { font-size: 0.95em; }
+            .salary-delta-positive { color: #16a34a; }
+            .salary-delta-negative { color: #dc2626; }
           ',
         ],
         'offer_details_styles',
@@ -5457,6 +5595,78 @@ HTML;
     ]);
 
     return new JsonResponse(['message' => 'Application closed.'], 200);
+  }
+
+  /**
+   * Save salary_expectation_min, salary_expectation_max, salary_currency (POST, CSRF-protected).
+   *
+   * @param int $job_id
+   *   The job_requirements ID.
+   */
+  public function salarySave(int $job_id): JsonResponse {
+    if (!$this->database->schema()->fieldExists('jobhunter_saved_jobs', 'salary_expectation_min')) {
+      return new JsonResponse(['error' => 'Salary tracking not available.'], 503);
+    }
+
+    $uid    = (int) $this->currentUser->id();
+    $job_id = (int) $job_id;
+
+    $saved_job = $this->loadOwnedSavedJob($uid, $job_id);
+    if (!$saved_job) {
+      return new JsonResponse(['error' => 'Access denied.'], 403);
+    }
+
+    $request = $this->requestStack->getCurrentRequest();
+    $body    = json_decode((string) $request->getContent(), TRUE) ?? [];
+
+    $min_raw      = $body['salary_expectation_min'] ?? NULL;
+    $max_raw      = $body['salary_expectation_max'] ?? NULL;
+    $currency_raw = (string) ($body['salary_currency'] ?? 'USD');
+
+    // Validate min/max: must be null or positive integer.
+    $sal_min = NULL;
+    $sal_max = NULL;
+    if ($min_raw !== NULL) {
+      if (!is_numeric($min_raw) || (int) $min_raw < 0 || (int) $min_raw > 9999999) {
+        return new JsonResponse(['error' => 'Invalid salary minimum.'], 422);
+      }
+      $sal_min = (int) $min_raw;
+    }
+    if ($max_raw !== NULL) {
+      if (!is_numeric($max_raw) || (int) $max_raw < 0 || (int) $max_raw > 9999999) {
+        return new JsonResponse(['error' => 'Invalid salary maximum.'], 422);
+      }
+      $sal_max = (int) $max_raw;
+    }
+    if ($sal_min !== NULL && $sal_max !== NULL && $sal_max < $sal_min) {
+      return new JsonResponse(['error' => 'Salary maximum must be >= minimum.'], 422);
+    }
+
+    // Validate currency against ISO 4217 whitelist.
+    $valid_currencies = ['USD', 'EUR', 'GBP', 'CAD', 'AUD', 'JPY', 'CHF', 'CNY', 'INR', 'MXN', 'BRL', 'SGD', 'HKD', 'NZD', 'SEK', 'NOK', 'DKK', 'ZAR', 'KRW', 'THB'];
+    $sal_currency = strtoupper(preg_replace('/[^A-Za-z]/', '', $currency_raw));
+    if (!in_array($sal_currency, $valid_currencies, TRUE)) {
+      return new JsonResponse(['error' => 'Invalid currency code.'], 422);
+    }
+
+    $this->database->update('jobhunter_saved_jobs')
+      ->fields([
+        'salary_expectation_min' => $sal_min,
+        'salary_expectation_max' => $sal_max,
+        'salary_currency'        => $sal_currency,
+        'updated'                => time(),
+      ])
+      ->condition('uid', $uid)
+      ->condition('job_id', $job_id)
+      ->execute();
+
+    // Log only uid + saved_job_id; never log salary amounts (security AC).
+    $this->getLogger('job_hunter')->info('Salary expectation saved: uid=@uid saved_job_id=@sjid', [
+      '@uid'   => $uid,
+      '@sjid'  => (int) $saved_job->id,
+    ]);
+
+    return new JsonResponse(['message' => 'Salary expectation saved.'], 200);
   }
 
 }

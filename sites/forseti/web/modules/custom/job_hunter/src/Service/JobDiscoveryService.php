@@ -302,6 +302,11 @@ class JobDiscoveryService {
         $query->addField('sj', 'user_closed_status', 'user_closed_status');
         $query->addField('sj', 'rejection_reason', 'rejection_reason');
       }
+      if ($this->database->schema()->fieldExists('jobhunter_saved_jobs', 'salary_expectation_min')) {
+        $query->addField('sj', 'salary_expectation_min', 'salary_expectation_min');
+        $query->addField('sj', 'salary_expectation_max', 'salary_expectation_max');
+        $query->addField('sj', 'salary_currency', 'salary_currency');
+      }
 
       $query->leftJoin('jobhunter_companies', 'c', 'j.company_id = c.id');
       $query->addField('c', $company_name_field, 'company_name');

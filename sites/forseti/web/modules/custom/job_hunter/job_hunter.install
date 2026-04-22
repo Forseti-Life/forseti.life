@@ -132,6 +132,25 @@ function _job_hunter_create_saved_jobs_table() {
         'not null' => FALSE,
         'description' => 'Free-text notes for rejection — NOT logged to watchdog.',
       ],
+      'salary_expectation_min' => [
+        'type' => 'int',
+        'not null' => FALSE,
+        'default' => NULL,
+        'description' => 'User salary expectation minimum — NOT logged to watchdog.',
+      ],
+      'salary_expectation_max' => [
+        'type' => 'int',
+        'not null' => FALSE,
+        'default' => NULL,
+        'description' => 'User salary expectation maximum — NOT logged to watchdog.',
+      ],
+      'salary_currency' => [
+        'type' => 'varchar',
+        'length' => 3,
+        'not null' => FALSE,
+        'default' => 'USD',
+        'description' => 'ISO 4217 currency code for salary expectation.',
+      ],
       'created' => ['type' => 'int', 'not null' => TRUE, 'default' => 0],
       'updated' => ['type' => 'int', 'not null' => TRUE, 'default' => 0],
     ],
@@ -3721,4 +3740,45 @@ function job_hunter_update_9062() {
   }
 
   return t('Added user_closed_status, rejection_reason, rejection_notes to jobhunter_saved_jobs.');
+}
+
+/**
+ * Add salary_expectation_min, salary_expectation_max, salary_currency to jobhunter_saved_jobs.
+ */
+function job_hunter_update_9063() {
+  $schema = \Drupal::database()->schema();
+
+  if (!$schema->tableExists('jobhunter_saved_jobs')) {
+    return t('jobhunter_saved_jobs does not exist — skipped.');
+  }
+
+  if (!$schema->fieldExists('jobhunter_saved_jobs', 'salary_expectation_min')) {
+    $schema->addField('jobhunter_saved_jobs', 'salary_expectation_min', [
+      'type' => 'int',
+      'not null' => FALSE,
+      'default' => NULL,
+      'description' => 'User salary expectation minimum — NOT logged to watchdog.',
+    ]);
+  }
+
+  if (!$schema->fieldExists('jobhunter_saved_jobs', 'salary_expectation_max')) {
+    $schema->addField('jobhunter_saved_jobs', 'salary_expectation_max', [
+      'type' => 'int',
+      'not null' => FALSE,
+      'default' => NULL,
+      'description' => 'User salary expectation maximum — NOT logged to watchdog.',
+    ]);
+  }
+
+  if (!$schema->fieldExists('jobhunter_saved_jobs', 'salary_currency')) {
+    $schema->addField('jobhunter_saved_jobs', 'salary_currency', [
+      'type' => 'varchar',
+      'length' => 3,
+      'not null' => FALSE,
+      'default' => 'USD',
+      'description' => 'ISO 4217 currency code for salary expectation.',
+    ]);
+  }
+
+  return t('Added salary_expectation_min, salary_expectation_max, salary_currency to jobhunter_saved_jobs.');
 }

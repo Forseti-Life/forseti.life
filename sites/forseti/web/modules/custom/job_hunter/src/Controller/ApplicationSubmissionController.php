@@ -2352,8 +2352,7 @@ HTML;
     }
 
     // AC-4: rejection reasons section HTML.
-    $rejection_reasons_html = '';
-    if (!empty($rejection_raw)) {
+    $rejection_reasons_html = '';    if (!empty($rejection_raw)) {
       $rej_max = max($rejection_raw) ?: 1;
       $rej_rows = '';
       foreach ($rejection_raw as $slug => $cnt) {
@@ -2401,6 +2400,62 @@ HTML;
   <h3 style="margin:0 0 14px 0;">🔥 Rejection Stage Heat-Map</h3>
   <div style="display:flex;align-items:flex-end;gap:0;min-height:100px;">' . $sm_cols . '</div>
 </div>';
+    }
+
+    // AC-5 / salary comparison: query jobs with both expectation and offer base_salary.
+    $salary_comparison_html = '';
+    if ($db->schema()->fieldExists('jobhunter_saved_jobs', 'salary_expectation_min')
+      && $db->schema()->tableExists('jobhunter_offers')) {
+      $salary_rows = $db->query(
+        "SELECT j.job_title, c.name AS company_name,
+                sj.salary_expectation_min, sj.salary_expectation_max, sj.salary_currency,
+                o.base_salary
+         FROM {jobhunter_saved_jobs} sj
+         INNER JOIN {jobhunter_job_requirements} j ON sj.job_id = j.id
+         LEFT JOIN {jobhunter_companies} c ON j.company_id = c.id
+         INNER JOIN {jobhunter_offers} o ON o.saved_job_id = sj.id AND o.uid = sj.uid
+         WHERE sj.uid = :uid
+           AND sj.salary_expectation_min IS NOT NULL
+           AND o.base_salary IS NOT NULL
+         ORDER BY j.job_title ASC",
+        [':uid' => $uid]
+      )->fetchAll();
+
+      if (!empty($salary_rows)) {
+        $sal_rows_html = '';
+        foreach ($salary_rows as $sr) {
+          $currency = htmlspecialchars((string) ($sr->salary_currency ?? 'USD'));
+          $exp_range = $currency . ' ' . number_format((int) $sr->salary_expectation_min);
+          if (!empty($sr->salary_expectation_max)) {
+            $exp_range .= ' – ' . number_format((int) $sr->salary_expectation_max);
+          }
+          $offered = $currency . ' ' . number_format((int) $sr->base_salary);
+          $delta   = (int) $sr->base_salary - (int) $sr->salary_expectation_min;
+          $delta_sign = $delta >= 0 ? '+' : '';
+          $delta_color = $delta >= 0 ? '#16a34a' : '#dc2626';
+          $sal_rows_html .= '<tr>'
+            . '<td style="padding:6px 12px;white-space:nowrap;">' . htmlspecialchars((string) ($sr->job_title ?? '')) . '</td>'
+            . '<td style="padding:6px 12px;">' . htmlspecialchars((string) ($sr->company_name ?? '')) . '</td>'
+            . '<td style="padding:6px 12px;">' . $exp_range . '</td>'
+            . '<td style="padding:6px 12px;">' . $offered . '</td>'
+            . '<td style="padding:6px 12px;font-weight:bold;color:' . $delta_color . ';">' . $delta_sign . $currency . ' ' . number_format($delta) . '</td>'
+            . '</tr>';
+        }
+        $salary_comparison_html = '
+<div class="salary-comparison" style="background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:20px;margin-bottom:24px;">
+  <h3 style="margin:0 0 14px 0;">💰 Salary Comparison (Expectation vs Offer)</h3>
+  <table style="width:100%;border-collapse:collapse;">
+    <thead><tr style="border-bottom:1px solid #e2e8f0;">
+      <th style="text-align:left;padding:6px 12px;">Job</th>
+      <th style="text-align:left;padding:6px 12px;">Company</th>
+      <th style="text-align:left;padding:6px 12px;">Expectation</th>
+      <th style="text-align:left;padding:6px 12px;">Offered</th>
+      <th style="text-align:left;padding:6px 12px;">Delta</th>
+    </tr></thead>
+    <tbody>' . $sal_rows_html . '</tbody>
+  </table>
+</div>';
+      }
     }
 
     $content = [
@@ -2454,6 +2509,8 @@ HTML;
 ' . $rejection_reasons_html . '
 
 ' . $stage_chart_html . '
+
+' . $salary_comparison_html . '
 ',
     ];
 

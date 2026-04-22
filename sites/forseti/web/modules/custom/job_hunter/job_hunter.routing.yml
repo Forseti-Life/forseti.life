@@ -1721,3 +1721,15 @@ job_hunter.close_job_ajax:
     _user_is_logged_in: 'TRUE'
     _csrf_token: 'TRUE'
     job_id: \d+
+
+job_hunter.salary_expectation_save:
+  path: '/jobhunter/jobs/{job_id}/salary-expectation/save'
+  defaults:
+    _controller: '\Drupal\job_hunter\Controller\CompanyController::salarySave'
+    _title: 'Save Salary Expectation'
+  methods: [POST]
+  requirements:
+    _permission: 'access job hunter'
+    _user_is_logged_in: 'TRUE'
+    _csrf_token: 'TRUE'
+    job_id: \d+
