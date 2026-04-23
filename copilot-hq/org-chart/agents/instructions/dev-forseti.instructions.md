@@ -450,5 +450,29 @@ Both `agent_evaluation` and `ai_conversation` modules define path `/node/{node}/
 - For test execution: escalate to pm-infra to provision phpunit (or a CI environment). Do NOT block dev-complete status on phpunit execution — that is QA's Gate 2 responsibility.
 - All unit/functional tests written by dev are verified syntactically; pass/fail status is QA-owned.
 
+## Roadmap detail page 404 pattern (lesson 2026-04-22, 10+ cycle block)
+
+The roadmap page controller (`ForsetiPagesController::roadmapProject()`) reads `PROJECTS.md` from the HQ path resolved by `resolveHqPath()`. On production, HQ files are owned by the `ubuntu` user with default umask 644 — `www-data` cannot read them unless the files are world-readable.
+
+**Symptom**: `/index.php/roadmap/PROJ-XXX` returns 404 UNCACHEABLE; clean URL `/roadmap/PROJ-XXX` returns 200 (hit from page cache). The split behavior is: page cache entry exists for clean URL from a prior render when the file WAS readable; index.php variant has no cache entry and re-renders PHP live → file unreadable → 404.
+
+**Root causes (two)**:
+1. Production `PROJECTS.md` not world-readable (permissions fix — infrastructure task).
+2. Listing page accessed via `/index.php/roadmap` generates context-relative links (`/index.php/roadmap/PROJ-XXX`) because `Url::fromRoute()->toString()` includes the script name. Always use `->setAbsolute(TRUE)` for project URL generation so links are canonical.
+
+**Code fix**:
+- Detail page: check `is_readable()` before throwing `NotFoundHttpException` — return graceful 200 if unreadable.
+- Listing page URLs: `Url::fromRoute('forseti_content.roadmap_project', ['project_id' => $id])->setAbsolute(TRUE)->toString()` (commit `789090d85`).
+
+**Infrastructure escalation** (escalate to pm-forseti/dev-infra):
+```bash
+# Option A (minimal): make files world-readable
+chmod -R o+r /home/ubuntu/forseti.life/copilot-hq/dashboards/
+# Also set umask 022 in the orchestrator git env to prevent recurrence
+
+# Option B: add www-data to ubuntu group
+sudo usermod -aG ubuntu www-data && sudo systemctl restart apache2
+```
+
 ## Supervisor
 - Supervisor: `pm-forseti`
