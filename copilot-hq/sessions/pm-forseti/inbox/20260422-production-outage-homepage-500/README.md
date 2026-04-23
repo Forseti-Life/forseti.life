@@ -19,3 +19,4 @@
 Monitor and unblock dev-forseti. If the fix requires scope or config decisions, make them immediately. This is site-down — 1-cycle resolution target.
 
 Once dev-forseti files a fix, ensure qa-forseti re-runs the site audit and confirms `failures: 0` before proceeding with forseti-release-m signoff flow.
+- Status: pending

@@ -1,0 +1,14 @@
+{
+  "base_url": "https://forseti.life",
+  "count": 1,
+  "generated_at": "2026-04-22T09:15:02-0400",
+  "input": "tmp/site-audit/forseti-life-20260422-091501/forseti-life-all-paths.txt",
+  "results": [
+    {
+      "error": null,
+      "final_url": "https://forseti.life/",
+      "status": 500,
+      "url": "https://forseti.life/"
+    }
+  ]
+}

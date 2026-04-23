@@ -1,0 +1,24 @@
+{
+  "base_url": "https://forseti.life",
+  "config": "org-chart/sites/forseti.life/qa-permissions.json",
+  "generated_at": "2026-04-22T15:15:02-0400",
+  "label": "forseti-life",
+  "probe_issue_count": 0,
+  "probe_issues": [],
+  "roles_run": [
+    "anon"
+  ],
+  "violation_count": 1,
+  "violations": [
+    {
+      "expected": "allow",
+      "final_url": "https://forseti.life/",
+      "path": "/",
+      "role": "anon",
+      "rule_id": "public-core",
+      "source": "crawl",
+      "status": 500,
+      "url": "https://forseti.life/"
+    }
+  ]
+}

@@ -30,3 +30,4 @@ You already have `sessions/pm-dungeoncrawler/inbox/20260422-release-close-now-20
 ## Context
 
 Your inbox has 28 items. These two release items (release-n close-now + coordinated signoff) are the only ROI 999 items in your queue. Process them first.
+- Status: pending

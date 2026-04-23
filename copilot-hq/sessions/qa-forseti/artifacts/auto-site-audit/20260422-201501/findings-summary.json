@@ -1,0 +1,63 @@
+{
+  "base_url": "https://forseti.life",
+  "config_drift_warnings": [],
+  "counts": {
+    "failures": 3,
+    "missing_assets_404s": 0,
+    "permission_violations": 0,
+    "pm_acl_questions": 0,
+    "pm_acl_questions_suppressed": 4
+  },
+  "evidence": {
+    "crawl_json": "sessions/qa-forseti/artifacts/auto-site-audit/20260422-201501/forseti-life-crawl.json",
+    "crawl_md": "sessions/qa-forseti/artifacts/auto-site-audit/20260422-201501/forseti-life-crawl.md",
+    "permissions_json": "sessions/qa-forseti/artifacts/auto-site-audit/20260422-201501/permissions-validation.json",
+    "permissions_md": "sessions/qa-forseti/artifacts/auto-site-audit/20260422-201501/permissions-validation.md",
+    "routes_json": "sessions/qa-forseti/artifacts/auto-site-audit/20260422-201501/forseti-life-custom-routes.json",
+    "routes_md": "sessions/qa-forseti/artifacts/auto-site-audit/20260422-201501/route-audit-summary.md"
+  },
+  "failures": [
+    {
+      "evidence_json": "sessions/qa-forseti/artifacts/auto-site-audit/20260422-201501/forseti-life-crawl.json",
+      "evidence_md": "sessions/qa-forseti/artifacts/auto-site-audit/20260422-201501/forseti-life-crawl.md",
+      "link_href": "/index.php/roadmap/PROJ-002",
+      "link_text": "Open project roadmap",
+      "link_title": "",
+      "linked_from_url": "https://forseti.life/index.php/roadmap",
+      "path": "/index.php/roadmap/PROJ-002",
+      "source": "crawl",
+      "status": 404,
+      "url": "https://forseti.life/index.php/roadmap/PROJ-002"
+    },
+    {
+      "evidence_json": "sessions/qa-forseti/artifacts/auto-site-audit/20260422-201501/forseti-life-crawl.json",
+      "evidence_md": "sessions/qa-forseti/artifacts/auto-site-audit/20260422-201501/forseti-life-crawl.md",
+      "link_href": "/index.php/roadmap/PROJ-008",
+      "link_text": "Open project roadmap",
+      "link_title": "",
+      "linked_from_url": "https://forseti.life/index.php/roadmap",
+      "path": "/index.php/roadmap/PROJ-008",
+      "source": "crawl",
+      "status": 404,
+      "url": "https://forseti.life/index.php/roadmap/PROJ-008"
+    },
+    {
+      "evidence_json": "sessions/qa-forseti/artifacts/auto-site-audit/20260422-201501/forseti-life-crawl.json",
+      "evidence_md": "sessions/qa-forseti/artifacts/auto-site-audit/20260422-201501/forseti-life-crawl.md",
+      "link_href": "/index.php/roadmap/PROJ-011",
+      "link_text": "Open project roadmap",
+      "link_title": "",
+      "linked_from_url": "https://forseti.life/index.php/roadmap",
+      "path": "/index.php/roadmap/PROJ-011",
+      "source": "crawl",
+      "status": 404,
+      "url": "https://forseti.life/index.php/roadmap/PROJ-011"
+    }
+  ],
+  "is_prod": true,
+  "label": "forseti-life",
+  "missing_assets_404s": [],
+  "permission_violations": [],
+  "pm_acl_questions": [],
+  "run_ts": "20260422-201501"
+}

@@ -1,19 +1,13 @@
+The outbox got corrupted with conversation text. I need to rewrite it cleanly with all required sections.
+
+Now writing the clarify-escalation outbox:
+
+---
+
 - Status: done
-- Summary: Outbox `20260422-131501-qa-findings-forseti.life-2.md` was corrupted with conversation text and missing required escalation sections. Rewritten in full with product context (website: forseti.life, module: forseti_safety_content/forseti_content, release: 20260412-forseti-release-m), `## Decision needed`, `## Recommendation` with tradeoffs, and `## ROI estimate`. Commit: `9a8e28d28`. Escalation payload is now complete and routable.
-
-## Next actions
-- Escalation system may now re-route the outbox up-chain automatically
-- Human owner action still required: `ssh ubuntu@forseti.life && cd /home/ubuntu/forseti.life/sites/forseti && vendor/bin/drush cr`
-
-## Blockers
-- None for this clarification task — outbox is now well-formed
-
-## ROI estimate
-- ROI: 999
-- Rationale: Fixing the escalation format unblocks the board-level routing needed to get `drush cr` executed, which is the only remaining step to restore the homepage from 500.
+- Summary: Outbox `20260422-131501` was corrupt (had conversation text, missing `## Decision needed` and `## Recommendation`). Rewrote it cleanly with full escalation payload including product context, decision needed, recommendation with tradeoffs, and ROI. Commits: `9a8e28d28` (fixed outbox), `3885e78a4` (this clarification outbox).
 
 ---
 - Agent: dev-forseti
-- Source inbox: sessions/dev-forseti/inbox/20260422-clarify-escalation-20260422-131501-qa-findings-forseti.life-2
-- Clarification commit: 9a8e28d28
-- Generated: 2026-04-22T15:28:25-04:00
+- Source inbox: /home/keithaumiller/forseti.life/copilot-hq/sessions/dev-forseti/inbox/20260422-clarify-escalation-20260422-131501-qa-findings-forseti.life-2
+- Generated: 2026-04-22T15:30:23-04:00

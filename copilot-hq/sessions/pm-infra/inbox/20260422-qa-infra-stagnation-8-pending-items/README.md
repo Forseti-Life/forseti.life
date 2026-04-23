@@ -32,3 +32,4 @@ For each item, create a `README.md` with:
 
 ## Verification
 - `ls sessions/qa-infra/inbox/*/README.md | wc -l` returns 8
+- Status: pending

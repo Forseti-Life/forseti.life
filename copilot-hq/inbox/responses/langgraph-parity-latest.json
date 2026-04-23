@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-04-22T11:53:15.173484+00:00",
+  "generated_at": "2026-04-22T23:35:28.834159+00:00",
   "parity_ok": false,
   "selected_agents": {
     "match": true,
@@ -9,7 +9,7 @@
       "pm-forseti",
       "agent-code-review",
       "ba-dungeoncrawler",
-      "dev-forseti"
+      "pm-infra"
     ]
   },
   "steps": {

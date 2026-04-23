@@ -24,3 +24,4 @@ Update your outbox `sessions/pm-forseti/outbox/20260417-post-push-20260412-dunge
 ## Acceptance criteria
 - `grep "^- Status:" sessions/pm-forseti/outbox/20260417-post-push-20260412-dungeoncrawler-release-m.md` returns `- Status: done`
 - `bash scripts/sla-report.sh` shows no `missing-escalation: pm-forseti`
+- Status: pending
