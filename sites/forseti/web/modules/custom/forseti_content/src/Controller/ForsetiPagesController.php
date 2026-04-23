@@ -190,13 +190,27 @@ class ForsetiPagesController extends ControllerBase {
    * Project roadmap page.
    */
   public function roadmap() {
+    try {
+      $projects = $this->loadRoadmapProjects();
+    }
+    catch (\Exception $e) {
+      \Drupal::logger('forseti_content')->error('Roadmap listing failed: @msg', ['@msg' => $e->getMessage()]);
+      $projects = [[
+        'title' => (string) $this->t('Roadmap temporarily unavailable'),
+        'status' => (string) $this->t('sync warning'),
+        'summary' => (string) $this->t('The project roadmap could not be loaded. Please try again shortly.'),
+        'meta' => '',
+        'roadmap' => [(string) $this->t('Check server logs for details.')],
+        'actions' => [],
+      ]];
+    }
     return [
       '#theme' => 'forseti_page_roadmap',
       '#title' => $this->t('Project Roadmaps'),
       '#intro' => $this->t('Forseti is building multiple community-managed products in parallel. This page is the authoritative roadmap for all numbered portfolio items, synced from the HQ project registry so product tracks and delivery initiatives stay aligned with execution.'),
-      '#projects' => $this->loadRoadmapProjects(),
+      '#projects' => $projects,
       '#cache' => [
-        'max-age' => 300,
+        'max-age' => 0,
         'contexts' => ['url'],
       ],
     ];
@@ -222,7 +236,14 @@ class ForsetiPagesController extends ControllerBase {
           '#queue_status' => '',
           '#goals' => [(string) $this->t('Confirm COPILOT_HQ_ROOT is set correctly for the web runtime and dashboards/PROJECTS.md is readable by the web server.')],
           '#nav_links' => [[
-            'url' => Url::fromRoute('forseti_content.roadmap')->setAbsolute(TRUE)->toString(),
+            'url' => (function () {
+              try {
+                return Url::fromRoute('forseti_content.roadmap')->setAbsolute(TRUE)->toString();
+              }
+              catch (\Exception $e) {
+                return '/roadmap';
+              }
+            })(),
             'text' => (string) $this->t('Back to all roadmaps'),
             'style' => 'primary',
           ]],
@@ -325,7 +346,13 @@ class ForsetiPagesController extends ControllerBase {
         $link_text = (string) $this->t('Open Dungeoncrawler roadmap');
       }
       elseif (($row['product'] ?? '') === 'forseti.life') {
-        $link_url = Url::fromRoute('forseti_content.roadmap_project', ['project_id' => $project_id])->setAbsolute(TRUE)->toString();
+        try {
+          $link_url = Url::fromRoute('forseti_content.roadmap_project', ['project_id' => $project_id])->setAbsolute(TRUE)->toString();
+        }
+        catch (\Exception $e) {
+          \Drupal::logger('forseti_content')->warning('Could not generate roadmap URL for @id: @msg', ['@id' => $project_id, '@msg' => $e->getMessage()]);
+          $link_url = '/roadmap/' . strtolower($project_id);
+        }
         $link_text = (string) $this->t('Open project roadmap');
       }
 
