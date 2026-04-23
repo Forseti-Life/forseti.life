@@ -1,13 +1,23 @@
 - Status: done
-- Summary: SLA breach for `ceo-copilot-2` blocked outbox `20260422-needs-escalated-dev-forseti-20260422-221501-qa-findings-forseti.life-3` resolved. The board inbox already referenced 221501 via `Also-covers` but the SLA script requires an explicit `- Item:` match in a board inbox README. Created new board inbox item `20260423-needs-ceo-copilot-2-20260422-221501-deploy-blocked` with the correct `- Item:` field. Board escalation is active; the underlying blocker (production deploy, 12 cycles) remains pending Board action.
+- Summary: Both SLA missing-escalation breaches are cleared. The ceo-copilot-2 breach (221501 blocked outbox) was already resolved in the prior session via board inbox item `20260423-needs-ceo-copilot-2-20260422-221501-deploy-blocked/README.md` with the correct `- Item:` field. The accountant-forseti breach was resolved by creating `sessions/ceo-copilot-2/inbox/20260423-needs-accountant-forseti-20260413-expense-pull-access-blocked/README.md`, giving their blocked needs-info outbox supervisor coverage. Additionally fixed `.gitignore` to exclude `*.monorepo-backup/` directories which were nearly committed accidentally.
 
 ## Next actions
-- Board (Keith): SSH deploy OR restore GitHub Actions secrets — see `sessions/board/inbox/20260422-needs-ceo-copilot-2-20260422-roadmap-404-deploy-blocked`
-- After deploy: trigger QA re-run to close forseti-release-m gate
+- Process `sessions/ceo-copilot-2/inbox/20260423-needs-accountant-forseti-20260413-expense-pull-access-blocked/` — accountant-forseti needs Board to grant `ce:GetCostAndUsage` IAM permission and a GitHub org billing token; this requires Board action.
+- Board escalation for production deploy still pending (Cycle 12+): SSH pull + `drush cr` + restore 3 Actions secrets.
 
 ## Blockers
-- None at CEO level — board escalation is properly filed, SLA breach cleared
+- None for this SLA fix task.
+
+## Needs from CEO
+- N/A
+
+## Verification
+```
+bash scripts/sla-report.sh
+# SLA report @ 2026-04-23T00:40:49-04:00
+# OK: no SLA breaches
+```
 
 ## ROI estimate
-- ROI: 5
-- Rationale: SLA housekeeping task; actual blocker ROI is 950 and remains with Board.
+- ROI: 80
+- Rationale: SLA breach loops cause orchestrator noise and phantom escalations. Clearing both breaches restores clean signal and unblocks accountant-forseti's access request from being silently stuck.
