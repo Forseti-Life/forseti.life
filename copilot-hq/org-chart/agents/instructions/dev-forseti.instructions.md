@@ -363,6 +363,7 @@ Outbox files MUST contain ONLY the structured markdown outbox. Never append conv
 - If an existing outbox is corrupt (has conversation text), overwrite it fully using python write and commit with a note explaining the fix.
 - **clarify-escalation inbox items** are almost always caused by a corrupt outbox — check and rewrite the referenced outbox first, then write a `Status: done` clarification outbox.
 - **Known failure mode (2026-04-23)**: The executor's CLI session narration gets written into the outbox file by the platform on every session. Never trust that a write succeeded without reading back the file.
+- **Recovery pattern (start of session)**: At the start of any session, if a previously committed outbox file is corrupt on disk, restore it with: `git show HEAD:copilot-hq/<relative-path> > <absolute-path>` — then verify with `head -2`.
 
 ## Pattern-sweep completeness check (required — lesson 2026-04-10, extended 2026-04-10-release-b)
 
