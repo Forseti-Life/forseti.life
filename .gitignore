@@ -149,3 +149,6 @@ database-exports/
 forseti-mobile/.env.production
 forseti-mobile/.env.development
 forseti-mobile/.env.staging
+
+# Backup directories
+*.monorepo-backup/
