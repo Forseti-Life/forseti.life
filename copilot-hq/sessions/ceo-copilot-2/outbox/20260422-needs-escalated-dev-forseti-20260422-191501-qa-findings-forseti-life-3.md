@@ -1,29 +1,28 @@
 - Status: blocked
-- Summary: dev-forseti's 6th+ consecutive blocked cycle on the same root cause — no automated deploy path exists because all three GitHub Actions secrets are missing (`PRIVATE_KEY`, `HOST`, `USERNAME`), not just `PRIVATE_KEY` as previously assumed. QA run 20260422-191501 confirms the same 3 roadmap 404s persist. Both code fixes (`6f82d6e92`, `7b31fb415`) remain on `origin/main` undeployed. Board inbox item updated (`146eb1859` + this run) with the full secrets list and 6th-cycle urgency flag.
+- Summary: dev-forseti has now been blocked 6+ consecutive cycles on the same root cause: production has not pulled commits `6f82d6e92` and `7b31fb415` from `origin/main`, and GitHub Actions deploy is fully broken — all three required secrets (`PRIVATE_KEY`, `HOST`, `USERNAME`) are absent from the `Forseti-Life/forseti.life` repo. QA run 19:15 confirms the same 3 roadmap 404s persist. Board inbox updated (`fd6fd2d77`) to reflect that all three secrets must be restored. No dev-side action remains — fix is ready, deploy path is the only gap.
 
 ## Next actions
-- Board (Keith): run `ssh ubuntu@forseti.life && cd /home/ubuntu/forseti.life && git pull --rebase origin main && cd sites/forseti && vendor/bin/drush cr` — 2 minutes, clears all 3 404s immediately
-- Board (Keith): restore ALL three secrets in `Forseti-Life/forseti.life` → Settings → Secrets → Actions: `PRIVATE_KEY`, `HOST`, `USERNAME`
-- After Board confirms: qa-forseti to re-run full site audit to clear QA BLOCK
+- Board (Keith): SSH to `ubuntu@forseti.life` and run `git pull --rebase origin main && cd sites/forseti && vendor/bin/drush cr` (2 minutes, clears all 3 404s)
+- Board (Keith): restore all 3 GitHub Actions secrets in `Forseti-Life/forseti.life` repo: `PRIVATE_KEY`, `HOST`, `USERNAME`
+- After Board confirms: dispatch qa-forseti to re-run site audit
 
 ## Blockers
-- GitHub Actions secrets `PRIVATE_KEY`, `HOST`, `USERNAME` all absent — automated deploy broken
-- Production has not pulled commits `6f82d6e92` + `7b31fb415` — only Board SSH can unblock
-- 6th+ consecutive blocked cycle; no further dev-side work possible
+- All 3 GitHub Actions secrets missing — automated deploy impossible
+- Production has not pulled `6f82d6e92` + `7b31fb415` — only SSH can unblock
 
 ## Needs from Board
-- Execute `git pull --rebase origin main && drush cr` on `ubuntu@forseti.life`
-- Restore all three GitHub Actions secrets
+- Execute `git pull + drush cr` on `ubuntu@forseti.life`
+- Restore `PRIVATE_KEY`, `HOST`, `USERNAME` secrets in repo settings
 
 ## Decision needed
-- Will Keith act on the production deploy today? If delay >24h is expected, CEO needs to know whether to hold `forseti-release-c` or expedite by other means.
+- Will Keith execute SSH now, or does the Board want to delay? If delay >24h, CEO needs guidance on whether to hold release gate or advance without roadmap-link QA passing.
 
 ## Recommendation
-- SSH now (2 minutes); restore secrets in the same session. Release pipeline has been frozen on this single gap across 6+ dev-forseti cycles.
+- SSH now (2 min). Restore all 3 Actions secrets in same session. This permanently ends this class of blocker for all future releases.
 
 ## ROI estimate
-- ROI: 200
-- Rationale: Production regression with ready fix; 6 wasted dev cycles; every additional cycle costs QA capacity and release pipeline throughput.
+- ROI: 40
+- Rationale: 6th consecutive blocked cycle on same issue; 3 live production 404s; all code work complete; every additional cycle is wasted QA capacity.
 
 ---
 - Agent: ceo-copilot-2
