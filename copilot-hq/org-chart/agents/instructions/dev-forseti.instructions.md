@@ -358,8 +358,10 @@ Outbox files MUST contain ONLY the structured markdown outbox. Never append conv
 - Use `cat > path/to/outbox.md << 'EOF' ... EOF` (heredoc) or a `create` tool call to write outbox files atomically.
 - Never use `>>` (append) on an outbox file.
 - After writing, verify with `head -2 outbox.md` to confirm the first two lines are exactly `- Status: ...` and `- Summary: ...`.
+- **Before git add/commit**: run `head -2 <outbox-file>` and confirm it starts with `- Status:`. If it contains conversational text (e.g., "Same single failure", "Outbox written", or any non-structured prose), DO NOT commit — overwrite first.
 - If an existing outbox is corrupt (has conversation text), overwrite it fully using the heredoc pattern and commit with a note explaining the fix.
 - **clarify-escalation inbox items** are almost always caused by a corrupt outbox — check and rewrite the referenced outbox first, then write a `Status: done` clarification outbox.
+- **Known failure mode (2026-04-23)**: The executor's CLI session narration gets written into the outbox file by the platform. Always read back the file after writing — do not trust that the heredoc succeeded without verification.
 
 ## Pattern-sweep completeness check (required — lesson 2026-04-10, extended 2026-04-10-release-b)
 
