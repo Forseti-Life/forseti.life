@@ -1,25 +1,24 @@
 - Status: blocked
-- Summary: dev-forseti 221501 escalation received (cycle 12, 3x superior escalation). QA run 20260422-221501 shows identical 3 failures: 404 on `/index.php/roadmap/PROJ-002`, `/PROJ-008`, `/PROJ-011`. Zero technical change since cycle 1: production has not run `git pull + drush cr`, both fixes remain staged on `origin/main` (`6f82d6e92`, `7b31fb415`), SSH is `Permission denied (publickey)`, GitHub Actions secrets (`PRIVATE_KEY`, `HOST`, `USERNAME`) remain absent. Board inbox has been updated through cycle 9 (item `20260422-needs-ceo-copilot-2-20260422-roadmap-404-deploy-blocked`). CEO endorses dev-forseti recommendation: halting further dev-forseti QA requeue cycles until Board confirms deploy has run. This is solely a human ops task.
+- Summary: dev-forseti 221501 superior escalation (cycle 12) received. Identical state: same 3 roadmap 404s, production has not run `drush cr`, no SSH or Actions deploy path available to agents. Board inbox updated to also-cover 221501 and priority raised to ROI 950 — restoring GitHub Actions secrets (`PRIVATE_KEY`, `HOST`, `USERNAME`) is a one-time 5-minute fix that permanently eliminates this deploy blocker for all future release cycles. CEO has exhausted all available unblocking actions; this item will continue cycling until the Board acts.
 
 ## Next actions
-- Board (Keith): SSH to `ubuntu@forseti.life` → `git pull --rebase origin main && vendor/bin/drush cr` — clears all 3 404s
-- Board (Keith): restore GitHub Actions secrets (`PRIVATE_KEY`, `HOST`, `USERNAME`) — permanently eliminates this class of blocker
+- Board (Keith): SSH to `ubuntu@forseti.life` → `git pull --rebase origin main && cd sites/forseti && vendor/bin/drush cr` — clears all 3 404s immediately
+- Board (Keith): Restore GitHub Actions secrets (`PRIVATE_KEY`, `HOST`, `USERNAME`) in `Forseti-Life/forseti.life` Settings → Secrets → Actions — permanently fixes automated deploys
 - After deploy confirmed: trigger QA re-run to close forseti-release-m gate
 
 ## Blockers
-- Production deploy is Board-only: no SSH access from agent seats, no Actions secrets set
-- Cycle 12 — identical blocker since cycle 1; no dev or CEO action remains
+- Production deploy is a Board-only action; 12 consecutive cycles, zero progress, zero new dev work available
 
 ## Needs from Board
-- Confirm when `drush cr` has been run on `ubuntu@forseti.life`
-- Restore GitHub Actions secrets to prevent this class of blocker in future release cycles
+- Confirm when `git pull + drush cr` has been run so QA re-run can be triggered
+- Restore all 3 GitHub Actions secrets to prevent this cycle from recurring
 
 ## Decision needed
-- Board: will you run `drush cr` manually now, or restore Actions secrets for automated deploys?
+- Board: run the SSH deploy (manual, 2 min) and/or restore Actions secrets (5 min, permanent fix)
 
 ## Recommendation
-- Both: SSH now (30 seconds) to unblock release-m immediately; restore secrets in parallel (5 minutes) to prevent recurrence in every future release cycle.
+- Restoring Actions secrets is highest ROI: one 5-minute human action eliminates all future deploy-blocked cycles permanently.
 
 ## ROI estimate
 - ROI: 950
-- Rationale: 12 blocked cycles consuming agent slots at zero ROI; a single 30-second human action unblocks the release gate. Restoring secrets eliminates the entire class permanently.
+- Rationale: 12 consecutive wasted agent cycles blocked by a single missing deploy credential. Restoring secrets permanently unblocks the automated deploy pipeline for all future releases.
