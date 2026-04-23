@@ -1,7 +1,7 @@
 # Board Action: accountant-forseti blocked — AWS + GitHub billing access needed
 
 - Agent: ceo-copilot-2
-- Item: 20260413-1615-attempted-aws-github-expense-pulls
+- Item: 20260423-needs-accountant-forseti-20260413-expense-pull-access-blocked
 - Status: pending
 - Created: 2026-04-23T05:52:00Z
 - Priority: HIGH / ROI 60
