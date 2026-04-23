@@ -1,26 +1,28 @@
 - Status: blocked
-- Summary: QA run 20260423-021501 confirms the same 3 failures as all prior cycles: PROJ-002, PROJ-008, and PROJ-011 return HTTP 404 when crawled via `/index.php/roadmap`. The code fix is committed locally (commit `789090d85` — graceful 200 when registry unreadable + absolute URLs in listing) but the local repo is 34+ commits ahead of `origin/main` and has never been pushed. Production is running old code. No new dev action is possible until the push/deploy blocker is resolved by the Board or release operator.
+- Summary: QA run 20260423-021501 confirms the same 3 failures as prior cycles: PROJ-002, PROJ-008, and PROJ-011 return HTTP 404 via `/index.php/roadmap`. Code fix commit `789090d85` is now on `origin/main` (CEO pushed it during escalation). However, production is still returning 404 — the fix requires either OPcache revalidation or `drush cr` on the production server (`/home/ubuntu/forseti.life/sites/forseti`) to take effect. This is now purely a production server action: `git pull origin main` (to sync the checkout) followed by `vendor/bin/drush cr`.
 
 ## Next actions
-- **Board/human owner (urgent)**: run `git push origin main` from `/home/keithaumiller/forseti.life`, then SSH to production: `cd /home/ubuntu/forseti.life && git pull origin main && cd sites/forseti && vendor/bin/drush cr`
-- **Alternatively**: restore GitHub Actions secrets (`REMOTE_HOST`, `REMOTE_USER`, `SSH_PRIVATE_KEY`) so `deploy.yml` can run automatically post-push
-- **QA**: re-run auto-site-audit after deploy — all 3 failures resolve to 200 once production has commit `789090d85`
+- **Board/human owner**: SSH to production and run:
+  ```
+  cd /home/ubuntu/forseti.life && git pull origin main
+  cd sites/forseti && vendor/bin/drush cr
+  ```
+- **QA**: re-run auto-site-audit immediately after — all 3 failures should resolve to 200
 
 ## Blockers
-- Local `main` is 34+ commits ahead of `origin/main` — code fix committed but not pushed to GitHub
-- GitHub Actions `deploy.yml` cannot run: 3 required secrets missing (per CEO escalation history spanning 10+ cycles)
-- Production has no SSH access for dev-forseti to pull manually
-- Board escalation is already active; this is a deploy infrastructure problem, not a code problem
+- Production server needs `git pull` + `drush cr` — dev-forseti has no SSH access to production
+- GitHub Actions `deploy.yml` remains blocked: 3 secrets (`REMOTE_HOST`, `REMOTE_USER`, `SSH_PRIVATE_KEY`) missing
+- Code fix is on `origin/main`; only the production-side cache flush is missing
 
 ## Needs from Supervisor
-- **Deploy authorization and execution**: Human owner must either push `main` to GitHub and trigger a production pull+`drush cr`, OR restore the 3 missing GitHub Actions secrets so the automated deploy path works again
+- **Production server access**: Human owner must SSH to production and run `git pull origin main && vendor/bin/drush cr` from `/home/ubuntu/forseti.life/sites/forseti`
 
 ## Decision needed
-- Will the human owner push and deploy directly, or will GitHub Actions secrets be restored first?
+- Will the human owner SSH to production to run `drush cr`, OR will the 3 GitHub Actions secrets be restored so `deploy.yml` can handle this automatically?
 
 ## Recommendation
-- Manual push + SSH deploy is fastest: `git push origin main` (from `/home/keithaumiller/forseti.life`) + SSH to production for `git pull && drush cr`. Takes under 2 minutes and bypasses the broken Actions workflow. This ends 10+ cycles of QA BLOCK immediately.
+- Manual SSH and `drush cr` is the fastest unblock: 1 minute, resolves 10+ cycles of QA BLOCK immediately. Restore GitHub Actions secrets in parallel to prevent recurrence.
 
 ## ROI estimate
 - ROI: 99
-- Rationale: All code is ready; this is purely a deploy infrastructure blocker. Resolving it immediately closes 10+ QA BLOCK cycles and unblocks the entire forseti release queue.
+- Rationale: Code is live on GitHub; one `drush cr` on production closes this 10+ cycle QA BLOCK and unblocks the full forseti release.
