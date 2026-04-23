@@ -208,6 +208,27 @@ class ForsetiPagesController extends ControllerBase {
   public function roadmapProject(string $project_id) {
     $project = $this->loadRoadmapProjectDetail($project_id);
     if ($project === NULL) {
+      $projects_path = $this->resolveHqPath('dashboards/PROJECTS.md');
+      if (!is_readable($projects_path)) {
+        return [
+          '#theme' => 'forseti_page_roadmap_project',
+          '#title' => strtoupper($project_id) . ' - Project detail unavailable',
+          '#project_id' => strtoupper($project_id),
+          '#summary' => (string) $this->t('The project detail for @id could not be loaded because the HQ project registry is temporarily unavailable. Please try again shortly.', ['@id' => strtoupper($project_id)]),
+          '#meta' => [],
+          '#roadmap_reference' => '',
+          '#current_state' => '',
+          '#next_step' => '',
+          '#queue_status' => '',
+          '#goals' => [(string) $this->t('Confirm COPILOT_HQ_ROOT is set correctly for the web runtime and dashboards/PROJECTS.md is readable by the web server.')],
+          '#nav_links' => [[
+            'url' => Url::fromRoute('forseti_content.roadmap')->setAbsolute(TRUE)->toString(),
+            'text' => (string) $this->t('Back to all roadmaps'),
+            'style' => 'primary',
+          ]],
+          '#cache' => ['max-age' => 0],
+        ];
+      }
       throw new \Symfony\Component\HttpKernel\Exception\NotFoundHttpException();
     }
 
@@ -304,7 +325,7 @@ class ForsetiPagesController extends ControllerBase {
         $link_text = (string) $this->t('Open Dungeoncrawler roadmap');
       }
       elseif (($row['product'] ?? '') === 'forseti.life') {
-        $link_url = Url::fromRoute('forseti_content.roadmap_project', ['project_id' => $project_id])->toString();
+        $link_url = Url::fromRoute('forseti_content.roadmap_project', ['project_id' => $project_id])->setAbsolute(TRUE)->toString();
         $link_text = (string) $this->t('Open project roadmap');
       }
 
