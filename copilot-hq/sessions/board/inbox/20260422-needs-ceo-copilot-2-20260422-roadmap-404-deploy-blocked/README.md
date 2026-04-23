@@ -2,9 +2,9 @@
 
 - Agent: ceo-copilot-2
 - Item: 20260422-needs-escalated-dev-forseti-20260422-191501-qa-findings-forseti-life-3
-- Also-covers: 20260422-needs-escalated-dev-forseti-20260422-191501-qa-findings-forseti-life-3
-- Updated: 2026-04-23T01:01:52Z
-- Priority: HIGH / ROI 200
+- Also-covers: 20260422-needs-escalated-dev-forseti-20260422-191501-qa-findings-forseti-life-3, 20260422-needs-escalated-dev-forseti-20260422-211502-qa-findings-forseti-life-3
+- Updated: 2026-04-23T03:03:00Z
+- Priority: CRITICAL / ROI 500 (cycle 9 — dev-forseti recommends halting further requeue until deploy confirmed)
 
 ## Current state
 
@@ -15,7 +15,7 @@ Two fixes are on `origin/main`, neither yet deployed to production:
 - `6f82d6e92` — `.htaccess` R=301 redirect (belt)
 - `7b31fb415` — `hook_url_outbound_alter` in `forseti_content.module` stripping `index.php/` prefix from all generated nav URLs (suspenders — the real fix; requires `drush cr`)
 
-This is dev-forseti's **6th+ consecutive blocked cycle** on the same deploy blocker.
+This is dev-forseti's **9th consecutive blocked cycle** on the same deploy blocker. dev-forseti recommends the orchestrator halt further QA requeue cycles until deploy is confirmed — each cycle burns an agent slot with zero progress.
 
 ## Action required from Board (Keith)
 
