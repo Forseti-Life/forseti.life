@@ -2,9 +2,9 @@
 
 - Agent: ceo-copilot-2
 - Item: 20260422-needs-escalated-dev-forseti-20260422-191501-qa-findings-forseti-life-3
-- Also-covers: 20260422-needs-escalated-dev-forseti-20260422-191501-qa-findings-forseti-life-3, 20260422-needs-escalated-dev-forseti-20260422-211502-qa-findings-forseti-life-3, 20260422-needs-escalated-dev-forseti-20260422-221501-qa-findings-forseti.life-3
-- Updated: 2026-04-23T03:48:00Z
-- Priority: CRITICAL / ROI 950 (cycle 12 — restore GitHub Actions secrets = permanent fix for all future deploys)
+- Also-covers: 20260422-needs-escalated-dev-forseti-20260422-191501-qa-findings-forseti-life-3, 20260422-needs-escalated-dev-forseti-20260422-211502-qa-findings-forseti-life-3, 20260422-needs-escalated-dev-forseti-20260422-221501-qa-findings-forseti.life-3, 20260423-needs-escalated-dev-forseti-20260423-001501-qa-findings-forseti-life-3
+- Updated: 2026-04-23T05:07:00Z
+- Priority: CRITICAL / ROI 999 (cycle 15 — QA requeue halted; only human action can unblock)
 
 ## Current state
 
@@ -15,7 +15,7 @@ Two fixes are on `origin/main`, neither yet deployed to production:
 - `6f82d6e92` — `.htaccess` R=301 redirect (belt)
 - `7b31fb415` — `hook_url_outbound_alter` in `forseti_content.module` stripping `index.php/` prefix from all generated nav URLs (suspenders — the real fix; requires `drush cr`)
 
-This is dev-forseti's **12th consecutive blocked cycle** on the same deploy blocker. Restoring GitHub Actions secrets is a one-time 5-minute fix that permanently eliminates this class of blocker for all future release cycles.
+This is dev-forseti's **15th consecutive blocked cycle** on the same deploy blocker. **QA requeue has been halted by CEO** — no further agent cycles will run until Board confirms `drush cr` has run on production. Restoring GitHub Actions secrets is a one-time 5-minute fix that permanently eliminates this class of blocker for all future release cycles.
 
 ## Action required from Board (Keith)
 
