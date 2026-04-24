@@ -26,3 +26,4 @@ Reset stale features to `ready` / clear release, or mark them `done` if implemen
 
 ## Verification
 - `bash scripts/ceo-release-health.sh` should no longer report orphaned features for `forseti`
+- Status: pending

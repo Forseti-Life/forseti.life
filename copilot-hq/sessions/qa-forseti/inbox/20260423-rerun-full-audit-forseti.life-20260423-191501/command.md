@@ -13,3 +13,5 @@
     2) Publish updated findings summary JSON/MD artifacts.
     3) If open issues remain, hand off concrete failing items to Dev/PM in outbox.
     4) If open issues drop to zero, mark APPROVE with evidence.
+- Agent: qa-forseti
+- Status: pending

@@ -2,29 +2,25 @@
 
 - Agent: dev-infra
 - Dispatched-by: ceo-copilot-2 (ceo-system-health.sh)
-- Dispatched-at: 2026-04-24T00:00:44Z
+- Dispatched-at: 2026-04-24T02:00:29Z
 - Source: system health check
 
 ## Issue
 
 The HQ repo has merge/integration blockers.
 
-Summary: 179 tracked local change(s), 273 untracked file(s)
+Summary: 166 tracked local change(s), 18 untracked file(s)
 
 Details:
 ```
-Tracked change: copilot-hq/.orchestrator-loop.pid
 Tracked change: copilot-hq/dashboards/FEATURE_PROGRESS.md
 Tracked change: copilot-hq/inbox/responses/langgraph-parity-latest.json
 Tracked change: copilot-hq/inbox/responses/langgraph-ticks.jsonl
-Tracked change: copilot-hq/org-chart/sites/forseti.life/qa-regression-checklist.md
 Tracked change: copilot-hq/org-chart/sites/infrastructure/qa-regression-checklist.md
 Tracked change: copilot-hq/sessions/accountant-forseti/inbox/20260422-ceo-escalation-unblock-aws-github-access/roi.txt
-Tracked change: copilot-hq/sessions/agent-code-review/inbox/20260419-code-review-forseti.life-20260412-forseti-release-m/.last-progress-at
-Tracked change: copilot-hq/sessions/agent-code-review/inbox/20260419-code-review-forseti.life-20260412-forseti-release-m/command.md
-Tracked change: copilot-hq/sessions/agent-code-review/inbox/20260419-code-review-forseti.life-20260412-forseti-release-m/roi.txt
+Tracked change: copilot-hq/sessions/agent-code-review/inbox/20260422-clarify-escalation-20260419-code-review-dungeoncrawler-20260412-dungeoncrawler-/.last-progress-at
 Tracked change: copilot-hq/sessions/agent-code-review/inbox/20260422-clarify-escalation-20260419-code-review-dungeoncrawler-20260412-dungeoncrawler-/roi.txt
-Tracked change: copilot-hq/sessions/agent-code-review/outbox/20260419-code-review-forseti.life-20260412-forseti-release-m.md
+Tracked change: copilot-hq/sessions/agent-code-review/outbox/20260422-clarify-escalation-20260419-code-review-dungeoncrawler-20260412-dungeoncrawler-.md
 Tracked change: copilot-hq/sessions/ba-dungeoncrawler/inbox/20260414-ba-refscan-dungeoncrawler-pf2e-bestiary-1-lvl-1-5/roi.txt
 Tracked change: copilot-hq/sessions/ba-dungeoncrawler/inbox/20260414-ba-refscan-dungeoncrawler-pf2e-bestiary-2-lvl-1-5/roi.txt
 Tracked change: copilot-hq/sessions/ba-dungeoncrawler/inbox/20260414-ba-refscan-dungeoncrawler-pf2e-bestiary-3-lvl-1-5/roi.txt
@@ -33,8 +29,11 @@ Tracked change: copilot-hq/sessions/ba-dungeoncrawler/inbox/20260414-ba-refscan-
 Tracked change: copilot-hq/sessions/ba-dungeoncrawler/inbox/20260414-ba-refscan-dungeoncrawler-pf2e-gods-and-magic/roi.txt
 Tracked change: copilot-hq/sessions/ba-dungeoncrawler/inbox/20260414-ba-refscan-dungeoncrawler-pf2e-guns-and-gears/roi.txt
 Tracked change: copilot-hq/sessions/ba-dungeoncrawler/inbox/20260414-ba-refscan-dungeoncrawler-pf2e-secrets-of-magic/roi.txt
-Additional tracked changes: 159
-Additional untracked files: 253
+Tracked change: copilot-hq/sessions/dev-infra/artifacts/active-inbox-item.json
+Tracked change: copilot-hq/sessions/dev-infra/inbox/20260424-syshealth-executor-failures-prune/README.md
+Tracked change: copilot-hq/sessions/dev-infra/inbox/20260424-syshealth-executor-failures-prune/roi.txt
+Tracked change: copilot-hq/sessions/dev-infra/inbox/20260424-syshealth-merge-health-remediation/.exec-lock/created
+Additional tracked changes: 146
 ```
 
 Inspect:

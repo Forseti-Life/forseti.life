@@ -13,3 +13,5 @@
 
     Deliverable:
     - Outbox report with explicit APPROVE/BLOCK and links to evidence artifacts.
+- Agent: qa-forseti
+- Status: pending
