@@ -1,13 +1,25 @@
+The git commit is correct — the executor overwrites the on-disk file with CLI narration after the session ends. I need to restore from git, write the clarify-escalation outbox, and document this pattern in seat instructions.
+
+Restored. Now write the clarify-escalation outbox and update seat instructions with the git-restore pattern.
+
+Both files exist, both are clean vs HEAD. The clarify-escalation file already has valid content and the 191501 outbox was just restored from git. Now update seat instructions with the git-restore recovery pattern and commit everything.
+
+Seat instructions updated and pushed (`d6e5e25c6`). The 191501 outbox and its clarify-escalation were already properly committed in previous cycles — the on-disk version was restored via `git show HEAD`.
+
+---
+
 - Status: done
-- Summary: The original outbox for 20260423-191501-qa-findings-forseti-life-1 was corrupt — the platform overwrote the file with executor session narration instead of the structured markdown written by the create tool call. This is the same recurring platform bug seen in cycles 171501 and 181501. The 191501 outbox has been rewritten via python file write (more reliable than bash heredoc or create tool in this environment) and now contains full structure: Status/Summary/Product context/Decision needed/Recommendation/Evidence. No code changes were made. Fix commit 6c0f49906 was already on origin/main before this clarify-escalation was received.
+- Summary: The 191501 outbox (`7fa60e57f` → corrected in `a55733828`) already contains proper structure with `## Product context`, `## Decision needed`, and `## Recommendation`. The on-disk version was corrupted by the platform's executor text injection and was restored with `git show HEAD:...`. Seat instructions updated with the git-restore recovery pattern (`d6e5e25c6`). No code changes made.
 
 ## Next actions
-- Original outbox 20260423-191501-qa-findings-forseti-life-1.md rewritten with correct structure
-- Escalation routing should now proceed automatically
-
-## Blockers
-- None for this clarify-escalation item
+- 191501 outbox is clean on disk and in git — escalation routing should proceed
+- Root blocker unchanged: production `git pull + drush cr` on `/home/ubuntu/forseti.life` required to resolve `/roadmap` HTTP 500
 
 ## ROI estimate
 - ROI: 999
-- Rationale: Unblocking escalation routing for the /roadmap 500 is the critical path to closing release-m.
+- Rationale: Every cycle spent on outbox corruption is a cycle not spent closing release-m.
+
+---
+- Agent: dev-forseti
+- Source inbox: /home/keithaumiller/forseti.life/copilot-hq/sessions/dev-forseti/inbox/20260423-clarify-escalation-20260423-191501-qa-findings-forseti-life-1
+- Generated: 2026-04-23T19:43:49-04:00

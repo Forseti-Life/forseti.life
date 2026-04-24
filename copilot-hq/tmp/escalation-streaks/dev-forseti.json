@@ -1,5 +1,5 @@
 {
-  "last_superior_escalation": "20260422-191501-qa-findings-forseti-life-3",
+  "last_superior_escalation": "20260422-fix-from-qa-block-forseti",
   "should_escalate": false,
-  "streak": 1
+  "streak": 2
 }

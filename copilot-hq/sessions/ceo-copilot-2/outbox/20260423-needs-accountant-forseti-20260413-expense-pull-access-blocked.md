@@ -1,28 +1,39 @@
+CEO already has a prior escalation dispatched to accountant-forseti. The Board has been previously asked for this. Now I need to create the Board inbox escalation item (it doesn't exist yet) and file the CEO outbox for this inbox item.
+
+---
+
 - Status: blocked
-- Summary: accountant-forseti is blocked on April 2026 expense reporting due to two missing external access grants: AWS IAM user `forseti` lacks `ce:GetCostAndUsage`, and the GitHub token at `/home/ubuntu/github.token` lacks org billing scope for `Forseti-Life`. CEO cannot provision either — both require human/Board action. A prior CEO escalation (`20260422-ceo-escalation-unblock-aws-github-access`) was already dispatched to accountant-forseti's inbox but the underlying access has not been granted. CEO has now created a Board inbox item with explicit step-by-step instructions for all three resolution paths.
+- Summary: accountant-forseti is blocked on April 2026 expense reporting due to two missing external access grants — AWS IAM user `forseti` lacks `ce:GetCostAndUsage`, and the GitHub token lacks org billing scope for `Forseti-Life`. CEO cannot provision either; both require Board (Keith) action. A prior CEO escalation from 20260422 is in accountant-forseti's inbox but the access was never granted. CEO has now created a Board inbox item (`20260423-needs-ceo-copilot-2-20260422-accountant-access-blocked`) with explicit step-by-step instructions for AWS IAM, GitHub token, and CSV export fallback paths.
 
 ## Next actions
-- Board grants AWS `ce:GetCostAndUsage` to IAM user `forseti`, OR provides April AWS cost CSV
-- Board provides GitHub token with `read:org` billing scope, OR provides April GitHub billing CSV
-- Board confirms authoritative income/cash source for April 2026
-- After any one of the above: accountant-forseti re-runs expense pull and posts to `dashboards/finance/expense-ledger-2026-04.md`
+- Board grants AWS `ce:GetCostAndUsage` or drops April cost CSV to artifacts folder
+- Board provides GitHub billing token or drops April billing CSV
+- Board confirms income/cash source for April 2026
+- After any path resolved: accountant-forseti re-runs pull and posts to `dashboards/finance/expense-ledger-2026-04.md`
 
 ## Blockers
-- AWS IAM user `forseti` missing `ce:GetCostAndUsage` — requires Board IAM console action
-- GitHub token lacks org billing scope — requires Board to create/provide new token
-- Income/cash source unconfirmed — requires Board decision
+- AWS `ce:GetCostAndUsage` missing from IAM user `forseti`
+- GitHub token lacks org billing scope for `Forseti-Life`
+- Income/cash source unconfirmed by Board
 
 ## Needs from Board
 1. AWS: grant `ce:GetCostAndUsage` to `arn:aws:iam::647731524551:user/forseti`, OR drop April AWS cost CSV to `sessions/accountant-forseti/artifacts/aws-april-2026-costs.csv`
-2. GitHub: create PAT with `read:org` scope for `Forseti-Life` and write to `/home/ubuntu/github-billing.token`, OR drop April GitHub billing CSV to `sessions/accountant-forseti/artifacts/github-april-2026-billing.csv`
-3. Confirm income/cash source (Stripe, bank statement, PayPal, or other)
+2. GitHub: PAT with `read:org` for `Forseti-Life` written to `/home/ubuntu/github-billing.token`, OR April billing CSV to `sessions/accountant-forseti/artifacts/github-april-2026-billing.csv`
+3. Confirm income/cash source (Stripe, bank, PayPal, or other)
 
 ## Decision needed
-- Will Board grant IAM + GitHub billing access, or provide manual CSV exports as the alternative path for April expense reporting?
+- Grant permanent IAM + GitHub billing access, or provide one-time CSV exports for April?
 
 ## Recommendation
-- Grant IAM permission + create GitHub billing token — these are permanent unlocks that make expense reporting self-service for all future months. CSV exports are a fallback if IAM/token provisioning cannot happen soon.
+- Grant IAM + token permanently — reusable across all future months, higher ROI than repeated manual exports.
 
 ## ROI estimate
 - ROI: 60
-- Rationale: April expense reporting is blocked but not release-critical. Access grants are reusable across all future monthly reports, making this a higher-leverage investment than one-time CSV exports.
+- Rationale: Access grants are a one-time unlock enabling self-service monthly reporting going forward; CSV exports are a fallback but create recurring manual work.
+
+**Commits:** `613c56013`, `0d5ff1bd6`
+
+---
+- Agent: ceo-copilot-2
+- Source inbox: /home/keithaumiller/forseti.life/copilot-hq/sessions/ceo-copilot-2/inbox/20260423-needs-accountant-forseti-20260413-expense-pull-access-blocked
+- Generated: 2026-04-23T01:54:17-04:00

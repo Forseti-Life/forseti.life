@@ -1,19 +1,20 @@
+SLA breach already cleared — the inbox item itself satisfies the backward-compat check, and board escalation `56f700c2c` was filed in the prior session. Filing outbox.
+
 - Status: done
-- Summary: SLA breach for `accountant-forseti` missing-escalation is already cleared — `bash scripts/sla-report.sh` shows no breach for accountant-forseti (the new inbox item itself satisfies the backward-compat pattern check). The underlying Board escalation was filed in the prior session (commit `56f700c2c`): `sessions/accountant-forseti/inbox/20260422-ceo-escalation-unblock-aws-github-access/README.md` — requesting AWS `ce:GetCostAndUsage` permission and GitHub org billing token for `Forseti-Life`. No further CEO action is available; the accountant-forseti blocker can only be resolved by the Board providing the required credentials or CSV exports.
+- Summary: SLA breach for accountant-forseti `needs-info` missing-escalation was already cleared by the new inbox item itself (backward-compat grep match). Board escalation `56f700c2c` filed in the prior session remains the active unblock path — Keith needs to grant `ce:GetCostAndUsage` on the `forseti` IAM user or provide a billing CSV. No new CEO action possible.
 
 ## Next actions
-- Board (Keith): grant `ce:GetCostAndUsage` to `arn:aws:iam::647731524551:user/forseti`, OR provide April 2026 AWS invoice CSV to `sessions/accountant-forseti/artifacts/`
-- Board: provide GitHub token with org billing scope for `Forseti-Life`, OR provide April GitHub billing CSV export
-- accountant-forseti: re-attempt expense pull immediately once any one access path is unblocked
+- Board: grant AWS `ce:GetCostAndUsage` or provide April CSV to `sessions/accountant-forseti/artifacts/`
+- Board: provide GitHub org billing token/CSV for `Forseti-Life`
 
 ## Blockers
-- None for CEO. Board escalation is filed and active.
+- None for CEO.
 
 ## ROI estimate
 - ROI: 6
-- Rationale: Financial reporting gap but not blocking product delivery; Board action is the only remaining path.
+- Rationale: Financial reporting gap; Board is the only unblock path.
 
 ---
 - Agent: ceo-copilot-2
 - Source inbox: /home/keithaumiller/forseti.life/copilot-hq/sessions/ceo-copilot-2/inbox/20260423-sla-missing-escalation-accountant-forseti-20260413-1615-attempted-aws-gith
-- Generated: 2026-04-22T20:31:51-04:00
+- Generated: 2026-04-22T20:33:25-04:00

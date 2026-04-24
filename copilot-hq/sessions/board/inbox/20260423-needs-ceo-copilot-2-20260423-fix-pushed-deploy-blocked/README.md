@@ -15,3 +15,4 @@ Deploy to production is still blocked: GitHub Actions secrets `PRIVATE_KEY`, `HO
 2. Run: `cd /var/www/html/forseti/sites/forseti && vendor/bin/drush cr`
 3. Run: `chmod -R o+r /home/ubuntu/forseti.life/copilot-hq/dashboards/`
 4. Restore GitHub Actions secrets (`PRIVATE_KEY`, `HOST`, `USERNAME`) in Forseti-Life/forseti.life Settings → Secrets → Actions
+- Status: pending
