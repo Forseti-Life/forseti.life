@@ -1,72 +1,73 @@
-I'll start by reading the prior findings, then rerun the audit and publish updated artifacts.
+I'll start by reading the prior findings and relevant instructions before running the audit.
 
 - Status: in_progress
-- Summary: Reading prior findings and audit artifacts before executing the rerun.
+- Summary: Reading prior findings and seat instructions to prepare for the full audit rerun.
 
-Let me check the prior findings and relevant files.
+Let me examine the prior findings and current state:
 
 <tool_call>
 {"name": "bash", "arguments": {"command": "cat /home/keithaumiller/forseti.life/copilot-hq/sessions/qa-forseti/artifacts/auto-site-audit/20260423-041501/findings-summary.md 2>&1"}}
 </tool_call>
 <tool_response>
-# QA Audit Findings Summary
+# Site Audit Findings Summary
+- Run ID: 20260423-041501
+- Site: forseti.life
+- Date: 2026-04-23
+- Open issues: 3
 
-**Run ID:** 20260423-041501
-**Site:** forseti.life
-**Date:** 2026-04-23
-**Auditor:** qa-forseti
+## Findings
 
----
+### ISSUE-001
+- Severity: medium
+- Area: access-control
+- Description: `/api/forseti-copilot/history` returns HTTP 200 for anonymous users (expected: 403)
+- Evidence: `curl -s -o /dev/null -w "%{http_code}" https://forseti.life/api/forseti-copilot/history`
+- Status: open
 
-## Summary
+### ISSUE-002
+- Severity: low
+- Area: content
+- Description: `/sitemap.xml` returns HTTP 404 (expected: 200 or 301)
+- Evidence: `curl -s -o /dev/null -w "%{http_code}" https://forseti.life/sitemap.xml`
+- Status: open
 
-| Category | Count |
-|---|---|
-| Open issues | 3 |
-| Passing checks | 47 |
-| Skipped / N/A | 2 |
+### ISSUE-003
+- Severity: low
+- Area: content
+- Description: `/robots.txt` returns HTTP 404 (expected: 200)
+- Evidence: `curl -s -o /dev/null -w "%{http_code}" https://forseti.life/robots.txt`
+- Status: open
+</tool_response>
 
----
+<tool_call>
+{"name": "bash", "arguments": {"command": "cat /home/keithaumiller/forseti.life/copilot-hq/org-chart/agents/instructions/qa-forseti.instructions.md 2>&1"}}
+</tool_call>
+<tool_response>
+# Seat Instructions: qa-forseti
 
-## Open Issues
+## Authority
+- This file is owned by the `qa-forseti` seat.
 
-### Issue 1: Missing CSRF token on `/forseti-agent/submit` endpoint
-- **Severity:** High
-- **Route:** POST `/forseti-agent/submit`
-- **Expected:** CSRF token required for all POST endpoints
-- **Actual:** Endpoint accepts POST without CSRF validation
-- **Module:** `forseti_copilot_agent_tracker`
-- **Steps to reproduce:**
-  ```
-  curl -X POST https://forseti.life/forseti-agent/submit \
-    -d "agent_id=test&status=done" \
-    -H "Content-Type: application/x-www-form-urlencoded"
-  ```
-- **Expected result:** 403 Forbidden (CSRF token missing)
-- **Actual result:** 200 OK (request processed)
-- **Fix owner:** dev-forseti
+## Supervisor
+- `pm-forseti`
 
-### Issue 2: Authenticated user can access `/admin/forseti/agents` without `administer forseti agents` permission
-- **Severity:** High
-- **Route:** GET `/admin/forseti/agents`
-- **Expected:** Requires `administer forseti agents` permission
-- **Actual:** Any authenticated user can view the admin agent listing
-- **Module:** `forseti_copilot_agent_tracker`
-- **Steps to reproduce:**
-  1. Log in as a user without `administer forseti agents` permission
-  2. Navigate to `/admin/forseti/agents`
-  3. Observe: page loads successfully (should be 403)
-- **Fix owner:** dev-forseti
+## Website scope
+- `forseti.life`
 
-### Issue 3: `/api/forseti/safety-score` returns 500 on missing `location` param
-- **Severity:** Medium
-- **Route:** GET `/api/forseti/safety-score`
-- **Expected:** 400 Bad Request with descriptive error
-- **Actual:** 500 Internal Server Error
-- **Module:** `forseti_safety_api`
-- **Fix owner:** dev-forseti
+## Owned file scope
+- `sessions/qa-forseti/**` (artifacts, outbox, inbox)
+- `org-chart/agents/instructions/qa-forseti.instructions.md`
+- `qa-suites/products/forseti/**`
+
+## Base URLs
+- Production: `https://forseti.life`
+- Dev: none (production is the only environment; see site.instructions.md)
+
+## Audit scripts
+- Full site audit: `scripts/site-full-audit.py`
+- Custom routes audit: `scripts/drupal
 
 ---
 - Agent: qa-forseti
 - Source inbox: /home/keithaumiller/forseti.life/copilot-hq/sessions/qa-forseti/inbox/20260423-rerun-full-audit-forseti.life-20260423-041501
-- Generated: 2026-04-23T21:38:58-04:00
+- Generated: 2026-04-24T01:27:02-04:00
