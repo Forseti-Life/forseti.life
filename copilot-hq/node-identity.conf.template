@@ -19,21 +19,23 @@ NODE_LABEL="My Dev Machine"
 
 # ---------------------------------------------------------------------------
 # Projects this node is responsible for (space-separated canonical keys).
-# Must match the Project key column in dashboards/PROJECTS.md
+# Must match the Project key column in dashboards/PROJECTS.md.
+# This default template assumes a JobHunter-focused worker node.
 # ---------------------------------------------------------------------------
-NODE_PROJECTS="forseti-jobhunter-automation forseti-safety-application forseti-agent-tracker dungeoncrawler infrastructure"
+NODE_PROJECTS="forseti-jobhunter-automation"
 
 # ---------------------------------------------------------------------------
 # Default agent seat used when no per-project agent is specified.
 # ---------------------------------------------------------------------------
-NODE_DEFAULT_AGENT=dev-forseti
+NODE_DEFAULT_AGENT=dev-jobhunter
 
 # ---------------------------------------------------------------------------
 # Active agents on this node (space-separated).
 # dev-sync-once.sh will ONLY claim commands addressed to these agents.
 # Commands for other agents are skipped — they belong to other nodes.
+# Keep this list aligned with the seats registered in org-chart/agents/agents.yaml.
 # ---------------------------------------------------------------------------
-NODE_ACTIVE_AGENTS="pm-forseti ba-forseti dev-forseti qa-forseti sec-analyst-forseti agent-explore-forseti agent-task-runner agent-code-review"
+NODE_ACTIVE_AGENTS="pm-jobhunter dev-jobhunter qa-jobhunter agent-task-runner agent-code-review"
 
 # ---------------------------------------------------------------------------
 # Canonical project-roadmap URL (raw GitHub content).

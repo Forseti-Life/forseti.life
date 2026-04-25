@@ -65,6 +65,7 @@ for t in data.get('teams', []):
             t.get('id',''),
             t.get('pm_agent', 'pm-' + t.get('id','')),
             t.get('qa_agent', 'qa-' + t.get('id','')),
+            t.get('dev_agent', 'dev-' + t.get('id','')),
         ]))
 PY
 )"
@@ -127,7 +128,7 @@ fi
 # ── Per-team release cycle checks ───────────────────────────────────────────
 ALL_RELEASE_IDS=""
 
-while IFS=$'\t' read -r TEAM PM_AGENT QA_AGENT; do
+while IFS=$'\t' read -r TEAM PM_AGENT QA_AGENT TEAM_DEV_AGENT; do
   [ -n "$TEAM" ] || continue
 
   echo
@@ -239,7 +240,8 @@ PY
         pass "  feature: $FEAT_NAME (status=$STATUS)"
       elif [ "$STATUS" = "in_progress" ]; then
         # Check for dev outbox (implementation)
-        DEV_AGENT="dev-$TEAM"
+        FEATURE_DEV_AGENT="$(printf '%s\n' "$TEXT" | grep -im1 '^- Dev owner:' | sed 's/^-\s*Dev owner:\s*//' | tr -d '\r' || true)"
+        DEV_AGENT="${FEATURE_DEV_AGENT:-$TEAM_DEV_AGENT}"
         HAS_IMPL="$(ls "sessions/${DEV_AGENT}/outbox/" 2>/dev/null | grep "$FEAT_NAME" | head -1 || true)"
         if [ -n "$HAS_IMPL" ]; then
           pass "  feature: $FEAT_NAME (status=$STATUS, dev outbox: $HAS_IMPL)"
@@ -326,7 +328,9 @@ PY
   if [ -n "$ORPHAN_RESULTS" ]; then
     while IFS=$'\t' read -r FEAT_NAME F_RELEASE; do
       [ -n "$FEAT_NAME" ] || continue
-      DEV_AGENT="dev-$TEAM"
+      FM="features/$FEAT_NAME/feature.md"
+      FEATURE_DEV_AGENT="$(grep -im1 '^- Dev owner:' "$FM" 2>/dev/null | sed 's/^-\s*Dev owner:\s*//' | tr -d '\r' || true)"
+      DEV_AGENT="${FEATURE_DEV_AGENT:-$TEAM_DEV_AGENT}"
       HAS_IMPL="$(ls "sessions/${DEV_AGENT}/outbox/" 2>/dev/null | grep "$FEAT_NAME" | head -1 || true)"
       if [ -n "$HAS_IMPL" ]; then
         warn "[$TEAM] ORPHAN: $FEAT_NAME (in_progress on OLD $F_RELEASE — dev outbox exists, reconcile status instead of deleting)"

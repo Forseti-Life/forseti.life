@@ -62,13 +62,15 @@ for team in teams:
 
     qa_agent = str(team.get('qa_agent') or '').strip()
     pm_agent = str(team.get('pm_agent') or '').strip()
+    ba_agent = str(team.get('ba_agent') or '').strip()
     normalized_site = str(team.get('site') or '').strip()
     team_id_out = str(team.get('id') or '').strip()
+    site_audit_enabled = bool((team.get('site_audit') or {}).get('enabled', False))
     if not qa_agent or not normalized_site:
         print(f"ERROR: team '{team_id_out}' missing qa_agent/site in registry", file=sys.stderr)
         raise SystemExit(4)
 
-    print(f"{team_id_out}\t{normalized_site}\t{qa_agent}\t{pm_agent}")
+    print(f"{team_id_out}\t{normalized_site}\t{qa_agent}\t{pm_agent}\t{ba_agent}\t{str(site_audit_enabled).lower()}")
     raise SystemExit(0)
 
 print(f"ERROR: unknown site/team alias: {query}", file=sys.stderr)
@@ -80,7 +82,7 @@ PY
   exit 2
 fi
 
-IFS=$'\t' read -r team_id site qa_agent pm_agent <<<"$lookup_result"
+IFS=$'\t' read -r team_id site qa_agent pm_agent ba_agent site_audit_enabled <<<"$lookup_result"
 
 today="$(date +%Y%m%d)"
 slug="$(echo "$release_id" | tr -cs 'A-Za-z0-9._-' '-' | sed 's/^-//;s/-$//' | cut -c1-60)"
@@ -143,6 +145,7 @@ printf '%s\n' "$(date -Iseconds)" > "tmp/release-cycle-active/${team_id}.started
 # Count features with Status: in_progress AND Release: <release_id> — if zero, skip dispatch.
 _pf_feat_count=$(grep -rl "^- Status: in_progress" features/ 2>/dev/null \
   | xargs grep -l "^- Release:.*${release_id}" 2>/dev/null | wc -l | tr -d '[:space:]' || echo 0)
+qa_preflight_queued=0
 if [ "${_pf_feat_count:-0}" -eq 0 ]; then
   echo "PREFLIGHT-SUPPRESSED: no features activated for release ${release_id}; skipping preflight dispatch."
 else
@@ -183,6 +186,9 @@ cat >"$inbox_dir/command.md" <<MD
 MD
 
 fi  # end PREFLIGHT-SUPPRESSED gate
+if [ "${_pf_feat_count:-0}" -gt 0 ]; then
+  qa_preflight_queued=1
+fi
 
 # Create PM grooming task for the next release (parallel to Dev execution this cycle)
 if [ -n "$pm_agent" ]; then
@@ -269,8 +275,10 @@ MD
 fi
 
 # Queue BA reference scan task (Stage 3 parallel track — generates pre-triage feature stubs from reference docs)
-if [ -f "scripts/ba-reference-scan.sh" ]; then
+if [ -n "${ba_agent:-}" ] && [ -f "scripts/ba-reference-scan.sh" ] && [ "$(bash scripts/is-agent-paused.sh "$ba_agent")" = "false" ]; then
   bash scripts/ba-reference-scan.sh "${team_id}" "${next_release_id}" || true
+else
+  echo "BA-REFERENCE-SCAN-SKIPPED: no active BA seat for ${team_id}"
 fi
 
 # Queue code-review inbox item for agent-code-review (GAP-CR-1 fix)
@@ -305,10 +313,16 @@ fi
 # evaluate the new release cycle as soon as it starts (rather than waiting up to
 # 2 hours for the next CEO ops cycle or up to 1 hour for the audit cron).
 # GAP-GATE2-AUDIT-TIMING: audit must be ≤1 cycle old relative to release activation.
-if [ -n "${team_id:-}" ]; then
+if [ -n "${team_id:-}" ] && [ "${site_audit_enabled:-false}" = "true" ]; then
   echo "Triggering site audit for ${team_id} at release cycle start..."
   bash scripts/site-audit-run.sh "${team_id}" </dev/null 2>&1 | tail -5 || true
+else
+  echo "SITE-AUDIT-SKIPPED: site audit disabled for ${team_id}"
 fi
 
-echo "QUEUED: ${qa_agent} ${item_id} (current release: ${release_id})"
+if [ "$qa_preflight_queued" -eq 1 ]; then
+  echo "QUEUED: ${qa_agent} ${item_id} (current release: ${release_id})"
+else
+  echo "QA_PREFLIGHT_NOT_QUEUED: ${qa_agent} ${item_id} (current release empty)"
+fi
 echo "RELEASE_CYCLE_ACTIVE: ${team_id} current=${release_id} next=${next_release_id}"

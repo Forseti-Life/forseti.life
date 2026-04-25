@@ -23,6 +23,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 
+PRODUCT_TEAMS_JSON="org-chart/products/product-teams.json"
 SITE="${1:-}"
 FEATURE_ID="${2:-}"
 
@@ -31,18 +32,58 @@ if [ -z "$SITE" ] || [ -z "$FEATURE_ID" ]; then
   exit 1
 fi
 
-# Normalise SITE: strip .life domain suffix so both "forseti" and "forseti.life"
-# resolve to the same registered agent ID (qa-forseti, not qa-forseti.life).
-SITE="${SITE%.life}"
+if ! lookup_result="$(python3 - "$PRODUCT_TEAMS_JSON" "$SITE" <<'PY'
+import json
+import sys
+
+cfg_path = sys.argv[1]
+query = (sys.argv[2] or "").strip().lower()
+query_variants = {query}
+if query.endswith(".life"):
+    query_variants.add(query[:-5])
+
+with open(cfg_path, "r", encoding="utf-8") as fh:
+    data = json.load(fh)
+
+for team in data.get("teams", []):
+    aliases = {str(a).strip().lower() for a in (team.get("aliases") or []) if str(a).strip()}
+    team_id = str(team.get("id") or "").strip()
+    team_key = team_id.lower()
+    site = str(team.get("site") or "").strip()
+    site_key = site.lower()
+    if not query_variants.intersection(aliases | {team_key, site_key, site_key.removesuffix(".life")}):
+        continue
+    qa_permissions_path = str(((team.get("site_audit") or {}).get("qa_permissions_path")) or "").strip()
+    print("\t".join([
+        team_id,
+        site,
+        str(team.get("qa_agent") or "").strip(),
+        str(team.get("dev_agent") or "").strip(),
+        str(team.get("pm_agent") or "").strip(),
+        str(team.get("qa_suite_manifest") or "").strip(),
+        qa_permissions_path,
+    ]))
+    raise SystemExit(0)
+
+print(f"ERROR: unknown site/team alias: {query}", file=sys.stderr)
+print("Update org-chart/products/product-teams.json to onboard this team.", file=sys.stderr)
+raise SystemExit(2)
+PY
+  2>&1)"; then
+  echo "$lookup_result" >&2
+  exit 2
+fi
+
+IFS=$'\t' read -r TEAM_ID SITE_NAME QA_AGENT TEAM_DEV_AGENT PM_AGENT QA_SUITE_MANIFEST QA_PERMISSIONS_PATH <<<"$lookup_result"
+SITE_SLUG="${SITE_NAME%.life}"
 
 FEATURE_DIR="features/${FEATURE_ID}"
 FEATURE_BRIEF="${FEATURE_DIR}/feature.md"
 AC_FILE="${FEATURE_DIR}/01-acceptance-criteria.md"
 TEST_PLAN="${FEATURE_DIR}/03-test-plan.md"
-QA_AGENT="qa-${SITE}"
 QA_INBOX="sessions/${QA_AGENT}/inbox"
 DEV_AGENT="$(grep -im1 "^- Dev owner:" "$FEATURE_BRIEF" | sed 's/.*Dev owner:[[:space:]]*//' | tr -d '\r' || true)"
-DEV_AGENT="${DEV_AGENT:-dev-${SITE}}"
+DEV_AGENT="${DEV_AGENT:-$TEAM_DEV_AGENT}"
 DEV_INBOX="sessions/${DEV_AGENT}/inbox"
 DATE_TAG="$(date +%Y%m%d-%H%M%S)"
 ITEM_DIR="${QA_INBOX}/${DATE_TAG}-suite-activate-${FEATURE_ID}"
@@ -75,7 +116,7 @@ fi
 RELEASE_CAP=20
 ACTIVE_RELEASE_ID=""
 ACTIVE_DIR="tmp/release-cycle-active"
-RELEASE_ID_FILE="${ACTIVE_DIR}/${SITE}.release_id"
+RELEASE_ID_FILE="${ACTIVE_DIR}/${TEAM_ID}.release_id"
 if [ -f "$RELEASE_ID_FILE" ]; then
   ACTIVE_RELEASE_ID="$(tr -d '[:space:]' < "$RELEASE_ID_FILE")"
 fi
@@ -84,21 +125,21 @@ if [ -n "$ACTIVE_RELEASE_ID" ]; then
   # Features from prior release cycles that remain in_progress must not block new activations.
   # Fallback: if ACTIVE_RELEASE_ID is empty (no active release), count globally (original behavior).
   SCOPED_COUNT="$(grep -rl "^- Status: in_progress" features/ 2>/dev/null \
-    | xargs grep -l "^- Website:.*${SITE}" 2>/dev/null \
+    | xargs grep -l "^- Website:.*${SITE_SLUG}" 2>/dev/null \
     | xargs grep -l "^- Release:.*${ACTIVE_RELEASE_ID}" 2>/dev/null \
     | wc -l | tr -d '[:space:]' || echo 0)"
   if [ "${SCOPED_COUNT:-0}" -ge "$RELEASE_CAP" ]; then
-    echo "ERROR: Release scope cap reached for site '${SITE}' ($SCOPED_COUNT/$RELEASE_CAP features in_progress for release ${ACTIVE_RELEASE_ID})." >&2
+    echo "ERROR: Release scope cap reached for team '${TEAM_ID}' ($SCOPED_COUNT/$RELEASE_CAP features in_progress for release ${ACTIVE_RELEASE_ID})." >&2
     echo "  Defer this feature to the next release or remove another feature from scope first." >&2
     exit 1
   fi
 else
   # No active release — fall back to global in_progress count for the site
   SCOPED_COUNT="$(grep -rl "^- Status: in_progress" features/ 2>/dev/null \
-    | xargs grep -l "^- Website:.*${SITE}" 2>/dev/null \
+    | xargs grep -l "^- Website:.*${SITE_SLUG}" 2>/dev/null \
     | wc -l | tr -d '[:space:]' || echo 0)"
   if [ "${SCOPED_COUNT:-0}" -ge "$RELEASE_CAP" ]; then
-    echo "ERROR: Release scope cap reached for site '${SITE}' ($SCOPED_COUNT/$RELEASE_CAP features in_progress)." >&2
+    echo "ERROR: Release scope cap reached for team '${TEAM_ID}' ($SCOPED_COUNT/$RELEASE_CAP features in_progress)." >&2
     echo "  Defer this feature to the next release or remove another feature from scope first." >&2
     exit 1
   fi
@@ -106,7 +147,7 @@ fi
 
 BOARD_REQUIRED="$(grep -im1 "^- Board security review required:" "$FEATURE_BRIEF" | sed 's/.*required:[[:space:]]*//' | tr '[:upper:]' '[:lower:]' | tr -d '[:space:]' || true)"
 if [ "$BOARD_REQUIRED" = "yes" ] || [ "$BOARD_REQUIRED" = "true" ]; then
-  BOARD_APPROVAL="sessions/pm-${SITE}/artifacts/board-security-approvals/${FEATURE_ID}.md"
+  BOARD_APPROVAL="sessions/${PM_AGENT}/artifacts/board-security-approvals/${FEATURE_ID}.md"
   if [ ! -f "$BOARD_APPROVAL" ]; then
     echo "ERROR: Feature requires board security review approval before scope activation." >&2
     echo "Missing approval artifact: $BOARD_APPROVAL" >&2
@@ -147,7 +188,7 @@ if [ -z "$SEC_EXEMPTION" ]; then
   fi
 fi
 
-echo "[pm-scope-activate] Activating: $FEATURE_ID for site: $SITE"
+echo "[pm-scope-activate] Activating: $FEATURE_ID for team: $TEAM_ID"
 echo "[pm-scope-activate] All grooming artifacts present ✓"
 
 # Write Dev implementation inbox item (durable owner handoff for the active release)
@@ -194,8 +235,8 @@ TEST_PLAN_CONTENT="$(cat "$TEST_PLAN")"
 cat > "$ITEM_DIR/command.md" <<EOF
 # Suite Activation: ${FEATURE_ID}
 
-**From:** pm-${SITE}  
-**To:** qa-${SITE}  
+**From:** ${PM_AGENT}  
+**To:** ${QA_AGENT}  
 **Date:** $(date -Iseconds)  
 
 ## Task
@@ -207,7 +248,7 @@ The feature is in scope; Dev will implement it this release. Tests must be live 
 
 ### Required actions
 
-1. **Add a suite entry to** \`qa-suites/products/${SITE}/suite.json\`  
+1. **Add a suite entry to** \`${QA_SUITE_MANIFEST}\`  
    Use the test plan below as the spec.  
    **CRITICAL: tag every new entry with \`"feature_id": "${FEATURE_ID}"\`**  
    This links the test to the living requirements doc at \`features/${FEATURE_ID}/\`.  
@@ -225,7 +266,7 @@ The feature is in scope; Dev will implement it this release. Tests must be live 
    }
    \`\`\`
 
-2. **Add permission rules to** \`org-chart/sites/${SITE}.life/qa-permissions.json\`  
+2. **Add permission rules to** \`${QA_PERMISSIONS_PATH}\`  
    For any new routes/ACL expectations.  
    **CRITICAL: tag every new rule with \`"feature_id": "${FEATURE_ID}"\`**  
    Example:

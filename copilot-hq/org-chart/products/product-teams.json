@@ -10,9 +10,9 @@
         "forseti.life",
         "forseti-life"
       ],
-      "active": true,
-      "release_preflight_enabled": true,
-      "coordinated_release_default": true,
+      "active": false,
+      "release_preflight_enabled": false,
+      "coordinated_release_default": false,
       "qa_agent": "qa-forseti",
       "dev_agent": "dev-forseti",
       "pm_agent": "pm-forseti",
@@ -39,9 +39,9 @@
         "dungeoncrawler",
         "dungeoncrawler.forseti.life"
       ],
-      "active": true,
-      "release_preflight_enabled": true,
-      "coordinated_release_default": true,
+      "active": false,
+      "release_preflight_enabled": false,
+      "coordinated_release_default": false,
       "qa_agent": "qa-dungeoncrawler",
       "dev_agent": "dev-dungeoncrawler",
       "pm_agent": "pm-dungeoncrawler",
@@ -129,11 +129,11 @@
         "job_hunter"
       ],
       "active": true,
-      "release_preflight_enabled": false,
-      "coordinated_release_default": false,
-      "qa_agent": "qa-forseti",
-      "dev_agent": "dev-forseti",
-      "pm_agent": "pm-forseti",
+      "release_preflight_enabled": true,
+      "coordinated_release_default": true,
+      "qa_agent": "qa-jobhunter",
+      "dev_agent": "dev-jobhunter",
+      "pm_agent": "pm-jobhunter",
       "qa_suite_manifest": "qa-suites/products/forseti-jobhunter-automation/suite.json",
       "site_audit": {
         "enabled": false,
@@ -174,7 +174,7 @@
         "community safety",
         "amisafe"
       ],
-      "active": true,
+      "active": false,
       "release_preflight_enabled": false,
       "coordinated_release_default": false,
       "qa_agent": "qa-forseti",
@@ -211,7 +211,7 @@
       "aliases": [
         "forseti-agent-tracker"
       ],
-      "active": true,
+      "active": false,
       "release_preflight_enabled": false,
       "coordinated_release_default": false,
       "qa_agent": "qa-forseti-agent-tracker",
@@ -236,7 +236,7 @@
         "infra",
         "infrastructure"
       ],
-      "active": true,
+      "active": false,
       "release_preflight_enabled": false,
       "coordinated_release_default": false,
       "qa_agent": "qa-infra",

@@ -54,3 +54,6 @@ llm/lib/__pycache__/
 sessions/**/artifacts/**/latest
 sessions/**/artifacts/**/latest.*
 node-identity.conf
+node-instructions.local.md
+# Machine-specific LLM routing override (never commit — contains LAN IPs/endpoints)
+llm/routing.local.yaml

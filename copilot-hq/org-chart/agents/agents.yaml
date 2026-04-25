@@ -32,46 +32,65 @@ agents:
     role: product-manager
     supervisor: ceo-copilot-2
     website_scope: ["infrastructure"]
-    notes: "Owns system administration + security backlog; scope is cross-site infrastructure and anything outside website directories."
+    paused: true
+    notes: "Paused: JobHunter-only operating mode (CEO decision 2026-04-25)."
 
   - id: ba-infra
     name: "BA (infrastructure)"
     role: business-analyst
     supervisor: pm-infra
     website_scope: ["infrastructure"]
+    paused: true
+    notes: "Paused: JobHunter-only operating mode (CEO decision 2026-04-25)."
 
   - id: dev-infra
     name: "Dev (infrastructure)"
     role: software-developer
     supervisor: pm-infra
     website_scope: ["infrastructure"]
+    paused: true
+    notes: "Paused: JobHunter-only operating mode (CEO decision 2026-04-25)."
 
   - id: qa-infra
     name: "QA (infrastructure)"
     role: tester
     supervisor: pm-infra
     website_scope: ["infrastructure"]
+    paused: true
+    notes: "Paused: JobHunter-only operating mode (CEO decision 2026-04-25)."
 
   - id: agent-explore-infra
     name: "Explore Agent (infrastructure)"
     role: software-developer
     supervisor: pm-infra
     website_scope: ["infrastructure"]
-    notes: "Acts like a user of operational/admin surfaces; asks PM questions; no code/doc edits."
+    paused: true
+    notes: "Paused: JobHunter-only operating mode (CEO decision 2026-04-25)."
 
   - id: sec-analyst-infra
     name: "Security Analyst (infrastructure)"
     role: security-analyst
     supervisor: pm-infra
     website_scope: ["infrastructure"]
-    notes: "Acts like an adversarial user of operational/admin surfaces; reports safe repro + risk to PM; no code/doc edits."
+    paused: true
+    notes: "Paused: JobHunter-only operating mode (CEO decision 2026-04-25)."
 
   - id: pm-forseti
     name: "PM (forseti.life)"
     role: product-manager
     supervisor: ceo-copilot-2
     website_scope: ["forseti.life"]
-    module_ownership: ["job_hunter", "jobhunter_tester", "company_research", "forseti_content"]
+    module_ownership: ["company_research", "forseti_content"]
+    paused: true
+    notes: "Paused: JobHunter-only operating mode (CEO decision 2026-04-25)."
+
+  - id: pm-jobhunter
+    name: "PM (JobHunter)"
+    role: product-manager
+    supervisor: ceo-copilot-2
+    website_scope: ["forseti.life"]
+    module_ownership: ["job_hunter", "jobhunter_tester"]
+    notes: "Owns JobHunter product scope, roadmap, and acceptance criteria."
 
   - id: pm-dungeoncrawler
     name: "PM (dungeoncrawler)"
@@ -79,6 +98,8 @@ agents:
     supervisor: ceo-copilot-2
     website_scope: ["dungeoncrawler"]
     module_ownership: ["dungeoncrawler_content", "dungeoncrawler_tester"]
+    paused: true
+    notes: "Paused: JobHunter-only operating mode (CEO decision 2026-04-25)."
 
   - id: pm-stlouisintegration
     name: "PM (stlouisintegration.com)"
@@ -113,12 +134,16 @@ agents:
     role: business-analyst
     supervisor: pm-forseti
     website_scope: ["forseti.life"]
+    paused: true
+    notes: "Paused: JobHunter-only operating mode (CEO decision 2026-04-25)."
 
   - id: ba-dungeoncrawler
     name: "BA (dungeoncrawler)"
     role: business-analyst
     supervisor: pm-dungeoncrawler
     website_scope: ["dungeoncrawler"]
+    paused: true
+    notes: "Paused: JobHunter-only operating mode (CEO decision 2026-04-25)."
 
   - id: ba-stlouisintegration
     name: "BA (stlouisintegration.com)"
@@ -150,12 +175,22 @@ agents:
     role: software-developer
     supervisor: pm-forseti
     website_scope: ["forseti.life"]
+    paused: true
+    notes: "Paused: JobHunter-only operating mode (CEO decision 2026-04-25)."
+
+  - id: dev-jobhunter
+    name: "Dev (JobHunter)"
+    role: software-developer
+    supervisor: pm-jobhunter
+    website_scope: ["forseti.life"]
 
   - id: dev-dungeoncrawler
     name: "Dev (dungeoncrawler)"
     role: software-developer
     supervisor: pm-dungeoncrawler
     website_scope: ["dungeoncrawler"]
+    paused: true
+    notes: "Paused: JobHunter-only operating mode (CEO decision 2026-04-25)."
 
   # QA (verification)
   - id: qa-forseti
@@ -163,12 +198,22 @@ agents:
     role: tester
     supervisor: pm-forseti
     website_scope: ["forseti.life"]
+    paused: true
+    notes: "Paused: JobHunter-only operating mode (CEO decision 2026-04-25)."
+
+  - id: qa-jobhunter
+    name: "QA (JobHunter)"
+    role: tester
+    supervisor: pm-jobhunter
+    website_scope: ["forseti.life"]
 
   - id: qa-dungeoncrawler
     name: "QA (dungeoncrawler)"
     role: tester
     supervisor: pm-dungeoncrawler
     website_scope: ["dungeoncrawler"]
+    paused: true
+    notes: "Paused: JobHunter-only operating mode (CEO decision 2026-04-25)."
 
   # Specialized Copilot execution modes (capability agents)
   - id: agent-explore
@@ -184,14 +229,16 @@ agents:
     role: software-developer
     supervisor: pm-forseti
     website_scope: ["forseti.life"]
-    notes: "Acts as a user: click around, read docs, and send needs-info questions to PM. No doc/code edits."
+    paused: true
+    notes: "Paused: JobHunter-only operating mode (CEO decision 2026-04-25)."
 
   - id: agent-explore-dungeoncrawler
     name: "Explore Agent (dungeoncrawler)"
     role: software-developer
     supervisor: pm-dungeoncrawler
     website_scope: ["dungeoncrawler"]
-    notes: "Acts as a user: play the game, try the UI, read docs, and send needs-info questions to PM. No doc/code edits."
+    paused: true
+    notes: "Paused: JobHunter-only operating mode (CEO decision 2026-04-25)."
 
   - id: agent-code-review
     name: "Code Review Agent (org-wide capability)"
@@ -225,21 +272,24 @@ agents:
     role: security-analyst
     supervisor: pm-forseti
     website_scope: ["forseti.life"]
-    notes: "Acts like an adversarial user to find breakages/abuse paths; reports questions/issues to PM. No doc/code edits."
+    paused: true
+    notes: "Paused: JobHunter-only operating mode (CEO decision 2026-04-25)."
 
   - id: sec-analyst-dungeoncrawler
     name: "Security Analyst (dungeoncrawler)"
     role: security-analyst
     supervisor: pm-dungeoncrawler
     website_scope: ["dungeoncrawler"]
-    notes: "Acts like an adversarial user to find breakages/abuse paths; reports questions/issues to PM. No doc/code edits."
+    paused: true
+    notes: "Paused: JobHunter-only operating mode (CEO decision 2026-04-25)."
 
   - id: sec-analyst-forseti-agent-tracker
     name: "Security Analyst (forseti.life / agent tracker)"
     role: security-analyst
     supervisor: pm-forseti-agent-tracker
     website_scope: ["forseti.life"]
-    notes: "Acts like an adversarial user against agent-tracker surfaces; reports questions/issues to PM. No doc/code edits."
+    paused: true
+    notes: "Paused: JobHunter-only operating mode (CEO decision 2026-04-25)."
 
   # Finance / FinOps
   - id: accountant-forseti
@@ -256,24 +306,32 @@ agents:
     supervisor: ceo-copilot-2
     website_scope: ["forseti.life"]
     module_ownership: ["copilot_agent_tracker"]
+    paused: true
+    notes: "Paused: JobHunter-only operating mode (CEO decision 2026-04-25)."
 
   - id: ba-forseti-agent-tracker
     name: "BA (forseti.life / agent tracker)"
     role: business-analyst
     supervisor: pm-forseti-agent-tracker
     website_scope: ["forseti.life"]
+    paused: true
+    notes: "Paused: JobHunter-only operating mode (CEO decision 2026-04-25)."
 
   - id: dev-forseti-agent-tracker
     name: "Dev (forseti.life / agent tracker)"
     role: software-developer
     supervisor: pm-forseti-agent-tracker
     website_scope: ["forseti.life"]
+    paused: true
+    notes: "Paused: JobHunter-only operating mode (CEO decision 2026-04-25)."
 
   - id: qa-forseti-agent-tracker
     name: "QA (forseti.life / agent tracker)"
     role: tester
     supervisor: pm-forseti-agent-tracker
     website_scope: ["forseti.life"]
+    paused: true
+    notes: "Paused: JobHunter-only operating mode (CEO decision 2026-04-25)."
 
   # Open Source Initiative — making core products publicly available
   - id: pm-open-source
@@ -281,28 +339,32 @@ agents:
     role: project-manager
     supervisor: ceo-copilot-2
     website_scope: ["open-source"]
-    notes: "Owns the open source publication roadmap. Tracks pre-publish blockers, repo readiness, community setup. Coordinates across dev/ba/qa."
+    paused: true
+    notes: "Paused: JobHunter-only operating mode (CEO decision 2026-04-25)."
 
   - id: ba-open-source
     name: "BA (Open Source Initiative)"
     role: business-analyst
     supervisor: pm-open-source
     website_scope: ["open-source"]
-    notes: "Documents what each module does for external audiences. Writes contribution guidelines, architecture overviews, and README drafts."
+    paused: true
+    notes: "Paused: JobHunter-only operating mode (CEO decision 2026-04-25)."
 
   - id: dev-open-source
     name: "Dev (Open Source Initiative)"
     role: software-developer
     supervisor: pm-open-source
     website_scope: ["open-source"]
-    notes: "Executes repo extraction, git history scrubbing (BFG), secrets removal, CI setup, and local dev environment tooling."
+    paused: true
+    notes: "Paused: JobHunter-only operating mode (CEO decision 2026-04-25)."
 
   - id: qa-open-source
     name: "QA (Open Source Initiative)"
     role: tester
     supervisor: pm-open-source
     website_scope: ["open-source"]
-    notes: "Validates that each repo can be cloned and stood up from docs alone on a clean machine. Runs CI smoke tests."
+    paused: true
+    notes: "Paused: JobHunter-only operating mode (CEO decision 2026-04-25)."
 
   # Architect — hands-on technical builder (human-directed, no org operations)
   - id: architect-copilot

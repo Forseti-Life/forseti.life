@@ -1,0 +1,15 @@
+# Local Node Instructions
+
+This file is optional and machine-local.
+
+- Copy to `node-instructions.local.md` on the current node if you want persona loads to include local node guidance.
+- `node-instructions.local.md` is gitignored and must never contain secrets.
+- `scripts/agent-instructions.sh` will append this file after the standard org/role/site/seat instruction stack.
+
+## Example: JobHunter worker node
+
+- This machine is the `dev-laptop` worker node for JobHunter execution.
+- Primary project: `forseti-jobhunter-automation`.
+- Primary seats on this node: `pm-jobhunter`, `dev-jobhunter`, `qa-jobhunter`.
+- Do not perform master-node dispatch or project assignment from this machine.
+- Do not claim commands for seats outside `NODE_ACTIVE_AGENTS`.

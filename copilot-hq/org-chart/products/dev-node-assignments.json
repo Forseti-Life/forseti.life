@@ -7,7 +7,7 @@
   "projects": {
     "forseti-jobhunter-automation": {
       "target": "dev-laptop",
-      "target_agent": "dev-forseti",
+      "target_agent": "dev-jobhunter",
       "module": "job_hunter",
       "website": "forseti.life",
       "execute": "dispatch-only"

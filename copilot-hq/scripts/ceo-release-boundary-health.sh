@@ -60,8 +60,10 @@ def release_feature_count(features_root: Path, release_id: str) -> int:
     return count
 
 
-def ready_features(features_root: Path, team_id: str) -> list[str]:
+def ready_features(features_root: Path, team_id: str, site: str, aliases: list[str]) -> list[str]:
     matches: list[str] = []
+    lowered_aliases = [a.lower() for a in aliases if a]
+    site_key = site.lower()
     for fm in sorted(features_root.glob("*/feature.md")):
         text = fm.read_text(encoding="utf-8", errors="ignore")
         website = ""
@@ -71,7 +73,9 @@ def ready_features(features_root: Path, team_id: str) -> list[str]:
                 website = line.split(":", 1)[1].strip().lower()
             elif line.startswith("- Status:"):
                 status = line.split(":", 1)[1].strip()
-        if status == "ready" and team_id in website:
+        feature_id = fm.parent.name.lower()
+        alias_match = any(alias in feature_id for alias in lowered_aliases)
+        if status == "ready" and (team_id in website or site_key in website or alias_match):
             matches.append(fm.parent.name)
     return matches
 
@@ -143,6 +147,8 @@ failures = 0
 for team in sorted(teams, key=lambda entry: entry.get("id", "")):
     team_id = (team.get("id") or "").strip()
     pm_agent = (team.get("pm_agent") or f"pm-{team_id}").strip()
+    team_site = str(team.get("site") or "").strip()
+    team_aliases = [str(a).strip() for a in (team.get("aliases") or [])]
     release_file = active_dir / f"{team_id}.release_id"
     next_file = active_dir / f"{team_id}.next_release_id"
     sentinel_file = pushed_dir / f"{team_id}.advanced"
@@ -192,7 +198,7 @@ for team in sorted(teams, key=lambda entry: entry.get("id", "")):
         print(f"✅ PASS [{team_id}] scope-activate item already queued for {release_id}")
         continue
 
-    ready = ready_features(features_root, team_id)
+    ready = ready_features(features_root, team_id, team_site, team_aliases)
     if ready:
         item_dir = write_scope_activate_item(root, pm_agent, team_id, release_id, ready)
         print(f"✅ PASS [{team_id}] queued immediate scope-activate item: {item_dir.name}")

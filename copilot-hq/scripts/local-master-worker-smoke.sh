@@ -28,7 +28,7 @@ fi
 echo "[3/6] Creating master command envelope"
 DEV_DISPATCH_EXECUTE=dispatch-only \
   ./scripts/dev-dispatch-task.sh \
-  dev-forseti \
+  dev-jobhunter \
   "$WORK_ITEM" \
   "$TOPIC" \
   "$TEXT" >/dev/null
@@ -56,7 +56,7 @@ if [ ! -f "$processed_file" ]; then
   exit 1
 fi
 
-inbox_dir="$(ls -dt sessions/dev-forseti/inbox/*"$TOPIC"* 2>/dev/null | head -n 1 || true)"
+inbox_dir="$(ls -dt sessions/dev-jobhunter/inbox/*"$TOPIC"* 2>/dev/null | head -n 1 || true)"
 if [ -z "$inbox_dir" ] || [ ! -d "$inbox_dir" ]; then
   echo "FAIL: worker inbox item not created for topic: $TOPIC"
   exit 1
@@ -67,7 +67,7 @@ if ! grep -qi '^\- target: dev-laptop' "$inbox_dir/command.md"; then
   echo "FAIL: command metadata missing target in $inbox_dir/command.md"
   exit 1
 fi
-if ! grep -qi '^\- target_agent: dev-forseti' "$inbox_dir/command.md"; then
+if ! grep -qi '^\- target_agent: dev-jobhunter' "$inbox_dir/command.md"; then
   echo "FAIL: command metadata missing target_agent in $inbox_dir/command.md"
   exit 1
 fi

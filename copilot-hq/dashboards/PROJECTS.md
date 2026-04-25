@@ -31,7 +31,7 @@ Each row is a registered machine in the fleet. Nodes self-identify by `Node ID`.
 | Node ID | Role | Hostname | Environment | Owner | Status |
 |---|---|---|---|---|---|
 | production | master | forseti.life | AWS EC2 Ubuntu 24.04 | ceo-copilot-2 | active |
-| dev-laptop | worker | pop-os | Keith's Dev Laptop (Pop!_OS) | dev-forseti | active |
+| dev-laptop | worker | pop-os | Keith's Dev Laptop (Pop!_OS) | dev-jobhunter | active |
 
 ### Project Assignments
 
@@ -39,7 +39,7 @@ Which node/agent handles each project. CEO edits this to reassign work between n
 
 | Project key | Target node | Target agent | Website | Module | Execute |
 |---|---|---|---|---|---|
-| forseti-jobhunter-automation | dev-laptop | dev-forseti | forseti.life | job_hunter | dispatch-only |
+| forseti-jobhunter-automation | dev-laptop | dev-jobhunter | forseti.life | job_hunter | dispatch-only |
 | forseti-safety-application | dev-laptop | dev-forseti | forseti.life | forseti_content | dispatch-only |
 | forseti-agent-tracker | dev-laptop | dev-forseti-agent-tracker | forseti.life | copilot_agent_tracker | dispatch-only |
 | dungeoncrawler | dev-laptop | dev-dungeoncrawler | dungeoncrawler | dungeoncrawler_content | dispatch-only |
