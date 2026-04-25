@@ -20,3 +20,4 @@ Coordinate with pm-forseti on release readiness. Update gate signoff or escalate
 - Gate advancement or explicit blocker documented
 
 ## ROI: 999 (unblocks stagnation alert)
+- Status: pending

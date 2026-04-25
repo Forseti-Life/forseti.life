@@ -57,6 +57,17 @@ Comprehensive guide to the job application submission process including:
 
 **When to read:** Planning integrations, understanding submission workflows, or implementing new submission features.
 
+#### [LangGraph Workflow Roadmap](LANGGRAPH_WORKFLOW_ROADMAP.md) 🧭
+**Audience:** Developers, Architects, Product Managers
+
+Future-state and migration plan for workflow orchestration:
+- Hybrid architecture (LangGraph orchestration + deterministic ATS handlers)
+- Field registry and answer policy framework
+- Phased migration strategy with feature flags and promotion gates
+- Greenhouse-first cutover plan, acceptance criteria, and risk controls
+
+**When to read:** Planning roadmap execution for submission workflow reliability and ATS scalability.
+
 #### [Frequently Asked Questions](FAQ.md) ❓
 **Audience:** End Users, Administrators, Developers, Support Staff
 
@@ -248,10 +259,11 @@ Complete permissions reference and role configuration guide:
 1. [Architecture](ARCHITECTURE.md) - System design and structure
 2. [Process Flow](PROCESS_FLOW.md) - Technical flows
 3. [Submission Process](SUBMISSION_PROCESS.md) - Integration points and dependencies
-4. [Job Discovery Guide](../JOB_DISCOVERY_README.md) - Scraping implementation
-5. [Google Job Search API Integration](GOOGLE_JOB_SEARCH_API_INTEGRATION.md) - Google for Jobs integration guide
-6. [Google Jobs Integration Architecture](GOOGLE_JOBS_INTEGRATION_ARCHITECTURE.md) - Implementation architecture
-7. [FAQ](FAQ.md) - Technical questions
+4. [LangGraph Workflow Roadmap](LANGGRAPH_WORKFLOW_ROADMAP.md) - Future-state orchestration and migration plan
+5. [Job Discovery Guide](../JOB_DISCOVERY_README.md) - Scraping implementation
+6. [Google Job Search API Integration](GOOGLE_JOB_SEARCH_API_INTEGRATION.md) - Google for Jobs integration guide
+7. [Google Jobs Integration Architecture](GOOGLE_JOBS_INTEGRATION_ARCHITECTURE.md) - Implementation architecture
+8. [FAQ](FAQ.md) - Technical questions
 
 ### For Business Analysts / Product Managers
 1. [Module README](../README.md) - Feature overview

@@ -32,7 +32,7 @@ async function apply(payload, buildResult) {
     });
   }
 
-  const { browser, page } = await launchBrowser({ headless: options.headless !== false });
+  const { browser, page } = await launchBrowser({ ...options, headless: options.headless !== false });
   const fields_filled   = [];
   const fields_skipped  = [];
   let screenshot_pre    = null;
@@ -43,39 +43,53 @@ async function apply(payload, buildResult) {
     await page.goto(apply_url, { waitUntil: 'networkidle', timeout: 30000 });
     await humanDelay(800, 1500);
 
-    // Check for CAPTCHA
-    const captchaDetected = await page.$('[data-callback], .g-recaptcha, iframe[src*="recaptcha"], iframe[src*="hcaptcha"]');
-    if (captchaDetected) {
-      return buildResult({
-        outcome: 'manual_required',
-        reason:  'captcha_detected',
-        error:   'CAPTCHA detected on Greenhouse apply page.',
-        instructions: 'This job requires completing a CAPTCHA. Please apply manually.',
-        apply_url,
-      });
+    // Some Greenhouse boards (job-boards.greenhouse.io) show a landing view
+    // with an "Apply" CTA and only render the form after clicking it.
+    const firstNameField = '#first_name, #app_first_name, #job_application_first_name, input[name="first_name"], input[name*="first_name"]';
+    let hasVisibleForm = await page.$(firstNameField);
+    if (!hasVisibleForm) {
+      const openApplySelectors = [
+        'button:has-text("Apply")',
+        'button[aria-label="Apply"]',
+        'a:has-text("Apply")',
+        '[data-testid*="apply" i]',
+      ];
+
+      for (const selector of openApplySelectors) {
+        const cta = await page.$(selector);
+        if (cta) {
+          await cta.click().catch(() => {});
+          await humanDelay(600, 1200);
+          hasVisibleForm = await page.$(firstNameField);
+          if (hasVisibleForm) {
+            break;
+          }
+        }
+      }
     }
 
     // ── Personal Information ────────────────────────────────────────────────
 
     // First name
-    if (await fillIfExists(page, '#first_name', personal_info.first_name)) fields_filled.push('first_name');
+    if (await fillFirstMatch(page, ['#first_name', '#app_first_name', '#job_application_first_name', 'input[name="first_name"]', 'input[name*="first_name"]'], personal_info.first_name)) fields_filled.push('first_name');
     else fields_skipped.push('first_name');
 
     // Last name
-    if (await fillIfExists(page, '#last_name', personal_info.last_name)) fields_filled.push('last_name');
+    if (await fillFirstMatch(page, ['#last_name', '#app_last_name', '#job_application_last_name', 'input[name="last_name"]', 'input[name*="last_name"]'], personal_info.last_name)) fields_filled.push('last_name');
     else fields_skipped.push('last_name');
 
     // Email
-    if (await fillIfExists(page, '#email', personal_info.email)) fields_filled.push('email');
+    if (await fillFirstMatch(page, ['#email', '#app_email', '#job_application_email', 'input[name="email"]', 'input[name*="email"]'], personal_info.email)) fields_filled.push('email');
     else fields_skipped.push('email');
 
     // Phone
-    if (await fillIfExists(page, '#phone', personal_info.phone)) fields_filled.push('phone');
+    if (await fillFirstMatch(page, ['#phone', '#app_phone', '#job_application_phone', 'input[name="phone"]', 'input[name*="phone"]'], personal_info.phone)) fields_filled.push('phone');
     else fields_skipped.push('phone');
 
     // LinkedIn
     const linkedinSelectors = [
       '#job_application_linkedin_profile_url',
+      '#linkedin',
       'input[name*="linkedin"]',
       'input[placeholder*="LinkedIn"]',
     ];
@@ -87,10 +101,28 @@ async function apply(payload, buildResult) {
 
     // Location (city, state)
     const locationValue = [personal_info.city, personal_info.state].filter(Boolean).join(', ');
-    if (locationValue && await fillIfExists(page, '#location', locationValue)) {
+    const locationSelectors = ['#location', '#app_location', '#job_application_location', '#candidate-location', 'input[name="location"]', 'input[name*="location"]'];
+    if (locationValue && await fillFirstMatch(page, locationSelectors, locationValue)) {
+      fields_filled.push('location');
+    } else if (locationValue && await fillReactSelect(page, '#candidate-location', locationValue)) {
       fields_filled.push('location');
     } else {
       fields_skipped.push('location');
+    }
+
+    // Website / portfolio (optional)
+    const websiteSelectors = [
+      '#website',
+      '#job_application_website',
+      'input[name*="website"]',
+      'input[name*="portfolio"]',
+      'input[placeholder*="website" i]',
+      'input[placeholder*="portfolio" i]',
+    ];
+    if (personal_info.website_url && await fillFirstMatch(page, websiteSelectors, personal_info.website_url)) {
+      fields_filled.push('website_url');
+    } else {
+      fields_skipped.push('website_url');
     }
 
     await humanDelay(400, 800);
@@ -141,6 +173,39 @@ async function apply(payload, buildResult) {
     }
 
     // ── Submit ──────────────────────────────────────────────────────────────
+    const captchaSelectors = '[data-callback], .g-recaptcha, iframe[src*="recaptcha"], iframe[src*="hcaptcha"]';
+    let captchaDetected = await page.$(captchaSelectors);
+    if (captchaDetected) {
+      if (options.allow_manual_captcha === true) {
+        const captchaWaitMs = Number(options.captcha_wait_ms || 300000);
+        const start = Date.now();
+        while ((Date.now() - start) < captchaWaitMs) {
+          await humanDelay(800, 1200);
+          captchaDetected = await page.$(captchaSelectors);
+          if (!captchaDetected) {
+            break;
+          }
+        }
+        if (captchaDetected) {
+          return buildResult({
+            outcome: 'manual_required',
+            reason:  'captcha_timeout',
+            error:   'CAPTCHA was not completed within the allowed wait time.',
+            instructions: 'Complete CAPTCHA and retry, or apply manually.',
+            apply_url,
+          });
+        }
+      } else {
+        return buildResult({
+          outcome: 'manual_required',
+          reason:  'captcha_detected',
+          error:   'CAPTCHA detected on Greenhouse apply page.',
+          instructions: 'This job requires completing a CAPTCHA. Please apply manually.',
+          apply_url,
+        });
+      }
+    }
+
     const submitBtn = await page.$('input[type=submit], button[type=submit], button[data-submit], .submit_button');
     if (!submitBtn) {
       screenshot_post = await takeScreenshot(page, screenshot_dir, application_id, 'post');
@@ -225,6 +290,28 @@ async function fillFirstMatch(page, selectors, value) {
     if (await fillIfExists(page, sel, value)) return true;
   }
   return false;
+}
+
+async function fillReactSelect(page, containerSelector, value) {
+  if (!value) return false;
+  const container = await page.$(containerSelector);
+  if (!container) return false;
+
+  // Try common react-select input patterns within this field.
+  const input = await container.$('input')
+    || await page.$(`${containerSelector} input`)
+    || await page.$('input[id*="candidate-location"]');
+
+  if (!input) return false;
+
+  await input.click().catch(() => {});
+  await input.fill('');
+  await input.type(String(value), { delay: 55 + Math.random() * 45 });
+  await humanDelay(350, 700);
+  await page.keyboard.press('ArrowDown').catch(() => {});
+  await page.keyboard.press('Enter').catch(() => {});
+  await humanDelay(250, 500);
+  return true;
 }
 
 async function selectPreferNotToSay(page) {

@@ -50,6 +50,10 @@ async function launchBrowser(options = {}) {
     ],
   };
 
+  if (options.channel) {
+    launchOptions.channel = options.channel;
+  }
+
   // Allow caller (or env) to override the browser executable — required when
   // the Playwright-managed browser is not accessible to the running user (e.g.
   // www-data in a web request cannot reach /home/user/.cache/ms-playwright/).

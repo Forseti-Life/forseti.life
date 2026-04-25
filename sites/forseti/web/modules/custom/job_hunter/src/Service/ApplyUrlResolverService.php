@@ -167,6 +167,28 @@ class ApplyUrlResolverService {
   public function resolve(array $job): array {
     $steps = [];
 
+    // If job_url is already a direct ATS endpoint, prefer it over apply_options.
+    // This avoids stale apply_options links overriding the canonical job URL.
+    $job_url = $job['job_url'] ?? '';
+    if (!empty($job_url)) {
+      $clean_job_url = $this->stripUtmParams($job_url);
+      $job_url_platform = $this->detectPlatformFromUrl($clean_job_url);
+      if ($job_url_platform !== 'unknown' && $job_url_platform !== 'aggregator') {
+        $steps[] = [
+          'action' => 'job_url_direct_ats_preferred',
+          'url' => $clean_job_url,
+          'platform' => $job_url_platform,
+        ];
+        return [
+          'url'              => $clean_job_url,
+          'ats_platform'     => $job_url_platform,
+          'selected_option'  => 'job_url_direct',
+          'resolution_steps' => $steps,
+          'confidence'       => 'high',
+        ];
+      }
+    }
+
     // Parse apply_options JSON.
     $apply_options = [];
     if (!empty($job['apply_options'])) {

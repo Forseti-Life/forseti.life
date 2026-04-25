@@ -20,3 +20,4 @@ Create or handle the required escalation so the blocked item is actively owned.
 
 ## Verification
 - `bash scripts/sla-report.sh` no longer reports `BREACH missing-escalation: qa-forseti`
+- Status: pending
