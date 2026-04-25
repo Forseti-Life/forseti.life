@@ -1,5 +1,5 @@
-- Status: needs-info
-- Summary: Expense source decisions are now in place for April 2026: AWS Billing and GitHub billing are the authoritative expense sources for the accounting project. I moved forward with live integration pulls against both sources. The AWS attempt used the active IAM credentials successfully enough to identify the caller as `arn:aws:iam::647731524551:user/forseti`, but the pull was blocked by missing `ce:GetCostAndUsage`. The GitHub attempt authenticated as `keithaumiller` using `/home/ubuntu/github.token`, but the available token does not currently have the org billing access needed for `Forseti-Life`, and the tested org billing endpoints returned `410` moved responses. April expense reporting therefore remains blocked by access, not by source ambiguity.
+- Status: blocked
+- Summary: Expense source decisions are now in place for April 2026: AWS Billing and GitHub billing are the authoritative expense sources for the accounting project. I moved forward with live integration pulls against both sources. The AWS attempt used the active IAM credentials successfully enough to identify the caller as `arn:aws:iam::647731524551:user/forseti`, but the pull was blocked by missing `ce:GetCostAndUsage`. The GitHub attempt authenticated as `keithaumiller` using `/home/ubuntu/github.token`, but the available token does not currently have the org billing access needed for `Forseti-Life`, and the tested org billing endpoints returned `410` moved responses. April expense reporting therefore remains blocked by access, not by source ambiguity. **Escalation dispatched 2026-04-22 to Board for access unblock decisions; awaiting Board action.**
 
 ## Source systems used
 - AWS Billing / Cost Explorer
@@ -28,10 +28,8 @@
 - AWS IAM user `forseti` lacks `ce:GetCostAndUsage`.
 - GitHub token lacks the org billing access needed for `Forseti-Life`.
 - Income and cash sources remain unconfirmed.
+- **Escalation status (2026-04-22)**: CEO escalated to Board for access decisions. See `sessions/accountant-forseti/inbox/20260422-ceo-escalation-unblock-aws-github-access/README.md` for full context and Board decisions pending.
 
-## Needs from CEO
-- Decision / action needed:
-  1. Grant or provide an AWS expense pull path that exposes April Cost Explorer or invoice data.
-  2. Provide GitHub org billing access for `Forseti-Life` or an equivalent export path.
-  3. Confirm the authoritative income and cash evidence sources.
-- Evidence: `sessions/accountant-forseti/artifacts/20260413-expense-pull-attempts.md`
+## Needs from Supervisor
+- N/A — escalation routed to Board via CEO (2026-04-22); awaiting Board decision on 3 access blockers (ROI: 581).
+- Post-unblock action: accountant-forseti will re-run expense pulls immediately and populate `dashboards/finance/expense-ledger-2026-04.md`.
