@@ -523,10 +523,10 @@ repo_root  = routing_p.parent.parent
 # Import shared routing lib; fall back to inline resolution if not yet available.
 sys.path.insert(0, str(repo_root))
 try:
-    from llm.lib.routing import load_yaml, resolve_model_file
+    from llm.lib.routing import load_merged_routing, resolve_model_file
     try:
-        routing  = load_yaml(routing_p)
-        manifest = load_yaml(manifest_p)
+        routing  = load_merged_routing(routing_p)
+        manifest = load_merged_routing(manifest_p)
     except ImportError:
         sys.exit(0)  # pyyaml not installed yet
     agents_yaml = repo_root / "org-chart" / "agents" / "agents.yaml"
@@ -563,9 +563,9 @@ repo_root = routing_p.parent.parent
 
 sys.path.insert(0, str(repo_root))
 try:
-    from llm.lib.routing import load_yaml, resolve_model_id
+    from llm.lib.routing import load_merged_routing, resolve_model_id
     try:
-        routing = load_yaml(routing_p)
+        routing = load_merged_routing(routing_p)
     except ImportError:
         sys.exit(0)
     agents_yaml = repo_root / "org-chart" / "agents" / "agents.yaml"
@@ -598,6 +598,10 @@ resolve_backend() {
       fi
       echo "ERROR: routing requested bedrock for ${AGENT_ID} but bedrock-assist is not executable: $BEDROCK_ASSIST_SCRIPT" >&2
       return 1
+      ;;
+    remote-openai)
+      echo "remote-openai"
+      return 0
       ;;
   esac
 
@@ -652,6 +656,8 @@ if [ -n "${AGENT_EXEC_MAX_CONCURRENT:-}" ]; then
   MAX_CONCURRENT_EXECUTIONS="${AGENT_EXEC_MAX_CONCURRENT}"
 elif [ "$GENAI_BACKEND" = "bedrock" ]; then
   MAX_CONCURRENT_EXECUTIONS="${AGENT_EXEC_MAX_CONCURRENT_BEDROCK:-2}"
+elif [ "$GENAI_BACKEND" = "remote-openai" ]; then
+  MAX_CONCURRENT_EXECUTIONS="${AGENT_EXEC_MAX_CONCURRENT_REMOTE_OPENAI:-4}"
 else
   MAX_CONCURRENT_EXECUTIONS=6
 fi
@@ -754,6 +760,81 @@ set_copilot_rate_limit_cooldown() {
   echo "THROTTLE: recorded Copilot rate-limit cooldown for ${seconds}s (until=${until})" >&2
 }
 
+run_remote_openai() {
+  local prompt="$1"
+  local routing_path="$ROOT_DIR/llm/routing.yaml"
+  local py
+  py="$(command -v python3 2>/dev/null || true)"
+  [ -x "$ROOT_DIR/llm/.venv/bin/python3" ] && py="$ROOT_DIR/llm/.venv/bin/python3"
+  [ -n "${LLM_PYTHON_BIN:-}" ] && [ -x "${LLM_PYTHON_BIN}" ] && py="$LLM_PYTHON_BIN"
+  [ -n "$py" ] || { echo ""; return; }
+  local _pf
+  _pf="$(mktemp /tmp/agent-prompt-XXXXXX.txt)"
+  printf '%s' "$prompt" > "$_pf"
+  "$py" - "$_pf" "$ROOT_DIR" "$SESSION_ID" "$routing_path" <<'REMOTE_OPENAI_PY'
+import sys, json, pathlib, urllib.request, urllib.error
+prompt_file  = pathlib.Path(sys.argv[1])
+prompt_text  = prompt_file.read_text(encoding="utf-8", errors="replace")
+try: prompt_file.unlink()
+except Exception: pass
+repo_root    = pathlib.Path(sys.argv[2])
+session_id   = sys.argv[3]
+routing_p    = pathlib.Path(sys.argv[4])
+sys.path.insert(0, str(repo_root))
+try:
+    from llm.lib.routing import load_merged_routing, resolve_remote_openai_config
+    routing          = load_merged_routing(routing_p)
+    base_url, model  = resolve_remote_openai_config(routing)
+except Exception:
+    base_url, model  = "http://192.168.0.194:1234/v1", "qwen/qwen3.6-35b-a3b"
+cache_dir    = repo_root / "llm" / "cache" / "sessions"
+cache_dir.mkdir(parents=True, exist_ok=True)
+session_file = cache_dir / f"{session_id}.json"
+try:
+    history = json.loads(session_file.read_text(encoding="utf-8")) if session_file.exists() else []
+except Exception:
+    history = []
+# Truncate prompt to fit the model's context window (configurable via routing.local.yaml)
+_max_chars = int(routing.get("endpoints", {}).get("remote-openai", {}).get("max_prompt_chars", 12000))
+if len(prompt_text) > _max_chars:
+    _h = _max_chars // 4; _t = _max_chars - _h
+    prompt_text = (prompt_text[:_h] +
+                   f"\n\n[... {len(prompt_text) - _max_chars} chars of instruction context truncated for local LLM context window ...]\n\n" +
+                   prompt_text[-_t:])
+# Do not accumulate session history in remote-openai mode — each agent call is stateless here
+# (History would re-introduce the large prompt and overflow the context window)
+# No system role — LM Studio n_keep bug; embed instruction in user message
+messages = [{"role": "user", "content": "You are an AI agent. Respond ONLY with the required output format. Do NOT include any thinking process or preamble. Start your response DIRECTLY with '- Status:'." + chr(10) + chr(10) + prompt_text}]
+payload  = json.dumps({"model": model, "messages": messages, "temperature": 0.2, "max_tokens": 512}).encode()
+req = urllib.request.Request(
+    f"{base_url}/chat/completions",
+    data=payload,
+    headers={"Content-Type": "application/json"},
+    method="POST",
+)
+try:
+    with urllib.request.urlopen(req, timeout=300) as resp:
+        data    = json.loads(resp.read())
+    content = data["choices"][0]["message"]["content"]
+    # Strip Qwen3 chain-of-thought blocks: <think>...</think> tags OR prose preamble
+    if "</think>" in content:
+        content = content[content.index("</think>") + len("</think>"):].strip()
+    for _m in ["- Status:", "**- Status:**", "**Status:**"]:
+        _i = content.find(_m)
+        if _i > 0:
+            content = content[_i:].strip()
+            break
+    session_file.write_text(json.dumps((messages + [{"role": "assistant", "content": content}])[-40:]), encoding="utf-8")
+    print(content)
+except urllib.error.HTTPError as e:
+    print(f"REMOTE_OPENAI_ERROR: HTTP {e.code}: {e.read().decode(errors='replace')[:300]}", file=sys.stderr)
+    sys.exit(2)
+except Exception as _exc:
+    print(f"REMOTE_OPENAI_ERROR: {_exc}", file=sys.stderr)
+    sys.exit(2)
+REMOTE_OPENAI_PY
+}
+
 run_copilot() {
   local prompt="$1"
   # Enforce inter-call rate-limit delay before hitting the Copilot API.
@@ -796,16 +877,18 @@ run_bedrock() {
 run_primary_backend() {
   local prompt="$1"
   case "$GENAI_BACKEND" in
-    local) echo "" ;;
-    copilot) run_copilot "$prompt" ;;
-    bedrock) run_bedrock "$prompt" ;;
+    local)         echo "" ;;
+    copilot)       run_copilot "$prompt" ;;
+    bedrock)       run_bedrock "$prompt" ;;
+    remote-openai) run_remote_openai "$prompt" ;;
     *) echo "" ;;
   esac
 }
 
 backend_retry_delay_seconds() {
   case "$GENAI_BACKEND" in
-    bedrock) echo "${BEDROCK_RETRY_DELAY_SECONDS:-15}" ;;
+    bedrock)       echo "${BEDROCK_RETRY_DELAY_SECONDS:-15}" ;;
+    remote-openai) echo "${REMOTE_OPENAI_RETRY_DELAY_SECONDS:-3}" ;;
     *) echo 0 ;;
   esac
 }

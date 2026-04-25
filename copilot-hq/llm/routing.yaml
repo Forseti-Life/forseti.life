@@ -6,12 +6,15 @@
 #   2. roles.<role>        — role-based default
 #   3. default             — org-wide fallback
 #
-# Supported live backends here are:
-#   - copilot
-#   - bedrock
+# Supported backends:
+#   - copilot       — GitHub Copilot CLI
+#   - bedrock       — AWS Bedrock via bedrock-assist
+#   - remote-openai — OpenAI-compatible remote endpoint (LAN/local server)
+#                     configured in llm/routing.local.yaml (gitignored)
+#   - <model-id>    — local GGUF model (must exist in llm/models/)
 #
-# Local model routing remains available in the codebase, but HQ runtime policy
-# is to route seats between Copilot and Bedrock only.
+# Machine-specific overrides go in llm/routing.local.yaml (gitignored).
+# That file overlays this one at runtime — local keys win.
 
 version: "1"
 

@@ -10,6 +10,8 @@ Public API:
   resolve_model_id(agent_id, routing, agents_yaml_path=None) -> str
   resolve_model_file(agent_id, routing, manifest, models_dir) -> Path | None
   load_yaml(path) -> dict
+  load_merged_routing(routing_path) -> dict
+  resolve_remote_openai_config(routing) -> tuple[str, str]
   parse_agents_yaml(path) -> dict[str, dict]
 """
 
@@ -24,6 +26,48 @@ def load_yaml(path: Path) -> dict:
     """Load a YAML file. Requires pyyaml."""
     import yaml  # intentional late import — callers handle ImportError
     return yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+
+
+def load_merged_routing(routing_path: Path) -> dict:
+    """
+    Load routing.yaml and merge routing.local.yaml on top if it exists.
+
+    routing.local.yaml is gitignored and machine-specific. It wins on every key
+    it defines (default, roles, agents) and may also add an ``endpoints`` block
+    for remote backends (e.g. remote-openai).
+    """
+    base = load_yaml(routing_path)
+    local_path = routing_path.parent / (routing_path.stem + ".local.yaml")
+    if not local_path.exists():
+        return base
+    local = load_yaml(local_path)
+    merged: dict = dict(base)
+    if "default" in local:
+        merged["default"] = local["default"]
+    if "roles" in local:
+        merged_roles = dict(merged.get("roles") or {})
+        merged_roles.update(local["roles"])
+        merged["roles"] = merged_roles
+    if "agents" in local:
+        merged_agents = dict(merged.get("agents") or {})
+        merged_agents.update(local["agents"])
+        merged["agents"] = merged_agents
+    if "endpoints" in local:
+        merged["endpoints"] = local.get("endpoints") or {}
+    return merged
+
+
+def resolve_remote_openai_config(routing: dict) -> tuple:
+    """
+    Return (base_url, model) for the remote-openai endpoint from routing config.
+
+    Reads routing["endpoints"]["remote-openai"] which is written by
+    routing.local.yaml. Falls back to localhost:1234 if not configured.
+    """
+    endpoint = (routing.get("endpoints") or {}).get("remote-openai") or {}
+    base_url = endpoint.get("base_url") or "http://localhost:1234/v1"
+    model = endpoint.get("model") or "default"
+    return base_url, model
 
 
 def parse_agents_yaml(path: Path) -> Dict[str, dict]:
