@@ -28,6 +28,7 @@ fi
 
 # Sync private repo -> public mirror working tree using denylist policy.
 rsync -a --delete --delete-excluded \
+  --filter='P .git/' \
   --exclude-from="$IGNORE_FILE" \
   "$ROOT_DIR/" "$TARGET_DIR/"
 
