@@ -64,18 +64,26 @@ def ready_features(features_root: Path, team_id: str, site: str, aliases: list[s
     matches: list[str] = []
     lowered_aliases = [a.lower() for a in aliases if a]
     site_key = site.lower()
+    site_only_team = team_id.lower() == site_key or site_key in lowered_aliases or site_key.removesuffix(".life") in lowered_aliases
     for fm in sorted(features_root.glob("*/feature.md")):
         text = fm.read_text(encoding="utf-8", errors="ignore")
         website = ""
+        module = ""
+        owner = ""
         status = ""
         for line in text.splitlines():
             if line.startswith("- Website:"):
                 website = line.split(":", 1)[1].strip().lower()
+            elif line.startswith("- Module:"):
+                module = line.split(":", 1)[1].strip().lower()
+            elif line.startswith("- Owner:") or line.startswith("- PM owner:"):
+                owner = line.split(":", 1)[1].strip().lower()
             elif line.startswith("- Status:"):
                 status = line.split(":", 1)[1].strip()
         feature_id = fm.parent.name.lower()
-        alias_match = any(alias in feature_id for alias in lowered_aliases)
-        if status == "ready" and (team_id in website or site_key in website or alias_match):
+        alias_match = any(alias in feature_id or alias in module or alias in owner for alias in lowered_aliases)
+        site_match = site_only_team and site_key and site_key in website
+        if status == "ready" and (team_id in website or alias_match or site_match):
             matches.append(fm.parent.name)
     return matches
 
@@ -112,7 +120,31 @@ def write_scope_activate_item(root: Path, pm_agent: str, team_id: str, release_i
     item_id = f"{datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S')}-scope-activate-{release_id}"
     item_dir = inbox / item_id
     item_dir.mkdir(parents=True, exist_ok=True)
-    feats_list = "\n".join(f"- `{feat}`" for feat in ready_feats[:15]) if ready_feats else "- (check features/ dir)"
+    if ready_feats:
+        feats_list = "\n".join(f"- `{feat}`" for feat in ready_feats[:15])
+        task = (
+            f"Release `{release_id}` just became the current release and has zero activated features.\n"
+            f"Activate features now using:\n\n"
+            f"```bash\nbash scripts/pm-scope-activate.sh {team_id} <feature_id>\n```\n\n"
+            f"Cap is **10 features** (auto-close fires at 10 or 24h). "
+            f"Activate your highest-priority `ready` features first.\n\n"
+            f"## Ready features (up to 10)\n{feats_list}\n\n"
+            f"## Done when\n"
+            f"At least 3 features activated; dev/QA inbox items exist for each.\n"
+        )
+    else:
+        task = (
+            f"Release `{release_id}` just became the current release and has zero activated features.\n"
+            f"No team-matching `ready` features were found for `{team_id}`.\n\n"
+            f"## Objective\n\n"
+            f"Keep the current release empty unless a **team-matching** feature becomes `ready`.\n"
+            f"Do **not** pull scope from unrelated backlog items just to fill the release.\n"
+            f"Use this release window to make the next shippable {team_id} feature ready, then activate it with:\n\n"
+            f"```bash\nbash scripts/pm-scope-activate.sh {team_id} <feature_id>\n```\n\n"
+            f"## Done when\n"
+            f"1. You confirm there are no team-matching `ready` features right now.\n"
+            f"2. You keep grooming the next release so the first true `{team_id}` `ready` feature can be activated immediately.\n"
+        )
     readme = (
         f"# Scope Activate: {release_id}\n\n"
         f"- Agent: {pm_agent}\n"
@@ -121,14 +153,7 @@ def write_scope_activate_item(root: Path, pm_agent: str, team_id: str, release_i
         f"- Date: {datetime.now(timezone.utc).strftime('%Y-%m-%d')}\n"
         f"- Dispatched by: ceo-release-boundary-health.sh (release advanced with 0 features scoped)\n\n"
         f"## Task\n\n"
-        f"Release `{release_id}` just became the current release and has zero activated features.\n"
-        f"Activate features now using:\n\n"
-        f"```bash\nbash scripts/pm-scope-activate.sh {team_id} <feature_id>\n```\n\n"
-        f"Cap is **10 features** (auto-close fires at 10 or 24h). "
-        f"Activate your highest-priority `ready` features first.\n\n"
-        f"## Ready features (up to 10)\n{feats_list}\n\n"
-        f"## Done when\n"
-        f"At least 3 features activated; dev/QA inbox items exist for each.\n"
+        f"{task}"
     )
     (item_dir / "README.md").write_text(readme, encoding="utf-8")
     (item_dir / "roi.txt").write_text("900\n", encoding="utf-8")
@@ -199,11 +224,11 @@ for team in sorted(teams, key=lambda entry: entry.get("id", "")):
         continue
 
     ready = ready_features(features_root, team_id, team_site, team_aliases)
+    item_dir = write_scope_activate_item(root, pm_agent, team_id, release_id, ready)
     if ready:
-        item_dir = write_scope_activate_item(root, pm_agent, team_id, release_id, ready)
         print(f"✅ PASS [{team_id}] queued immediate scope-activate item: {item_dir.name}")
     else:
-        print(f"⚠️  WARN [{team_id}] current release {release_id} has 0 activated features and no ready backlog")
+        print(f"✅ PASS [{team_id}] queued empty-release objective item: {item_dir.name}")
 
 if failures:
     raise SystemExit(1)
