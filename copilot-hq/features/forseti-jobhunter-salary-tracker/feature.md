@@ -4,7 +4,7 @@
 - Module: job_hunter
 - Status: in_progress
 - Priority: high
-- Release: 20260412-forseti-release-m
+- Release: 20260412-forseti-release-n
 - Author: pm-forseti
 - Date: 2026-04-19
 

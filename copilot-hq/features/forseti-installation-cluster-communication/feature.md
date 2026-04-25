@@ -3,7 +3,7 @@
 - Status: in_progress
 - Website: forseti.life
 - Module: forseti_cluster (new)
-- Release: 20260412-forseti-release-l
+- Release: 20260412-forseti-release-n
 - Owner: pm-forseti
 - Project: PROJ-011
 

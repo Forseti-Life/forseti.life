@@ -1,6 +1,6 @@
 # Feature Progress
 
-Generated: 2026-04-25T15:52:45Z
+Generated: 2026-04-25T16:26:54Z
 
 | Work item | Website | Module | Status | Priority | PM | Dev | QA |
 |-----------|---------|--------|--------|----------|----|-----|----|
@@ -223,7 +223,7 @@ Generated: 2026-04-25T15:52:45Z
 | forseti-langgraph-console-run-session | forseti.life | copilot_agent_tracker | shipped | P1 |  |  |  |
 | forseti-langgraph-console-test-sections | forseti.life | copilot_agent_tracker | done | high |  |  |  |
 | forseti-langgraph-ui | forseti.life | copilot_agent_tracker | shipped | P1 |  |  |  |
-| forseti-mobile-google-maps-key-hardening | forseti.life | forseti-mobile | ready | P0 |  |  |  |
+| forseti-mobile-google-maps-key-hardening | forseti.life | forseti-mobile | in_progress | P0 |  |  |  |
 | forseti-open-source-initiative |  |  | in_progress | high |  |  |  |
 | forseti-qa-e2e-auth-pipeline | forseti.life | qa_suites | shipped | low |  |  |  |
 | forseti-qa-suite-fill-agent-tracker | forseti.life | qa_suites | shipped | medium |  |  |  |

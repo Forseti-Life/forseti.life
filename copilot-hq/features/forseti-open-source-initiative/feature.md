@@ -1,6 +1,6 @@
 # Feature: forseti-open-source-initiative
 
-- Status: in_progress
+- Status: ready
 - Owner: pm-open-source
 - Executive sponsor: ceo-copilot-2
 - Priority: high

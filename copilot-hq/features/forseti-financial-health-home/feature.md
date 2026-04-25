@@ -1,6 +1,6 @@
 # Feature: forseti-financial-health-home
 
-- Status: in_progress
+- Status: ready
 - Website: forseti.life
 - Module: institutional_management (MVP host)
 - Release: 20260412-forseti-release-l

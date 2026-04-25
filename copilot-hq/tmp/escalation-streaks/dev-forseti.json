@@ -1,5 +1,4 @@
 {
-  "last_superior_escalation": "20260422-fix-from-qa-block-forseti",
-  "should_escalate": false,
-  "streak": 2
+  "last_superior_escalation": "20260425-120159-impl-forseti-mobile-google-maps-key-hardening",
+  "streak": 0
 }
