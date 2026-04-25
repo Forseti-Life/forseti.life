@@ -1,10 +1,10 @@
 # Feature: forseti-mobile-google-maps-key-hardening
 
-- Status: in_progress
+- Status: ready
 - Website: forseti.life
 - Module: forseti-mobile
 - Release: 
-20260412-forseti-release-n
+- Owner: pm-forseti
 - Priority: P0
 
 ## Summary
@@ -71,6 +71,4 @@ See `01-acceptance-criteria.md`.
 - Team may accidentally commit local key files without explicit ignore/check safeguards.
 
 ## Latest updates
-
-- 2026-04-25: Scoped into release — suite activation sent to QA.
 - 2026-04-19: Feature created and groomed following exposed key incident.
