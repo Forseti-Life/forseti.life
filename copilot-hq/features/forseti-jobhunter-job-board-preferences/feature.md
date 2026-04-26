@@ -6,9 +6,9 @@
 - Status: in_progress
 - Release: 20260412-forseti-release-l
 - Feature type: enhancement
-- PM owner: pm-forseti
-- Dev owner: dev-forseti
-- QA owner: qa-forseti
+- PM owner: pm-jobhunter
+- Dev owner: dev-jobhunter
+- QA owner: qa-jobhunter
 - Priority: low
 - Source: CEO feature brief request 2026-04-12 (release-e)
 

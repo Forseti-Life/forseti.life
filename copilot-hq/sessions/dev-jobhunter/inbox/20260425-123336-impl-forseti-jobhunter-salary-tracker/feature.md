@@ -2,10 +2,10 @@
 
 - Work item id: forseti-jobhunter-salary-tracker
 - Module: job_hunter
-- Status: in_progress
+- Status: ready
 - Priority: high
-- Release: 20260412-forseti-release-n
-- Author: pm-forseti
+- Release: 20260412-forseti-release-m
+- Author: pm-jobhunter
 - Date: 2026-04-19
 
 ## Summary
@@ -34,9 +34,3 @@ As a job hunter, I want to track my salary expectations against actual offers so
 ## Out of scope
 - Multi-currency conversion; just store and display the user's currency code.
 - Tax calculations.
-
-- PM owner: pm-jobhunter
-
-- Dev owner: dev-jobhunter
-
-- QA owner: qa-jobhunter

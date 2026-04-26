@@ -3,14 +3,14 @@
 - Work item id: forseti-jobhunter-interview-scheduler
 - Website: forseti.life
 - Module: job_hunter
-- Status: in_progress
-- Release: 20260412-forseti-release-n
+- Status: ready
+- Release: 20260412-forseti-release-m
 - Feature type: new-feature
 - PM owner: pm-jobhunter
 - Dev owner: dev-jobhunter
 - QA owner: qa-jobhunter
 - Priority: high
-- Source: pm-forseti grooming 2026-04-19
+- Source: pm-jobhunter grooming 2026-04-19
 
 ## Summary
 

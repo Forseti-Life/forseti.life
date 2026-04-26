@@ -2,10 +2,10 @@
 
 - Work item id: forseti-jobhunter-rejection-analysis
 - Module: job_hunter
-- Status: in_progress
+- Status: ready
 - Priority: medium
-- Release: 20260412-forseti-release-n
-- Author: pm-forseti
+- Release: 20260412-forseti-release-m
+- Author: pm-jobhunter
 - Date: 2026-04-19
 
 ## Summary
@@ -33,9 +33,3 @@ As a job hunter, I want to categorize and review why applications were rejected 
 ## Out of scope
 - AI-based pattern analysis.
 - Comparison across users.
-
-- PM owner: pm-jobhunter
-
-- Dev owner: dev-jobhunter
-
-- QA owner: qa-jobhunter
