@@ -3,7 +3,7 @@
 - Work item id: forseti-jobhunter-resume-version-labeling
 - Website: forseti.life
 - Module: job_hunter
-- Status: in_progress
+- Status: done
 - Release: 20260412-forseti-release-n
 - Feature type: enhancement
 - PM owner: pm-jobhunter
