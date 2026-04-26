@@ -3,7 +3,7 @@
 - Work item id: forseti-jobhunter-job-board-preferences
 - Website: forseti.life
 - Module: job_hunter
-- Status: in_progress
+- Status: done
 - Release: 20260412-forseti-release-l
 - Feature type: enhancement
 - PM owner: pm-jobhunter
