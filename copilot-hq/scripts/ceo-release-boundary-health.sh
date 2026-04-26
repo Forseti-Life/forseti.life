@@ -37,6 +37,7 @@ fi
 python3 - "$PRODUCT_TEAMS_JSON" "$ACTIVE_DIR" "$PUSHED_DIR" "$ROOT_DIR" <<'PY'
 import json
 import re
+import subprocess
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -114,9 +115,44 @@ def has_groom_item(root: Path, pm_agent: str, next_release_id: str) -> bool:
     return False
 
 
+def write_jobhunter_empty_release_item(root: Path, pm_agent: str, release_id: str) -> Path | None:
+    script = root / "scripts" / "jobhunter-empty-release-directive.sh"
+    if not script.is_file():
+        return None
+    try:
+        result = subprocess.run(
+            ["bash", str(script), release_id, pm_agent],
+            cwd=root,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+    except subprocess.CalledProcessError as exc:
+        print(f"⚠️  WARN [forseti-jobhunter-automation] jobhunter empty-release directive helper failed: {exc.stderr.strip() or exc}")
+        return None
+
+    created = ""
+    for line in reversed(result.stdout.splitlines()):
+        line = line.strip()
+        if line:
+            created = line
+            break
+    if not created:
+        return None
+
+    created_path = Path(created)
+    if not created_path.is_absolute():
+        created_path = root / created_path
+    return created_path
+
+
 def write_scope_activate_item(root: Path, pm_agent: str, team_id: str, release_id: str, ready_feats: list[str]) -> Path:
     inbox = root / "sessions" / pm_agent / "inbox"
     inbox.mkdir(parents=True, exist_ok=True)
+    if not ready_feats and team_id == "forseti-jobhunter-automation":
+        special_item = write_jobhunter_empty_release_item(root, pm_agent, release_id)
+        if special_item is not None:
+            return special_item
     item_id = f"{datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S')}-scope-activate-{release_id}"
     item_dir = inbox / item_id
     item_dir.mkdir(parents=True, exist_ok=True)
