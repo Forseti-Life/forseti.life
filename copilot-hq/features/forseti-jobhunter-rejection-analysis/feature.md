@@ -2,7 +2,7 @@
 
 - Work item id: forseti-jobhunter-rejection-analysis
 - Module: job_hunter
-- Status: in_progress
+- Status: done
 - Priority: medium
 - Release: 20260412-forseti-release-n
 - Author: pm-forseti

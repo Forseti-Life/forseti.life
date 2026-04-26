@@ -2,7 +2,7 @@
 
 - Work item id: forseti-jobhunter-salary-tracker
 - Module: job_hunter
-- Status: in_progress
+- Status: done
 - Priority: high
 - Release: 20260412-forseti-release-n
 - Author: pm-forseti
