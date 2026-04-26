@@ -17,6 +17,54 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 
 SITE="${1:-forseti}"
+resolve_team_metadata() {
+  python3 - "$1" <<'PY'
+import json
+import pathlib
+import sys
+
+site = (sys.argv[1] or '').strip().lower()
+p = pathlib.Path('org-chart/products/product-teams.json')
+if not p.exists():
+    raise SystemExit(0)
+
+data = json.loads(p.read_text(encoding='utf-8'))
+teams = data.get('teams', data) if isinstance(data, dict) else data
+
+def aliases_for(team):
+    vals = set()
+    tid = str(team.get('id') or '').strip().lower()
+    tsite = str(team.get('site') or '').strip().lower()
+    if tid:
+        vals.add(tid)
+    if tsite:
+        vals.add(tsite)
+        vals.add(tsite.replace('.life', ''))
+    for a in (team.get('aliases') or []):
+        a = str(a).strip().lower()
+        if a:
+            vals.add(a)
+    return vals
+
+for t in teams:
+    if site not in aliases_for(t):
+        continue
+    print(f"{str(t.get('id') or '').strip()}\t{str(t.get('site') or '').strip()}\t{str(t.get('pm_agent') or '').strip()}")
+    break
+PY
+}
+
+TEAM_ID=""
+SITE_DISPLAY="$SITE"
+PM_AGENT="pm-${SITE}"
+if team_meta="$(resolve_team_metadata "$SITE")" && [ -n "$team_meta" ]; then
+  IFS=$'\t' read -r TEAM_ID SITE_DISPLAY PM_AGENT_RESOLVED <<<"$team_meta"
+  if [ -n "${PM_AGENT_RESOLVED:-}" ]; then
+    PM_AGENT="$PM_AGENT_RESOLVED"
+  fi
+fi
+SITE_FALLBACK="${SITE_DISPLAY%.life}"
+
 resolve_drupal_root() {
   local site="$1"
   local configured_roots
@@ -78,17 +126,20 @@ PY
     done <<< "$configured_roots"
   fi
 
-  case "$site" in
-    forseti)
+  local fallback_site="${SITE_FALLBACK:-$site}"
+  case "$fallback_site" in
+    forseti|forseti.life)
       candidates+=(
         "/var/www/html/forseti"
+        "/home/keithaumiller/forseti.life/sites/forseti"
         "/home/ubuntu/forseti.life/sites/forseti"
         "/home/ubuntu/forseti.life/sites/forseti"
       )
       ;;
-    dungeoncrawler)
+    dungeoncrawler|dungeoncrawler.life)
       candidates+=(
         "/var/www/html/dungeoncrawler"
+        "/home/keithaumiller/forseti.life/sites/dungeoncrawler"
         "/home/ubuntu/forseti.life/sites/dungeoncrawler"
         "/home/ubuntu/forseti.life/sites/dungeoncrawler"
       )
@@ -148,7 +199,6 @@ if [ -n "$DRUPAL_WEB_ROOT" ]; then
 fi
 
 DRUSH="$DRUPAL_ROOT/vendor/bin/drush"
-PM_AGENT="pm-${SITE}"
 INBOX_DIR="sessions/${PM_AGENT}/inbox"
 DATE_TAG="$(date +%Y%m%d-%H%M%S)"
 BATCH_ITEM="${INBOX_DIR}/${DATE_TAG}-suggestion-intake"
