@@ -933,7 +933,27 @@ else
 fi
 # Normalize common formatting mistakes (e.g. "- **Status:** done", "Status: done").
 response="$(printf '%s\n' "$response" | sed -E 's/^[[:space:]]*-[[:space:]]+\\*\\*Status\\*\\*:/- Status:/I; s/^[[:space:]]*-[[:space:]]+\\*\\*Summary\\*\\*:/- Summary:/I; s/^[[:space:]]*\\*\\*Status\\*\\*:/- Status:/I; s/^[[:space:]]*\\*\\*Summary\\*\\*:/- Summary:/I; s/^[[:space:]]*Status:/- Status:/I; s/^[[:space:]]*Summary:/- Summary:/I')"
-if ! echo "$response" | grep -qiE '^\- Status:'; then
+response_contract_ok() {
+  local body="$1"
+  local status_line summary_line status_value summary_value
+
+  status_line="$(printf '%s\n' "$body" | grep -iE '^\- Status:' | head -n 1 || true)"
+  summary_line="$(printf '%s\n' "$body" | grep -iE '^\- Summary:' | head -n 1 || true)"
+  [ -n "$status_line" ] || return 1
+  [ -n "$summary_line" ] || return 1
+
+  status_value="$(printf '%s' "$status_line" | sed 's/^- Status: *//I' | tr '[:upper:]' '[:lower:]' | tr -d '\r' | tr ' _' '-')"
+  case "$status_value" in
+    done|in-progress|blocked|needs-info) ;;
+    *) return 1 ;;
+  esac
+
+  summary_value="$(printf '%s' "$summary_line" | sed 's/^- Summary: *//I' | tr -d '\r')"
+  [ -n "$(printf '%s' "$summary_value" | tr -d '[:space:]')" ] || return 1
+  return 0
+}
+
+if ! response_contract_ok "$response"; then
   if [ "$is_qa_findings_item" -eq 1 ]; then
     response=$'- Status: in_progress\n- Summary: QA findings item acknowledged; remediation work is in progress and will continue on this queue item until fixes are completed and handed off to QA.\n\n## Next actions\n- Review findings-summary evidence and prioritize highest-impact failures first.\n- Apply fixes and post clear QA handoff markers after each fix.\n- Continue until all required tests pass, then mark done.\n\n## Blockers\n- None right now.\n\n## Needs from CEO\n- N/A\n\n'"$response"
   else
@@ -959,17 +979,18 @@ if ! echo "$response" | grep -qiE '^\- Status:'; then
           echo "WARN: Copilot rate-limited for ${AGENT_ID}; stopping retries for this cycle" >&2
           break
         fi
-        if echo "$response" | grep -qiE '^\- Status:'; then
+        if response_contract_ok "$response"; then
           break
         fi
       done
     fi
-    # If still no valid status header after retries, write a failure record instead of a stub outbox.
-    if ! echo "$response" | grep -qiE '^\- Status:'; then
+    # If the response still fails the outbox contract after retries, write a
+    # failure record instead of a stub outbox and preserve the inbox item.
+    if ! response_contract_ok "$response"; then
       mkdir -p "tmp/executor-failures"
       _fail_ts="$(date +%Y%m%dT%H%M%S)"
       _fail_file="tmp/executor-failures/${_fail_ts}-${AGENT_ID}.md"
-      _failure_reason="agent response missing required status header after ${_retry_count} retries"
+      _failure_reason="agent response failed required outbox contract after ${_retry_count} retries"
       if [ "$_saw_rate_limit" -eq 1 ]; then
         _failure_reason="Copilot rate limit encountered; executor preserved inbox item for a later retry"
       fi
