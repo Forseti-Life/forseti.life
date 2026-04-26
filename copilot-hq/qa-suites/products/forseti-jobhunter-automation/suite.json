@@ -7,18 +7,74 @@
   ],
   "notes": [
     "This product slice runs on the canonical Forseti site and reuses the shared Forseti QA seat.",
-    "Independent release preflight is disabled for this product; executable QA remains tracked under the parent Forseti suite until a dedicated sub-product suite is warranted."
+    "Release-active JobHunter features are tracked here so qa-jobhunter can close suite-activation work without relying on the parent suite manifest alone."
   ],
   "suites": [
     {
-      "id": "inherit-forseti-suite",
-      "label": "QA handled by parent Forseti suite",
-      "type": "meta",
-      "command": "bash -c 'echo \"Executable QA for this product slice is covered by qa-suites/products/forseti/suite.json\"'",
+      "id": "forseti-jobhunter-contact-referral-tracker-suite-activation",
+      "label": "Contact/referral tracker coverage is live in the parent Forseti suite and ACL manifest",
+      "type": "audit",
+      "feature_id": "forseti-jobhunter-contact-referral-tracker",
+      "command": "python3 -c \"from pathlib import Path; feature='forseti-jobhunter-contact-referral-tracker'; suite=Path('qa-suites/products/forseti/suite.json').read_text(); perms=Path('org-chart/sites/forseti.life/qa-permissions.json').read_text(); assert f'\\\"feature_id\\\": \\\"{feature}\\\"' in suite; assert f'\\\"feature_id\\\": \\\"{feature}\\\"' in perms; print('PASS')\"",
       "artifacts": [
         "stdout"
       ],
-      "required_for_release": false
+      "required_for_release": true
+    },
+    {
+      "id": "forseti-jobhunter-interview-scheduler-suite-activation",
+      "label": "Interview scheduler QA surfaces are registered and feature-tagged",
+      "type": "static",
+      "feature_id": "forseti-jobhunter-interview-scheduler",
+      "command": "python3 -c \"from pathlib import Path; routes=Path('/home/keithaumiller/forseti.life/sites/forseti/web/modules/custom/job_hunter/job_hunter.routing.yml').read_text(); app=Path('/home/keithaumiller/forseti.life/sites/forseti/web/modules/custom/job_hunter/src/Controller/ApplicationSubmissionController.php').read_text(); twig=Path('/home/keithaumiller/forseti.life/sites/forseti/web/modules/custom/job_hunter/templates/my-jobs.html.twig').read_text(); perms=Path('org-chart/sites/forseti.life/qa-permissions.json').read_text(); assert '/jobhunter/interview-rounds/{job_id}/save' in routes; assert 'loadInterviewScheduledBadges' in app; assert 'interview-scheduled' in twig; assert '\\\"feature_id\\\": \\\"forseti-jobhunter-interview-scheduler\\\"' in perms; print('PASS')\"",
+      "artifacts": [
+        "stdout"
+      ],
+      "required_for_release": true
+    },
+    {
+      "id": "forseti-jobhunter-salary-tracker-suite-activation",
+      "label": "Salary tracker QA surfaces are registered and feature-tagged",
+      "type": "static",
+      "feature_id": "forseti-jobhunter-salary-tracker",
+      "command": "python3 -c \"from pathlib import Path; routes=Path('/home/keithaumiller/forseti.life/sites/forseti/web/modules/custom/job_hunter/job_hunter.routing.yml').read_text(); company=Path('/home/keithaumiller/forseti.life/sites/forseti/web/modules/custom/job_hunter/src/Controller/CompanyController.php').read_text(); app=Path('/home/keithaumiller/forseti.life/sites/forseti/web/modules/custom/job_hunter/src/Controller/ApplicationSubmissionController.php').read_text(); perms=Path('org-chart/sites/forseti.life/qa-permissions.json').read_text(); assert '/jobhunter/jobs/{job_id}/salary-expectation/save' in routes; assert 'salary-delta' in company; assert 'salary-comparison' in app; assert '\\\"feature_id\\\": \\\"forseti-jobhunter-salary-tracker\\\"' in perms; print('PASS')\"",
+      "artifacts": [
+        "stdout"
+      ],
+      "required_for_release": true
+    },
+    {
+      "id": "forseti-jobhunter-rejection-analysis-suite-activation",
+      "label": "Rejection analysis QA surfaces are registered and feature-tagged",
+      "type": "static",
+      "feature_id": "forseti-jobhunter-rejection-analysis",
+      "command": "python3 -c \"from pathlib import Path; routes=Path('/home/keithaumiller/forseti.life/sites/forseti/web/modules/custom/job_hunter/job_hunter.routing.yml').read_text(); company=Path('/home/keithaumiller/forseti.life/sites/forseti/web/modules/custom/job_hunter/src/Controller/CompanyController.php').read_text(); app=Path('/home/keithaumiller/forseti.life/sites/forseti/web/modules/custom/job_hunter/src/Controller/ApplicationSubmissionController.php').read_text(); perms=Path('org-chart/sites/forseti.life/qa-permissions.json').read_text(); assert '/jobhunter/jobs/{job_id}/close' in routes; assert 'rejection_reason' in company; assert 'rejection-reasons' in app; assert 'rejection-stage-chart' in app; assert '\\\"feature_id\\\": \\\"forseti-jobhunter-rejection-analysis\\\"' in perms; print('PASS')\"",
+      "artifacts": [
+        "stdout"
+      ],
+      "required_for_release": true
+    },
+    {
+      "id": "forseti-jobhunter-resume-version-labeling-suite-activation",
+      "label": "Resume version labeling coverage is live in the parent Forseti suite and ACL manifest",
+      "type": "audit",
+      "feature_id": "forseti-jobhunter-resume-version-labeling",
+      "command": "python3 -c \"from pathlib import Path; feature='forseti-jobhunter-resume-version-labeling'; suite=Path('qa-suites/products/forseti/suite.json').read_text(); perms=Path('org-chart/sites/forseti.life/qa-permissions.json').read_text(); assert f'\\\"feature_id\\\": \\\"{feature}\\\"' in suite; assert f'\\\"feature_id\\\": \\\"{feature}\\\"' in perms; print('PASS')\"",
+      "artifacts": [
+        "stdout"
+      ],
+      "required_for_release": true
+    },
+    {
+      "id": "forseti-jobhunter-resume-version-tracker-suite-activation",
+      "label": "Resume version tracker coverage is live in the parent Forseti suite and ACL manifest",
+      "type": "audit",
+      "feature_id": "forseti-jobhunter-resume-version-tracker",
+      "command": "python3 -c \"from pathlib import Path; feature='forseti-jobhunter-resume-version-tracker'; suite=Path('qa-suites/products/forseti/suite.json').read_text(); perms=Path('org-chart/sites/forseti.life/qa-permissions.json').read_text(); assert f'\\\"feature_id\\\": \\\"{feature}\\\"' in suite; assert f'\\\"feature_id\\\": \\\"{feature}\\\"' in perms; print('PASS')\"",
+      "artifacts": [
+        "stdout"
+      ],
+      "required_for_release": true
     }
   ]
 }

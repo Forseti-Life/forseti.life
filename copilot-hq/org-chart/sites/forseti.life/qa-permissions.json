@@ -248,6 +248,42 @@
       }
     },
     {
+      "id": "forseti-jobhunter-interview-scheduler-surface",
+      "feature_id": "forseti-jobhunter-interview-scheduler",
+      "path_regex": "^/jobhunter/(?:my-jobs|interview-rounds/\\d+/save)(?:/|$)",
+      "notes": "Added for feature forseti-jobhunter-interview-scheduler. My Jobs badges and interview-round save route are authenticated-only JobHunter surfaces; anon denied, job-seeker authenticated allowed.",
+      "expect": {
+        "anon": "deny",
+        "authenticated": "allow",
+        "content_editor": "ignore",
+        "administrator": "ignore"
+      }
+    },
+    {
+      "id": "forseti-jobhunter-salary-tracker-surface",
+      "feature_id": "forseti-jobhunter-salary-tracker",
+      "path_regex": "^/jobhunter/jobs/\\d+/salary-expectation/save(?:/|$)",
+      "notes": "Added for feature forseti-jobhunter-salary-tracker. Salary expectation save route is authenticated-only and CSRF-protected; anon denied, job-seeker authenticated allowed.",
+      "expect": {
+        "anon": "deny",
+        "authenticated": "allow",
+        "content_editor": "ignore",
+        "administrator": "ignore"
+      }
+    },
+    {
+      "id": "forseti-jobhunter-rejection-analysis-surface",
+      "feature_id": "forseti-jobhunter-rejection-analysis",
+      "path_regex": "^/jobhunter/jobs/\\d+/close(?:/|$)",
+      "notes": "Added for feature forseti-jobhunter-rejection-analysis. Close/reject route is authenticated-only and CSRF-protected; anon denied, job-seeker authenticated allowed.",
+      "expect": {
+        "anon": "deny",
+        "authenticated": "allow",
+        "content_editor": "ignore",
+        "administrator": "ignore"
+      }
+    },
+    {
       "id": "jobhunter-surface",
       "path_regex": "^/jobhunter(?:/|$)",
       "notes": "User-facing jobhunter routes (access job hunter permission). content_editor/administrator are not job seekers \u2014 ignore. jobhunter-admin and jobhunter-api-dev rules take priority (listed first) for admin/API sub-paths.",
