@@ -1703,6 +1703,34 @@ class FeatEffectManager {
         $effects['derived_adjustments']['flags']['hillock_halfling_bonus_healing'] = TRUE;
         $effects['notes'][] = 'Hillock Halfling: +level HP on overnight rest; +level HP snack rider when receiving a successful Treat Wounds action.';
         break;
+
+      case 'halfling-resolve':
+        // AC: Halfling Resolve (Feat 9) — when a halfling with this feat rolls
+        // a success on a saving throw against an emotion effect, upgrade to crit.
+        // When combined with Gutsy Halfling heritage, also converts critical
+        // failures on emotion saves to failures.
+        $effects['derived_adjustments']['flags']['halfling_resolve_emotion_save_upgrade'] = TRUE;
+        $effects['derived_adjustments']['flags']['halfling_resolve_active'] = TRUE;
+        $effects['notes'][] = 'Halfling Resolve: success on emotion saves upgrades to critical success. If Gutsy Halfling is active, critical failures on emotion saves become failures.';
+        break;
+
+      case 'ceaseless-shadows':
+        // AC: Ceaseless Shadows (Feat 13, prereq: Distracting Shadows) — halfling
+        // no longer requires cover/concealment for Hide or Sneak. Creatures grant
+        // upgraded cover: lesser → full (can Take Cover), full → greater.
+        $effects['derived_adjustments']['flags']['ceaseless_shadows_hide_sneak_no_cover'] = TRUE;
+        $effects['derived_adjustments']['flags']['ceaseless_shadows_creature_cover_upgrade'] = TRUE;
+        $effects['notes'][] = 'Ceaseless Shadows: Hide/Sneak do not require cover or concealment. Creature-granted cover is upgraded (lesser→full, full→greater). Prerequisite: Distracting Shadows.';
+        break;
+
+      case 'halfling-weapon-expertise':
+        // AC: Halfling Weapon Expertise (Feat 13, prereq: Halfling Weapon Familiarity) —
+        // when class grants expert+ proficiency in weapons, also cascade that proficiency
+        // to sling, halfling sling staff, shortsword, and all halfling weapons where the
+        // character is at least trained.
+        $effects['derived_adjustments']['flags']['halfling_weapon_expertise_proficiency_cascade'] = TRUE;
+        $effects['notes'][] = 'Halfling Weapon Expertise: Class weapon proficiency advances (expert+) cascade to sling, halfling sling staff, shortsword, and all halfling weapons (trained only). Prerequisite: Halfling Weapon Familiarity.';
+        break;
     }
 
     $computed_speed = $base_speed + (int) ($effects['derived_adjustments']['speed_bonus'] ?? 0);

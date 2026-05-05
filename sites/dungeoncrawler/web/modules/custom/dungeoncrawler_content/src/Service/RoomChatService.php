@@ -222,6 +222,9 @@ class RoomChatService {
       }
     }
 
+    // Detect room entry BEFORE appending: true when this is the first message in this room.
+    $is_room_entry = empty($dungeon_data['rooms'][$room_index]['chat']);
+
     // Create new message
     $new_message = [
       'speaker' => $this->sanitizeSpeakerName($speaker),
@@ -295,7 +298,7 @@ class RoomChatService {
       // Room NPCs monitor the conversation and may chime in if motivated.
       if ($channel === 'room' && $gm_response !== NULL) {
         $npc_interjections = $this->evaluateNpcInterjections(
-          $campaign_id, $room_id, $room_index, $dungeon_id, $dungeon_data, $message, $gm_response['message'] ?? ''
+          $campaign_id, $room_id, $room_index, $dungeon_id, $dungeon_data, $message, $gm_response['message'] ?? '', $char_data
         );
       }
     }
@@ -352,12 +355,14 @@ class RoomChatService {
       $room_entities[] = $entity;
     }
 
-    if (empty($room_entities)) {
-      return;
-    }
-
     try {
-      $this->ensureNpcProfiles($campaign_id, $room_entities);
+      if (!empty($room_entities)) {
+        $this->ensureNpcProfiles($campaign_id, $room_entities);
+      }
+
+      foreach ($this->loadRoomCampaignNpcRows($campaign_id, $room_id, $dungeon_data) as $row) {
+        $this->resolveCampaignCharacterNpcProfile($campaign_id, $row);
+      }
     }
     catch (\Exception $e) {
       $this->logger->warning('Room chat NPC profile ensure failed: @err', [
@@ -423,10 +428,9 @@ class RoomChatService {
       $history_lines[] = "{$speaker}: {$text}";
     }
 
-    // Build session context for campaign-scoped conversation continuity.
-    // This ensures the GM remembers prior interactions within this campaign
-    // but starts fresh for a new campaign.
-    $session_key = $this->sessionManager->roomChatSessionKey($campaign_id);
+    // Build session context scoped to this room so NPC conversations from
+    // previous rooms do not bleed into the current room's AI context.
+    $session_key = $this->sessionManager->roomChatSessionKey($campaign_id, $room_id);
     $session_context = $this->sessionManager->buildSessionContext($session_key, $campaign_id, 6);
 
     $prompt = '';
@@ -437,7 +441,12 @@ class RoomChatService {
       $prompt .= implode("\n", $scene_parts) . "\n\n";
     }
     $prompt .= "Recent conversation:\n" . implode("\n", $history_lines);
-    $prompt .= "\n\nRespond in character as the Game Master. Keep your reply concise (2-4 sentences). If the player is performing a mechanical action (casting a spell, using a skill, using a feat, attacking, exploring), include the JSON action block as instructed in your system prompt.";
+    if ($is_room_entry) {
+      $prompt .= "\n\nTHIS IS A ROOM ENTRY — respond as the Game Master with a full environmental description as required by the ROOM ENTRY NARRATION RULES in your system prompt. Cover atmosphere, sight, sound, smell/taste, and all NPCs/creatures present (appearance + demeanour, no names yet). After the description, then address whatever the player said. Include the JSON action block only if the player triggered a mechanical action.";
+    }
+    else {
+      $prompt .= "\n\nRespond in character as the Game Master. Keep your reply concise (2-4 sentences). If the player is performing a mechanical action (casting a spell, using a skill, using a feat, attacking, exploring), include the JSON action block as instructed in your system prompt.";
+    }
     $prompt .= "\nIMPORTANT: Do NOT write dialogue for any NPC. Describe the scene, NPC body language and reactions, but let NPCs speak for themselves. Never put words in an NPC's mouth.";
 
     // Build enhanced system prompt with character abilities if character_id is available.
@@ -493,6 +502,31 @@ class RoomChatService {
     $actions = $checked_response['actions'] ?? [];
     $dice_rolls = $checked_response['dice_rolls'] ?? [];
     $validation_errors = $checked_response['validation_errors'] ?? [];
+
+    // Parse and process any [CREATE_SUGGESTION] tag the GM embedded.
+    if (preg_match('/\[CREATE_SUGGESTION\](.*?)\[\/CREATE_SUGGESTION\]/s', $narrative, $suggestion_matches)) {
+      $suggestion_text = $suggestion_matches[1];
+      $s_summary  = '';
+      $s_category = 'general_feedback';
+      $s_original = end($chat)['message'] ?? '';
+      if (preg_match('/Summary:\s*(.+?)(?=\nCategory:|\nOriginal:|$)/s', $suggestion_text, $m)) {
+        $s_summary = trim($m[1]);
+      }
+      if (preg_match('/Category:\s*(\w+)/i', $suggestion_text, $m)) {
+        $s_category = strtolower(trim($m[1]));
+      }
+      if (preg_match('/Original:\s*(.+?)$/s', $suggestion_text, $m)) {
+        $s_original = trim($m[1]);
+      }
+      if (!empty($s_summary)) {
+        $this->aiApiService->createBacklogSuggestion(
+          $s_summary, $s_original, $s_category,
+          ['campaign_id' => $campaign_id, 'room_id' => $room_id]
+        );
+      }
+      // Strip the tag from the player-visible narrative.
+      $narrative = trim(preg_replace('/\[CREATE_SUGGESTION\].*?\[\/CREATE_SUGGESTION\]/s', '', $narrative));
+    }
 
     $this->recordCanonicalActionBatch($campaign_id, $actions, 'validated', [
       'room_id' => $room_id,
@@ -2378,7 +2412,8 @@ class RoomChatService {
     int|string $dungeon_id,
     array &$dungeon_data,
     string $player_message,
-    string $gm_narrative
+    string $gm_narrative,
+    ?array $active_character_data = NULL
   ): array {
     // Gather room NPCs with psychology profiles.
     $room_npcs = $this->gatherRoomNpcsWithProfiles($campaign_id, $room_id, $dungeon_data);
@@ -2431,7 +2466,7 @@ class RoomChatService {
 You are the NPC interjection evaluator for a tabletop RPG. Your job is to decide which NPCs present in the room, if any, are motivated to speak up after the latest exchange.
 
 Rules:
-- If the player DIRECTLY ADDRESSES an NPC by name (e.g., "Hey Gribbles" or "Lets talk to Eldric" or asks them a question), that NPC MUST respond. This is mandatory — a directly addressed NPC always speaks.
+- If the player DIRECTLY ADDRESSES an NPC by name (e.g., "Hey Gribbles" or "Lets talk to Eldric" or asks them a question), that NPC MUST respond. This is mandatory — a directly addressed NPC always speaks. If the addressed name is a nickname or an alias introduced in dialogue (e.g., another character said "That'd be Vorren"), match it to the closest NPC in the room by role or context.
 - If the conversation mentions an NPC's interests, motivations, or expertise, they are likely to speak up.
 - Hostile or unfriendly NPCs may interject with threats, complaints, or provocations when provoked.
 - Friendly or helpful NPCs may offer information, greetings, or advice if the topic is relevant.
@@ -2440,13 +2475,31 @@ Rules:
 - Maximum 1 NPC interjection per exchange (keep the pace natural).
 - Each NPC has their own voice, personality, and knowledge. Their dialogue should reflect their character sheet, backstory, and current attitude.
 
+CRITICAL NAME RULE: You MUST use the NPC's name EXACTLY as it appears in the "NPCs present in the room" list. Never invent a new name or use a name introduced only in dialogue by another character. If an NPC was called "Vorren" in conversation but is listed as "Mysterious Merchant", return {"speaker": "Mysterious Merchant"}.
+
 Output format — respond with EXACTLY one of:
 1. The word NONE (if no NPC wants to speak)
-2. A JSON object: {"speaker": "NPC Name"} — just identify WHO should speak; the dialogue will be generated separately with full character context.
+2. A JSON object: {"speaker": "NPC Name"} — use the EXACT name from the NPCs present list above.
 PROMPT;
 
     $user_prompt = "NPCs present in the room:\n" . implode("\n", $npc_descriptions);
     $user_prompt .= "\n\nRecent conversation:\n" . implode("\n", $history_lines);
+
+    // Include active PC's roleplay style so NPCs respond appropriately.
+    if ($active_character_data) {
+      $pc_name = $active_character_data['name'] ?? 'the player';
+      $pc_style = $active_character_data['roleplay_style'] ?? 'balanced';
+      $style_hints = [
+        'talker'   => 'verbose and conversational — NPCs may be drawn into dialogue',
+        'balanced' => 'balanced between speech and action',
+        'doer'     => 'terse and action-oriented — NPCs may need to react to deeds rather than words',
+        'observer' => 'quiet and watchful — NPCs may feel studied or be more guarded',
+      ];
+      $style_hint = $style_hints[$pc_style] ?? $style_hints['balanced'];
+      $user_prompt .= "\n\nActive PC: {$pc_name} (roleplay style: {$pc_style} — {$style_hint}).";
+      $user_prompt .= " Only one PC spoke this turn. Evaluate NPC responses accordingly.";
+    }
+
     $user_prompt .= "\n\nLatest exchange:";
     $user_prompt .= "\nPlayer: {$player_message}";
     $user_prompt .= "\nGame Master: {$gm_narrative}";
@@ -2498,6 +2551,9 @@ PROMPT;
     }
 
     // Validate that the speaker is actually an NPC in the room.
+    // First try exact match, then fall back to partial/alias match so that
+    // names introduced only in dialogue (e.g. "Vorren" for "Mysterious Merchant")
+    // still resolve to the correct room NPC.
     $valid_speaker = FALSE;
     $speaker_ref = '';
     $speaker_npc = NULL;
@@ -2508,6 +2564,22 @@ PROMPT;
         $speaker_npc = $npc;
         break;
       }
+    }
+
+    // Partial/alias fallback: check if the returned name is a substring of a
+    // room NPC name or vice-versa (catches "Vorren" ↔ "Mysterious Merchant"
+    // only when there is exactly one non-matched NPC to avoid ambiguity).
+    if (!$valid_speaker && count($room_npcs) === 1) {
+      $only_npc = $room_npcs[0];
+      $valid_speaker = TRUE;
+      $speaker_ref = $only_npc['entity_ref'];
+      $speaker_npc = $only_npc;
+      $this->logger->info('NPC alias resolved: @alias → @canonical', [
+        '@alias' => $parsed['speaker'],
+        '@canonical' => $only_npc['profile']['display_name'],
+      ]);
+      // Override the speaker label with the canonical name.
+      $parsed['speaker'] = $only_npc['profile']['display_name'];
     }
 
     if (!$valid_speaker) {
@@ -2747,6 +2819,7 @@ PROMPT;
   protected function gatherRoomNpcsWithProfiles(int $campaign_id, string $room_id, array $dungeon_data): array {
     $result = [];
     $seen_refs = [];
+    $seen_names = [];
 
     // Gather NPCs from top-level entities.
     foreach ($dungeon_data['entities'] ?? [] as $entity) {
@@ -2766,67 +2839,186 @@ PROMPT;
         continue;
       }
 
-      $result[] = [
-        'entity_ref' => $ref,
-        'entity' => $entity,
-        'profile' => $profile,
-      ];
-      $seen_refs[$ref] = TRUE;
+      $this->registerGatheredRoomNpc($result, $seen_refs, $seen_names, $ref, $entity, $profile);
     }
 
     // Also check dc_campaign_characters for NPCs in this room.
     try {
-      // Resolve room slug for DB query.
-      $room_slug = $this->resolveRoomSlugForQuery($campaign_id, $room_id, $dungeon_data);
-      if ($room_slug) {
-        $char_rows = $this->database->select('dc_campaign_characters', 'c')
-          ->fields('c', ['name', 'role', 'instance_id'])
-          ->condition('campaign_id', $campaign_id)
-          ->condition('type', 'npc')
-          ->condition('location_ref', $room_slug)
-          ->execute()
-          ->fetchAll();
-
-        foreach ($char_rows as $row) {
-          // Try instance_id first, then name-derived ref. Some NPCs have
-          // mismatched instance_ids vs psychology entity_refs.
-          $candidates = array_filter([
-            $row->instance_id ?: NULL,
-            strtolower(str_replace(' ', '_', $row->name)),
-          ]);
-
-          $ref = NULL;
-          $profile = NULL;
-          foreach ($candidates as $candidate) {
-            if (isset($seen_refs[$candidate])) {
-              $ref = $candidate;
-              break;
-            }
-            $profile = $this->psychologyService->loadProfile($campaign_id, $candidate);
-            if ($profile) {
-              $ref = $candidate;
-              break;
-            }
-          }
-
-          if (!$ref || !$profile || isset($seen_refs[$ref])) {
-            continue;
-          }
-
-          $result[] = [
-            'entity_ref' => $ref,
-            'entity' => [],
-            'profile' => $profile,
-          ];
-          $seen_refs[$ref] = TRUE;
+      foreach ($this->loadRoomCampaignNpcRows($campaign_id, $room_id, $dungeon_data) as $row) {
+        $resolved = $this->resolveCampaignCharacterNpcProfile($campaign_id, $row, $seen_refs);
+        if (empty($resolved['entity_ref']) || empty($resolved['profile'])) {
+          continue;
         }
+
+        $this->registerGatheredRoomNpc(
+          $result,
+          $seen_refs,
+          $seen_names,
+          $resolved['entity_ref'],
+          [],
+          $resolved['profile']
+        );
       }
     }
     catch (\Exception $e) {
       // Non-critical; continue with entities already found.
     }
 
+    // Narrative fallback: if the room has no registered NPC entities, scan the
+    // room's name/description for NPC names from the dungeon's entity list.
+    // This handles rooms that were generated from narrative context (e.g. an NPC
+    // led the party to a new location) without formal entity placement.
+    if (empty($result)) {
+      $room_meta = NULL;
+      foreach ($dungeon_data['rooms'] ?? [] as $r) {
+        if (($r['room_id'] ?? '') === $room_id) {
+          $room_meta = $r;
+          break;
+        }
+      }
+
+      if ($room_meta !== NULL) {
+        $haystack = strtolower(
+          ($room_meta['name'] ?? '') . ' ' . ($room_meta['description'] ?? '')
+        );
+
+        foreach ($dungeon_data['entities'] ?? [] as $entity) {
+          if (($entity['entity_type'] ?? '') !== 'npc') {
+            continue;
+          }
+          $ref = $entity['entity_ref']['content_id'] ?? '';
+          if (!$ref || isset($seen_refs[$ref])) {
+            continue;
+          }
+          $display_name = $entity['state']['metadata']['display_name']
+            ?? $entity['name']
+            ?? '';
+          if ($display_name === '') {
+            continue;
+          }
+          // Match on first word of the display name (e.g. "Gribbles" from
+          // "Gribbles Rindsworth", or "Mysterious" from "Mysterious Merchant").
+          $keyword = strtolower(strtok($display_name, ' '));
+          if ($keyword !== '' && str_contains($haystack, $keyword)) {
+            $profile = $this->psychologyService->loadProfile($campaign_id, $ref);
+            if ($profile) {
+              $this->registerGatheredRoomNpc($result, $seen_refs, $seen_names, $ref, $entity, $profile);
+              $this->logger->info(
+                'NPC @name found via room description in room @room (placement mismatch — entity in @src_room)',
+                [
+                  '@name' => $display_name,
+                  '@room' => $room_id,
+                  '@src_room' => $entity['placement']['room_id'] ?? 'unknown',
+                ]
+              );
+            }
+          }
+        }
+      }
+    }
+
     return $result;
+  }
+
+  /**
+   * Load room-local NPC rows from dc_campaign_characters.
+   *
+   * @return array
+   *   Character rows keyed with name/role/instance_id.
+   */
+  protected function loadRoomCampaignNpcRows(int $campaign_id, string $room_id, array $dungeon_data): array {
+    $room_slug = $this->resolveRoomSlugForQuery($campaign_id, $room_id, $dungeon_data);
+    if (!$room_slug) {
+      return [];
+    }
+
+    return $this->database->select('dc_campaign_characters', 'c')
+      ->fields('c', ['name', 'role', 'instance_id'])
+      ->condition('campaign_id', $campaign_id)
+      ->condition('type', 'npc')
+      ->condition('location_ref', $room_slug)
+      ->execute()
+      ->fetchAll();
+  }
+
+  /**
+   * Resolve or seed a psychology profile for a room-local campaign NPC row.
+   *
+   * @param array $seen_refs
+   *   Entity refs already added to the room NPC set.
+   *
+   * @return array
+   *   ['entity_ref' => string, 'profile' => array|null]
+   */
+  protected function resolveCampaignCharacterNpcProfile(int $campaign_id, object $row, array $seen_refs = []): array {
+    $candidates = array_values(array_filter([
+      $row->instance_id ?: NULL,
+      strtolower(str_replace(' ', '_', $row->name)),
+    ]));
+
+    $ref = '';
+    $profile = NULL;
+    foreach ($candidates as $candidate) {
+      if (isset($seen_refs[$candidate])) {
+        return [];
+      }
+
+      $profile = $this->psychologyService->loadProfile($campaign_id, $candidate);
+      if ($profile) {
+        $ref = $candidate;
+        break;
+      }
+    }
+
+    if ($ref === '' && !empty($candidates)) {
+      $ref = (string) reset($candidates);
+    }
+
+    if ($ref !== '' && !$profile) {
+      $profile = $this->psychologyService->getOrCreateProfile($campaign_id, $ref, [
+        'display_name' => $row->name,
+        'creature_type' => $row->instance_id ?: $ref,
+        'role' => $row->role ?: 'npc',
+        'initial_attitude' => 'indifferent',
+      ]);
+    }
+
+    return ($ref !== '' && $profile)
+      ? ['entity_ref' => $ref, 'profile' => $profile]
+      : [];
+  }
+
+  /**
+   * Register an NPC in the gathered room set, deduplicating by ref and name.
+   */
+  protected function registerGatheredRoomNpc(
+    array &$result,
+    array &$seen_refs,
+    array &$seen_names,
+    string $entity_ref,
+    array $entity,
+    array $profile
+  ): void {
+    if ($entity_ref === '' || isset($seen_refs[$entity_ref])) {
+      return;
+    }
+
+    $display_name = trim((string) ($profile['display_name'] ?? ''));
+    $display_key = $display_name !== '' ? strtolower($display_name) : '';
+    if ($display_key !== '' && isset($seen_names[$display_key])) {
+      $seen_refs[$entity_ref] = TRUE;
+      return;
+    }
+
+    $result[] = [
+      'entity_ref' => $entity_ref,
+      'entity' => $entity,
+      'profile' => $profile,
+    ];
+    $seen_refs[$entity_ref] = TRUE;
+    if ($display_key !== '') {
+      $seen_names[$display_key] = TRUE;
+    }
   }
 
   /**
@@ -2913,13 +3105,10 @@ PROMPT;
       }
     }
 
-    // Last resort: first room for campaign.
-    return $this->database->select('dc_campaign_rooms', 'r')
-      ->fields('r', ['room_id'])
-      ->condition('campaign_id', $campaign_id)
-      ->range(0, 1)
-      ->execute()
-      ->fetchField() ?: NULL;
+    // Cannot resolve — return NULL to avoid loading NPCs from the wrong room.
+    // (Falling back to the first campaign room would bleed tavern NPCs like
+    // Eldric into every unindexed room.)
+    return NULL;
   }
 
   /**

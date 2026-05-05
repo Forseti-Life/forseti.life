@@ -12,8 +12,13 @@ class ArchitectureController extends ControllerBase {
 
   /**
    * HQ repo features directory used for architecture indexing.
+   * This is configurable via settings and falls back to module directory.
    */
-  private const HQ_FEATURES_DIR = '/home/keithaumiller/copilot-sessions-hq/features';
+  private function getHQFeaturesDir(): string {
+    return \Drupal::config('dungeoncrawler_content.settings')
+      ->get('hq_features_path') ?: \Drupal::service('extension.list.module')
+      ->getPath('dungeoncrawler_content') . '/hq_features';
+  }
 
   /**
    * Render the architecture overview hub.
@@ -245,7 +250,7 @@ class ArchitectureController extends ControllerBase {
    * Build a live feature index from HQ feature artifacts.
    */
   private function buildFeatureIndex(): array {
-    $root = self::HQ_FEATURES_DIR;
+    $root = $this->getHQFeaturesDir();
     if (!is_dir($root)) {
       return [[
         'feature_id' => (string) $this->t('Unavailable'),

@@ -805,6 +805,22 @@ class ExplorationPhaseHandler implements PhaseHandlerInterface {
       // Study another wizard's spellbook to prepare a spell you don't know.
       // -----------------------------------------------------------------------
       case 'borrow_arcane_spell': {
+        $entity_bas = &$this->findEntityInDungeon($actor_id, $dungeon_data, TRUE);
+        if (!$entity_bas) {
+          return ['success' => FALSE, 'result' => ['error' => 'Character not found.'], 'mutations' => [], 'events' => [], 'phase_transition' => NULL, 'narration' => NULL];
+        }
+        if ($this->isBorrowArcaneSpellRetryBlocked($entity_bas)) {
+          return ['success' => FALSE, 'result' => ['error' => 'Borrow Arcane Spell cannot be retried until the next daily preparation cycle.'], 'mutations' => [], 'events' => [], 'phase_transition' => NULL, 'narration' => NULL];
+        }
+
+        $arcana_rank = $this->resolveArcanaProficiencyRank($params, $entity_bas);
+        if ($arcana_rank < 1) {
+          return ['success' => FALSE, 'result' => ['error' => 'Borrow Arcane Spell requires Trained Arcana.'], 'mutations' => [], 'events' => [], 'phase_transition' => NULL, 'narration' => NULL];
+        }
+        if (!$this->isArcanePreparedSpellcaster($entity_bas, $params)) {
+          return ['success' => FALSE, 'result' => ['error' => 'Borrow Arcane Spell requires an arcane prepared spellcaster.'], 'mutations' => [], 'events' => [], 'phase_transition' => NULL, 'narration' => NULL];
+        }
+
         $dc         = (int) ($params['dc'] ?? 15);
         $arcana     = (int) ($params['arcana_bonus'] ?? $params['skill_bonus'] ?? 0);
         $d20        = $this->numberGenerationService->rollPathfinderDie(20);
@@ -816,10 +832,26 @@ class ExplorationPhaseHandler implements PhaseHandlerInterface {
 
         if ($borrowed) {
           $game_state['exploration']['borrowed_spell_' . $actor_id] = $spell_name;
+          $entity_bas['state']['borrowed_arcane_spell'] = [
+            'spell_name' => $spell_name,
+            'available_for_preparation' => TRUE,
+          ];
+          $this->clearBorrowArcaneSpellRetryBlock($entity_bas);
+        }
+        else {
+          $this->setBorrowArcaneSpellRetryBlocked($entity_bas);
         }
 
         $this->advanceExplorationTime($game_state, 10);
-        $result = ['borrowed' => $borrowed, 'spell' => $spell_name, 'degree' => $degree, 'roll' => $total, 'dc' => $dc];
+        $result = [
+          'borrowed' => $borrowed,
+          'spell' => $spell_name,
+          'degree' => $degree,
+          'roll' => $total,
+          'dc' => $dc,
+          'slot_remains_open' => !$borrowed,
+          'retry_blocked_until_next_prep' => !$borrowed,
+        ];
         $events[] = GameEventLogger::buildEvent('borrow_arcane_spell', 'exploration', $actor_id, $result);
         break;
       }
@@ -903,7 +935,9 @@ class ExplorationPhaseHandler implements PhaseHandlerInterface {
       // Attempt to deceive a creature into believing a false statement.
       // -----------------------------------------------------------------------
       case 'lie': {
-        $dc        = (int) ($params['dc'] ?? 15);
+        $base_dc   = (int) ($params['dc'] ?? 15);
+        $dc_context = $this->applyNpcAttitudeToSocialDc($base_dc, $params, $target_id, $dungeon_data);
+        $dc        = $dc_context['dc'];
         $deception = (int) ($params['deception_bonus'] ?? $params['skill_bonus'] ?? 0);
         $d20       = $this->numberGenerationService->rollPathfinderDie(20);
         $total     = $d20 + $deception;
@@ -911,7 +945,17 @@ class ExplorationPhaseHandler implements PhaseHandlerInterface {
 
         $believed = in_array($degree, ['success', 'critical_success'], TRUE);
 
-        $result = ['believed' => $believed, 'degree' => $degree, 'roll' => $total, 'dc' => $dc];
+        $result = [
+          'believed' => $believed,
+          'degree' => $degree,
+          'roll' => $total,
+          'dc' => $dc,
+          'base_dc' => $base_dc,
+          'attitude_dc_delta' => $dc_context['delta'],
+        ];
+        if ($dc_context['attitude'] !== NULL) {
+          $result['npc_attitude'] = $dc_context['attitude'];
+        }
         $events[] = GameEventLogger::buildEvent('lie', 'exploration', $actor_id, $result);
         break;
       }
@@ -1581,7 +1625,7 @@ class ExplorationPhaseHandler implements PhaseHandlerInterface {
    */
   public function getAvailableActions(array $game_state, array $dungeon_data, ?string $actor_id = NULL): array {
     // In exploration, most actions are always available.
-    $actions = ['move', 'interact', 'talk', 'search', 'set_activity', 'rest'];
+    $actions = ['move', 'interact', 'talk', 'search', 'set_activity', 'rest', 'sense_direction', 'cover_tracks', 'track'];
 
     // Transition is available if the current room has passable connections.
     $active_room_id = $dungeon_data['active_room_id'] ?? NULL;
@@ -1633,6 +1677,23 @@ class ExplorationPhaseHandler implements PhaseHandlerInterface {
     ];
 
     $activity = $game_state['exploration']['character_activities'][$actor_id] ?? 'search';
+
+    // GAP-2290: Wire calculateTravelSpeed() into processMove so terrain multipliers apply.
+    // GAP-2292: avoid_notice and defend halve speed (same as difficult terrain).
+    $base_speed = (int) ($entity['stats']['speed'] ?? 25);
+    $terrain = $params['terrain'] ?? 'normal';
+    // avoid_notice and defend activities halve movement speed (PF2E CRB exploration rules).
+    if (in_array($activity, ['avoid_notice', 'defend'], TRUE)) {
+      // Apply half-speed by treating terrain as at-least-difficult.
+      $terrain = ($terrain === 'normal') ? 'difficult' : $terrain;
+    }
+    $travel_speed = $this->calculateTravelSpeed($base_speed, $terrain, $activity);
+    $result['travel_speed'] = $travel_speed;
+
+    // GAP-2292: avoid_notice substitutes Stealth for Initiative on encounter start.
+    if ($activity === 'avoid_notice') {
+      $result['initiative_skill'] = 'stealth';
+    }
 
     // AC-002: While Searching, each hex moved (≈ 10 ft) triggers a Perception check.
     if ($activity === 'search') {
@@ -2203,7 +2264,7 @@ class ExplorationPhaseHandler implements PhaseHandlerInterface {
     $terrain_multipliers = [
       'normal'   => 1.0,
       'difficult' => 0.5,
-      'greater_difficult' => 0.25,
+      'greater_difficult' => 0.3333,
       'rubble'   => 0.5,
       'crowd'    => 0.5,
     ];
@@ -2277,6 +2338,7 @@ class ExplorationPhaseHandler implements PhaseHandlerInterface {
 
           // Record prepare time (REQ 2305: takes 1 hour).
           $entity['state']['last_daily_prepare'] = $game_state['exploration']['time_elapsed_minutes'] ?? 0;
+          $this->clearBorrowArcaneSpellRetryBlock($entity);
           break;
         }
       }
@@ -2428,6 +2490,145 @@ class ExplorationPhaseHandler implements PhaseHandlerInterface {
     }
 
     return $null;
+  }
+
+  /**
+   * Resolves the Arcana proficiency rank for Borrow Arcane Spell gating.
+   */
+  protected function resolveArcanaProficiencyRank(array $params, array $entity): int {
+    if (isset($params['arcana_proficiency_rank'])) {
+      return (int) $params['arcana_proficiency_rank'];
+    }
+    if (isset($params['arcana_rank'])) {
+      return (int) $params['arcana_rank'];
+    }
+    if (isset($params['proficiency_rank'])) {
+      return (int) $params['proficiency_rank'];
+    }
+    if (isset($entity['state']['skills']['arcana']['rank'])) {
+      return (int) $entity['state']['skills']['arcana']['rank'];
+    }
+    if (isset($entity['stats']['skills']['arcana']['rank'])) {
+      return (int) $entity['stats']['skills']['arcana']['rank'];
+    }
+
+    return 0;
+  }
+
+  /**
+   * Determines whether the actor qualifies as an arcane prepared spellcaster.
+   */
+  protected function isArcanePreparedSpellcaster(array $entity, array $params): bool {
+    if (array_key_exists('is_arcane_prepared_spellcaster', $params)) {
+      return !empty($params['is_arcane_prepared_spellcaster']);
+    }
+
+    $casting_type = strtolower((string) ($params['casting_type'] ?? ($entity['stats']['casting_type'] ?? '')));
+    $tradition = strtolower((string) ($params['spellcasting_tradition'] ?? ($entity['stats']['spellcasting_tradition'] ?? '')));
+
+    return $casting_type === 'prepared' && $tradition === 'arcane';
+  }
+
+  /**
+   * Returns whether Borrow Arcane Spell is currently retry-blocked.
+   */
+  protected function isBorrowArcaneSpellRetryBlocked(array $entity): bool {
+    return !empty($entity['state']['borrow_arcane_spell_retry_blocked']);
+  }
+
+  /**
+   * Marks Borrow Arcane Spell as retry-blocked until daily preparation.
+   */
+  protected function setBorrowArcaneSpellRetryBlocked(array &$entity): void {
+    if (!isset($entity['state'])) {
+      $entity['state'] = [];
+    }
+    $entity['state']['borrow_arcane_spell_retry_blocked'] = TRUE;
+  }
+
+  /**
+   * Clears the Borrow Arcane Spell retry block state.
+   */
+  protected function clearBorrowArcaneSpellRetryBlock(array &$entity): void {
+    if (isset($entity['state']['borrow_arcane_spell_retry_blocked'])) {
+      unset($entity['state']['borrow_arcane_spell_retry_blocked']);
+    }
+  }
+
+  /**
+   * Applies NPC attitude adjustments to social check DCs when target data exists.
+   */
+  protected function applyNpcAttitudeToSocialDc(int $base_dc, array $params, ?string $target_id, array &$dungeon_data): array {
+    $attitude = $this->resolveNpcAttitude($params, $target_id, $dungeon_data);
+    if ($attitude === NULL) {
+      return [
+        'dc' => $base_dc,
+        'base_dc' => $base_dc,
+        'delta' => 0,
+        'attitude' => NULL,
+      ];
+    }
+
+    $dc_adjustments = new DcAdjustmentService();
+    $delta = $dc_adjustments->attitudeDelta($attitude);
+
+    return [
+      'dc' => $dc_adjustments->adjustDcForNpcAttitude($base_dc, $attitude),
+      'base_dc' => $base_dc,
+      'delta' => $delta,
+      'attitude' => $attitude,
+    ];
+  }
+
+  /**
+   * Resolves a normalized NPC attitude from action params or target entity data.
+   */
+  protected function resolveNpcAttitude(array $params, ?string $target_id, array &$dungeon_data): ?string {
+    foreach (['npc_attitude', 'target_attitude', 'attitude'] as $key) {
+      $normalized = $this->normalizeNpcAttitude($params[$key] ?? NULL);
+      if ($normalized !== NULL) {
+        return $normalized;
+      }
+    }
+
+    $npc_target_id = $target_id ?: ($params['target_id'] ?? NULL);
+    if (!$npc_target_id) {
+      return NULL;
+    }
+
+    $target_entity = $this->findEntityInDungeon((string) $npc_target_id, $dungeon_data);
+    if (!is_array($target_entity)) {
+      return NULL;
+    }
+
+    $candidates = [
+      $target_entity['attitude'] ?? NULL,
+      $target_entity['state']['attitude'] ?? NULL,
+      $target_entity['state']['metadata']['attitude'] ?? NULL,
+      $target_entity['npc_state']['attitude'] ?? NULL,
+      $target_entity['npcPsychology']['attitude'] ?? NULL,
+    ];
+
+    foreach ($candidates as $candidate) {
+      $normalized = $this->normalizeNpcAttitude($candidate);
+      if ($normalized !== NULL) {
+        return $normalized;
+      }
+    }
+
+    return NULL;
+  }
+
+  /**
+   * Normalizes a candidate NPC attitude value.
+   */
+  protected function normalizeNpcAttitude(mixed $attitude): ?string {
+    if (!is_string($attitude)) {
+      return NULL;
+    }
+
+    $normalized = strtolower(trim($attitude));
+    return isset(DcAdjustmentService::ATTITUDE_ADJUSTMENT[$normalized]) ? $normalized : NULL;
   }
 
   /**

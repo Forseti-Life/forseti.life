@@ -530,7 +530,7 @@ dungeoncrawler_content.api.ability_scores_available_boosts:
   path: '/api/characters/ability-scores/available-boosts/{step}'
   defaults:
     _controller: '\Drupal\dungeoncrawler_content\Controller\AbilityScoreApiController::getAvailableBoosts'
-  methods: [GET]
+  methods: [GET, POST]
   requirements:
     _permission: 'create dungeoncrawler characters'
     step: 'ancestry|background|class|free'
@@ -2855,5 +2855,235 @@ dungeoncrawler_content.api.variant_rules.ancestry_paragon.schedule:
   methods: [GET]
   requirements:
     _permission: 'access dungeoncrawler characters'
+  options:
+    _format: json
+
+# Creature catalog (dc-b2-bestiary2)
+# List and single-get are public read endpoints; import/override are GM-only.
+dungeoncrawler_content.api.creature_catalog.list:
+  path: '/api/creatures'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\CreatureCatalogController::list'
+  methods: [GET]
+  requirements:
+    _access: 'TRUE'
+  options:
+    _format: json
+
+dungeoncrawler_content.api.creature_catalog.get:
+  path: '/api/creatures/{creature_id}'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\CreatureCatalogController::get'
+  methods: [GET]
+  requirements:
+    _access: 'TRUE'
+  options:
+    _format: json
+
+dungeoncrawler_content.api.creature_catalog.import:
+  path: '/api/creatures/import'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\CreatureCatalogController::import'
+  methods: [POST]
+  requirements:
+    _campaign_gm_access: 'TRUE'
+    _csrf_request_header_mode: TRUE
+  options:
+    _format: json
+
+dungeoncrawler_content.api.creature_catalog.override:
+  path: '/api/creatures/{creature_id}/override'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\CreatureCatalogController::override'
+  methods: [POST]
+  requirements:
+    _campaign_gm_access: 'TRUE'
+    _csrf_request_header_mode: TRUE
+  options:
+    _format: json
+
+# =============================================================================
+# Guns and Gears — GunGearsController routes
+# =============================================================================
+
+dungeoncrawler_content.api.gng.class_subtype:
+  path: '/api/character/{character_id}/class-subtype'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\GunGearsController::selectClassSubtype'
+  methods: [POST]
+  requirements:
+    _character_access: 'TRUE'
+    _csrf_request_header_mode: TRUE
+    character_id: '\d+'
+  options:
+    _format: json
+
+dungeoncrawler_content.api.gng.firearm_reload:
+  path: '/api/character/{character_id}/firearm/{weapon_id}/reload'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\GunGearsController::firearmReload'
+  methods: [POST]
+  requirements:
+    _character_access: 'TRUE'
+    _csrf_request_header_mode: TRUE
+    character_id: '\d+'
+  options:
+    _format: json
+
+dungeoncrawler_content.api.gng.firearm_fire:
+  path: '/api/character/{character_id}/firearm/{weapon_id}/fire'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\GunGearsController::firearmFire'
+  methods: [POST]
+  requirements:
+    _character_access: 'TRUE'
+    _csrf_request_header_mode: TRUE
+    character_id: '\d+'
+  options:
+    _format: json
+
+dungeoncrawler_content.api.gng.firearm_clear_jam:
+  path: '/api/character/{character_id}/firearm/{weapon_id}/clear-jam'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\GunGearsController::firearmClearJam'
+  methods: [POST]
+  requirements:
+    _character_access: 'TRUE'
+    _csrf_request_header_mode: TRUE
+    character_id: '\d+'
+  options:
+    _format: json
+
+dungeoncrawler_content.api.gng.firearm_mode:
+  path: '/api/character/{character_id}/firearm/{weapon_id}/mode'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\GunGearsController::firearmSwitchMode'
+  methods: [PATCH]
+  requirements:
+    _character_access: 'TRUE'
+    _csrf_request_header_mode: TRUE
+    character_id: '\d+'
+  options:
+    _format: json
+
+dungeoncrawler_content.api.gng.construct_companion:
+  path: '/api/character/{character_id}/construct-companion'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\GunGearsController::constructCompanion'
+  methods: [POST]
+  requirements:
+    _character_access: 'TRUE'
+    _csrf_request_header_mode: TRUE
+    character_id: '\d+'
+  options:
+    _format: json
+
+dungeoncrawler_content.api.gng.overdrive:
+  path: '/api/character/{character_id}/overdrive'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\GunGearsController::overdrive'
+  methods: [POST]
+  requirements:
+    _character_access: 'TRUE'
+    _csrf_request_header_mode: TRUE
+    character_id: '\d+'
+  options:
+    _format: json
+
+dungeoncrawler_content.api.gng.unstable_action:
+  path: '/api/character/{character_id}/unstable-action'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\GunGearsController::unstableAction'
+  methods: [POST]
+  requirements:
+    _character_access: 'TRUE'
+    _csrf_request_header_mode: TRUE
+    character_id: '\d+'
+  options:
+    _format: json
+
+# ── Secrets of Magic (SOM) routes ────────────────────────────────────────────
+
+dungeoncrawler_content.api.som.class_subtype:
+  path: '/api/character/{character_id}/som/class-subtype'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\SomController::selectSomSubtype'
+  methods: [POST]
+  requirements:
+    _character_access: 'TRUE'
+    _csrf_request_header_mode: TRUE
+    character_id: '\d+'
+  options:
+    _format: json
+
+dungeoncrawler_content.api.som.spellstrike:
+  path: '/api/character/{character_id}/spellstrike'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\SomController::spellstrike'
+  methods: [POST]
+  requirements:
+    _character_access: 'TRUE'
+    _csrf_request_header_mode: TRUE
+    character_id: '\d+'
+  options:
+    _format: json
+
+dungeoncrawler_content.api.som.spellstrike_recharge:
+  path: '/api/character/{character_id}/spellstrike/recharge'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\SomController::rechargeSpellstrike'
+  methods: [POST]
+  requirements:
+    _character_access: 'TRUE'
+    _csrf_request_header_mode: TRUE
+    character_id: '\d+'
+  options:
+    _format: json
+
+dungeoncrawler_content.api.som.arcane_cascade:
+  path: '/api/character/{character_id}/arcane-cascade'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\SomController::arcaneCascade'
+  methods: [POST]
+  requirements:
+    _character_access: 'TRUE'
+    _csrf_request_header_mode: TRUE
+    character_id: '\d+'
+  options:
+    _format: json
+
+dungeoncrawler_content.api.som.eidolon:
+  path: '/api/character/{character_id}/eidolon'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\SomController::createOrUpdateEidolon'
+  methods: [POST]
+  requirements:
+    _character_access: 'TRUE'
+    _csrf_request_header_mode: TRUE
+    character_id: '\d+'
+  options:
+    _format: json
+
+dungeoncrawler_content.api.som.eidolon_dismiss:
+  path: '/api/character/{character_id}/eidolon/dismiss'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\SomController::dismissEidolon'
+  methods: [PATCH]
+  requirements:
+    _character_access: 'TRUE'
+    _csrf_request_header_mode: TRUE
+    character_id: '\d+'
+  options:
+    _format: json
+
+dungeoncrawler_content.api.som.act_together:
+  path: '/api/character/{character_id}/act-together'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\SomController::actTogether'
+  methods: [POST]
+  requirements:
+    _character_access: 'TRUE'
+    _csrf_request_header_mode: TRUE
+    character_id: '\d+'
   options:
     _format: json

@@ -135,6 +135,7 @@ class CharacterApiController extends ControllerBase {
         'gender' => $data['gender'] ?? '',
         'appearance' => $data['appearance'] ?? '',
         'personality' => $data['personality'] ?? '',
+        'roleplay_style' => $data['roleplay_style'] ?? 'balanced',
         'backstory' => $data['backstory'] ?? '',
         'inventory' => $data['inventory'] ?? [],
         'gold' => $data['gold'] ?? 15,

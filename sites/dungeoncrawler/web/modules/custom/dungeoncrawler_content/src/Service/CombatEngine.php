@@ -332,6 +332,16 @@ class CombatEngine {
         $result['regeneration'] = $this->hpManager->applyHealing($pid, $regeneration, 'regeneration', $eid);
       }
 
+      // GAP-2178: Clear the one-turn regeneration_bypassed flag now that regen
+      // has been processed (or skipped) for this turn.
+      if ($regen_bypassed) {
+        $entity_data['regeneration_bypassed'] = FALSE;
+        $this->database->update('combat_participants')
+          ->fields(['entity_ref' => json_encode($entity_data)])
+          ->condition('id', $pid)
+          ->execute();
+      }
+
       // REQ 2265-2266: Held breath / suffocation tracking.
       // Decrement air counter if participant is underwater.
       $is_underwater = !empty($entity_data['is_underwater']);
@@ -726,6 +736,11 @@ class CombatEngine {
     $attacker_entity_data = !empty($attacker['entity_ref']) ? json_decode($attacker['entity_ref'], TRUE) : [];
     $target_entity_data   = !empty($target['entity_ref'])   ? json_decode($target['entity_ref'],   TRUE) : [];
     $attacker_entity_id   = $attacker_entity_data['entity_id'] ?? (string) $participant_id;
+
+    // GAP-2227: Raise a Shield applies its AC bonus until start of target's next turn.
+    if (!empty($target_entity_data['shield_raised'])) {
+      $target_ac += (int) ($target_entity_data['shield_raised_ac_bonus'] ?? 0);
+    }
 
     if (!empty($dungeon_data)) {
       $detection_info['light_level'] = $this->resolveLightLevel($dungeon_data, $attacker_hex ?? ['q' => 0, 'r' => 0]);

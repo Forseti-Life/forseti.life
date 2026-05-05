@@ -349,7 +349,7 @@ class TemplateImportService {
           continue;
         }
 
-        $normalized = $this->normalizeRow($row, $columns, $json_file);
+        $normalized = $this->normalizeRow($table_name, $row, $columns, $json_file);
         if (empty($normalized)) {
           $result['skipped']++;
           $result['errors'][] = sprintf('Skipping row with no matching columns for table %s in %s.', $table_name, $this->relativePath($json_file));
@@ -480,7 +480,7 @@ class TemplateImportService {
   /**
    * Converts and filters row values to match table columns.
    */
-  protected function normalizeRow(array $row, array $columns, string $json_file): array {
+  protected function normalizeRow(string $table_name, array $row, array $columns, string $json_file): array {
     $normalized = [];
     foreach ($row as $column => $value) {
       if (!isset($columns[$column])) {
@@ -489,6 +489,9 @@ class TemplateImportService {
 
       $data_type = $columns[$column]['data_type'];
       if (is_array($value)) {
+        if ($table_name === 'dungeoncrawler_content_registry' && $column === 'schema_data') {
+          $value = $this->normalizeRegistrySchemaData($value, $row);
+        }
         $value = json_encode($value, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
       }
       elseif (is_bool($value)) {
@@ -510,6 +513,74 @@ class TemplateImportService {
     }
 
     return $normalized;
+  }
+
+  /**
+   * Normalizes legacy creature registry example metadata before persistence.
+   */
+  protected function normalizeRegistrySchemaData(array $schema_data, array $row): array {
+    if (($row['content_type'] ?? NULL) !== 'creature') {
+      return $schema_data;
+    }
+
+    $source_map = [
+      'bestiary_1' => 'b1',
+      'bestiary_2' => 'b2',
+      'bestiary_3' => 'b3',
+    ];
+
+    $tags = $row['tags'] ?? [];
+
+    if (empty($schema_data['bestiary_source']) || !is_string($schema_data['bestiary_source'])) {
+      $source_book = $schema_data['source_book'] ?? NULL;
+      if (is_string($source_book) && isset($source_map[$source_book])) {
+        $schema_data['bestiary_source'] = $source_map[$source_book];
+      }
+      elseif (is_array($tags)) {
+        foreach ($tags as $tag) {
+          if (is_string($tag) && isset($source_map[$tag])) {
+            $schema_data['bestiary_source'] = $source_map[$tag];
+            break;
+          }
+        }
+      }
+    }
+
+    if (empty($schema_data['creature_id']) && !empty($row['content_id']) && is_string($row['content_id'])) {
+      $schema_data['creature_id'] = $row['content_id'];
+    }
+
+    if (empty($schema_data['name']) && !empty($row['name']) && is_string($row['name'])) {
+      $schema_data['name'] = $row['name'];
+    }
+
+    if (!array_key_exists('level', $schema_data) && isset($row['level']) && is_numeric($row['level'])) {
+      $schema_data['level'] = (int) $row['level'];
+    }
+
+    if (empty($schema_data['rarity']) && !empty($row['rarity']) && is_string($row['rarity'])) {
+      $schema_data['rarity'] = $row['rarity'];
+    }
+
+    if (
+      array_key_exists('traits', $schema_data)
+      && is_array($schema_data['traits'])
+      && $schema_data['traits'] === []
+      && is_array($tags)
+    ) {
+      $traits = [];
+      foreach ($tags as $tag) {
+        if (!is_string($tag) || $tag === 'creature' || isset($source_map[$tag])) {
+          continue;
+        }
+        $traits[] = $tag;
+      }
+      if ($traits !== []) {
+        $schema_data['traits'] = array_values(array_unique($traits));
+      }
+    }
+
+    return $schema_data;
   }
 
   /**

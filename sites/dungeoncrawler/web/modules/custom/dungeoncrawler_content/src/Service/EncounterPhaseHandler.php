@@ -378,6 +378,24 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
         $game_state['turn']['actions_remaining'] = max(0, ($game_state['turn']['actions_remaining'] ?? 0) - 1);
         $game_state['turn']['attacks_this_turn'] = ($game_state['turn']['attacks_this_turn'] ?? 0) + 1;
 
+        // DEF-2218: Attacking breaks cover — cover_active cleared on any attack.
+        if (!empty($game_state['entities'][$actor_id]['cover_active'])) {
+          $game_state['entities'][$actor_id]['cover_active'] = FALSE;
+        }
+
+        // GAP-2265: Airborne creature attacking uses 2 air this turn (attack/spell = double air cost).
+        {
+          $enc_air_st = $this->encounterStore->loadEncounter($encounter_id);
+          $ptcp_air_st = $enc_air_st ? $this->findEncounterParticipantByEntityId($enc_air_st, $actor_id) : NULL;
+          if ($ptcp_air_st) {
+            $edata_air_st = !empty($ptcp_air_st['entity_ref']) ? json_decode($ptcp_air_st['entity_ref'], TRUE) : [];
+            if (!empty($edata_air_st['airborne'])) {
+              $edata_air_st['air_decrement_this_turn'] = 2;
+              $this->encounterStore->updateParticipant((int) $ptcp_air_st['id'], ['entity_ref' => json_encode($edata_air_st)]);
+            }
+          }
+        }
+
         $events[] = GameEventLogger::buildEvent('strike', 'encounter', $actor_id, [
           'target' => $target_id,
           'roll' => $result['roll'] ?? NULL,
@@ -443,6 +461,11 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
 
         $game_state['turn']['actions_remaining'] = max(0, ($game_state['turn']['actions_remaining'] ?? 0) - 1);
 
+        // DEF-2218: Moving breaks cover — cover_active cleared on any stride.
+        if (!empty($game_state['entities'][$actor_id]['cover_active'])) {
+          $game_state['entities'][$actor_id]['cover_active'] = FALSE;
+        }
+
         // Track stride distance for High Jump / Long Jump prerequisite checks.
         $game_state['turn']['last_stride_ft'] = (int) ($params['distance_ft'] ?? 25);
 
@@ -460,6 +483,24 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
         $mutations = $result['mutations'] ?? [];
 
         $game_state['turn']['actions_remaining'] = max(0, ($game_state['turn']['actions_remaining'] ?? 0) - $action_cost);
+
+        // DEF-2218: Casting a spell breaks cover (manipulate trait — cover lost on any attacking action).
+        if (!empty($game_state['entities'][$actor_id]['cover_active'])) {
+          $game_state['entities'][$actor_id]['cover_active'] = FALSE;
+        }
+
+        // GAP-2265: Airborne creature casting a spell uses 2 air this turn.
+        {
+          $enc_air_cs = $this->encounterStore->loadEncounter($encounter_id);
+          $ptcp_air_cs = $enc_air_cs ? $this->findEncounterParticipantByEntityId($enc_air_cs, $actor_id) : NULL;
+          if ($ptcp_air_cs) {
+            $edata_air_cs = !empty($ptcp_air_cs['entity_ref']) ? json_decode($ptcp_air_cs['entity_ref'], TRUE) : [];
+            if (!empty($edata_air_cs['airborne'])) {
+              $edata_air_cs['air_decrement_this_turn'] = 2;
+              $this->encounterStore->updateParticipant((int) $ptcp_air_cs['id'], ['entity_ref' => json_encode($edata_air_cs)]);
+            }
+          }
+        }
 
         $events[] = GameEventLogger::buildEvent('cast_spell', 'encounter', $actor_id, [
           'spell' => $spell_name,
@@ -939,6 +980,12 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
           ];
         }
         $game_state['turn']['reaction_available'] = FALSE;
+        // GAP-2204: If firing a readied action that is a strike, restore MAP count
+        // from map_at_ready so the attack uses the MAP that was active when Ready was declared.
+        $ready_data = $game_state['turn']['ready'] ?? NULL;
+        if ($ready_data && ($ready_data['action'] ?? '') === 'strike') {
+          $game_state['turn']['attacks_this_turn'] = (int) ($ready_data['map_at_ready'] ?? 0);
+        }
         $result = ['reaction_used' => TRUE, 'reaction_type' => $params['reaction_type'] ?? 'generic'];
         $events[] = GameEventLogger::buildEvent('reaction', 'encounter', $actor_id, [
           'reaction_type' => $params['reaction_type'] ?? 'generic',
@@ -1018,27 +1065,39 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
         $land_speed = (int) ($entity_cl['speed'] ?? 25);
         $athletics_cl = (int) ($params['athletics_bonus'] ?? 0);
         $climb_dc = (int) ($params['climb_dc'] ?? 15);
-        $d20_cl = $this->numberGenerationService->rollPathfinderDie(20);
-        $total_cl = $d20_cl + $athletics_cl;
-        $degree_cl = $this->combatCalculator->calculateDegreeOfSuccess($total_cl, $climb_dc, $d20_cl);
 
-        $feet_moved = 0;
-        $fell = FALSE;
-        if ($degree_cl === 'critical_success') {
-          $feet_moved = max(10, (int) round($land_speed / 2));
+        // GAP-2234: Characters with a climb Speed auto-succeed at Climb (no roll needed)
+        // and gain a +4 circumstance bonus to Athletics if a check is required.
+        if ($has_climb_speed) {
+          $athletics_cl += 4;
+          // Auto-succeed: skip the roll and treat as success.
+          $d20_cl = 0;
+          $total_cl = 0;
+          $degree_cl = 'success';
+          $feet_moved = (int) $entity_cl['climb_speed'];
         }
-        elseif ($degree_cl === 'success') {
-          $feet_moved = max(5, (int) round($land_speed / 4));
-        }
-        elseif ($degree_cl === 'critical_failure') {
-          // Character falls and lands prone.
-          $feet_fallen = (int) ($params['height_ft'] ?? 10);
-          $soft_surface = !empty($params['soft_surface']);
-          if ($ptcp_cl && $this->hpManager) {
-            $this->hpManager->applyFallDamage((int) $ptcp_cl['id'], $feet_fallen, $encounter_id, $soft_surface);
+        else {
+          $d20_cl = $this->numberGenerationService->rollPathfinderDie(20);
+          $total_cl = $d20_cl + $athletics_cl;
+          $degree_cl = $this->combatCalculator->calculateDegreeOfSuccess($total_cl, $climb_dc, $d20_cl);
+          $feet_moved = 0;
+          if ($degree_cl === 'critical_success') {
+            $feet_moved = max(10, (int) round($land_speed / 2));
           }
-          $fell = TRUE;
+          elseif ($degree_cl === 'success') {
+            $feet_moved = max(5, (int) round($land_speed / 4));
+          }
+          elseif ($degree_cl === 'critical_failure') {
+            // Character falls and lands prone.
+            $feet_fallen = (int) ($params['height_ft'] ?? 10);
+            $soft_surface = !empty($params['soft_surface']);
+            if ($ptcp_cl && $this->hpManager) {
+              $this->hpManager->applyFallDamage((int) $ptcp_cl['id'], $feet_fallen, $encounter_id, $soft_surface);
+            }
+          }
         }
+
+        $fell = ($degree_cl === 'critical_failure');
 
         // Flat-footed during climb unless character has a climb Speed.
         if (!$has_climb_speed && !$fell) {
@@ -1260,6 +1319,13 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
         $swim_dc = (int) ($params['swim_dc'] ?? 15);
         $land_speed_sw = (int) ($entity_sw['speed'] ?? 25);
         $has_swim_speed = !empty($entity_sw['swim_speed']) && (int) $entity_sw['swim_speed'] > 0;
+
+        // GAP-2235: Characters with a swim Speed auto-succeed at Swim (no roll needed)
+        // and gain a +4 circumstance bonus to Athletics if a check is forced.
+        if ($has_swim_speed) {
+          $athletics_sw += 4;
+          $is_calm = TRUE; // Auto-succeed: treat as calm water regardless of actual water state.
+        }
 
         $degree_sw = 'success';
         $d20_sw = 0;
@@ -2386,11 +2452,19 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
         if ($dist_m > 1) {
           return ['success' => FALSE, 'result' => ['error' => 'Mount must be adjacent.'], 'mutations' => [], 'events' => [], 'phase_transition' => NULL, 'narration' => NULL];
         }
+        // GAP-2225: Acrobatics DC 15 check required when mounting in encounter mode.
+        $acrobatics_bonus_m = (int) ($params['acrobatics_bonus'] ?? $params['skill_bonus'] ?? 0);
+        $mount_roll = $this->numberGeneration->rollPathfinderDie(20);
+        $mount_total = $mount_roll + $acrobatics_bonus_m;
+        if ($mount_total < 15) {
+          $game_state['turn']['actions_remaining'] = max(0, ($game_state['turn']['actions_remaining'] ?? 0) - 1);
+          return ['success' => FALSE, 'result' => ['error' => 'Acrobatics check failed (DC 15).', 'roll' => $mount_roll, 'bonus' => $acrobatics_bonus_m, 'total' => $mount_total], 'mutations' => [], 'events' => [], 'phase_transition' => NULL, 'narration' => NULL];
+        }
         $actor_entity_m = !empty($ptcp_m['entity_ref']) ? json_decode($ptcp_m['entity_ref'], TRUE) : [];
         $actor_entity_m['mounted_on'] = $target_id;
         $this->encounterStore->updateParticipant((int) $ptcp_m['id'], ['entity_ref' => json_encode($actor_entity_m)]);
         $game_state['turn']['actions_remaining'] = max(0, ($game_state['turn']['actions_remaining'] ?? 0) - 1);
-        $result = ['mounted' => TRUE, 'mount_id' => $target_id];
+        $result = ['mounted' => TRUE, 'mount_id' => $target_id, 'roll' => $mount_roll, 'total' => $mount_total];
         $events[] = GameEventLogger::buildEvent('mount', 'encounter', $actor_id, ['mount' => $target_id, 'round' => $game_state['round'] ?? NULL], NULL, $target_id);
         break;
       }
@@ -2645,8 +2719,7 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
         $aoo_weapon['skip_map_count'] = TRUE;
         // Resolve as a melee Strike without consuming actions or MAP.
         $aoo_result = $this->processStrike($encounter_id, $actor_id, $target_id, ['weapon' => $aoo_weapon, 'skip_map' => TRUE], $game_state);
-        // REQ 2230: Do NOT decrement attacks_this_turn.
-        $game_state['turn']['attacks_this_turn'] = max(0, ($game_state['turn']['attacks_this_turn'] ?? 1) - 1);
+        // REQ 2230: Do NOT decrement attacks_this_turn — AoO is a reaction, not an action.
         // REQ 2229: Crit + manipulate trigger → disrupt the triggering action.
         $trigger_type = $params['trigger_type'] ?? '';
         $disrupted = FALSE;
@@ -2820,7 +2893,9 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
       // -----------------------------------------------------------------------
       case 'request': {
         $target_ref = $params['target_id'] ?? '';
-        $dc         = (int) ($params['dc'] ?? 15);
+        $base_dc    = (int) ($params['dc'] ?? 15);
+        $dc_context = $this->applyNpcAttitudeToSocialDc($base_dc, $params, $target_id ?: $target_ref, $campaign_id);
+        $dc         = $dc_context['dc'];
         $diplomacy  = (int) ($params['diplomacy_bonus'] ?? $params['skill_bonus'] ?? 0);
         $d20        = $this->numberGenerationService->rollPathfinderDie(20);
         $total      = $d20 + $diplomacy;
@@ -2828,7 +2903,17 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
 
         $granted = in_array($degree, ['success', 'critical_success'], TRUE);
         $game_state['turn']['actions_remaining'] = max(0, ($game_state['turn']['actions_remaining'] ?? 3) - 1);
-        $result = ['granted' => $granted, 'degree' => $degree, 'roll' => $total, 'dc' => $dc];
+        $result = [
+          'granted' => $granted,
+          'degree' => $degree,
+          'roll' => $total,
+          'dc' => $dc,
+          'base_dc' => $base_dc,
+          'attitude_dc_delta' => $dc_context['delta'],
+        ];
+        if ($dc_context['attitude'] !== NULL) {
+          $result['npc_attitude'] = $dc_context['attitude'];
+        }
         $events[] = GameEventLogger::buildEvent('request', 'encounter', $actor_id, $result, NULL, $target_ref);
         break;
       }
@@ -2839,7 +2924,9 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
       // -----------------------------------------------------------------------
       case 'demoralize': {
         $target_ref  = $params['target_id'] ?? '';
-        $dc          = (int) ($params['dc'] ?? 15);
+        $base_dc     = (int) ($params['dc'] ?? 15);
+        $dc_context  = $this->applyNpcAttitudeToSocialDc($base_dc, $params, $target_id ?: $target_ref, $campaign_id);
+        $dc          = $dc_context['dc'];
         $intimidation = (int) ($params['intimidation_bonus'] ?? $params['skill_bonus'] ?? 0);
         $d20         = $this->numberGenerationService->rollPathfinderDie(20);
         $total       = $d20 + $intimidation;
@@ -2861,7 +2948,18 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
           }
         }
         $game_state['turn']['actions_remaining'] = max(0, ($game_state['turn']['actions_remaining'] ?? 3) - 1);
-        $result = ['demoralized' => $demoralized, 'immune' => $immune, 'degree' => $degree, 'roll' => $total, 'dc' => $dc];
+        $result = [
+          'demoralized' => $demoralized,
+          'immune' => $immune,
+          'degree' => $degree,
+          'roll' => $total,
+          'dc' => $dc,
+          'base_dc' => $base_dc,
+          'attitude_dc_delta' => $dc_context['delta'],
+        ];
+        if ($dc_context['attitude'] !== NULL) {
+          $result['npc_attitude'] = $dc_context['attitude'];
+        }
         $events[] = GameEventLogger::buildEvent('demoralize', 'encounter', $actor_id, $result, NULL, $target_ref);
         break;
       }
@@ -3106,6 +3204,7 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
     $current_entity = $turn['entity'] ?? NULL;
     $actions_remaining = $turn['actions_remaining'] ?? 0;
     $reaction_available = $turn['reaction_available'] ?? FALSE;
+    $actor_heritage = $this->resolveActorHeritage($actor_id, $dungeon_data);
 
     // If it's the actor's turn.
     if ($actor_id && $actor_id === $current_entity) {
@@ -3113,6 +3212,9 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
         $actions[] = 'strike';
         $actions[] = 'stride';
         $actions[] = 'interact';
+        if ($actor_heritage === 'chameleon') {
+          $actions[] = 'minor_color_shift';
+        }
       }
       if ($actions_remaining >= 2) {
         $actions[] = 'cast_spell';
@@ -3127,6 +3229,28 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
     }
 
     return $actions;
+  }
+
+  /**
+   * Resolves actor heritage from dungeon entity data when available.
+   */
+  protected function resolveActorHeritage(?string $actor_id, array $dungeon_data): ?string {
+    if (!$actor_id || empty($dungeon_data['entities']) || !is_array($dungeon_data['entities'])) {
+      return NULL;
+    }
+
+    foreach ($dungeon_data['entities'] as $entity) {
+      if (!is_array($entity)) {
+        continue;
+      }
+      $entity_id = $entity['entity_instance_id'] ?? ($entity['instance_id'] ?? ($entity['id'] ?? NULL));
+      if ($entity_id === $actor_id) {
+        $heritage = $entity['heritage'] ?? ($entity['state']['heritage'] ?? NULL);
+        return is_string($heritage) ? $heritage : NULL;
+      }
+    }
+
+    return NULL;
   }
 
   // =========================================================================
@@ -3217,6 +3341,76 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
     }
 
     return NULL;
+  }
+
+  /**
+   * Applies NPC attitude adjustments to social check DCs when available.
+   */
+  protected function applyNpcAttitudeToSocialDc(int $base_dc, array $params, ?string $target_id, int $campaign_id): array {
+    $attitude = $this->resolveNpcAttitude($params, $target_id, $campaign_id);
+    if ($attitude === NULL) {
+      return [
+        'dc' => $base_dc,
+        'base_dc' => $base_dc,
+        'delta' => 0,
+        'attitude' => NULL,
+      ];
+    }
+
+    $dc_adjustments = new DcAdjustmentService();
+    $delta = $dc_adjustments->attitudeDelta($attitude);
+
+    return [
+      'dc' => $dc_adjustments->adjustDcForNpcAttitude($base_dc, $attitude),
+      'base_dc' => $base_dc,
+      'delta' => $delta,
+      'attitude' => $attitude,
+    ];
+  }
+
+  /**
+   * Resolves a normalized NPC attitude from explicit params or psychology data.
+   */
+  protected function resolveNpcAttitude(array $params, ?string $target_id, int $campaign_id): ?string {
+    foreach (['npc_attitude', 'target_attitude', 'attitude'] as $key) {
+      $normalized = $this->normalizeNpcAttitude($params[$key] ?? NULL);
+      if ($normalized !== NULL) {
+        return $normalized;
+      }
+    }
+
+    $npc_target_id = $target_id ?: ($params['target_id'] ?? NULL);
+    if (!$npc_target_id) {
+      return NULL;
+    }
+
+    try {
+      $profile = $this->psychologyService->loadProfile($campaign_id, (string) $npc_target_id);
+    }
+    catch (\Throwable $e) {
+      return NULL;
+    }
+
+    foreach (['current_attitude', 'attitude', 'initial_attitude'] as $key) {
+      $normalized = $this->normalizeNpcAttitude($profile[$key] ?? NULL);
+      if ($normalized !== NULL) {
+        return $normalized;
+      }
+    }
+
+    return NULL;
+  }
+
+  /**
+   * Normalizes a candidate NPC attitude value.
+   */
+  protected function normalizeNpcAttitude(mixed $attitude): ?string {
+    if (!is_string($attitude)) {
+      return NULL;
+    }
+
+    $normalized = strtolower(trim($attitude));
+    return isset(DcAdjustmentService::ATTITUDE_ADJUSTMENT[$normalized]) ? $normalized : NULL;
   }
 
   /**
@@ -3524,6 +3718,21 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
       }
     }
 
+    // GAP-2220: Avert Gaze — if the effect has the gaze trait and the target has
+    // avert_gaze_active, reduce effective DC by 2 (REQ 2220 +2 circumstance to save).
+    $avert_gaze_note = NULL;
+    if (!empty($params['is_gaze']) && $target_id) {
+      $enc_ag2 = $this->encounterStore->loadEncounter($encounter_id);
+      $ptcp_ag2 = $enc_ag2 ? $this->findEncounterParticipantByEntityId($enc_ag2, $target_id) : NULL;
+      if ($ptcp_ag2) {
+        $edata_ag2 = !empty($ptcp_ag2['entity_ref']) ? json_decode($ptcp_ag2['entity_ref'], TRUE) : [];
+        if (!empty($edata_ag2['avert_gaze_active'])) {
+          $spell_dc = max(1, $spell_dc - 2);
+          $avert_gaze_note = 'Avert Gaze active: spell_dc reduced by 2 (circumstance bonus to save).';
+        }
+      }
+    }
+
     return [
       'cast' => TRUE,
       'spell' => $spell_name,
@@ -3536,6 +3745,7 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
       'attack_result' => $attack_result,
       'metamagic_applied' => $metamagic_applied,
       'incapacitation_note' => $incapacitation_note,
+      'avert_gaze_note' => $avert_gaze_note,
       'narration' => NULL,
       'mutations' => [],
     ];

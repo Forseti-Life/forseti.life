@@ -55,15 +55,16 @@
     API_SESSION_TOKEN: '/session/token'
   };
 
-  // CSRF Token cache
+  // CSRF Token cache — cleared on 403 so the next request fetches a fresh one.
   let csrfToken = null;
 
   /**
    * Get CSRF token for API requests.
+   * @param {boolean} [forceRefresh=false] - Bypass cache and fetch a new token.
    * @returns {Promise<string>} The CSRF token.
    */
-  async function getCsrfToken() {
-    if (csrfToken) {
+  async function getCsrfToken(forceRefresh = false) {
+    if (csrfToken && !forceRefresh) {
       return csrfToken;
     }
 
@@ -75,6 +76,73 @@
       console.error('Failed to fetch CSRF token:', error);
       throw error;
     }
+  }
+
+  /**
+   * Show an inline error message inside a wizard step.
+   *
+   * Replaces any existing error banner in the step. Auto-dismissed when the
+   * user interacts with the step again (via clearStepError).
+   *
+   * @param {string} message - Human-readable error text.
+   * @param {string|null} [stepId=null] - DOM id of the step container, e.g.
+   *   'step1'. Defaults to the currently active step.
+   */
+  function showStepError(message, stepId = null) {
+    const container = stepId
+      ? document.getElementById(stepId)
+      : document.querySelector('.creation-step:not(.hidden)');
+    if (!container) {
+      // Fallback: log + show a non-blocking banner at the top of the wizard.
+      console.error('Character creation error:', message);
+      showWizardBanner(message, 'error');
+      return;
+    }
+
+    let banner = container.querySelector('.cc-step-error');
+    if (!banner) {
+      banner = document.createElement('div');
+      banner.className = 'cc-step-error';
+      banner.setAttribute('role', 'alert');
+      container.insertBefore(banner, container.firstChild);
+    }
+    banner.textContent = message;
+    banner.style.display = 'block';
+  }
+
+  /**
+   * Clear the inline error banner for a step.
+   * @param {string|null} [stepId=null]
+   */
+  function clearStepError(stepId = null) {
+    const container = stepId
+      ? document.getElementById(stepId)
+      : document.querySelector('.creation-step:not(.hidden)');
+    if (!container) return;
+    const banner = container.querySelector('.cc-step-error');
+    if (banner) banner.style.display = 'none';
+  }
+
+  /**
+   * Show a wizard-level (full-width) dismissable banner.
+   *
+   * @param {string} message
+   * @param {'error'|'info'|'success'} [type='error']
+   */
+  function showWizardBanner(message, type = 'error') {
+    let banner = document.getElementById('cc-wizard-banner');
+    if (!banner) {
+      banner = document.createElement('div');
+      banner.id = 'cc-wizard-banner';
+      const wizard = document.getElementById('characterCreationWizard');
+      if (wizard) wizard.insertBefore(banner, wizard.firstChild);
+    }
+    banner.className = 'cc-wizard-banner cc-wizard-banner--' + type;
+    banner.setAttribute('role', 'alert');
+    banner.innerHTML =
+      '<span class="cc-wizard-banner__msg">' + message + '</span>' +
+      '<button class="cc-wizard-banner__close" aria-label="Dismiss" onclick="this.parentElement.style.display=\'none\'">✕</button>';
+    banner.style.display = 'flex';
   }
 
   // Character state management
@@ -484,43 +552,44 @@
    * @returns {boolean} True if validation passes, false otherwise
    */
   function validateStep(step) {
+    clearStepError('step' + step);
     switch(step) {
       case 1:
         const name = $('#characterName').val().trim();
         if (!name || name.length < CONSTANTS.MIN_NAME_LENGTH) {
-          alert('Please enter a character name (at least ' + CONSTANTS.MIN_NAME_LENGTH + ' characters).');
+          showStepError('Please enter a character name (at least ' + CONSTANTS.MIN_NAME_LENGTH + ' characters).', 'step1');
           return false;
         }
         return true;
       
       case 2:
         if (!characterData.ancestry) {
-          alert('Please select an ancestry.');
+          showStepError('Please select an ancestry.', 'step2');
           return false;
         }
         return true;
       
       case 3:
         if (!characterData.background) {
-          alert('Please select a background.');
+          showStepError('Please select a background.', 'step3');
           return false;
         }
         if ($('input[name="bgBoost"]:checked').length !== CONSTANTS.REQUIRED_BG_BOOSTS) {
-          alert('Please select exactly ' + CONSTANTS.REQUIRED_BG_BOOSTS + ' ability boosts from your background.');
+          showStepError('Please select exactly ' + CONSTANTS.REQUIRED_BG_BOOSTS + ' ability boosts from your background.', 'step3');
           return false;
         }
         return true;
       
       case 4:
         if (!characterData.class) {
-          alert('Please select a class.');
+          showStepError('Please select a class.', 'step4');
           return false;
         }
         return true;
       
       case 5:
         if ($('input[name="freeBoost"]:checked').length !== CONSTANTS.REQUIRED_FREE_BOOSTS) {
-          alert('Please select exactly ' + CONSTANTS.REQUIRED_FREE_BOOSTS + ' free ability boosts.');
+          showStepError('Please select exactly ' + CONSTANTS.REQUIRED_FREE_BOOSTS + ' free ability boosts.', 'step5');
           return false;
         }
         return true;
@@ -594,8 +663,8 @@
       wizard_complete: false
     };
 
-    // Send to API with CSRF token
-    getCsrfToken().then(token => {
+    // Send to API with CSRF token. On 403, clear token cache and retry once.
+    function doDraftSave(token, isRetry) {
       $.ajax({
         url: CONSTANTS.API_SAVE_CHARACTER,
         method: 'POST',
@@ -606,7 +675,6 @@
         data: JSON.stringify(saveData),
         success: function(response) {
           if (response.success) {
-            // Store character ID for future saves
             if (!characterData.character_id && response.character_id) {
               characterData.character_id = response.character_id;
             }
@@ -617,12 +685,17 @@
         },
         error: function(xhr, status, error) {
           console.error('AJAX error saving character:', error);
-          if (xhr.status === 403) {
-            console.error('CSRF token validation failed');
+          if (xhr.status === 403 && !isRetry) {
+            csrfToken = null;
+            getCsrfToken(true).then(freshToken => doDraftSave(freshToken, true)).catch(() => {
+              console.error('Session expired — could not refresh CSRF token for draft save.');
+            });
           }
         }
       });
-    }).catch(error => {
+    }
+
+    getCsrfToken().then(token => doDraftSave(token, false)).catch(error => {
       console.error('Failed to save character:', error);
     });
   }
@@ -958,7 +1031,7 @@
     }
 
     if (characterData.gold < item.cost) {
-      alert('Not enough gold! You need ' + item.cost.toFixed(1) + ' gp but only have ' + characterData.gold.toFixed(1) + ' gp.');
+      showStepError('Not enough gold! You need ' + item.cost.toFixed(1) + ' gp but only have ' + characterData.gold.toFixed(1) + ' gp.', 'step7');
       return;
     }
 
@@ -1056,8 +1129,9 @@
       wizard_complete: true
     };
 
-    // Send final save with CSRF token
-    getCsrfToken().then(token => {
+    // Send final save with CSRF token. On a 403 (stale token), clear the cache
+    // and retry once with a fresh token before surfacing an error to the user.
+    function doSave(token, isRetry) {
       $.ajax({
         url: CONSTANTS.API_SAVE_CHARACTER,
         method: 'POST',
@@ -1068,24 +1142,29 @@
         },
         success: function(response) {
           if (response.success) {
-            // Redirect to character view page
             window.location.href = '/characters/' + response.character_id;
           } else {
-            alert('Error creating character: ' + (response.error || 'Unknown error'));
+            showWizardBanner('Error creating character: ' + (response.error || 'Unknown error'), 'error');
           }
         },
         error: function(xhr, status, error) {
           console.error('AJAX error:', error);
-          if (xhr.status === 403) {
-            alert('Security token expired. Please refresh the page and try again.');
+          if (xhr.status === 403 && !isRetry) {
+            // Stale CSRF token — clear cache and retry with a fresh one.
+            csrfToken = null;
+            getCsrfToken(true).then(freshToken => doSave(freshToken, true)).catch(() => {
+              showWizardBanner('Your session has expired. Please <a href="/user/login">log in again</a> to save your character.', 'error');
+            });
           } else {
-            alert('Error creating character. Please try again.');
+            showWizardBanner('Error saving character. Please try again. If the problem persists, refresh the page.', 'error');
           }
         }
       });
-    }).catch(error => {
+    }
+
+    getCsrfToken().then(token => doSave(token, false)).catch(error => {
       console.error('Failed to get CSRF token:', error);
-      alert('Error creating character. Please try again.');
+      showWizardBanner('Error creating character. Please try again.', 'error');
     });
   };
 

@@ -40,10 +40,22 @@ class RoadmapPipelineStatusResolverTest extends UnitTestCase {
    * @covers ::getPipelineStatus
    */
   public function testResolveRoadmapStatusUsesPipelineStatusWhenFeatureExists(): void {
+    // 'done' = code written + unit-tested but NOT QA-verified → in_progress.
     $this->writeFeatureStatus('dc-cr-example', 'done');
     $resolver = new RoadmapPipelineStatusResolver($this->featuresPath);
 
-    $this->assertSame('implemented', $resolver->resolveRoadmapStatus('dc-cr-example', 'pending'));
+    $this->assertSame('in_progress', $resolver->resolveRoadmapStatus('dc-cr-example', 'pending'));
+  }
+
+  /**
+   * @covers ::resolveRoadmapStatus
+   */
+  public function testShippedMapsToImplemented(): void {
+    // 'shipped' = QA-verified and released → implemented.
+    $this->writeFeatureStatus('dc-cr-shipped-example', 'shipped');
+    $resolver = new RoadmapPipelineStatusResolver($this->featuresPath);
+
+    $this->assertSame('implemented', $resolver->resolveRoadmapStatus('dc-cr-shipped-example', 'pending'));
   }
 
   /**
@@ -59,13 +71,15 @@ class RoadmapPipelineStatusResolverTest extends UnitTestCase {
   /**
    * @covers ::resolveRoadmapStatus
    */
-  public function testReadyAndDeferredMapToPending(): void {
+  public function testReadyDeferredAndBacklogMapToPending(): void {
     $this->writeFeatureStatus('dc-cr-ready', 'ready');
     $this->writeFeatureStatus('dc-cr-deferred', 'deferred');
+    $this->writeFeatureStatus('dc-cr-backlog', 'backlog');
     $resolver = new RoadmapPipelineStatusResolver($this->featuresPath);
 
     $this->assertSame('pending', $resolver->resolveRoadmapStatus('dc-cr-ready', 'implemented'));
     $this->assertSame('pending', $resolver->resolveRoadmapStatus('dc-cr-deferred', 'implemented'));
+    $this->assertSame('pending', $resolver->resolveRoadmapStatus('dc-cr-backlog', 'implemented'));
   }
 
   /**

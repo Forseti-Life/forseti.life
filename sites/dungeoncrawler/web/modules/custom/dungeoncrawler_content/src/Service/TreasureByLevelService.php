@@ -26,6 +26,25 @@ class TreasureByLevelService {
   public const BASELINE_PARTY_SIZE = 4;
 
   /**
+   * What the currency column represents in the treasure-by-level table.
+   */
+  public const CURRENCY_INCLUDES = [
+    'coins',
+    'gems',
+    'art_objects',
+    'half_price_items',
+  ];
+
+  /**
+   * Item types that sell for full price rather than half.
+   */
+  public const FULL_PRICE_SALE_TYPES = [
+    'gem',
+    'art_object',
+    'raw_material',
+  ];
+
+  /**
    * Treasure by level table (4-PC baseline).
    *
    * Keys:
@@ -129,6 +148,7 @@ class TreasureByLevelService {
       'party_level'       => $party_level,
       'party_size'        => $party_size,
       'currency_gp'       => (float) $currency_gp,
+      'currency_includes' => self::CURRENCY_INCLUDES,
       'permanent_items'   => $row['permanent_items'],
       'consumable_items'  => $row['consumable_items'],
       'per_encounter_gp'  => round($currency_gp / self::DEFAULT_ENCOUNTERS_PER_LEVEL, 2),
@@ -173,6 +193,78 @@ class TreasureByLevelService {
     }
     $extra = $party_size - self::BASELINE_PARTY_SIZE;
     return (float) ($extra * self::TREASURE_TABLE[$party_level]['currency_gp_per_extra_pc']);
+  }
+
+  /**
+   * Returns the metadata describing the treasure table currency column.
+   */
+  public function getCurrencyComposition(): array {
+    return self::CURRENCY_INCLUDES;
+  }
+
+  /**
+   * Validates whether trading is happening during downtime.
+   */
+  public function validateTradePhase(string $phase): array {
+    $normalized_phase = strtolower(trim($phase));
+    if ($normalized_phase === 'downtime') {
+      return [
+        'success' => TRUE,
+        'flagged' => FALSE,
+        'blocked' => FALSE,
+        'gm_override_available' => FALSE,
+        'reason' => NULL,
+      ];
+    }
+
+    return [
+      'success' => FALSE,
+      'flagged' => TRUE,
+      'blocked' => FALSE,
+      'gm_override_available' => TRUE,
+      'reason' => 'not_downtime',
+    ];
+  }
+
+  /**
+   * Computes the sell value for an item and enforces the PF2e sale rules.
+   */
+  public function sellItem(string $item_type, float $price, ?float $requested_price = NULL, string $phase = 'downtime'): array {
+    $phase_result = $this->validateTradePhase($phase);
+    if (!$phase_result['success']) {
+      return $phase_result + [
+        'sale_value' => 0.0,
+        'item_type' => strtolower(trim($item_type)),
+      ];
+    }
+
+    $normalized_type = strtolower(trim($item_type));
+    $full_price = in_array($normalized_type, self::FULL_PRICE_SALE_TYPES, TRUE);
+    $sale_value = $full_price ? $price : $price / 2;
+
+    if ($requested_price !== NULL && abs($requested_price - $sale_value) > 0.00001) {
+      return [
+        'success' => FALSE,
+        'flagged' => TRUE,
+        'blocked' => TRUE,
+        'gm_override_available' => FALSE,
+        'reason' => $full_price ? 'incorrect_sale_value' : 'must_sell_at_half_price',
+        'corrected_value' => $sale_value,
+        'sale_value' => $sale_value,
+        'item_type' => $normalized_type,
+      ];
+    }
+
+    return [
+      'success' => TRUE,
+      'flagged' => FALSE,
+      'blocked' => FALSE,
+      'gm_override_available' => FALSE,
+      'reason' => NULL,
+      'sale_value' => $sale_value,
+      'item_type' => $normalized_type,
+      'full_price_sale' => $full_price,
+    ];
   }
 
 }

@@ -275,6 +275,38 @@ class CharacterCreationWorkflowTest extends BrowserTestBase {
   }
 
   /**
+   * Tests fixed-boost backgrounds accept exactly one free background boost.
+   */
+  public function testFixedBoostBackgroundAdvancesWithOneFreeBoost(): void {
+    $user = $this->drupalCreateUser(['create dungeoncrawler characters', 'access dungeoncrawler characters']);
+    $this->drupalLogin($user);
+
+    $this->drupalGet('/characters/create');
+    $this->assertSession()->statusCodeEquals(200);
+
+    $this->submitForm([
+      'name' => 'Versatile Human',
+      'concept' => 'Regression coverage for fixed background boosts',
+    ], 'Next →');
+    $this->assertSession()->pageTextContains('Step 2 of 8');
+
+    $this->submitForm([
+      'ancestry' => 'human',
+      'heritage' => 'versatile',
+    ], 'Next →');
+    $this->assertSession()->pageTextContains('Step 3 of 8');
+
+    $this->submitForm([
+      'background' => 'acolyte',
+      'background_boosts' => json_encode(['strength']),
+    ], 'Next →');
+
+    $this->assertSession()->statusCodeEquals(200);
+    $this->assertSession()->pageTextContains('Step 4 of 8');
+    $this->assertSession()->fieldValueEquals('class', '');
+  }
+
+  /**
    * Tests data persistence across steps.
    */
   public function testDataPersistenceAcrossSteps(): void {

@@ -77,6 +77,7 @@ export class RenderSystem extends System {
     const render = entity.getComponent('RenderComponent');
     const stats = entity.getComponent('StatsComponent');
     const identity = entity.getComponent('IdentityComponent');
+    const combat = entity.getComponent('CombatComponent');
     
     if (!render.visible) {
       if (render.sprite) {
@@ -93,6 +94,18 @@ export class RenderSystem extends System {
       }
       if (render.directionIndicator) {
         render.directionIndicator.visible = false;
+      }
+      if (render.teamRing) {
+        render.teamRing.visible = false;
+      }
+      if (render.selectionRing) {
+        render.selectionRing.visible = false;
+      }
+      if (render.conditionBadges) {
+        render.conditionBadges.visible = false;
+      }
+      if (render.interactMarker) {
+        render.interactMarker.visible = false;
       }
       return;
     }
@@ -166,6 +179,23 @@ export class RenderSystem extends System {
     else if (render.directionIndicator) {
       render.directionIndicator.visible = false;
     }
+
+    // Team allegiance ring
+    if (combat) {
+      this.updateTeamRing(entity, render, combat, renderPos);
+    }
+    else if (render.teamRing) {
+      render.teamRing.visible = false;
+    }
+
+    // Selection + current-turn emphasis ring
+    this.updateSelectionRing(entity, render, renderPos);
+
+    // Condition status badges
+    this.updateConditionBadges(entity, render, renderPos);
+
+    // Interactable / quest-relevant marker
+    this.updateInteractMarker(entity, render, identity, renderPos);
   }
 
   /**
@@ -274,62 +304,247 @@ export class RenderSystem extends System {
   
   /**
    * Update or create health bar for entity.
+   * Bar width and vertical offset scale with hexSize for zoom-responsiveness.
    * @param {Entity} entity - Entity
    * @param {RenderComponent} render - Render component
    * @param {StatsComponent} stats - Stats component
    * @param {Object} pixelPos - Pixel position {x, y}
    */
   updateHealthBar(entity, render, stats, pixelPos) {
+    const barW = Math.max(20, this.hexSize * 1.3);
+    const barH = Math.max(3, this.hexSize * 0.13);
+
     if (!render.healthBar) {
-      // Create health bar container
-      const container = new PIXI.Container();
-      
-      // Background bar (gray)
-      const background = new PIXI.Graphics();
-      background.beginFill(0x2d3748);
-      background.drawRect(0, 0, 40, 4);
-      background.endFill();
-      container.addChild(background);
-      
-      // Health bar (green/yellow/red based on HP)
-      const bar = new PIXI.Graphics();
-      container.addChild(bar);
-      
-      // Border
-      const border = new PIXI.Graphics();
-      border.lineStyle(1, 0x1a202c);
-      border.drawRect(0, 0, 40, 4);
-      container.addChild(border);
-      
-      render.healthBar = container;
-      render.healthBar.bar = bar;
-      this.disablePointerCapture(render.healthBar);
-      this.uiContainer.addChild(container);
+      const g = new PIXI.Graphics();
+      render.healthBar = g;
+      render.healthBar.bar = g;
+      this.disablePointerCapture(g);
+      this.uiContainer.addChild(g);
     }
-    
-    // Update health bar position (above sprite)
-    render.healthBar.x = pixelPos.x - 20;
-    render.healthBar.y = pixelPos.y - this.hexSize * 0.8;
-    render.healthBar.visible = render.visible;
-    
-    // Update health bar fill
+
     const healthPercent = stats.getHealthPercentage();
-    const barWidth = 40 * healthPercent;
-    
-    // Color based on health percentage
     let barColor;
     if (healthPercent > 0.6) {
-      barColor = 0x48bb78; // Green
+      barColor = 0x48bb78;
     } else if (healthPercent > 0.3) {
-      barColor = 0xed8936; // Orange
+      barColor = 0xed8936;
     } else {
-      barColor = 0xe53e3e; // Red
+      barColor = 0xe53e3e;
     }
-    
-    render.healthBar.bar.clear();
-    render.healthBar.bar.beginFill(barColor);
-    render.healthBar.bar.drawRect(0, 0, barWidth, 4);
-    render.healthBar.bar.endFill();
+
+    const g = render.healthBar;
+    g.clear();
+
+    // Background
+    g.beginFill(0x2d3748);
+    g.drawRect(0, 0, barW, barH);
+    g.endFill();
+
+    // Filled portion
+    g.beginFill(barColor);
+    g.drawRect(0, 0, barW * healthPercent, barH);
+    g.endFill();
+
+    // Border
+    g.lineStyle(1, 0x1a202c);
+    g.drawRect(0, 0, barW, barH);
+
+    g.x = pixelPos.x - barW / 2;
+    g.y = pixelPos.y - this.hexSize * 0.8;
+    g.visible = render.visible;
+  }
+
+  /**
+   * Update or create team allegiance ring for entity.
+   * Ring color is derived from CombatComponent.team.
+   * @param {Entity} entity - Entity
+   * @param {RenderComponent} render - Render component
+   * @param {CombatComponent} combat - Combat component
+   * @param {Object} pixelPos - Pixel position {x, y}
+   */
+  updateTeamRing(entity, render, combat, pixelPos) {
+    if (!render.teamRing) {
+      const ring = new PIXI.Graphics();
+      this.disablePointerCapture(ring);
+      this.uiContainer.addChild(ring);
+      render.teamRing = ring;
+    }
+
+    const teamColorMap = {
+      player: 0x3b82f6,
+      ally: 0x22c55e,
+      enemy: 0xef4444,
+      neutral: 0x9ca3af,
+    };
+    const teamColor = teamColorMap[combat.team] ?? teamColorMap.neutral;
+    const radius = this.hexSize * 0.55;
+
+    const ring = render.teamRing;
+    ring.clear();
+    ring.lineStyle(Math.max(2, this.hexSize * 0.08), teamColor, 0.85);
+    ring.drawCircle(0, 0, radius);
+    ring.x = pixelPos.x;
+    ring.y = pixelPos.y;
+    ring.visible = render.visible;
+    ring.zIndex = (render.zIndex || 0) - 1;
+  }
+
+  /**
+   * Update or create selection ring and current-turn glow for entity.
+   * Uses render._isSelected and render._isCurrentTurn flags set by hexmap.js.
+   * @param {Entity} entity - Entity
+   * @param {RenderComponent} render - Render component
+   * @param {Object} pixelPos - Pixel position {x, y}
+   */
+  updateSelectionRing(entity, render, pixelPos) {
+    const isSelected = render._isSelected === true;
+    const isCurrentTurn = render._isCurrentTurn === true;
+
+    if (!isSelected && !isCurrentTurn) {
+      if (render.selectionRing) {
+        render.selectionRing.visible = false;
+      }
+      return;
+    }
+
+    if (!render.selectionRing) {
+      const ring = new PIXI.Graphics();
+      this.disablePointerCapture(ring);
+      this.uiContainer.addChild(ring);
+      render.selectionRing = ring;
+    }
+
+    const ring = render.selectionRing;
+    // Gold for active turn; blue for selection only
+    const color = isCurrentTurn ? 0xfbbf24 : 0x60a5fa;
+    const lineW = isCurrentTurn
+      ? Math.max(3, this.hexSize * 0.10)
+      : Math.max(2, this.hexSize * 0.07);
+    const alpha = isCurrentTurn ? 0.95 : 0.80;
+    const radius = this.hexSize * 0.65;
+
+    ring.clear();
+    ring.lineStyle(lineW, color, alpha);
+    ring.drawCircle(0, 0, radius);
+    if (isCurrentTurn) {
+      // Outer accent ring for active-turn emphasis
+      ring.lineStyle(lineW * 0.5, color, alpha * 0.35);
+      ring.drawCircle(0, 0, radius + this.hexSize * 0.12);
+    }
+    ring.x = pixelPos.x;
+    ring.y = pixelPos.y;
+    ring.visible = render.visible;
+    ring.zIndex = (render.zIndex || 0) + 5;
+  }
+
+  /**
+   * Update or create compact condition badges for entity.
+   * Badges collapse or hide at low zoom (hexSize < 18).
+   * Badge state sourced from render._conditions array (set by hexmap.js during state sync).
+   * @param {Entity} entity - Entity
+   * @param {RenderComponent} render - Render component
+   * @param {Object} pixelPos - Pixel position {x, y}
+   */
+  updateConditionBadges(entity, render, pixelPos) {
+    const conditions = Array.isArray(render._conditions) ? render._conditions : [];
+
+    if (conditions.length === 0 || this.hexSize < 18) {
+      if (render.conditionBadges) {
+        render.conditionBadges.visible = false;
+      }
+      return;
+    }
+
+    if (!render.conditionBadges) {
+      const container = new PIXI.Container();
+      this.disablePointerCapture(container);
+      this.uiContainer.addChild(container);
+      render.conditionBadges = container;
+    }
+
+    const container = render.conditionBadges;
+    container.removeChildren();
+
+    const maxBadges = this.hexSize < 25 ? 3 : 6;
+    const shown = conditions.slice(0, maxBadges);
+    const badgeR = Math.max(4, this.hexSize * 0.14);
+    const gap = badgeR * 2 + 2;
+    const totalW = shown.length * gap - 2;
+    const startX = pixelPos.x - totalW / 2;
+    const badgeY = pixelPos.y - this.hexSize * 1.1;
+
+    shown.forEach((cond, i) => {
+      const bg = new PIXI.Graphics();
+      bg.beginFill(0xd97706, 0.9);
+      bg.drawCircle(0, 0, badgeR);
+      bg.endFill();
+      bg.x = startX + i * gap + badgeR;
+      bg.y = badgeY;
+      container.addChild(bg);
+
+      const initial = typeof cond === 'string' ? cond[0].toUpperCase() : '?';
+      const label = new PIXI.Text(initial, {
+        fontFamily: 'Arial',
+        fontSize: Math.max(6, badgeR * 1.1),
+        fill: 0xffffff,
+      });
+      label.anchor.set(0.5);
+      label.x = startX + i * gap + badgeR;
+      label.y = badgeY;
+      container.addChild(label);
+    });
+
+    container.visible = render.visible;
+  }
+
+  /**
+   * Update or create interactable / quest-relevant marker for entity.
+   * Marker is hidden at very low zoom (hexSize < 16).
+   * Uses render._isInteractable flag set by hexmap.js.
+   * @param {Entity} entity - Entity
+   * @param {RenderComponent} render - Render component
+   * @param {IdentityComponent|null|undefined} identity - Identity component
+   * @param {Object} pixelPos - Pixel position {x, y}
+   */
+  updateInteractMarker(entity, render, identity, pixelPos) {
+    const isInteractable = render._isInteractable === true;
+
+    if (!isInteractable || this.hexSize < 16) {
+      if (render.interactMarker) {
+        render.interactMarker.visible = false;
+      }
+      return;
+    }
+
+    if (!render.interactMarker) {
+      const marker = new PIXI.Graphics();
+      this.disablePointerCapture(marker);
+      this.uiContainer.addChild(marker);
+      render.interactMarker = marker;
+    }
+
+    const marker = render.interactMarker;
+    const r = Math.max(4, this.hexSize * 0.18);
+    marker.clear();
+    marker.lineStyle(Math.max(1, r * 0.25), 0xfbbf24, 0.9);
+    marker.beginFill(0x1e3a5f, 0.85);
+    marker.drawCircle(0, 0, r);
+    marker.endFill();
+
+    // Exclamation mark body
+    marker.lineStyle(Math.max(1, r * 0.3), 0xfbbf24, 1.0);
+    marker.moveTo(0, -r * 0.55);
+    marker.lineTo(0, r * 0.1);
+    // Exclamation dot
+    marker.lineStyle(0);
+    marker.beginFill(0xfbbf24, 1.0);
+    marker.drawCircle(0, r * 0.4, Math.max(1, r * 0.15));
+    marker.endFill();
+
+    marker.x = pixelPos.x + this.hexSize * 0.45;
+    marker.y = pixelPos.y - this.hexSize * 0.55;
+    marker.visible = render.visible;
+    marker.zIndex = (render.zIndex || 0) + 6;
   }
   
   /**
@@ -750,6 +965,30 @@ export class RenderSystem extends System {
         this.uiContainer.removeChild(render.directionIndicator);
         render.directionIndicator.destroy();
         render.directionIndicator = null;
+      }
+
+      if (render.teamRing) {
+        this.uiContainer.removeChild(render.teamRing);
+        render.teamRing.destroy();
+        render.teamRing = null;
+      }
+
+      if (render.selectionRing) {
+        this.uiContainer.removeChild(render.selectionRing);
+        render.selectionRing.destroy();
+        render.selectionRing = null;
+      }
+
+      if (render.conditionBadges) {
+        this.uiContainer.removeChild(render.conditionBadges);
+        render.conditionBadges.destroy({ children: true });
+        render.conditionBadges = null;
+      }
+
+      if (render.interactMarker) {
+        this.uiContainer.removeChild(render.interactMarker);
+        render.interactMarker.destroy();
+        render.interactMarker = null;
       }
       
       console.log(`Removed sprite and UI for entity ${entity.id}`);

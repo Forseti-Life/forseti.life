@@ -38,7 +38,7 @@ class TestingDashboardDocsController extends TestingDashboardController {
 			Link::fromTextAndUrl($this->t('Testing Dashboard'), Url::fromRoute('dungeoncrawler_tester.dashboard')),
 			Link::fromTextAndUrl($this->t('Tester Settings'), Url::fromRoute('dungeoncrawler_tester.settings')),
 			Link::fromTextAndUrl($this->t('Copilot Issue Automation page'), Url::fromRoute('dungeoncrawler_tester.docs_issue_automation')),
-            Link::fromTextAndUrl($this->t('GitHub Issues (testing-related)'), Url::fromUri('https://github.com/Forseti-Life/forseti.life/issues?q=is%3Aissue+is%3Aopen+label%3Atesting')),
+			Link::fromTextAndUrl($this->t('GitHub Issues (testing-related)'), Url::fromUri('https://github.com/keithaumiller/forseti.life/issues?q=is%3Aissue+is%3Aopen+label%3Atesting')),
 		];
 
 		$coreItems = $this->renderLinkItems($coreLinks);
@@ -171,7 +171,7 @@ class TestingDashboardDocsController extends TestingDashboardController {
 			],
 			[
 				Link::fromTextAndUrl($this->t('Tester Settings'), Url::fromRoute('dungeoncrawler_tester.settings')),
-                Link::fromTextAndUrl($this->t('GitHub Issues (testing-related)'), Url::fromUri('https://github.com/Forseti-Life/forseti.life/issues?q=is%3Aissue+is%3Aopen+label%3Atesting')),
+				Link::fromTextAndUrl($this->t('GitHub Issues (testing-related)'), Url::fromUri('https://github.com/keithaumiller/forseti.life/issues?q=is%3Aissue+is%3Aopen+label%3Atesting')),
 			]
 		);
 	}

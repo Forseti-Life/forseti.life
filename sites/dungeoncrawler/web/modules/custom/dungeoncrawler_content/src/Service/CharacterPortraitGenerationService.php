@@ -84,6 +84,27 @@ class CharacterPortraitGenerationService {
       ];
     }
 
+    $provider = strtolower(trim((string) ($options['provider'] ?? '')));
+    $integration_status = $this->integrationService->getIntegrationStatus();
+    if ($provider === '') {
+      $provider = strtolower(trim((string) ($integration_status['default_provider'] ?? 'gemini')));
+    }
+    $provider_status = is_array($integration_status['providers'][$provider] ?? NULL)
+      ? $integration_status['providers'][$provider]
+      : [];
+    if (empty($provider_status['enabled']) || empty($provider_status['has_api_key'])) {
+      $this->logger->warning('Character portrait generation unavailable for character @character_id: provider @provider is not fully configured.', [
+        '@character_id' => $character_id,
+        '@provider' => $provider,
+      ]);
+      return [
+        'attempted' => FALSE,
+        'reason' => 'provider_unavailable',
+        'provider' => $provider,
+        'provider_status' => $provider_status,
+      ];
+    }
+
     $user_prompt = (string) ($options['user_prompt'] ?? ($character_data['portrait_prompt'] ?? ''));
     $prompt = $this->promptBuilder->buildPortraitPrompt($character_data, $user_prompt);
 
@@ -112,6 +133,7 @@ class CharacterPortraitGenerationService {
 
       return [
         'attempted' => TRUE,
+        'provider' => $provider,
         'result' => $result,
         'storage' => $storage,
       ];

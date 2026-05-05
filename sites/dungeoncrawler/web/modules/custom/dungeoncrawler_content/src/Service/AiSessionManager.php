@@ -100,8 +100,14 @@ class AiSessionManager {
 
   /**
    * Build session key for room chat GM replies within a campaign.
+   *
+   * Scoped to the room so that NPC conversations from previous rooms do not
+   * bleed into the current room's AI context.
    */
-  public function roomChatSessionKey(int $campaign_id): string {
+  public function roomChatSessionKey(int $campaign_id, string $room_id = ''): string {
+    if ($room_id !== '') {
+      return "campaign.{$campaign_id}.room_chat.{$room_id}";
+    }
     return "campaign.{$campaign_id}.room_chat";
   }
 

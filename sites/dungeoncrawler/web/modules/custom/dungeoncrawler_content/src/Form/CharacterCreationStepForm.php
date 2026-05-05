@@ -13,6 +13,7 @@ use Drupal\Component\Uuid\UuidInterface;
 use Drupal\Component\Utility\Html;
 use Drupal\dungeoncrawler_content\Service\AbilityScoreTracker;
 use Drupal\dungeoncrawler_content\Service\CharacterManager;
+use Drupal\dungeoncrawler_content\Service\ImageGenerationIntegrationService;
 use Drupal\dungeoncrawler_content\Service\CharacterPortraitGenerationService;
 use Drupal\dungeoncrawler_content\Service\SchemaLoader;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -35,6 +36,7 @@ class CharacterCreationStepForm extends FormBase {
     protected TimeInterface $time,
     protected CharacterPortraitGenerationService $portraitGenerator,
     protected AbilityScoreTracker $abilityScoreTracker,
+    protected ImageGenerationIntegrationService $imageGenerationIntegration,
   ) {}
 
   /**
@@ -50,7 +52,8 @@ class CharacterCreationStepForm extends FormBase {
       $container->get('date.formatter'),
       $container->get('datetime.time'),
       $container->get('dungeoncrawler_content.character_portrait_generator'),
-      $container->get('dungeoncrawler_content.ability_score_tracker')
+      $container->get('dungeoncrawler_content.ability_score_tracker'),
+      $container->get('dungeoncrawler_content.image_generation_integration'),
     );
   }
 
@@ -107,7 +110,7 @@ class CharacterCreationStepForm extends FormBase {
     $form['#attached']['library'][] = 'dungeoncrawler_content/character-step-' . $step;
 
     // Steps with interactive ability boost widgets need the selector JS.
-    if (in_array($step, [3, 5], TRUE)) {
+    if (in_array($step, [2, 3, 5], TRUE)) {
       $form['#attached']['library'][] = 'dungeoncrawler_content/ability-boost-selector';
     }
     
@@ -363,8 +366,6 @@ class CharacterCreationStepForm extends FormBase {
     // Step 2: Ancestry → Heritage → Ancestry Feat.
     // AJAX on ancestry select refreshes #heritage-path-wrapper (heritage + feat).
     // Validation is in validateForm() case 2 (not #required, to avoid :invalid).
-    $this->attachAbilityPreview($form, $character_data, 'Current ability scores (from ancestry)');
-
     $heritage_payload = [];
     foreach (CharacterManager::HERITAGES as $ancestry_name => $heritages) {
       $ancestry_id = self::ancestryMachineId($ancestry_name);
@@ -382,6 +383,32 @@ class CharacterCreationStepForm extends FormBase {
       ?: (is_array($user_input) ? ($user_input['ancestry'] ?? '') : '')
       ?: ($character_data['ancestry'] ?? '')
     );
+    $heritage_options = $this->getHeritageOptions($selected_ancestry);
+    $has_heritage_choices = count($heritage_options) > 1;
+    $selected_heritage = (string) ($form_state->getValue('heritage') ?: ($character_data['heritage'] ?? ''));
+    if ($selected_heritage !== '' && !array_key_exists($selected_heritage, $heritage_options)) {
+      $selected_heritage = '';
+    }
+
+    $selected_ancestry_boosts = self::normalizeList($form_state->getValue('ancestry_boosts', $character_data['ancestry_boosts'] ?? []));
+    $ancestry_boost_config = CharacterManager::getAncestryBoostConfig($selected_ancestry, $selected_heritage);
+    $ancestry_free_boosts_total = (int) ($ancestry_boost_config['free_boosts'] ?? 0);
+    $ancestry_fixed_boosts = array_values(array_filter(array_map(
+      fn(string $boost): ?string => $this->abilityScoreTracker->normalizeAbilityKey($boost),
+      $ancestry_boost_config['fixed_boosts'] ?? []
+    )));
+
+    $character_data_for_widget = $character_data;
+    if ($selected_ancestry !== '') {
+      $character_data_for_widget['ancestry'] = $selected_ancestry;
+    }
+    if ($selected_heritage !== '') {
+      $character_data_for_widget['heritage'] = $selected_heritage;
+    }
+    $character_data_for_widget['ancestry_boosts'] = $selected_ancestry_boosts;
+
+    $this->attachAbilityPreview($form, $character_data_for_widget, 'Current ability scores (from ancestry)');
+
     $ancestry_cards_markup = '<div class="ancestry-selection" data-heritages="' . $heritage_json . '">';
     $ancestry_cards_markup .= '<div class="ancestry-grid">';
 
@@ -454,13 +481,6 @@ class CharacterCreationStepForm extends FormBase {
       ],
     ];
 
-    $heritage_options = $this->getHeritageOptions($selected_ancestry);
-    $has_heritage_choices = count($heritage_options) > 1;
-    $selected_heritage = (string) ($form_state->getValue('heritage') ?: ($character_data['heritage'] ?? ''));
-    if ($selected_heritage !== '' && !array_key_exists($selected_heritage, $heritage_options)) {
-      $selected_heritage = '';
-    }
-
     $form['heritage_dynamic']['heritage'] = [
       '#type' => 'select',
       '#title' => $this->t('Heritage Path'),
@@ -485,6 +505,47 @@ class CharacterCreationStepForm extends FormBase {
         '#markup' => '<div class="messages messages--warning">'
           . $this->t('No heritage options are currently configured for this ancestry. You can continue to the next step and set heritage later when available.')
           . '</div>',
+      ];
+    }
+
+    if ($ancestry_free_boosts_total > 0) {
+      $calculation = $this->abilityScoreTracker->calculateAbilityScores($character_data_for_widget);
+      $abilities_data = $this->buildInteractiveAbilityData($calculation, $selected_ancestry_boosts);
+      foreach ($ancestry_fixed_boosts as $ability_key) {
+        if (isset($abilities_data[$ability_key])) {
+          $abilities_data[$ability_key]['disabled'] = TRUE;
+        }
+      }
+
+      $help_text = !empty($ancestry_fixed_boosts)
+        ? $this->t('Choose @count free ancestry boost(s). You can’t choose an ability that already received a fixed ancestry boost, but you can offset an ancestry flaw.', ['@count' => $ancestry_free_boosts_total])
+        : $this->t('Choose @count free ancestry boost(s). Each selection must be different.', ['@count' => $ancestry_free_boosts_total]);
+
+      $form['heritage_dynamic']['ancestry_boosts_help'] = [
+        '#markup' => '<div class="section-instructions ancestry-boosts-section">'
+          . '<h3>' . $this->t('Ancestry Ability Boosts') . '</h3>'
+          . '<p>' . $help_text . '</p>'
+          . '</div>',
+      ];
+
+      $form['heritage_dynamic']['ancestry_boosts_selector'] = [
+        '#theme' => 'character_ability_widget',
+        '#abilities' => $abilities_data,
+        '#mode' => 'interactive',
+        '#show_sources' => TRUE,
+        '#boosts_remaining' => max(0, $ancestry_free_boosts_total - count($selected_ancestry_boosts)),
+        '#boosts_total' => $ancestry_free_boosts_total,
+        '#attributes' => [
+          'data-step' => 'ancestry',
+          'data-max-boosts' => $ancestry_free_boosts_total,
+          'data-character-data' => json_encode($character_data_for_widget),
+        ],
+      ];
+
+      $form['heritage_dynamic']['ancestry_boosts'] = [
+        '#type' => 'hidden',
+        '#default_value' => json_encode($selected_ancestry_boosts),
+        '#attributes' => ['id' => 'ancestry-boosts-field'],
       ];
     }
 
@@ -576,10 +637,16 @@ class CharacterCreationStepForm extends FormBase {
       '#options' => $this->getBackgroundOptions(),
       '#default_value' => $character_data['background'] ?? '',
       '#description' => $this->t('Your character\'s former life shaped who they are. This choice grants lasting skills and a foundation for long-term roleplay consistency.'),
+      '#ajax' => [
+        'callback' => '::updateBackgroundOptions',
+        'wrapper' => 'background-dynamic-wrapper',
+        'event' => 'change',
+      ],
     ];
 
     // Background Ability Boosts: 1 fixed (auto) + 1 free (player choice).
-    $selected_background_for_boosts = $form_state->getValue('background') ?: $character_data['background'] ?? '';
+    $selected_background_for_boosts = (string) ($form_state->getValue('background') ?: ($character_data['background'] ?? ''));
+    $selected_background_boosts = self::normalizeList($form_state->getValue('background_boosts', $character_data['background_boosts'] ?? []));
     $bg_boost_data = !empty($selected_background_for_boosts) ? (CharacterManager::BACKGROUNDS[$selected_background_for_boosts] ?? NULL) : NULL;
     $has_fixed_boost = $bg_boost_data && isset($bg_boost_data['fixed_boost']);
     $boost_total = $has_fixed_boost ? 1 : 2;
@@ -587,50 +654,64 @@ class CharacterCreationStepForm extends FormBase {
       ? $this->t('Your background automatically applies a fixed boost to <strong>@ability</strong>. Choose one additional free ability boost (must differ from the fixed boost).', ['@ability' => strtoupper($bg_boost_data['fixed_boost'])])
       : $this->t('Your background grants 2 free ability boosts. Choose any two different abilities to boost.');
 
-    $calculation = $this->abilityScoreTracker->calculateAbilityScores($character_data);
-    $abilities_data = $this->buildInteractiveAbilityData($calculation, $character_data['background_boosts'] ?? []);
+    $character_data_for_widget = $character_data;
+    if ($selected_background_for_boosts !== '') {
+      $character_data_for_widget['background'] = $selected_background_for_boosts;
+    }
+    $character_data_for_widget['background_boosts'] = $selected_background_boosts;
 
-    $form['background_boosts_help'] = [
+    $calculation = $this->abilityScoreTracker->calculateAbilityScores($character_data_for_widget);
+    $abilities_data = $this->buildInteractiveAbilityData($calculation, $selected_background_boosts);
+
+    $form['background_dynamic'] = [
+      '#type' => 'container',
+      '#tree' => FALSE,
+      '#attributes' => [
+        'id' => 'background-dynamic-wrapper',
+      ],
+    ];
+
+    $form['background_dynamic']['background_boosts_help'] = [
       '#markup' => '<div class="section-instructions background-boosts-section">'
         . '<h3>' . $this->t('Background Ability Boosts') . '</h3>'
         . '<p>' . $boost_desc . '</p>'
         . '</div>',
     ];
 
-    $form['background_boosts_selector'] = [
+    $form['background_dynamic']['background_boosts_selector'] = [
       '#theme' => 'character_ability_widget',
       '#abilities' => $abilities_data,
       '#mode' => 'interactive',
       '#show_sources' => TRUE,
-      '#boosts_remaining' => $boost_total - count($character_data['background_boosts'] ?? []),
+      '#boosts_remaining' => $boost_total - count($selected_background_boosts),
       '#boosts_total' => $boost_total,
       '#attributes' => [
         'data-step' => 'background',
         'data-max-boosts' => $boost_total,
-        'data-character-data' => json_encode($character_data),
+        'data-character-data' => json_encode($character_data_for_widget),
       ],
     ];
 
-    $form['background_boosts'] = [
+    $form['background_dynamic']['background_boosts'] = [
       '#type' => 'hidden',
-      '#default_value' => json_encode($character_data['background_boosts'] ?? []),
+      '#default_value' => json_encode($selected_background_boosts),
       '#attributes' => ['id' => 'background-boosts-field'],
     ];
 
     // Background Skill Training
-    $selected_background = $form_state->getValue('background') ?: $character_data['background'] ?? '';
+    $selected_background = $selected_background_for_boosts;
     if (!empty($selected_background)) {
       $background_data = CharacterManager::BACKGROUNDS[$selected_background] ?? NULL;
       
       if ($background_data) {
-        $form['background_skills_section'] = [
+        $form['background_dynamic']['background_skills_section'] = [
           '#markup' => '<div class="section-instructions background-skills-section">'
             . '<h3>' . $this->t('Background Skills') . '</h3>'
             . '<p>' . $this->t('Your background grants training in a specific skill and lore, plus a skill feat.') . '</p>'
             . '</div>',
         ];
 
-        $form['background_skill'] = [
+        $form['background_dynamic']['background_skill'] = [
           '#markup' => '<div class="background-benefit">'
             . '<p><strong>' . $this->t('Skill Training:') . '</strong> ' . ($background_data['skill'] ?? 'Varies') . '</p>'
             . '<p><strong>' . $this->t('Lore Skill:') . '</strong> ' . ($background_data['lore'] ?? 'Varies') . '</p>'
@@ -641,7 +722,7 @@ class CharacterCreationStepForm extends FormBase {
 
         // For backgrounds with skill choices (like Scholar), add selector
         if ($selected_background === 'scholar') {
-          $form['scholar_skill_choice'] = [
+          $form['background_dynamic']['scholar_skill_choice'] = [
             '#type' => 'radios',
             '#title' => $this->t('Choose Primary Skill'),
             '#options' => [
@@ -1262,6 +1343,8 @@ class CharacterCreationStepForm extends FormBase {
    */
   private function buildStep8Fields(array &$form, FormStateInterface $form_state, array $character_data, array $schema_fields): void {
     $this->attachAbilityPreview($form, $character_data, 'Final ability scores - Review your character');
+    $portrait_availability = $this->getPortraitGenerationAvailability();
+    $portrait_available = $portrait_availability['available'];
 
     $form['portrait_generation'] = [
       '#type' => 'details',
@@ -1271,9 +1354,10 @@ class CharacterCreationStepForm extends FormBase {
     $form['portrait_generation']['portrait_generate'] = [
       '#type' => 'checkbox',
       '#title' => $this->t('Generate a character portrait'),
-      '#default_value' => (int) ($character_data['portrait_generate'] ?? 1),
+      '#default_value' => $portrait_available ? (int) ($character_data['portrait_generate'] ?? 1) : 0,
       '#parents' => ['portrait_generate'],
-      '#description' => $this->t('Creates a portrait using the configured AI image provider after character creation.'),
+      '#description' => $portrait_availability['description'],
+      '#disabled' => !$portrait_available,
     ];
     $form['portrait_generation']['portrait_prompt'] = [
       '#type' => 'textarea',
@@ -1282,7 +1366,10 @@ class CharacterCreationStepForm extends FormBase {
       '#rows' => 3,
       '#maxlength' => 500,
       '#parents' => ['portrait_prompt'],
-      '#description' => $this->t('Add extra visual direction. Character attributes will be injected automatically.'),
+      '#description' => $portrait_available
+        ? $this->t('Add extra visual direction. Character attributes will be injected automatically.')
+        : $this->t('Portrait prompts are unavailable until a live image provider is configured.'),
+      '#disabled' => !$portrait_available,
     ];
     $form['age'] = [
       '#type' => 'textfield',
@@ -1315,6 +1402,18 @@ class CharacterCreationStepForm extends FormBase {
       '#rows' => 3,
       '#placeholder' => $this->t('How does this character speak and act? What are their quirks, habits, and mannerisms?'),
       '#description' => $this->t('Define the emotional tone and voice you\'ll bring to roleplay. Think about personality traits you can embody consistently over many sessions.'),
+    ];
+    $form['roleplay_style'] = [
+      '#type' => 'select',
+      '#title' => $this->t('Roleplay Style'),
+      '#default_value' => $character_data['roleplay_style'] ?? 'balanced',
+      '#options' => [
+        'talker' => $this->t('Talker — This character leads with words. They negotiate, interrogate, and narrate their actions aloud. Expect them to speak on most turns.'),
+        'balanced' => $this->t('Balanced — This character mixes dialogue and action naturally, reading the room to decide when to speak and when to act.'),
+        'doer' => $this->t('Doer — This character lets actions speak louder than words. They act first, talk later. Expect short, purposeful speech.'),
+        'observer' => $this->t('Observer — This character watches and listens. They speak rarely but deliberately, and are more likely to act on gathered information.'),
+      ],
+      '#description' => $this->t('How does this character participate on their turn — with words or deeds? This guides how the GM narrates their actions and how often they speak vs. act in party play.'),
     ];
     $form['backstory'] = [
       '#type' => 'textarea',
@@ -1360,6 +1459,32 @@ class CharacterCreationStepForm extends FormBase {
           $feats_for_ancestry = CharacterManager::ANCESTRY_FEATS[$ancestry_name_val] ?? [];
           if (!empty($feats_for_ancestry) && trim((string) $form_state->getValue('ancestry_feat', '')) === '') {
             $form_state->setErrorByName('ancestry_feat', $this->t('Ancestry feat selection is required.'));
+          }
+
+          $ancestry_boost_config = CharacterManager::getAncestryBoostConfig($ancestry_val, $submitted_heritage);
+          $ancestry_boosts = self::normalizeList($form_state->getValue('ancestry_boosts', []));
+          $free_boost_count = (int) ($ancestry_boost_config['free_boosts'] ?? 0);
+          $fixed_boosts = array_values(array_filter(array_map(
+            fn(string $boost): ?string => $this->abilityScoreTracker->normalizeAbilityKey($boost),
+            $ancestry_boost_config['fixed_boosts'] ?? []
+          )));
+
+          if ($free_boost_count > 0) {
+            if (count($ancestry_boosts) !== $free_boost_count) {
+              $form_state->setErrorByName('ancestry_boosts', $this->t('Select exactly @count free ancestry boost(s).', ['@count' => $free_boost_count]));
+            }
+            elseif (count($ancestry_boosts) !== count(array_unique($ancestry_boosts))) {
+              $form_state->setErrorByName('ancestry_boosts', $this->t('Ability boost selections must be unique.'));
+            }
+            else {
+              foreach ($ancestry_boosts as $boost) {
+                $normalized_boost = $this->abilityScoreTracker->normalizeAbilityKey((string) $boost);
+                if ($normalized_boost !== NULL && in_array($normalized_boost, $fixed_boosts, TRUE)) {
+                  $form_state->setErrorByName('ancestry_boosts', $this->t('Cannot apply a free ancestry boost to an ability that already receives an ancestry boost.'));
+                  break;
+                }
+              }
+            }
           }
         }
         break;
@@ -1564,7 +1689,7 @@ class CharacterCreationStepForm extends FormBase {
     foreach ($form_state->getValues() as $key => $value) {
       if (!in_array($key, $exclude_keys, TRUE)) {
         // Handle JSON-encoded hidden fields
-        if (in_array($key, ['background_boosts', 'free_boosts'], TRUE) && is_string($value)) {
+        if (in_array($key, ['ancestry_boosts', 'background_boosts', 'free_boosts'], TRUE) && is_string($value)) {
           $decoded = json_decode($value, TRUE);
           $character_data[$key] = is_array($decoded) ? $decoded : [];
         }
@@ -1574,8 +1699,8 @@ class CharacterCreationStepForm extends FormBase {
       }
     }
 
-    // After steps 3, 4, or 5: Recalculate ability scores using tracker service
-    if (in_array($step, [3, 4, 5], TRUE)) {
+    // After steps 2, 3, 4, or 5: Recalculate ability scores using tracker service.
+    if (in_array($step, [2, 3, 4, 5], TRUE)) {
       $calculation = $this->abilityScoreTracker->calculateAbilityScores($character_data);
       
       // Store final scores and sources
@@ -1764,7 +1889,7 @@ class CharacterCreationStepForm extends FormBase {
 
     // Redirect to next step or character view
     if ($step >= 8) {
-      $this->portraitGenerator->generatePortrait(
+      $portrait_result = $this->portraitGenerator->generatePortrait(
         $character_data,
         (int) $character_id,
         (int) $this->currentUser->id(),
@@ -1774,6 +1899,7 @@ class CharacterCreationStepForm extends FormBase {
           'user_prompt' => $character_data['portrait_prompt'] ?? '',
         ]
       );
+      $this->notifyPortraitResult($portrait_result);
       $final_options = [];
       if ($campaign_id) {
         $final_options['query'] = ['campaign_id' => $campaign_id];
@@ -2028,12 +2154,79 @@ class CharacterCreationStepForm extends FormBase {
       'gender' => '',
       'appearance' => '',
       'personality' => '',
+      'roleplay_style' => 'balanced',
       'backstory' => '',
       'portrait_generate' => 1,
       'portrait_prompt' => '',
       'gold' => 15,
       'hero_points' => 1,
     ];
+  }
+
+  /**
+   * Returns portrait generation availability for step 8.
+   *
+   * @return array<string, mixed>
+   *   Availability summary with description.
+   */
+  private function getPortraitGenerationAvailability(): array {
+    $status = $this->imageGenerationIntegration->getIntegrationStatus();
+    $provider = strtolower(trim((string) ($status['default_provider'] ?? 'gemini')));
+    $provider_status = is_array($status['providers'][$provider] ?? NULL)
+      ? $status['providers'][$provider]
+      : [];
+    $enabled = !empty($provider_status['enabled']);
+    $has_api_key = !empty($provider_status['has_api_key']);
+
+    if ($enabled && $has_api_key) {
+      return [
+        'available' => TRUE,
+        'description' => $this->t('Creates a portrait using the configured AI image provider after character creation.'),
+      ];
+    }
+
+    $issues = [];
+    if (!$enabled) {
+      $issues[] = $this->t('the provider is disabled');
+    }
+    if (!$has_api_key) {
+      $issues[] = $this->t('no API key is configured');
+    }
+
+    return [
+      'available' => FALSE,
+      'description' => $this->t('Portrait generation is currently unavailable because @provider is not fully configured (@issues).', [
+        '@provider' => ucfirst($provider),
+        '@issues' => implode('; ', $issues),
+      ]),
+    ];
+  }
+
+  /**
+   * Surfaces portrait-generation outcomes in the redirected form flow.
+   */
+  private function notifyPortraitResult(array $result): void {
+    $reason = (string) ($result['reason'] ?? '');
+
+    if ($reason === 'provider_unavailable') {
+      $provider = ucfirst((string) ($result['provider'] ?? 'image generation'));
+      $this->messenger()->addWarning($this->t('@provider portrait generation is currently unavailable because no live provider configuration is present.', [
+        '@provider' => $provider,
+      ]));
+      return;
+    }
+
+    if ($reason === 'exception') {
+      $this->messenger()->addWarning($this->t('Portrait generation failed before an image could be stored.'));
+      return;
+    }
+
+    if (!empty($result['attempted']) && !empty($result['storage']) && empty($result['storage']['stored'])) {
+      $storage_reason = (string) ($result['storage']['reason'] ?? 'storage_failed');
+      $this->messenger()->addWarning($this->t('Portrait generation completed without a stored image (@reason).', [
+        '@reason' => $storage_reason,
+      ]));
+    }
   }
 
   /**
@@ -2434,11 +2627,13 @@ class CharacterCreationStepForm extends FormBase {
       // Reset ancestry-dependent posted values when ancestry changes.
       $form_state->setValue('heritage', '');
       $form_state->setValue('ancestry_feat', '');
+      $form_state->setValue('ancestry_boosts', json_encode([]));
 
       $user_input = $form_state->getUserInput();
       if (is_array($user_input)) {
         $user_input['heritage'] = '';
         $user_input['ancestry_feat'] = '';
+        $user_input['ancestry_boosts'] = json_encode([]);
         $user_input['ancestry'] = $current_ancestry;
         $form_state->setUserInput($user_input);
       }
@@ -2459,6 +2654,39 @@ class CharacterCreationStepForm extends FormBase {
     $form_state->setRebuild(TRUE);
 
     return $form['heritage_dynamic'];
+  }
+
+  /**
+   * AJAX callback: Rebuilds background-dependent fields when background changes.
+   */
+  public function updateBackgroundOptions(array &$form, FormStateInterface $form_state): array {
+    $trigger = $form_state->getTriggeringElement();
+    $current_background = (string) ($trigger['#value'] ?? $form_state->getValue('background') ?? '');
+    $previous_background = (string) ($form_state->get('previous_background_selection') ?? '');
+
+    if ($current_background !== $previous_background) {
+      $form_state->setValue('background_boosts', json_encode([]));
+      $form_state->setValue('scholar_skill_choice', '');
+
+      $user_input = $form_state->getUserInput();
+      if (is_array($user_input)) {
+        $user_input['background'] = $current_background;
+        $user_input['background_boosts'] = json_encode([]);
+        $user_input['scholar_skill_choice'] = '';
+        $form_state->setUserInput($user_input);
+      }
+    }
+
+    $form_state->set('previous_background_selection', $current_background);
+
+    if (method_exists($form_state, 'clearErrors')) {
+      $form_state->clearErrors();
+    }
+    \Drupal::messenger()->deleteByType('error');
+
+    $form_state->setRebuild(TRUE);
+
+    return $form['background_dynamic'];
   }
 
   /**

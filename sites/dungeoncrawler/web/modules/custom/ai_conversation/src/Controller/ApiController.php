@@ -146,10 +146,31 @@ class ApiController extends ControllerBase {
 
       // Check for suggestion creation tag.
       $suggestion_created = FALSE;
-      if (strpos($ai_response, '[CREATE_SUGGESTION]') !== FALSE) {
-        $suggestion_created = TRUE;
-        // Remove the tag from the response.
-        $ai_response = str_replace('[CREATE_SUGGESTION]', '', $ai_response);
+      if (preg_match('/\[CREATE_SUGGESTION\](.*?)\[\/CREATE_SUGGESTION\]/s', $ai_response, $matches)) {
+        $suggestion_text = $matches[1];
+
+        $summary = '';
+        $category = 'general_feedback';
+        $original = $user_message;
+
+        if (preg_match('/Summary:\s*(.+?)(?=\nCategory:|$)/s', $suggestion_text, $summary_match)) {
+          $summary = trim($summary_match[1]);
+        }
+
+        if (preg_match('/Category:\s*(\w+)/i', $suggestion_text, $category_match)) {
+          $category = strtolower(trim($category_match[1]));
+        }
+
+        if (preg_match('/Original:\s*(.+?)$/s', $suggestion_text, $original_match)) {
+          $original = trim($original_match[1]);
+        }
+
+        if (!empty($summary)) {
+          $suggestion = $this->aiApiService->createSuggestion($conversation, $summary, $original, $category);
+          $suggestion_created = (bool) $suggestion;
+        }
+
+        $ai_response = preg_replace('/\[CREATE_SUGGESTION\].*?\[\/CREATE_SUGGESTION\]/s', '', $ai_response);
         $ai_response = trim($ai_response);
       }
 

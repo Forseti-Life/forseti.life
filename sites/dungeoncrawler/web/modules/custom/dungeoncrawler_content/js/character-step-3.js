@@ -16,8 +16,13 @@
         const $form = $(element);
         const $submit = $form.find('[type="submit"]');
 
-        $form.on('submit', function () {
-          $submit.prop('disabled', true).text('Saving...');
+        $form.on('submit', function (e) {
+          window.setTimeout(function () {
+            if (e.isDefaultPrevented() || (element.checkValidity && !element.checkValidity())) {
+              return;
+            }
+            $submit.prop('disabled', true).text('Saving...');
+          }, 0);
         });
       });
     },

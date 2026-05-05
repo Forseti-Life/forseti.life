@@ -61,6 +61,10 @@ class ContentRegistry {
    *
    * @param string|null $content_type
    *   Load specific type ('creature', 'item', 'trap', 'hazard') or all if NULL.
+   * @param string|null $source_filter
+   *   When set, only records whose normalized bestiary_source matches this
+   *   value (e.g. 'b3') are upserted. Records with a different source are
+   *   silently skipped. NULL means import all sources.
    *
    * @return int
    *   Number of items loaded.
@@ -68,7 +72,7 @@ class ContentRegistry {
    * @see docs/dungeoncrawler/issues/issue-3-game-content-system-design.md
    *   Line 133: importContentFromJson method specification
    */
-  public function importContentFromJson(?string $content_type = NULL): int {
+  public function importContentFromJson(?string $content_type = NULL, ?string $source_filter = NULL): int {
     $logger = $this->loggerFactory->get('dungeoncrawler_content');
     $count = 0;
     
@@ -100,7 +104,19 @@ class ContentRegistry {
           
           // Normalize to content_id for database storage
           $content_data['content_id'] = $content_id;
-          
+
+          // Sanitize text fields before validation and persistence.
+          $content_data = $this->sanitizeTextFields($content_data);
+          $content_data = $this->normalizeContentData($type, $content_data);
+
+          // Apply bestiary source filter when requested.
+          if ($source_filter !== NULL) {
+            $record_source = $content_data['bestiary_source'] ?? NULL;
+            if ($record_source !== $source_filter) {
+              continue;
+            }
+          }
+
           // Validate content
           $validation = $this->validateContent($type, $content_data);
           if (!$validation['valid']) {
@@ -483,6 +499,8 @@ class ContentRegistry {
    *   Line 161: updateContent method specification
    */
   public function updateContent(string $content_type, string $content_id, array $content_data): bool {
+    $content_data = $this->normalizeContentData($content_type, $content_data);
+
     // Validate content first
     $validation = $this->validateContent($content_type, $content_data);
     if (!$validation['valid']) {
@@ -552,6 +570,80 @@ class ContentRegistry {
         ]);
       return FALSE;
     }
+  }
+
+  /**
+   * Sanitize text fields in content data to prevent unsafe markup injection.
+   *
+   * Strips HTML tags and normalizes whitespace from string scalar fields
+   * that contain creature flavor text, names, descriptions, and ability text.
+   * Nested arrays are recursively sanitized.
+   *
+   * @param array $data
+   *   Content data array.
+   *
+   * @return array
+   *   Sanitized content data array.
+   */
+  protected function sanitizeTextFields(array $data): array {
+    // Fields whose values must be preserved as-is (IDs, versions, numbers).
+    static $skip_fields = [
+      'content_id', 'creature_id', 'item_id', 'trap_id', 'hazard_id',
+      'level', 'rarity', 'size', 'hex_footprint', 'schema_version', 'version',
+    ];
+
+    foreach ($data as $key => $value) {
+      if (in_array($key, $skip_fields, TRUE)) {
+        continue;
+      }
+      if (is_string($value)) {
+        $data[$key] = trim(strip_tags($value));
+      }
+      elseif (is_array($value)) {
+        $data[$key] = $this->sanitizeTextFields($value);
+      }
+    }
+    return $data;
+  }
+
+  /**
+   * Normalizes content data before validation and persistence.
+   *
+   * Ensures legacy creature imports that only carry source_book/tag metadata
+   * still land with a canonical bestiary_source value in stored schema_data.
+   */
+  public function normalizeContentData(string $content_type, array $content_data): array {
+    if ($content_type !== 'creature') {
+      return $content_data;
+    }
+
+    if (!empty($content_data['bestiary_source']) && is_string($content_data['bestiary_source'])) {
+      return $content_data;
+    }
+
+    $source_map = [
+      'bestiary_1' => 'b1',
+      'bestiary_2' => 'b2',
+      'bestiary_3' => 'b3',
+    ];
+
+    $source_book = $content_data['source_book'] ?? NULL;
+    if (is_string($source_book) && isset($source_map[$source_book])) {
+      $content_data['bestiary_source'] = $source_map[$source_book];
+      return $content_data;
+    }
+
+    $tags = $content_data['tags'] ?? $content_data['traits'] ?? [];
+    if (is_array($tags)) {
+      foreach ($tags as $tag) {
+        if (is_string($tag) && isset($source_map[$tag])) {
+          $content_data['bestiary_source'] = $source_map[$tag];
+          return $content_data;
+        }
+      }
+    }
+
+    return $content_data;
   }
 
   /**

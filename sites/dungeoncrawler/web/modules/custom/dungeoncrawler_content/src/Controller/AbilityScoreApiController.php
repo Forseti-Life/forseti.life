@@ -191,7 +191,8 @@ class AbilityScoreApiController extends ControllerBase {
 
       // Validate step-specific limits
       $limits = [
-        'background' => 2,
+        'ancestry' => $this->getAncestryMaxSelections($character_data),
+        'background' => $this->getBackgroundMaxSelections($character_data),
         'free' => 4,
       ];
 
@@ -202,9 +203,32 @@ class AbilityScoreApiController extends ControllerBase {
         ]);
       }
 
+      if ($step === 'ancestry') {
+        $normalized_ability = $this->abilityScoreTracker->normalizeAbilityKey($ability);
+        if ($normalized_ability !== NULL && in_array($normalized_ability, $this->getAncestryBlockedBoosts($character_data), TRUE)) {
+          return new JsonResponse([
+            'valid' => FALSE,
+            'error' => 'Cannot apply a free ancestry boost to an ability that already receives an ancestry boost.',
+          ]);
+        }
+      }
+      if ($step === 'background') {
+        $fixed_boost = $this->getBackgroundFixedBoost($character_data);
+        $normalized_ability = $this->abilityScoreTracker->normalizeAbilityKey($ability);
+        if ($fixed_boost !== NULL && $normalized_ability === $fixed_boost) {
+          return new JsonResponse([
+            'valid' => FALSE,
+            'error' => 'Cannot apply two boosts to the same ability score from a single background',
+          ]);
+        }
+      }
+
       // Calculate preview score with proposed boost
       $preview_data = $character_data;
-      if ($step === 'background') {
+      if ($step === 'ancestry') {
+        $preview_data['ancestry_boosts'] = array_merge($selected_boosts, [$ability]);
+      }
+      elseif ($step === 'background') {
         $preview_data['background_boosts'] = array_merge($selected_boosts, [$ability]);
       }
       elseif ($step === 'free') {
@@ -233,7 +257,7 @@ class AbilityScoreApiController extends ControllerBase {
   /**
    * Get available boost options for a specific step.
    *
-   * GET /api/characters/ability-scores/available-boosts/{step}
+   * GET|POST /api/characters/ability-scores/available-boosts/{step}
    *
    * Returns which abilities can receive boosts at a given step, considering
    * current character state and PF2e rules.
@@ -246,8 +270,9 @@ class AbilityScoreApiController extends ControllerBase {
    * @return \Symfony\Component\HttpFoundation\JsonResponse
    *   JSON response with available boost options.
    *
-   * Query parameters:
+   * Query parameters or JSON body:
    * - character_data: JSON-encoded current character data
+   * - selected_boosts: JSON-encoded selected boosts
    *
    * Response:
    * @code
@@ -263,26 +288,28 @@ class AbilityScoreApiController extends ControllerBase {
     try {
       $character_data = [];
       $selected_boosts = [];
-
-      $selected_boosts_json = $request->query->get('selected_boosts', '');
-      if (is_string($selected_boosts_json) && trim($selected_boosts_json) !== '') {
-        $decoded_selected = json_decode($selected_boosts_json, TRUE);
-        if (json_last_error() !== JSON_ERROR_NONE || !is_array($decoded_selected)) {
+      $request_data = [];
+      if ($request->getContentTypeFormat() === 'json' || str_contains((string) $request->headers->get('Content-Type', ''), 'application/json')) {
+        $request_data = json_decode($request->getContent(), TRUE);
+        if ($request->getContent() !== '' && json_last_error() !== JSON_ERROR_NONE) {
           return new JsonResponse([
-            'error' => 'Invalid selected_boosts JSON',
+            'error' => 'Invalid JSON in request body',
           ], 400);
         }
-        $selected_boosts = array_values(array_filter(array_map(static function ($item) {
-          return is_string($item) ? trim($item) : '';
-        }, $decoded_selected), static function ($item) {
-          return $item !== '';
-        }));
       }
-      else {
-        // Backward compatibility for older clients that send full character_data.
-        $character_data_json = $request->query->get('character_data', '{}');
-        $character_data = json_decode($character_data_json, TRUE);
 
+      $character_data_json = $request->query->get('character_data');
+      if (!is_string($character_data_json) || trim($character_data_json) === '') {
+        $body_character_data = $request_data['character_data'] ?? [];
+        if (is_array($body_character_data)) {
+          $character_data = $body_character_data;
+        }
+        else {
+          $character_data_json = '{}';
+        }
+      }
+      if (is_string($character_data_json) && trim($character_data_json) !== '') {
+        $character_data = json_decode($character_data_json, TRUE);
         if (json_last_error() !== JSON_ERROR_NONE) {
           return new JsonResponse([
             'error' => 'Invalid character_data JSON',
@@ -290,9 +317,31 @@ class AbilityScoreApiController extends ControllerBase {
         }
       }
 
+      $selected_boosts_json = $request->query->get('selected_boosts');
+      if (is_string($selected_boosts_json) && trim($selected_boosts_json) !== '') {
+        $decoded_selected = json_decode($selected_boosts_json, TRUE);
+      }
+      else {
+        $decoded_selected = $request_data['selected_boosts'] ?? [];
+      }
+      if (!is_array($decoded_selected)) {
+        return new JsonResponse([
+          'error' => 'Invalid selected_boosts payload',
+        ], 400);
+      }
+      $selected_boosts = array_values(array_filter(array_map(static function ($item) {
+        return is_string($item) ? trim($item) : '';
+      }, $decoded_selected), static function ($item) {
+        return $item !== '';
+      }));
+
       $step_config = [
+        'ancestry' => [
+          'max_selections' => $this->getAncestryMaxSelections($character_data),
+          'field' => 'ancestry_boosts',
+        ],
         'background' => [
-          'max_selections' => 2,
+          'max_selections' => $this->getBackgroundMaxSelections($character_data),
           'field' => 'background_boosts',
         ],
         'free' => [
@@ -324,10 +373,24 @@ class AbilityScoreApiController extends ControllerBase {
       // NOT disabled — the client must be able to click them to deselect.
       $all_abilities = AbilityScoreTracker::ABILITIES;
       $available = array_diff($all_abilities, $current_selections);
+      $disabled = [];
+      if ($step === 'ancestry') {
+        $disabled = $this->getAncestryBlockedBoosts($character_data);
+        if ($disabled !== []) {
+          $available = array_diff($available, $disabled);
+        }
+      }
+      if ($step === 'background') {
+        $fixed_boost = $this->getBackgroundFixedBoost($character_data);
+        if ($fixed_boost !== NULL) {
+          $available = array_diff($available, [$fixed_boost]);
+          $disabled[] = $fixed_boost;
+        }
+      }
 
       return new JsonResponse([
         'available' => array_values($available),
-        'disabled' => [],
+        'disabled' => array_values(array_unique($disabled)),
         'max_selections' => $config['max_selections'],
         'current_selections' => count($current_selections),
       ]);
@@ -337,6 +400,62 @@ class AbilityScoreApiController extends ControllerBase {
         'error' => 'Error: ' . $e->getMessage(),
       ], 500);
     }
+  }
+
+  /**
+   * Resolves the allowed background free-boost selection count.
+   */
+  private function getBackgroundMaxSelections(array $character_data): int {
+    return $this->getBackgroundFixedBoost($character_data) !== NULL ? 1 : 2;
+  }
+
+  /**
+   * Resolves the allowed ancestry free-boost selection count.
+   */
+  private function getAncestryMaxSelections(array $character_data): int {
+    $boost_config = \Drupal\dungeoncrawler_content\Service\CharacterManager::getAncestryBoostConfig(
+      (string) ($character_data['ancestry'] ?? ''),
+      (string) ($character_data['heritage'] ?? '')
+    );
+
+    return (int) ($boost_config['free_boosts'] ?? 0);
+  }
+
+  /**
+   * Returns ancestry abilities blocked from free-boost selection.
+   *
+   * These are abilities that already receive a fixed ancestry boost.
+   *
+   * @return string[]
+   *   Normalized ability keys.
+   */
+  private function getAncestryBlockedBoosts(array $character_data): array {
+    $boost_config = \Drupal\dungeoncrawler_content\Service\CharacterManager::getAncestryBoostConfig(
+      (string) ($character_data['ancestry'] ?? ''),
+      (string) ($character_data['heritage'] ?? '')
+    );
+
+    return array_values(array_filter(array_map(
+      fn(string $boost): ?string => $this->abilityScoreTracker->normalizeAbilityKey($boost),
+      $boost_config['fixed_boosts'] ?? []
+    )));
+  }
+
+  /**
+   * Resolves the normalized fixed background boost, if one exists.
+   */
+  private function getBackgroundFixedBoost(array $character_data): ?string {
+    $background_id = (string) ($character_data['background'] ?? '');
+    if ($background_id === '') {
+      return NULL;
+    }
+
+    $bg_data = \Drupal\dungeoncrawler_content\Service\CharacterManager::BACKGROUNDS[$background_id] ?? NULL;
+    if (!$bg_data || !isset($bg_data['fixed_boost'])) {
+      return NULL;
+    }
+
+    return $this->abilityScoreTracker->normalizeAbilityKey((string) $bg_data['fixed_boost']);
   }
 
 }

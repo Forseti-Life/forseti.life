@@ -284,12 +284,24 @@ class CharacterCreationStepController extends ControllerBase {
       'attempted' => (bool) ($result['attempted'] ?? FALSE),
     ];
 
+    if (!empty($result['provider'])) {
+      $summary['provider'] = (string) $result['provider'];
+    }
     if (!empty($result['reason'])) {
       $summary['reason'] = (string) $result['reason'];
+    }
+    if (!empty($result['provider_status']) && is_array($result['provider_status'])) {
+      $summary['provider_status'] = [
+        'enabled' => (bool) ($result['provider_status']['enabled'] ?? FALSE),
+        'has_api_key' => (bool) ($result['provider_status']['has_api_key'] ?? FALSE),
+      ];
     }
 
     if (!empty($result['storage']) && is_array($result['storage'])) {
       $summary['stored'] = (bool) ($result['storage']['stored'] ?? FALSE);
+      if (!empty($result['storage']['reason'])) {
+        $summary['storage_reason'] = (string) $result['storage']['reason'];
+      }
       if (!empty($result['storage']['image_uuid'])) {
         $summary['image_uuid'] = (string) $result['storage']['image_uuid'];
       }
@@ -680,33 +692,51 @@ class CharacterCreationStepController extends ControllerBase {
             $errors['ancestry'] = 'Invalid ancestry: ' . $ancestry_val . '.';
           }
           else {
-            // Human/free-boost ancestries: validate ancestry_boosts not duplicate.
-            $ancestry_data = CharacterManager::ANCESTRIES[$canonical];
-            $free_count = count(array_filter($ancestry_data['boosts'] ?? [], fn($b) => $b === 'Free'));
-            if ($free_count > 0 && !empty($merged['ancestry_boosts'])) {
-              $chosen = $this->normalizeSelectionList($merged['ancestry_boosts']);
-              if (count($chosen) !== count(array_unique($chosen))) {
-                $errors['ancestry_boosts'] = 'Ability boost selections must be unique.';
-              }
-              // Boost/flaw conflict check.
-              $flaw = $ancestry_data['flaw'] ?? '';
-              if ($flaw) {
-                $map = ['Strength' => 'str', 'Dexterity' => 'dex', 'Constitution' => 'con', 'Intelligence' => 'int', 'Wisdom' => 'wis', 'Charisma' => 'cha'];
-                $flaw_short = $map[$flaw] ?? strtolower(substr($flaw, 0, 3));
-                foreach ($chosen as $boost_choice) {
-                  $boost_short = $map[$boost_choice] ?? $boost_choice;
-                  if ($boost_short === $flaw_short || strtolower($boost_choice) === strtolower($flaw)) {
-                    $errors['ancestry_boosts'] = 'Cannot boost an ability that has a flaw (' . $flaw . ').';
-                    break;
-                  }
-                }
-              }
-            }
             // Heritage ancestry-gate validation: if a heritage is selected,
             // confirm it belongs to the submitted ancestry.
             $heritage_val = trim($merged['heritage'] ?? '');
             if ($heritage_val !== '' && !CharacterManager::isValidHeritageForAncestry($canonical, $heritage_val)) {
               $errors['heritage'] = 'The selected heritage (' . $heritage_val . ') is not valid for the ' . $canonical . ' ancestry.';
+            }
+
+            $boost_config = CharacterManager::getAncestryBoostConfig($ancestry_val, $heritage_val);
+            $free_count = (int) ($boost_config['free_boosts'] ?? 0);
+            $chosen = $this->normalizeSelectionList($merged['ancestry_boosts'] ?? []);
+            $fixed_boosts = array_values(array_filter(array_map(static function ($boost) {
+              $boost = strtolower(trim((string) $boost));
+              $map = [
+                'strength' => 'str',
+                'dexterity' => 'dex',
+                'constitution' => 'con',
+                'intelligence' => 'int',
+                'wisdom' => 'wis',
+                'charisma' => 'cha',
+                'str' => 'str',
+                'dex' => 'dex',
+                'con' => 'con',
+                'int' => 'int',
+                'wis' => 'wis',
+                'cha' => 'cha',
+              ];
+              return $map[$boost] ?? NULL;
+            }, $boost_config['fixed_boosts'] ?? [])));
+
+            if ($free_count > 0) {
+              if (count($chosen) !== $free_count) {
+                $errors['ancestry_boosts'] = 'Select exactly ' . $free_count . ' free ancestry boost' . ($free_count === 1 ? '' : 's') . '.';
+              }
+              elseif (count($chosen) !== count(array_unique($chosen))) {
+                $errors['ancestry_boosts'] = 'Ability boost selections must be unique.';
+              }
+              else {
+                foreach ($chosen as $boost_choice) {
+                  $boost_short = strtolower(trim((string) $boost_choice));
+                  if (in_array($boost_short, $fixed_boosts, TRUE)) {
+                    $errors['ancestry_boosts'] = 'Cannot apply a free ancestry boost to an ability that already receives an ancestry boost.';
+                    break;
+                  }
+                }
+              }
             }
           }
         }

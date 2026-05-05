@@ -250,10 +250,20 @@ class MapGeneratorService {
       $setting['setting_type'] ?? 'default', $room_index, $setting
     );
 
-    // Step 10: Create NPC psychology profiles for any new NPCs.
+    // Step 10a: Persist room into dc_campaign_rooms so it can be resolved
+    // by slug later (prevents tavern NPC bleed into unindexed rooms).
+    $this->persistRoomToCampaignRooms($campaign_id, $room, $setting);
+
+    // Step 10b: Create NPC psychology profiles for any new NPCs.
     $room_entities = array_filter($entities, fn($e) => ($e['entity_type'] ?? '') === 'npc');
     if (!empty($room_entities)) {
       $this->psychologyService->ensureRoomNpcProfiles($campaign_id, $room_entities);
+    }
+
+    // Step 11: Register AI-generated NPCs in content library + campaign chars.
+    $npc_setting_data = $setting['npcs'] ?? [];
+    if (!empty($npc_setting_data)) {
+      $this->registerGeneratedNpcs($campaign_id, $room['room_id'], $npc_setting_data);
     }
 
     $this->logger->info('Setting ready: @name (source=@src, template=@tid, room_index=@idx, @hex hexes, @ent entities)', [
@@ -537,6 +547,263 @@ class MapGeneratorService {
     }
   }
 
+  // =========================================================================
+  // NPC and Room persistence helpers
+  // =========================================================================
+
+  /**
+   * Persist a generated room into dc_campaign_rooms.
+   *
+   * Rooms created by MapGeneratorService live in dc_campaign_settings but were
+   * historically NOT written to dc_campaign_rooms. This method bridges that
+   * gap so resolveRoomSlugForQuery() can find them and avoid bleeding tavern
+   * NPCs (Eldric etc.) into unrelated rooms.
+   *
+   * @param int $campaign_id
+   *   Campaign ID.
+   * @param array $room
+   *   Room data from buildRoomFromSetting().
+   * @param array $setting
+   *   Normalized setting data.
+   */
+  protected function persistRoomToCampaignRooms(int $campaign_id, array $room, array $setting): void {
+    $room_id = $room['room_id'] ?? '';
+    if (!$room_id) {
+      return;
+    }
+
+    $now = time();
+    $layout_data = json_encode([
+      'hexes'        => $room['hexes'] ?? [],
+      'entry_points' => $room['entry_points'] ?? [],
+      'exit_points'  => $room['exit_points'] ?? [],
+      'terrain'      => $room['terrain'] ?? [],
+      'lighting'     => $room['lighting'] ?? [],
+    ]);
+    $contents_data = json_encode([
+      'creatures'     => [],
+      'items'         => [],
+      'traps'         => [],
+      'hazards'       => [],
+      'obstacles'     => [],
+      'interactables' => [],
+    ]);
+    $env_tags = json_encode($setting['theme_tags'] ?? []);
+
+    try {
+      // Use INSERT IGNORE (upsert) to avoid duplicates on re-generation.
+      $this->database->merge('dc_campaign_rooms')
+        ->key(['campaign_id' => $campaign_id, 'room_id' => $room_id])
+        ->fields([
+          'campaign_id'       => $campaign_id,
+          'room_id'           => $room_id,
+          'name'              => $room['name'] ?? 'Unknown',
+          'description'       => $room['description'] ?? '',
+          'environment_tags'  => $env_tags,
+          'layout_data'       => $layout_data,
+          'contents_data'     => $contents_data,
+          'source_room_id'    => '',
+          'created'           => $now,
+          'updated'           => $now,
+        ])
+        ->execute();
+
+      // Initialize room state row if the table exists.
+      try {
+        $this->database->merge('dc_campaign_room_states')
+          ->key(['campaign_id' => $campaign_id, 'room_id' => $room_id])
+          ->fields([
+            'campaign_id'  => $campaign_id,
+            'room_id'      => $room_id,
+            'is_cleared'   => 0,
+            'fog_state'    => json_encode(['explored' => TRUE, 'visibility' => 'visible']),
+            'last_visited' => $now,
+            'updated'      => $now,
+          ])
+          ->execute();
+      }
+      catch (\Exception $e) {
+        // dc_campaign_room_states may not exist — non-critical.
+      }
+
+      $this->logger->info('Room @id persisted to dc_campaign_rooms (name: @name)', [
+        '@id'   => $room_id,
+        '@name' => $room['name'] ?? 'Unknown',
+      ]);
+    }
+    catch (\Exception $e) {
+      $this->logger->warning('Failed to persist room @id to dc_campaign_rooms: @err', [
+        '@id'  => $room_id,
+        '@err' => $e->getMessage(),
+      ]);
+    }
+  }
+
+  /**
+   * Register AI-generated NPCs in the content library and campaign characters.
+   *
+   * Each NPC from the AI setting response is:
+   * 1. Upserted into dungeoncrawler_content_registry (global library).
+   * 2. Upserted into dc_campaign_content_registry (campaign-scoped copy).
+   * 3. Inserted into dc_campaign_characters (so loadRoomCampaignNpcRows finds them).
+   *
+   * @param int $campaign_id
+   *   Campaign ID.
+   * @param string $room_id
+   *   UUID of the room this NPC was placed into.
+   * @param array $npcs
+   *   Normalized NPC array from setting['npcs'].
+   */
+  protected function registerGeneratedNpcs(int $campaign_id, string $room_id, array $npcs): void {
+    $now = time();
+
+    foreach ($npcs as $npc) {
+      $content_id = $npc['content_id'] ?? '';
+      $name       = $npc['name'] ?? 'Unknown NPC';
+      if (!$content_id) {
+        continue;
+      }
+
+      $schema_data = json_encode([
+        'content_id'  => $content_id,
+        'name'        => $name,
+        'ancestry'    => $npc['ancestry'] ?? 'Human',
+        'class'       => $npc['class'] ?? 'Commoner',
+        'role'        => $npc['role'] ?? 'neutral',
+        'occupation'  => $npc['occupation'] ?? '',
+        'description' => $npc['description'] ?? '',
+        'backstory'   => $npc['backstory'] ?? '',
+        'attitude'    => $npc['attitude'] ?? 'indifferent',
+        'stats'       => $npc['stats'] ?? [],
+        'equipment'   => $npc['equipment'] ?? [],
+        'source'      => 'ai_generated',
+      ]);
+
+      $tags = json_encode(array_filter([
+        $npc['role'] ?? NULL,
+        $npc['team'] ?? NULL,
+        'ai_generated',
+      ]));
+
+      // 1. Global library entry (dungeoncrawler_content_registry).
+      try {
+        $this->database->merge('dungeoncrawler_content_registry')
+          ->key(['content_type' => 'npc', 'content_id' => $content_id])
+          ->fields([
+            'content_type' => 'npc',
+            'content_id'   => $content_id,
+            'name'         => $name,
+            'level'        => 0,
+            'rarity'       => 'common',
+            'tags'         => $tags,
+            'schema_data'  => $schema_data,
+            'source_file'  => 'ai_generated',
+            'version'      => '1.0',
+          ])
+          ->execute();
+      }
+      catch (\Exception $e) {
+        $this->logger->warning('Failed to register NPC @id in global library: @err', [
+          '@id'  => $content_id,
+          '@err' => $e->getMessage(),
+        ]);
+      }
+
+      // 2. Campaign-scoped copy (dc_campaign_content_registry).
+      try {
+        $this->database->merge('dc_campaign_content_registry')
+          ->key(['campaign_id' => $campaign_id, 'content_type' => 'npc', 'content_id' => $content_id])
+          ->fields([
+            'campaign_id'      => $campaign_id,
+            'content_type'     => 'npc',
+            'content_id'       => $content_id,
+            'name'             => $name,
+            'level'            => 0,
+            'rarity'           => 'common',
+            'tags'             => $tags,
+            'schema_data'      => $schema_data,
+            'source_content_id' => $content_id,
+            'created'          => $now,
+            'updated'          => $now,
+          ])
+          ->execute();
+      }
+      catch (\Exception $e) {
+        $this->logger->warning('Failed to register NPC @id in campaign content registry: @err', [
+          '@id'  => $content_id,
+          '@err' => $e->getMessage(),
+        ]);
+      }
+
+      // 3. Campaign character instance (dc_campaign_characters).
+      // Check first — avoid duplicating if this NPC was already registered.
+      try {
+        $existing = $this->database->select('dc_campaign_characters', 'c')
+          ->fields('c', ['id'])
+          ->condition('campaign_id', $campaign_id)
+          ->condition('instance_id', $content_id)
+          ->execute()
+          ->fetchField();
+
+        if (!$existing) {
+          $state_data = json_encode([
+            'content_id'  => $content_id,
+            'role'        => $npc['role'] ?? 'neutral',
+            'description' => $npc['description'] ?? '',
+            'stats'       => $npc['stats'] ?? [],
+            'equipment'   => $npc['equipment'] ?? [],
+            'attitude'    => $npc['attitude'] ?? 'indifferent',
+          ]);
+
+          $this->database->insert('dc_campaign_characters')
+            ->fields([
+              'campaign_id'   => $campaign_id,
+              'character_id'  => 0,
+              'uid'           => 0,
+              'role'          => $npc['role'] ?? 'npc',
+              'is_active'     => 1,
+              'joined'        => $now,
+              'instance_id'   => $content_id,
+              'type'          => 'npc',
+              'character_data' => $state_data,
+              'location_type' => 'room',
+              'location_ref'  => $room_id,
+              'updated'       => $now,
+              'name'          => $name,
+              'level'         => 0,
+              'ancestry'      => $npc['ancestry'] ?? 'humanoid',
+              'class'         => 'npc',
+              'status'        => 1,
+              'created'       => $now,
+              'changed'       => $now,
+              'hp_current'    => $npc['stats']['currentHp'] ?? 0,
+              'hp_max'        => $npc['stats']['maxHp'] ?? 0,
+              'armor_class'   => $npc['stats']['ac'] ?? 0,
+              'experience_points' => 0,
+              'position_q'    => 0,
+              'position_r'    => 0,
+              'last_room_id'  => $room_id,
+              'version'       => 0,
+            ])
+            ->execute();
+
+          $this->logger->info('NPC @name (@id) registered in campaign @cid, room @room', [
+            '@name' => $name,
+            '@id'   => $content_id,
+            '@cid'  => $campaign_id,
+            '@room' => $room_id,
+          ]);
+        }
+      }
+      catch (\Exception $e) {
+        $this->logger->warning('Failed to register NPC @id in dc_campaign_characters: @err', [
+          '@id'  => $content_id,
+          '@err' => $e->getMessage(),
+        ]);
+      }
+    }
+  }
+
   /**
    * Extract lowercase search keywords from a text string.
    *
@@ -657,6 +924,10 @@ The setting must be:
 - Appropriately sized for the location type
 - Populated with believable NPCs and objects
 - Rich enough for tactical play on a hex grid
+
+CRITICAL NPC RULE: If the DESTINATION or GM NARRATION mentions specific characters by name (e.g., "Gribbles", "a merchant", "the blacksmith"), you MUST include each of them as a fully-defined NPC in the npcs array. Never omit characters that the narrative has already placed in this location.
+
+NAME RULE: The "name" field must be a SHORT location name — 2 to 5 words maximum (e.g., "Gribbles' Cave", "The Ironheart Forge", "Town Market Square"). The full sensory description goes in the "description" field only.
 SYSTEM;
 
     $prompt = <<<PROMPT
@@ -713,11 +984,13 @@ Respond with this exact JSON structure:
 }
 
 Rules:
+- NPCs MUST be included for any characters mentioned in the destination or GM narration
 - NPCs should fit the setting (a blacksmith in a forge, a priest in a temple)
-- 0-4 NPCs is typical (not every room needs NPCs)
+- 0-4 NPCs is typical — 1-2 when specific characters are referenced
 - 2-8 objects/furniture is typical
 - size should match reality: a small shop is "small", a town square is "large"
 - content_id must be unique snake_case (e.g., "ironheart_blacksmith")
+- The "name" field MUST be 2-5 words only — keep it short
 PROMPT;
 
     try {

@@ -1162,4 +1162,55 @@ class AIApiService {
     }
   }
 
+  /**
+   * Create a community suggestion from in-game context (no conversation node).
+   *
+   * Used by the dungeoncrawler room chat pipeline where suggestions originate
+   * from the GM reply rather than an ai_conversation node.
+   *
+   * @param string $summary
+   *   AI-generated summary of the suggestion.
+   * @param string $original_message
+   *   The original user message containing the suggestion.
+   * @param string $category
+   *   The suggestion category.
+   * @param array $context
+   *   Optional context: campaign_id, room_id, character_id.
+   *
+   * @return \Drupal\node\NodeInterface|null
+   *   The created suggestion node or NULL on failure.
+   */
+  public function createBacklogSuggestion(string $summary, string $original_message, string $category, array $context = []) {
+    try {
+      $user = \Drupal::currentUser();
+      $title = mb_strlen($summary) > 100 ? mb_substr($summary, 0, 97) . '...' : $summary;
+
+      $suggestion = Node::create([
+        'type'                     => 'community_suggestion',
+        'title'                    => $title,
+        'uid'                      => $user->id(),
+        'status'                   => TRUE,
+        'field_suggestion_summary' => ['value' => $summary, 'format' => 'plain_text'],
+        'field_original_message'   => ['value' => $original_message, 'format' => 'plain_text'],
+        'field_suggestion_category' => $category,
+        'field_suggestion_status'  => 'new',
+      ]);
+      $suggestion->save();
+
+      $this->logInfo('Backlog suggestion created from game: @title (nid: @nid, campaign: @cid)', [
+        '@title' => $title,
+        '@nid'   => $suggestion->id(),
+        '@cid'   => $context['campaign_id'] ?? 'unknown',
+      ]);
+
+      return $suggestion;
+    }
+    catch (\Exception $e) {
+      $this->logError('Failed to create backlog suggestion from game: @message', [
+        '@message' => $e->getMessage(),
+      ]);
+      return NULL;
+    }
+  }
+
 }

@@ -190,6 +190,77 @@ class CharacterManager {
   }
 
   /**
+   * Returns fixed and free ancestry boosts for the selected ancestry/heritage.
+   *
+   * Heritage boost metadata is optional; if present, supported keys are:
+   * - ability_boosts: array of fixed boost strings and/or the literal "Free"
+   * - extra_free_boosts: integer additional free boosts
+   * - special.extra_free_boosts: integer additional free boosts
+   *
+   * @param string $ancestry_machine_id
+   *   The ancestry machine ID.
+   * @param string $heritage_id
+   *   The selected heritage machine ID, if any.
+   *
+   * @return array
+   *   Keys: canonical, fixed_boosts, free_boosts, flaw.
+   */
+  public static function getAncestryBoostConfig(string $ancestry_machine_id, string $heritage_id = ''): array {
+    $canonical = self::resolveAncestryCanonicalName($ancestry_machine_id);
+    if ($canonical === '') {
+      return [
+        'canonical' => '',
+        'fixed_boosts' => [],
+        'free_boosts' => 0,
+        'flaw' => '',
+      ];
+    }
+
+    $ancestry = self::ANCESTRIES[$canonical] ?? [];
+    $fixed_boosts = [];
+    $free_boosts = 0;
+
+    foreach (($ancestry['boosts'] ?? []) as $boost) {
+      $boost = trim((string) $boost);
+      if ($boost === '') {
+        continue;
+      }
+      if (strcasecmp($boost, 'Free') === 0) {
+        $free_boosts++;
+      }
+      else {
+        $fixed_boosts[] = $boost;
+      }
+    }
+
+    $heritage = self::getHeritageDefinition($canonical, $heritage_id);
+    if ($heritage !== NULL) {
+      foreach (($heritage['ability_boosts'] ?? []) as $boost) {
+        $boost = trim((string) $boost);
+        if ($boost === '') {
+          continue;
+        }
+        if (strcasecmp($boost, 'Free') === 0) {
+          $free_boosts++;
+        }
+        else {
+          $fixed_boosts[] = $boost;
+        }
+      }
+
+      $free_boosts += max(0, (int) ($heritage['extra_free_boosts'] ?? 0));
+      $free_boosts += max(0, (int) (($heritage['special']['extra_free_boosts'] ?? 0)));
+    }
+
+    return [
+      'canonical' => $canonical,
+      'fixed_boosts' => array_values($fixed_boosts),
+      'free_boosts' => $free_boosts,
+      'flaw' => (string) ($ancestry['flaw'] ?? ''),
+    ];
+  }
+
+  /**
    * Returns the creature traits for the given ancestry machine ID.
    *
    * @param string $ancestry_machine_id
@@ -483,16 +554,18 @@ class CharacterManager {
       [
         'id'              => 'half-elf',
         'name'            => 'Half-Elf',
-        'benefit'         => 'Gain low-light vision; may select elf ancestry feats in addition to human ones',
+        'benefit'         => 'Gain low-light vision, the Elf and Half-Elf traits; may select elf and half-elf ancestry feats in addition to human ones',
         'vision_override' => 'low-light',
-        'cross_ancestry_feat_pool' => 'Elf',
+        'traits_add'      => ['Elf', 'Half-Elf'],
+        'cross_ancestry_feat_pool' => ['Elf', 'Half-Elf'],
       ],
       [
         'id'              => 'half-orc',
         'name'            => 'Half-Orc',
-        'benefit'         => 'Gain low-light vision; may select orc ancestry feats in addition to human ones',
+        'benefit'         => 'Gain low-light vision, the Orc and Half-Orc traits; may select orc and half-orc ancestry feats in addition to human ones',
         'vision_override' => 'low-light',
-        'cross_ancestry_feat_pool' => 'Half-Orc',
+        'traits_add'      => ['Orc', 'Half-Orc'],
+        'cross_ancestry_feat_pool' => ['Half-Orc'],
       ],
     ],
     'Catfolk' => [
@@ -874,6 +947,15 @@ class CharacterManager {
         'benefit' => 'Your thrown weapons and sling range increment increased by 10 feet. Increases to 20 feet at 13th level.'],
       ['id' => 'unfettered-halfling', 'name' => 'Unfettered Halfling', 'level' => 1, 'traits' => ['Halfling'], 'prerequisites' => '',
         'benefit' => 'Success on a check to Escape is automatically a critical success. +2 circumstance bonus to checks to Escape.'],
+      ['id' => 'halfling-resolve', 'name' => 'Halfling Resolve', 'level' => 9, 'traits' => ['Halfling'], 'prerequisites' => '',
+        'benefit' => 'When you succeed on a saving throw against an emotion effect, treat it as a critical success. If you also have the Gutsy Halfling heritage, critical failures on emotion saving throws become failures instead.',
+        'special' => ['save_success_upgrade' => ['effect_type' => 'emotion', 'success_to_crit' => TRUE], 'gutsy_resolve_interaction' => TRUE]],
+      ['id' => 'ceaseless-shadows', 'name' => 'Ceaseless Shadows', 'level' => 13, 'traits' => ['Halfling'], 'prerequisites' => 'Distracting Shadows',
+        'benefit' => 'You no longer need cover or concealment to Hide or Sneak. When creatures would grant you lesser cover, you gain full cover instead and can Take Cover against those creatures. When creatures would grant you full cover, you gain greater cover instead.',
+        'special' => ['hide_sneak_no_cover_required' => TRUE, 'creature_cover_upgrade' => ['lesser_to_full' => TRUE, 'full_to_greater' => TRUE]]],
+      ['id' => 'halfling-weapon-expertise', 'name' => 'Halfling Weapon Expertise', 'level' => 13, 'traits' => ['Halfling'], 'prerequisites' => 'Halfling Weapon Familiarity',
+        'benefit' => 'Whenever you gain a class feature that grants you expert or greater proficiency in a given weapon or weapons, you also gain that proficiency in the sling, halfling sling staff, shortsword, and all halfling weapons in which you are trained.',
+        'special' => ['proficiency_cascade' => ['weapon_groups' => 'halfling_weapons', 'min_proficiency' => 'expert', 'apply_to_trained_only' => TRUE]]],
     ],
     'Catfolk' => [
       ['id' => 'catfolk-lore', 'name' => 'Catfolk Lore', 'level' => 1, 'traits' => ['Catfolk'], 'prerequisites' => '',
@@ -2573,7 +2655,270 @@ class CharacterManager {
         'hex_cantrip_auto_heighten' => 'half level rounded up',
       ],
     ],
+
+    // ── Guns and Gears ────────────────────────────────────────────────────────
+    'gunslinger' => [
+      'id'          => 'gunslinger',
+      'name'        => 'Gunslinger',
+      'source_book' => 'gng',
+      'description' => 'You have a flair for firearms and rely on your skill with a gun to navigate a dangerous world. You combine martial prowess with a quick draw and devastating precision from range.',
+      'hp'          => 8,
+      'key_ability' => 'Dexterity',
+      'proficiencies' => [
+        'perception' => 'Expert',
+        'fortitude'  => 'Expert',
+        'reflex'     => 'Expert',
+        'will'       => 'Trained',
+        'class_dc'   => 'Trained',
+      ],
+      'armor_proficiency' => ['light', 'medium', 'unarmored'],
+      'skills'        => 'Choose 3 + Intelligence modifier',
+      'weapons'       => 'Expert in simple and martial firearms and crossbows; Trained in simple and martial melee weapons and advanced firearms',
+      'trained_skills' => 3,
+      // Singular Expertise: gunslinger gains firearm/crossbow proficiency one
+      // rank ahead of other martial weapons (Expert at L1, Master at L5).
+      'singular_expertise' => [
+        'note'         => 'At L1, Gunslinger starts at Expert with all firearms and crossbows; advances to Master at L5 and Legendary at L13.',
+        'applies_to'   => ['firearm', 'crossbow'],
+      ],
+      // Way subclass — required selection at L1; persists permanently.
+      'subclass' => [
+        'key'           => 'way',
+        'label'         => 'Way',
+        'selection_at'  => 1,
+        'permanent'     => TRUE,
+        'valid_values'  => ['drifter', 'vanguard', 'sniper', 'pistolero', 'reloading'],
+        'options' => [
+          'drifter'   => [
+            'id'      => 'drifter',
+            'name'    => 'Way of the Drifter',
+            'benefit' => 'You are a wanderer, mixing close-quarters combat with your firearm. You gain the Sword and Pistol feat. Your Way\'s Slinger\'s Reload is One for One.',
+            'deed_level_1' => 'One for One (reload + Strike; melee and ranged together)',
+          ],
+          'vanguard'  => [
+            'id'      => 'vanguard',
+            'name'    => 'Way of the Vanguard',
+            'benefit' => 'You advance through the battlefield, battering foes with your weapon and your gun. Your Way\'s Slinger\'s Reload is Running Reload.',
+            'deed_level_1' => 'Running Reload (Reload + Stride or Step)',
+          ],
+          'sniper'    => [
+            'id'      => 'sniper',
+            'name'    => 'Way of the Sniper',
+            'benefit' => 'You specialize in shooting from cover, eliminating foes before they know you are there. Your Way\'s Slinger\'s Reload is Alacritous Reload.',
+            'deed_level_1' => 'Alacritous Reload (free Reload on Initiative)',
+          ],
+          'pistolero' => [
+            'id'      => 'pistolero',
+            'name'    => 'Way of the Pistolero',
+            'benefit' => 'You wield pistols with style and precision, making every shot count. Your Way\'s Slinger\'s Reload is Pistol Twirl.',
+            'deed_level_1' => 'Pistol Twirl (Demoralize with your firearm)',
+          ],
+          'reloading' => [
+            'id'      => 'reloading',
+            'name'    => 'Way of the Reloading',
+            'benefit' => 'You have mastered quick reloading techniques, keeping your weapons ready at all times. Your Way\'s Slinger\'s Reload is Quick Draw.',
+            'deed_level_1' => 'Quick Draw (Draw + Strike in one action)',
+          ],
+        ],
+      ],
+      // Class features unlocked at level.
+      'class_features' => [
+        1 => ['singular_expertise', 'initial_deed', "slinger's_reload", 'gunslinger_weapon_mastery'],
+        3 => ['stubborn'],
+        5 => ['weapon_expertise'],
+        7 => ['vigilant_senses'],
+        9 => ['wall_shot'],
+        11 => ['medium_armor_expertise'],
+        13 => ['improved_weapon_expertise'],
+        15 => ['evasion'],
+        17 => ['greater_weapon_specialization'],
+        19 => ['legendary_shot'],
+      ],
+    ],
+
+    'inventor' => [
+      'id'          => 'inventor',
+      'name'        => 'Inventor',
+      'source_book' => 'gng',
+      'description' => 'You are a genius at crafting new things — you have built an innovative device that sets you apart from all other adventurers. Whether your invention is a powerful weapon, a suit of modified armor, or a mechanical construct companion, you rely on your genius to survive.',
+      'hp'          => 8,
+      'key_ability' => 'Intelligence',
+      'proficiencies' => [
+        'perception' => 'Trained',
+        'fortitude'  => 'Expert',
+        'reflex'     => 'Trained',
+        'will'       => 'Trained',
+        'class_dc'   => 'Trained',
+      ],
+      'armor_proficiency' => ['light', 'medium', 'unarmored'],
+      'skills'        => 'Choose 3 + Intelligence modifier',
+      'weapons'       => 'Trained in simple weapons',
+      'trained_skills' => 3,
+      // Innovation subclass — required selection at L1; permanent.
+      'subclass' => [
+        'key'           => 'innovation',
+        'label'         => 'Innovation',
+        'selection_at'  => 1,
+        'permanent'     => TRUE,
+        'valid_values'  => ['construct', 'weapon', 'armor'],
+        'options' => [
+          'construct' => [
+            'id'           => 'construct',
+            'name'         => 'Construct Innovation',
+            'benefit'      => 'You have built a Construct Companion — a clockwork or mechanical construct that fights alongside you and obeys your commands.',
+            'companion_type' => 'construct_companion',
+            'companion_level' => 1,
+          ],
+          'weapon'    => [
+            'id'      => 'weapon',
+            'name'    => 'Weapon Innovation',
+            'benefit' => 'You have crafted an innovative weapon with a built-in modification. Your weapon innovation can be a melee or ranged weapon and gains one free modification at L1.',
+          ],
+          'armor'     => [
+            'id'      => 'armor',
+            'name'    => 'Armor Innovation',
+            'benefit' => 'You have built a suit of innovative armor with a built-in modification. Your armor innovation can be any armor type and gains one free modification at L1.',
+          ],
+        ],
+      ],
+      // Overdrive: 1-action Interact; Intelligence check to temporarily boost
+      // weapon damage. Failure is neutral; critical failure = explosion (self damage).
+      'overdrive' => [
+        'action_cost'      => 1,
+        'action_traits'    => ['Manipulate'],
+        'check'            => 'Crafting',
+        'dc_formula'       => '15 + character level',
+        'success_bonus'    => '+2 to weapon damage rolls (or +3 with a critical success)',
+        'success_duration' => '1 minute',
+        'failure_effect'   => 'No effect.',
+        'crit_fail_effect' => 'Explosion: you take 1d6 fire damage (increases by 1d6 at L3, L7, L11, L15, L19).',
+        'unstable_flag'    => FALSE,
+      ],
+      // Unstable actions: higher-risk class actions; on a critical failure the
+      // character takes splash damage. Server tracks unstable_state per action.
+      'unstable_actions' => [
+        'rule'              => 'Unstable actions have a critical-failure consequence: the inventor takes splash damage (fire, 1d6 + level / 2).',
+        'server_computed'   => TRUE,
+        'tracked_fields'    => ['last_unstable_action', 'last_unstable_roll', 'last_unstable_damage'],
+      ],
+      // Class features.
+      'class_features' => [
+        1  => ['overdrive', 'innovation', 'explode', 'offensive_boost'],
+        3  => ['inventions_expertise'],
+        5  => ['inventor_weapon_expertise'],
+        7  => ['breakthrough_innovation'],
+        9  => ['inventor_weapon_specialization'],
+        11 => ['medium_armor_expertise'],
+        13 => ['revolutionary_innovation'],
+        15 => ['armor_mastery'],
+        17 => ['greater_weapon_specialization'],
+        19 => ['inventive_mastery'],
+      ],
+    ],
+
+    // ── Secrets of Magic: Magus ───────────────────────────────────────────
+    'magus' => [
+      'id'          => 'magus',
+      'name'        => 'Magus',
+      'source_book' => 'som',
+      'hp'          => 8,
+      'key_ability' => ['strength', 'dexterity'],
+      'tradition'   => 'arcane',
+      'spellcasting_type' => 'prepared',
+      'max_spell_rank'    => 5,
+      'proficiencies' => [
+        'perception'        => 'trained',
+        'fortitude'         => 'expert',
+        'reflex'            => 'trained',
+        'will'              => 'expert',
+        'unarmored_defense' => 'trained',
+        'light_armor'       => 'trained',
+        'medium_armor'      => 'trained',
+        'simple_weapons'    => 'trained',
+        'martial_weapons'   => 'trained',
+        'spell_attack'      => 'trained',
+        'spell_dc'          => 'trained',
+      ],
+      'trained_skills' => 2,
+      'subclass' => [
+        'key'          => 'hybrid_study',
+        'valid_values' => ['inexorable-iron', 'laughing-shadow', 'sparkling-targe', 'starlit-span', 'twisting-tree'],
+        'options'      => [
+          ['id' => 'inexorable-iron',  'name' => 'Inexorable Iron',  'benefit' => 'Your Spellstrike carries the weight of inexorable iron. After a successful Spellstrike, you gain resistance 5 to physical damage until the start of your next turn. When you cast a spell to recharge Spellstrike you may also Sheathe or Draw a weapon.'],
+          ['id' => 'laughing-shadow',  'name' => 'Laughing Shadow',  'benefit' => 'You blend magic and mobility. When you Spellstrike you may Step before or after the Strike. You gain darkvision.'],
+          ['id' => 'sparkling-targe',  'name' => 'Sparkling Targe',  'benefit' => 'You draw power from your shield. When you Shield Block after a Spellstrike you gain resistance 5 to the damage type of the spell used.'],
+          ['id' => 'starlit-span',     'name' => 'Starlit Span',     'benefit' => 'You make Spellstrikes with ranged weapons instead of melee. The spell must have a range of touch or can be cast through the Strike.'],
+          ['id' => 'twisting-tree',    'name' => 'Twisting Tree',    'benefit' => 'You fight with a staff in both hands. Your staff gains the reach and trip traits. Staffs in your hands count as both the Staff and Bludgeoning category.'],
+        ],
+      ],
+      'class_features' => [
+        1  => ['arcane_spellcasting', 'hybrid_study', 'spellstrike', 'arcane_cascade'],
+        3  => ['studious_spells', 'alertness'],
+        5  => ['weapon_expertise', 'lightning_reflexes'],
+        7  => ['weapon_specialization', 'medium_armor_expertise'],
+        9  => ['magus_mastery', 'resolve'],
+        11 => ['greater_weapon_specialization'],
+        13 => ['medium_armor_mastery'],
+        15 => ['magus_expertise'],
+        17 => ['greater_weapon_specialization_3rd'],
+        19 => ['true_magus'],
+      ],
+    ],
+
+    // ── Secrets of Magic: Summoner ────────────────────────────────────────
+    'summoner' => [
+      'id'          => 'summoner',
+      'name'        => 'Summoner',
+      'source_book' => 'som',
+      'hp'          => 10,
+      'key_ability' => ['charisma'],
+      'tradition'   => 'eidolon',  // unique: tradition determined by eidolon type
+      'spellcasting_type' => 'spontaneous',
+      'max_spell_rank'    => 5,
+      'proficiencies' => [
+        'perception'        => 'trained',
+        'fortitude'         => 'trained',
+        'reflex'            => 'trained',
+        'will'              => 'expert',
+        'unarmored_defense' => 'trained',
+        'light_armor'       => 'trained',
+        'simple_weapons'    => 'trained',
+        'unarmed_attacks'   => 'trained',
+        'spell_attack'      => 'trained',
+        'spell_dc'          => 'trained',
+      ],
+      'trained_skills' => 4,
+      'subclass' => [
+        'key'          => 'eidolon_type',
+        'valid_values' => ['angel', 'demon', 'dragon', 'fey', 'plant', 'undead'],
+        'options'      => [
+          ['id' => 'angel',  'name' => 'Angelic Eidolon',  'tradition' => 'divine',  'alignment_restriction' => 'good', 'granted_spells' => ['heal', 'spirit-link']],
+          ['id' => 'demon',  'name' => 'Demonic Eidolon',  'tradition' => 'divine',  'alignment_restriction' => 'evil', 'granted_spells' => ['fear', 'harm']],
+          ['id' => 'dragon', 'name' => 'Draconic Eidolon', 'tradition' => 'arcane',  'alignment_restriction' => null,   'granted_spells' => ['true-strike', 'resist-energy']],
+          ['id' => 'fey',    'name' => 'Fey Eidolon',      'tradition' => 'primal',  'alignment_restriction' => null,   'granted_spells' => ['charm', 'hideous-laughter']],
+          ['id' => 'plant',  'name' => 'Plant Eidolon',    'tradition' => 'primal',  'alignment_restriction' => null,   'granted_spells' => ['tanglefoot', 'pass-without-trace']],
+          ['id' => 'undead', 'name' => 'Undead Eidolon',   'tradition' => 'occult',  'alignment_restriction' => 'evil', 'granted_spells' => ['chill-touch', 'false-life']],
+        ],
+      ],
+      'class_features' => [
+        1  => ['eidolon', 'act_together', 'share_resonance', 'spell_repertoire'],
+        3  => ['skill_increase', 'eidolon_evolution_1'],
+        5  => ['ability_boosts', 'skill_increase', 'eidolon_unarmed_expertise'],
+        7  => ['weapon_specialization', 'eidolon_weapon_specialization'],
+        9  => ['alertness', 'eidolon_evolution_2'],
+        11 => ['summoner_expertise', 'eidolon_expertise'],
+        13 => ['eidolon_evolution_3', 'medium_armor_expertise'],
+        15 => ['greater_weapon_specialization', 'eidolon_greater_weapon_specialization'],
+        17 => ['eidolon_evolution_4'],
+        19 => ['primal_evolution'],
+      ],
+    ],
   ];
+
+  // ── Secrets of Magic ──────────────────────────────────────────────────────
+  // Appended here so CLASSES and CLASS_FEATS remain one const each.
+  // MAGUS_FOCUS_SPELLS and SUMMONER_FOCUS_SPELLS are separate consts below.
+  // ─────────────────────────────────────────────────────────────────────────
 
   /**
    * PF2e Class Feats (Level 1 feats available at character creation).
@@ -4697,6 +5042,110 @@ the triggering spell. You then attempt to counteract the triggering spell.'],
   ];
 
   /**
+   * Construct Companion rules (Guns and Gears — Inventor class, Construct Innovation).
+   *
+   * Extends the companion framework with construct-specific traits, advancement,
+   * and action rules. Scoped to the owning Inventor character only.
+   *
+   * Key differences from animal companions:
+   *   - No daily bonding ritual required (construct is always active).
+   *   - Immune to mental, poison, disease, and death effects.
+   *   - Advancement follows Inventor class features, not Ranger/Druid milestones.
+   *   - Commanded with a free action (Inventive Interface), not Command an Animal.
+   *   - Repair rather than Recovery — Inventor uses Crafting to repair at 0 HP.
+   */
+  const CONSTRUCT_COMPANION = [
+
+    // ── Command Rules ─────────────────────────────────────────────────────────
+    'command_rules' => [
+      'action'          => 'Inventive Interface',
+      'action_cost'     => 'free',
+      'action_traits'   => ['Manipulate'],
+      'success_effect'  => 'Construct Companion takes 2 actions on its turn.',
+      'no_command_effect' => 'If Inventive Interface is not used, the companion Strides and then Strikes, or takes any 1 action it took last turn.',
+      'owner_class'     => 'inventor',
+      'owner_innovation' => 'construct',
+    ],
+
+    // ── Base Stats ────────────────────────────────────────────────────────────
+    'base_stats' => [
+      'size'         => 'Medium',
+      'speed'        => 25,
+      'hp_formula'   => '4 * inventor_level',
+      'ac_formula'   => '15 + inventor_level',
+      'attack_bonus' => 'inventor_level + Intelligence modifier',
+      'damage_dice'  => '1d8',
+      'damage_type'  => 'bludgeoning',
+      'saves_formula' => 'inventor_level',
+    ],
+
+    // ── Construct Traits ──────────────────────────────────────────────────────
+    'traits' => [
+      'Construct',
+      'Mindless',
+    ],
+    'immunities' => [
+      'bleed', 'death_effects', 'diseased', 'doomed', 'drained', 'fatigued',
+      'healing', 'mental', 'nonlethal_attacks', 'paralyzed', 'poison',
+      'sickened', 'unconscious',
+    ],
+
+    // ── Advancement Track ─────────────────────────────────────────────────────
+    'advancement' => [
+      'level_1' => [
+        'label'       => 'Base',
+        'description' => 'Starting level for all construct companions. Uses base stats above.',
+        'hp_bonus'    => 0,
+        'ac_bonus'    => 0,
+        'attack_bonus' => 0,
+      ],
+      'level_4' => [
+        'label'       => 'Upgraded',
+        'description' => 'Unlocked by Inventor L4 Breakthrough Innovation.',
+        'hp_bonus'    => 20,
+        'ac_bonus'    => 2,
+        'attack_bonus' => 2,
+        'new_mod_slot' => TRUE,
+        'new_mod_note' => 'Companion gains 1 additional modification slot.',
+      ],
+      'level_8' => [
+        'label'       => 'Advanced',
+        'description' => 'Unlocked by Inventor L8 Improved Companion.',
+        'hp_bonus'    => 40,
+        'ac_bonus'    => 4,
+        'attack_bonus' => 4,
+        'new_mod_slot' => TRUE,
+      ],
+      'level_16' => [
+        'label'       => 'Masterwork',
+        'description' => 'Unlocked by Inventor L16 Construct Paragon.',
+        'hp_bonus'    => 60,
+        'ac_bonus'    => 6,
+        'attack_bonus' => 6,
+        'additional_action' => TRUE,
+        'additional_action_note' => 'Masterwork companions can take one additional action each turn.',
+      ],
+    ],
+
+    // ── Death / Repair Rules ──────────────────────────────────────────────────
+    'death_rules' => [
+      'at_0_hp'       => 'Companion is disabled (not dead). Cannot act.',
+      'permanent_death' => 'Permanently destroyed only if explicitly scrapped or subjected to anti-construct effects (GM discretion).',
+      'repair_skill'  => 'Crafting',
+      'repair_dc'     => '15',
+      'repair_time'   => '1 hour per 10 HP restored',
+      'daily_repair_note' => 'During daily preparations, restore companion to full HP without a check.',
+    ],
+
+    // ── Modification Slots ────────────────────────────────────────────────────
+    'modification_slots' => [
+      'starting' => 2,
+      'note'     => 'Each modification slot can hold one construct modification (e.g., Weapon Attachment, Armor Plating, Speed Boosters).',
+    ],
+
+  ];
+
+  /**
    * PF2e Ritual catalog — CRB and APG entries.
    *
    * Structure per entry:
@@ -6662,6 +7111,307 @@ the triggering spell. You then attempt to counteract the triggering spell.'],
 
   ];
 
+  // =========================================================================
+  // Secrets of Magic — spell additions
+  // =========================================================================
+
+  /**
+   * SOM spells: new spells from Secrets of Magic, organised by tradition.
+   * Structure mirrors APG_SPELLS.
+   */
+  const SOM_SPELLS = [
+
+    // ── Arcane ────────────────────────────────────────────────────────────
+    'arcane' => [
+
+      'cantrips' => [
+        ['id' => 'spellstrike-cantrip', 'name' => 'Guidance (SoM)', 'level' => 0, 'school' => 'Divination', 'cast' => '1 action',
+          'traditions' => ['arcane', 'divine', 'occult', 'primal'], 'traits' => ['Cantrip', 'Divination'],
+          'description' => 'You ask for divine or arcane guidance. The target gains a +1 status bonus to one skill check before the start of your next turn.'],
+        ['id' => 'volt-charge', 'name' => 'Volt Charge', 'level' => 0, 'school' => 'Evocation', 'cast' => '2 actions',
+          'range' => 'touch', 'traditions' => ['arcane'], 'traits' => ['Attack', 'Cantrip', 'Electricity', 'Evocation'],
+          'description' => 'You gather electricity and release it with a touch. Make a melee spell attack. On a hit the target takes 1d4 electricity damage; on a critical hit the target is flat-footed until the end of its next turn.'],
+      ],
+
+      '1st' => [
+        ['id' => 'thunderstrike', 'name' => 'Thunderstrike', 'level' => 1, 'school' => 'Evocation', 'cast' => '2 actions',
+          'range' => '120 feet', 'traditions' => ['arcane', 'primal'], 'save' => 'basic Reflex',
+          'traits' => ['Electricity', 'Evocation', 'Sonic'],
+          'description' => 'You call down a bolt of lightning followed by a peal of thunder, dealing 1d12 electricity damage and 1d4 sonic damage (basic Reflex). Heightened (+1): 1d12 electricity + 1d4 sonic per level.'],
+        ['id' => 'shockwave', 'name' => 'Shockwave', 'level' => 1, 'school' => 'Evocation', 'cast' => '2 actions',
+          'area' => '15-foot cone', 'traditions' => ['arcane', 'primal'], 'save' => 'basic Fortitude',
+          'traits' => ['Earth', 'Evocation'],
+          'description' => 'A wave of force ripples outward. Creatures in the cone take 2d6 bludgeoning damage (basic Fortitude) and are pushed 5 feet on a critical failure.'],
+      ],
+
+      '2nd' => [
+        ['id' => 'runic-weapon', 'name' => 'Runic Weapon', 'level' => 2, 'school' => 'Transmutation', 'cast' => '1 action',
+          'range' => 'touch', 'duration' => '1 minute', 'traditions' => ['arcane'],
+          'traits' => ['Transmutation'],
+          'description' => 'You etch a temporary weapon rune onto a weapon. The weapon gains a +1 weapon potency bonus (or increases by 1 if it already has one, max +3) for the duration.'],
+        ['id' => 'runic-body', 'name' => 'Runic Body', 'level' => 2, 'school' => 'Transmutation', 'cast' => '2 actions',
+          'duration' => '1 minute', 'traditions' => ['arcane'],
+          'traits' => ['Transmutation'],
+          'description' => 'Arcane runes flare across your body. Gain a +2 status bonus to attack rolls and deal an extra 1d4 force damage with Strikes for the duration.'],
+      ],
+
+    ],
+
+    // ── Occult ────────────────────────────────────────────────────────────
+    'occult' => [
+
+      'cantrips' => [
+        ['id' => 'haunting-hymn', 'name' => 'Haunting Hymn', 'level' => 0, 'school' => 'Evocation', 'cast' => '2 actions',
+          'area' => '30-foot cone', 'traditions' => ['occult'], 'save' => 'basic Fortitude',
+          'traits' => ['Auditory', 'Cantrip', 'Evocation', 'Sonic'],
+          'description' => 'You send out a discordant screech. Creatures in the cone take 1d4 sonic damage (basic Fortitude).'],
+      ],
+
+      '1st' => [
+        ['id' => 'spirit-link', 'name' => 'Spirit Link', 'level' => 1, 'school' => 'Necromancy', 'cast' => '1 action',
+          'range' => '30 feet', 'duration' => '1 minute', 'traditions' => ['divine', 'occult'],
+          'traits' => ['Healing', 'Necromancy'],
+          'description' => 'You create a spiritual link between yourself and another creature. Each time you take damage, the target heals an equal amount (up to the spell\'s level * 2 per round).'],
+      ],
+
+    ],
+
+    // ── Primal ────────────────────────────────────────────────────────────
+    'primal' => [
+
+      '1st' => [
+        ['id' => 'pass-without-trace', 'name' => 'Pass Without Trace', 'level' => 1, 'school' => 'Abjuration', 'cast' => '1 minute',
+          'duration' => '1 hour', 'traditions' => ['primal'],
+          'traits' => ['Abjuration'],
+          'description' => 'The target leaves no tracks and gains a +4 status bonus to Survival checks made to Cover Tracks and Stealth checks to avoid being tracked.'],
+        ['id' => 'false-life', 'name' => 'False Life', 'level' => 1, 'school' => 'Necromancy', 'cast' => '1 minute',
+          'duration' => '8 hours', 'traditions' => ['arcane', 'occult'],
+          'traits' => ['Necromancy'],
+          'description' => 'You animate an undead shell of false life energy. Gain 6 temporary HP (or 3 × spell rank when heightened).'],
+      ],
+
+    ],
+
+  ];
+
+  /**
+   * Magus focus spells (granted by Hybrid Study and class features).
+   * Structure mirrors BARD_FOCUS_SPELLS.
+   */
+  const MAGUS_FOCUS_SPELLS = [
+    ['id' => 'spinning-staff', 'name' => 'Spinning Staff', 'level' => 1, 'school' => 'Evocation', 'cast' => '1 action',
+      'traditions' => ['arcane'], 'traits' => ['Arcane', 'Evocation', 'Magus'],
+      'description' => 'You spin your staff and it strikes all adjacent enemies. Make a melee Strike against each adjacent enemy using your staff. These Strikes all count toward your multiple attack penalty but each is resolved separately.'],
+    ['id' => 'shielding-strike', 'name' => 'Shielding Strike', 'level' => 1, 'school' => 'Abjuration', 'cast' => '2 actions',
+      'traditions' => ['arcane'], 'traits' => ['Arcane', 'Abjuration', 'Magus'],
+      'description' => 'You strike and immediately draw magical energy to your shield. Make a melee Strike; until the start of your next turn, your shield gains Hardness 5 in addition to its normal Hardness.'],
+    ['id' => 'force-fang', 'name' => 'Force Fang', 'level' => 1, 'school' => 'Evocation', 'cast' => '1 action',
+      'traditions' => ['arcane'], 'traits' => ['Arcane', 'Evocation', 'Force', 'Magus'],
+      'description' => 'Your unarmed Strike or weapon Strike surges with force. Make a melee Strike; it deals 1d4 extra force damage. The additional damage bypasses all damage resistances.'],
+    ['id' => 'thunderous-strike', 'name' => 'Thunderous Strike', 'level' => 1, 'school' => 'Evocation', 'cast' => '2 actions',
+      'traditions' => ['arcane'], 'traits' => ['Arcane', 'Evocation', 'Sonic', 'Magus'],
+      'description' => 'You charge your Strike with sonic energy. Make a melee Strike; on a hit the target must succeed at a Fortitude save (DC = your spell DC) or be deafened for 1 round.'],
+  ];
+
+  /**
+   * Summoner focus spells, granted by the class and evolutions.
+   * Structure mirrors BARD_FOCUS_SPELLS.
+   */
+  const SUMMONER_FOCUS_SPELLS = [
+    ['id' => 'boost-eidolon', 'name' => 'Boost Eidolon', 'level' => 1, 'school' => 'Evocation', 'cast' => '1 action',
+      'traditions' => ['varies'], 'traits' => ['Evocation', 'Summoner'],
+      'description' => 'You channel energy into your eidolon. Until the end of your next turn, your eidolon\'s Strikes deal 2 extra damage per die.'],
+    ['id' => 'reinforce-eidolon-focus', 'name' => 'Reinforce Eidolon', 'level' => 1, 'school' => 'Abjuration', 'cast' => '1 action',
+      'traditions' => ['varies'], 'traits' => ['Abjuration', 'Summoner'],
+      'description' => 'You strengthen your eidolon\'s spiritual body. Your eidolon gains a +2 status bonus to AC until the start of your next turn.'],
+    ['id' => 'weaken-eidolon', 'name' => 'Weaken the Bound (Dismiss)', 'level' => 1, 'school' => 'Abjuration', 'cast' => '2 actions',
+      'traditions' => ['varies'], 'traits' => ['Abjuration', 'Summoner'],
+      'description' => 'You begin the process of dismissing your eidolon. The eidolon immediately ends combat until recalled. Healing and damage to the eidolon still affect the summoner\'s shared HP pool.'],
+  ];
+
+  /**
+   * Eidolon rules and stat-block templates for the Summoner class.
+   *
+   * Each eidolon type entry defines:
+   *  - base_stats: ability modifiers granted at level 1
+   *  - size: default size
+   *  - senses: default senses
+   *  - movement: default movement modes
+   *  - attacks: natural attack array (primary / secondary)
+   *  - skills: trained skills
+   *  - alignment_restriction: null if unrestricted
+   *  - shared_hp_rule: description of how Summoner/Eidolon share HP
+   *  - act_together_rule: description of the Act Together action
+   *  - advancement: level-keyed bonuses applied automatically
+   *  - evolutions: available evolution options by level bracket
+   */
+  const EIDOLONS = [
+    'shared_hp_rule' => 'The Summoner and Eidolon share one HP pool equal to the Summoner\'s maximum HP. When either takes damage the pool decreases; when either receives healing the pool increases. If the pool reaches 0 both fall unconscious.',
+    'act_together_rule' => '1 action (Concentrate). You and your eidolon each take a single action; the eidolon\'s action is resolved first. The combined cost is 1 action from the summoner\'s 3-action economy.',
+    'max_per_character' => 1,
+    'binding_rule' => 'An Eidolon is permanently bound to its owning character_id and cannot be transferred or shared.',
+
+    'types' => [
+
+      'angel' => [
+        'id'   => 'angel',
+        'name' => 'Angelic Eidolon',
+        'tradition'             => 'divine',
+        'alignment_restriction' => 'good',
+        'size'   => 'Medium',
+        'senses' => ['darkvision'],
+        'movement' => ['speed' => 25, 'fly' => 30],
+        'base_stats' => ['str' => 4, 'dex' => 2, 'con' => 3, 'int' => 0, 'wis' => 2, 'cha' => 2],
+        'attacks' => [
+          ['type' => 'primary',   'name' => 'Radiant Strike', 'damage' => '1d6', 'damage_type' => 'good', 'traits' => ['Good', 'Magical']],
+          ['type' => 'secondary', 'name' => 'Wing Buffet',    'damage' => '1d4', 'damage_type' => 'bludgeoning', 'traits' => ['Agile']],
+        ],
+        'skills' => ['Religion', 'Diplomacy'],
+        'advancement' => [
+          5  => ['resist_evil' => 5],
+          11 => ['resist_evil' => 10, 'spirit_link_dc_bonus' => 2],
+          17 => ['resist_evil' => 15, 'celestial_flight' => true],
+        ],
+        'evolutions' => [
+          ['id' => 'glowing-aura',   'name' => 'Glowing Aura',   'level_req' => 4,  'benefit' => 'The eidolon sheds bright light in a 10-foot radius and dim light for the next 10 feet.'],
+          ['id' => 'divine-smite',   'name' => 'Divine Smite',   'level_req' => 8,  'benefit' => 'Once per round, one of the eidolon\'s Strikes deals 2d6 extra good damage.'],
+          ['id' => 'hallowed-form',  'name' => 'Hallowed Form',  'level_req' => 12, 'benefit' => 'The eidolon becomes immune to disease and the frightened condition.'],
+        ],
+      ],
+
+      'demon' => [
+        'id'   => 'demon',
+        'name' => 'Demonic Eidolon',
+        'tradition'             => 'divine',
+        'alignment_restriction' => 'evil',
+        'size'   => 'Medium',
+        'senses' => ['darkvision'],
+        'movement' => ['speed' => 25],
+        'base_stats' => ['str' => 4, 'dex' => 2, 'con' => 4, 'int' => 0, 'wis' => 0, 'cha' => 2],
+        'attacks' => [
+          ['type' => 'primary',   'name' => 'Claws',       'damage' => '1d6', 'damage_type' => 'slashing', 'traits' => ['Agile', 'Magical']],
+          ['type' => 'secondary', 'name' => 'Gore',        'damage' => '1d4', 'damage_type' => 'piercing',  'traits' => ['Magical']],
+        ],
+        'skills' => ['Intimidation', 'Athletics'],
+        'advancement' => [
+          5  => ['resist_good' => 5],
+          11 => ['resist_good' => 10],
+          17 => ['resist_good' => 15, 'corrupting_touch' => true],
+        ],
+        'evolutions' => [
+          ['id' => 'fiendish-wings', 'name' => 'Fiendish Wings', 'level_req' => 4,  'benefit' => 'The eidolon gains a fly Speed of 30 feet.'],
+          ['id' => 'venomous-bite',  'name' => 'Venomous Bite',  'level_req' => 8,  'benefit' => 'The eidolon\'s secondary attack gains the Poison trait and deals 1d4 persistent poison on a critical hit.'],
+          ['id' => 'demonic-shell',  'name' => 'Demonic Shell',  'level_req' => 12, 'benefit' => 'The eidolon gains resistance 10 to fire and cold.'],
+        ],
+      ],
+
+      'dragon' => [
+        'id'   => 'dragon',
+        'name' => 'Draconic Eidolon',
+        'tradition'             => 'arcane',
+        'alignment_restriction' => null,
+        'size'   => 'Large',
+        'senses' => ['darkvision', 'scent (imprecise, 30 feet)'],
+        'movement' => ['speed' => 30, 'fly' => 40],
+        'base_stats' => ['str' => 5, 'dex' => 1, 'con' => 4, 'int' => 0, 'wis' => 1, 'cha' => 0],
+        'attacks' => [
+          ['type' => 'primary',   'name' => 'Jaws',  'damage' => '1d8', 'damage_type' => 'piercing',    'traits' => ['Magical', 'Reach']],
+          ['type' => 'secondary', 'name' => 'Claws', 'damage' => '1d6', 'damage_type' => 'slashing',    'traits' => ['Agile', 'Magical']],
+        ],
+        'skills' => ['Intimidation', 'Arcana'],
+        'advancement' => [
+          5  => ['draconic_resistance' => 5],
+          11 => ['draconic_resistance' => 10, 'breath_weapon_dc_bonus' => 2],
+          17 => ['draconic_resistance' => 15, 'frightful_presence' => true],
+        ],
+        'evolutions' => [
+          ['id' => 'breath-weapon',  'name' => 'Breath Weapon',  'level_req' => 4,  'benefit' => 'Once per encounter the eidolon can exhale a 30-foot cone or 60-foot line dealing 6d6 damage of its type (basic Reflex vs. spell DC).'],
+          ['id' => 'draconic-scales','name' => 'Draconic Scales', 'level_req' => 8,  'benefit' => 'The eidolon gains a +2 item bonus to AC from its hardened scales.'],
+          ['id' => 'tail-sweep',     'name' => 'Tail Sweep',     'level_req' => 12, 'benefit' => 'The eidolon can use its tail as a third natural weapon (1d8 bludgeoning, Sweep trait).'],
+        ],
+      ],
+
+      'fey' => [
+        'id'   => 'fey',
+        'name' => 'Fey Eidolon',
+        'tradition'             => 'primal',
+        'alignment_restriction' => null,
+        'size'   => 'Medium',
+        'senses' => ['low-light vision'],
+        'movement' => ['speed' => 35],
+        'base_stats' => ['str' => 2, 'dex' => 4, 'con' => 1, 'int' => 1, 'wis' => 2, 'cha' => 2],
+        'attacks' => [
+          ['type' => 'primary',   'name' => 'Thorned Vine', 'damage' => '1d6', 'damage_type' => 'piercing',    'traits' => ['Agile', 'Finesse', 'Magical']],
+          ['type' => 'secondary', 'name' => 'Faerie Dust',  'damage' => '1d4', 'damage_type' => 'mental',      'traits' => ['Magical']],
+        ],
+        'skills' => ['Nature', 'Deception'],
+        'advancement' => [
+          5  => ['concealment_at_will' => true],
+          11 => ['glamour_aura' => true],
+          17 => ['primal_spell_dc_bonus' => 2, 'truespeech' => true],
+        ],
+        'evolutions' => [
+          ['id' => 'fey-flight',    'name' => 'Fey Flight',    'level_req' => 4,  'benefit' => 'The eidolon gains a fly Speed of 30 feet.'],
+          ['id' => 'glamour-veil',  'name' => 'Glamour Veil',  'level_req' => 8,  'benefit' => 'Once per day the eidolon can cast illusory disguise (heightened to 4th) as a primal innate spell.'],
+          ['id' => 'verdant-burst', 'name' => 'Verdant Burst', 'level_req' => 12, 'benefit' => 'When the shared HP pool is restored to full, plants erupt in a 10-foot burst; difficult terrain for enemies for 1 minute.'],
+        ],
+      ],
+
+      'plant' => [
+        'id'   => 'plant',
+        'name' => 'Plant Eidolon',
+        'tradition'             => 'primal',
+        'alignment_restriction' => null,
+        'size'   => 'Large',
+        'senses' => ['tremorsense (precise, 30 feet)'],
+        'movement' => ['speed' => 25],
+        'base_stats' => ['str' => 5, 'dex' => 0, 'con' => 5, 'int' => -1, 'wis' => 2, 'cha' => 1],
+        'attacks' => [
+          ['type' => 'primary',   'name' => 'Vine Lash',    'damage' => '1d8', 'damage_type' => 'slashing',    'traits' => ['Reach', 'Magical']],
+          ['type' => 'secondary', 'name' => 'Thorny Grasp', 'damage' => '1d6', 'damage_type' => 'piercing',    'traits' => ['Grapple', 'Magical']],
+        ],
+        'skills' => ['Nature', 'Athletics'],
+        'advancement' => [
+          5  => ['fast_healing' => 3],
+          11 => ['fast_healing' => 5, 'spore_cloud' => true],
+          17 => ['fast_healing' => 8, 'regeneration' => 5],
+        ],
+        'evolutions' => [
+          ['id' => 'barbed-vines',   'name' => 'Barbed Vines',   'level_req' => 4,  'benefit' => 'The eidolon\'s primary attack gains the Grab trait.'],
+          ['id' => 'toxic-spores',   'name' => 'Toxic Spores',   'level_req' => 8,  'benefit' => 'Once per round the eidolon can emit a 10-foot poison cloud as a free action (Fortitude vs spell DC or sickened 1).'],
+          ['id' => 'ironwood-shell', 'name' => 'Ironwood Shell', 'level_req' => 12, 'benefit' => 'The eidolon gains resistance 10 to physical damage except adamantine.'],
+        ],
+      ],
+
+      'undead' => [
+        'id'   => 'undead',
+        'name' => 'Undead Eidolon',
+        'tradition'             => 'occult',
+        'alignment_restriction' => 'evil',
+        'size'   => 'Medium',
+        'senses' => ['darkvision'],
+        'movement' => ['speed' => 25],
+        'base_stats' => ['str' => 4, 'dex' => 2, 'con' => 3, 'int' => 0, 'wis' => 1, 'cha' => 2],
+        'attacks' => [
+          ['type' => 'primary',   'name' => 'Claw',           'damage' => '1d6', 'damage_type' => 'slashing',  'traits' => ['Agile', 'Magical']],
+          ['type' => 'secondary', 'name' => 'Draining Touch', 'damage' => '1d4', 'damage_type' => 'negative',  'traits' => ['Magical']],
+        ],
+        'skills' => ['Intimidation', 'Occultism'],
+        'advancement' => [
+          5  => ['negative_healing' => true, 'undead_immunities' => ['death', 'disease', 'paralysis', 'poison', 'sleep']],
+          11 => ['corporeal_denial' => true],
+          17 => ['lifesense_30ft' => true],
+        ],
+        'evolutions' => [
+          ['id' => 'ghostly-passage', 'name' => 'Ghostly Passage', 'level_req' => 4,  'benefit' => 'The eidolon can pass through solid objects (but not end its turn inside them).'],
+          ['id' => 'terror-aura',     'name' => 'Terror Aura',     'level_req' => 8,  'benefit' => 'Enemies within 10 feet that can see the eidolon must succeed at a Will save (DC = spell DC) or become frightened 1 at the start of their turn.'],
+          ['id' => 'soul-rend',       'name' => 'Soul Rend',       'level_req' => 12, 'benefit' => 'The eidolon\'s secondary attack ignores HP and deals spirit damage directly to the target\'s Vitality/Void threshold instead.'],
+        ],
+      ],
+
+    ],
+  ];
+
   /**
    * Kobold Draconic Exemplar lookup table.
    *
@@ -7711,6 +8461,50 @@ the triggering spell. You then attempt to counteract the triggering spell.'],
       'source_book' => 'apg',
       'uncommon' => TRUE,
       'benefit' => 'Your thievery is so smooth targets don\'t notice the loss. After a successful Steal, the target doesn\'t notice the item is missing until they actively reach for it or take an inventory action.'],
+
+    // ── Secrets of Magic: Magus class feats ──────────────────────────────
+    'magus' => [
+      ['id' => 'raise-a-tome', 'name' => 'Raise a Tome', 'level' => 1, 'traits' => ['Magus'],
+        'source_book' => 'som',
+        'benefit' => 'You wield your spellbook as an improvised weapon and a focus for your magic. While your spellbook is in your hand, gain a +1 circumstance bonus to AC and Recall Knowledge checks related to magic.'],
+      ['id' => 'runic-impression', 'name' => 'Runic Impression', 'level' => 1, 'traits' => ['Magus', 'Arcane'],
+        'source_book' => 'som',
+        'benefit' => 'You inscribe a weapon rune into your mind instead of onto a weapon. Choose a weapon property rune you could etch; for the rest of the day that rune applies to your weapon, but only for Spellstrike actions.'],
+      ['id' => 'spellstrike-cache', 'name' => 'Spellstrike Cache', 'level' => 1, 'traits' => ['Magus'],
+        'source_book' => 'som',
+        'benefit' => 'You cache a spell inside your weapon between battles. During your daily preparations you can cast a spell into your weapon; the Spellstrike is automatically charged and the spell is held until you use it or rest.'],
+      ['id' => 'expanding-spellstrike', 'name' => 'Expanding Spellstrike', 'level' => 2, 'traits' => ['Magus'],
+        'source_book' => 'som',
+        'benefit' => 'The pool of spells you can deliver via Spellstrike expands. You can use Spellstrike with any spell that has the attack trait, not only touch spells.'],
+      ['id' => 'hasted-assault', 'name' => 'Hasted Assault', 'level' => 4, 'traits' => ['Magus'],
+        'source_book' => 'som',
+        'benefit' => 'You move with uncommon speed during Spellstrike combos. When you use Spellstrike, you can move up to 10 feet before the Strike portion without spending an action.'],
+      ['id' => 'cascade-countermeasure', 'name' => 'Cascade Countermeasure', 'level' => 4, 'traits' => ['Magus', 'Arcane', 'Abjuration'],
+        'source_book' => 'som',
+        'benefit' => 'The Arcane Cascade stance also dampens incoming magic. While in Arcane Cascade, you gain a +1 circumstance bonus to saves against spells.'],
+    ],
+
+    // ── Secrets of Magic: Summoner class feats ───────────────────────────
+    'summoner' => [
+      ['id' => 'tandem-movement', 'name' => 'Tandem Movement', 'level' => 1, 'traits' => ['Summoner'],
+        'source_book' => 'som',
+        'benefit' => 'You and your eidolon move as one. When you use the Stride action and your eidolon is adjacent to you, your eidolon can also Stride as a free action, moving the same distance in the same direction.'],
+      ['id' => 'eidolon-boost', 'name' => 'Eidolon Boost', 'level' => 1, 'traits' => ['Summoner', 'Concentrate'],
+        'source_book' => 'som',
+        'benefit' => 'You channel resonance into your eidolon for a brief burst of power. Your eidolon\'s next Strike deals an extra die of its damage. This benefit lasts until the end of the current turn.'],
+      ['id' => 'reinforce-eidolon', 'name' => 'Reinforce Eidolon', 'level' => 1, 'traits' => ['Summoner', 'Concentrate'],
+        'source_book' => 'som',
+        'benefit' => 'You bolster your eidolon\'s defenses. Your eidolon gains a +1 circumstance bonus to AC until the start of your next turn.'],
+      ['id' => 'boost-eidolons-strikes', 'name' => 'Boost Eidolon\'s Strikes', 'level' => 2, 'traits' => ['Summoner', 'Concentrate'],
+        'source_book' => 'som',
+        'benefit' => 'Frequency: once per round. Your eidolon\'s Strikes deal an extra 1d6 damage for the rest of this turn.'],
+      ['id' => 'share-senses', 'name' => 'Share Senses', 'level' => 4, 'traits' => ['Summoner', 'Concentrate', 'Scrying'],
+        'source_book' => 'som',
+        'benefit' => 'You project your senses into your eidolon. Until the start of your next turn, you perceive through your eidolon\'s senses rather than your own, and you can use reactions based on what your eidolon senses.'],
+      ['id' => 'evolutions', 'name' => 'Evolutions', 'level' => 4, 'traits' => ['Summoner'],
+        'source_book' => 'som',
+        'benefit' => 'You grant your eidolon a new evolution. Choose one of your eidolon\'s evolution options and apply it immediately.'],
+    ],
   ];
 
   /**
@@ -9313,6 +10107,20 @@ the triggering spell. You then attempt to counteract the triggering spell.'],
       ],
     ];
 
+    // TC-012: Guard against duplicate grant — if a clan dagger with ancestry_granted
+    // already exists in inventory, skip (idempotent grant).
+    try {
+      $existing = $this->inventoryManagement->getInventory((string) $character_id, 'character', 0);
+      foreach ($existing as $item) {
+        if (($item['id'] ?? '') === 'clan-dagger' && !empty($item['ancestry_granted'])) {
+          return;
+        }
+      }
+    }
+    catch (\Exception $e) {
+      // Non-fatal; proceed with grant attempt.
+    }
+
     try {
       $this->inventoryManagement->addItemToInventory(
         (string) $character_id,
@@ -9450,6 +10258,23 @@ the triggering spell. You then attempt to counteract the triggering spell.'],
       $deity_features['domains'] = $deity_data['domains'] ?? ['primary' => [], 'alternate' => []];
     }
 
+    // Apply heritage vision_override and traits_add to the character build.
+    $effective_vision = $ancestry['vision'] ?? 'normal';
+    $effective_traits = $ancestry['traits'] ?? [];
+    if ($heritage_id !== '') {
+      $heritage_def = self::getHeritageDefinition($canonical_ancestry, $heritage_id);
+      if ($heritage_def !== NULL) {
+        if (!empty($heritage_def['vision_override'])) {
+          $effective_vision = $heritage_def['vision_override'] === 'low-light'
+            ? 'low-light vision'
+            : $heritage_def['vision_override'];
+        }
+        if (!empty($heritage_def['traits_add'])) {
+          $effective_traits = self::mergeTraits($effective_traits, $heritage_def['traits_add']);
+        }
+      }
+    }
+
     return [
       'pf2e_version' => '2.0',
       'character' => [
@@ -9464,10 +10289,10 @@ the triggering spell. You then attempt to counteract the triggering spell.'],
           'size' => $ancestry['size'],
           'speed' => $ancestry['speed'],
           'languages' => $ancestry['languages'],
-          'traits' => $ancestry['traits'],
+          'traits' => $effective_traits,
           'ancestry_features' => [
-            'darkvision' => $ancestry['vision'] === 'darkvision',
-            'low_light_vision' => $ancestry['vision'] === 'low-light vision',
+            'darkvision' => $effective_vision === 'darkvision',
+            'low_light_vision' => $effective_vision === 'low-light vision',
             'hp' => $ancestry['hp'],
           ],
           'ancestry_feat' => [
@@ -9521,7 +10346,7 @@ the triggering spell. You then attempt to counteract the triggering spell.'],
         'perception' => [
           'modifier' => $prof_to_bonus($class_proficiencies['perception'], $wis_mod),
           'proficiency' => $class_proficiencies['perception'],
-          'senses' => $ancestry['vision'] !== 'normal' ? [ucwords($ancestry['vision'])] : [],
+          'senses' => $effective_vision !== 'normal' ? [ucwords($effective_vision)] : [],
         ],
         'skills' => new \stdClass(),
         'attacks' => ['melee' => [], 'ranged' => []],
@@ -9798,6 +10623,91 @@ the triggering spell. You then attempt to counteract the triggering spell.'],
       }
     }
     return FALSE;
+  }
+
+  /**
+   * Returns all eligible ancestry feats for a character based on ancestry and
+   * selected heritage, expanding the pool via cross_ancestry_feat_pool.
+   *
+   * A character is normally eligible for feats from their own ancestry. If
+   * their selected heritage defines cross_ancestry_feat_pool (e.g. Half-Elf
+   * adds 'Elf' and 'Half-Elf'), feats from those additional ancestries are
+   * merged into the result.
+   *
+   * @param string $ancestry_canonical
+   *   Canonical ancestry name (e.g. "Human").
+   * @param string $heritage_id
+   *   Heritage machine ID (e.g. "half-elf"). Pass empty string for no heritage.
+   *
+   * @return array[]
+   *   Flat array of ancestry feat definitions, each with id, name, level,
+   *   traits, prerequisites, and benefit keys.
+   */
+  public static function getEligibleAncestryFeats(string $ancestry_canonical, string $heritage_id = ''): array {
+    $pools = [$ancestry_canonical];
+
+    if ($heritage_id !== '') {
+      $heritage = self::getHeritageDefinition($ancestry_canonical, $heritage_id);
+      if ($heritage !== NULL && !empty($heritage['cross_ancestry_feat_pool'])) {
+        $extra = (array) $heritage['cross_ancestry_feat_pool'];
+        foreach ($extra as $pool_ancestry) {
+          if (!in_array($pool_ancestry, $pools, TRUE)) {
+            $pools[] = $pool_ancestry;
+          }
+        }
+      }
+    }
+
+    $feats = [];
+    $seen = [];
+    foreach ($pools as $pool) {
+      foreach ((self::ANCESTRY_FEATS[$pool] ?? []) as $feat) {
+        $id = $feat['id'] ?? '';
+        if ($id !== '' && !isset($seen[$id])) {
+          $seen[$id] = TRUE;
+          $feats[] = $feat;
+        }
+      }
+    }
+    return $feats;
+  }
+
+  /**
+   * Returns the traits a character gains from their selected heritage, in
+   * addition to their base ancestry traits.
+   *
+   * @param string $ancestry_canonical
+   *   Canonical ancestry name.
+   * @param string $heritage_id
+   *   Heritage machine ID.
+   *
+   * @return string[]
+   *   Array of trait strings to add (may be empty).
+   */
+  public static function getHeritageTraitAdditions(string $ancestry_canonical, string $heritage_id): array {
+    $heritage = self::getHeritageDefinition($ancestry_canonical, $heritage_id);
+    if ($heritage === NULL) {
+      return [];
+    }
+    return $heritage['traits_add'] ?? [];
+  }
+
+  /**
+   * Returns the full heritage definition for an ancestry/heritage pair.
+   */
+  private static function getHeritageDefinition(string $ancestry_canonical, string $heritage_id): ?array {
+    if ($ancestry_canonical === '' || $heritage_id === '') {
+      return NULL;
+    }
+
+    $heritages = self::HERITAGES[$ancestry_canonical] ?? [];
+    foreach ($heritages as $heritage) {
+      if (($heritage['id'] ?? '') === $heritage_id) {
+        return $heritage;
+      }
+    }
+
+    return NULL;
   }
 
   const VALID_SPELL_SCHOOLS = [

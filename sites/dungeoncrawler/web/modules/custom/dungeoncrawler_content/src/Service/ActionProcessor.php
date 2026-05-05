@@ -358,6 +358,13 @@ class ActionProcessor {
         $roll_natural = $this->numberGeneration->rollPathfinderDie(20);
         $save_bonus = (int) ($target[$save_type . '_save'] ?? $target['save_bonus'] ?? 0);
         $save_mod = $this->conditionManager->getConditionModifiers($target_id, $save_type, $encounter_id);
+        // GAP-2261: Mounted rider takes -2 circumstance penalty to Reflex saves.
+        if ($save_type === 'reflex') {
+          $target_entity_ref = !empty($target['entity_ref']) ? json_decode($target['entity_ref'], TRUE) : [];
+          if (!empty($target_entity_ref['mounted_on'])) {
+            $save_mod -= 2;
+          }
+        }
         $save_total = $roll_natural + $save_bonus + $save_mod;
         // For saves, the target is rolling against spell DC. Invert the degree
         // so "success" means the spell hits (target failed save).
@@ -629,7 +636,10 @@ class ActionProcessor {
   /**
    * Execute a free action (no cost; always passes if encounter is active).
    *
-   * Free actions do not consume action budget and are always available.
+   * Free actions without triggers do not consume action budget or reaction slot.
+   * Free actions WITH triggers behave like reactions — they require and consume
+   * reaction_available (DEF-2182: PF2E Core: free actions with triggers use the
+   * reaction slot, just without the "reaction" action type designation).
    */
   public function executeFreeAction($participant_id, array $action_data, $encounter_id) {
     $state = $this->loadEncounterState($encounter_id);
@@ -648,14 +658,25 @@ class ActionProcessor {
       return ['status' => 'error', 'message' => $economy['reason']];
     }
 
+    // DEF-2182: Free actions with a trigger consume reaction_available, just
+    // like reactions. Validate availability and consume the slot.
+    $has_trigger = !empty($action_data['has_trigger']) || !empty($action_data['trigger']);
+    if ($has_trigger) {
+      if (empty($actor['reaction_available'])) {
+        return ['status' => 'error', 'message' => 'No reaction available for triggered free action.'];
+      }
+      $this->store->updateParticipant($participant_id, ['reaction_available' => 0]);
+    }
+
     $this->logAction($encounter_id, $participant_id, 'free_action', $action_data['target_id'] ?? NULL, $action_data, [
       'free_action' => TRUE,
+      'triggered' => $has_trigger,
     ]);
 
     return [
       'status' => 'ok',
       'actions_remaining' => (int) ($actor['actions_remaining'] ?? 0),
-      'reaction_available' => !empty($actor['reaction_available']),
+      'reaction_available' => $has_trigger ? FALSE : !empty($actor['reaction_available']),
     ];
   }
 

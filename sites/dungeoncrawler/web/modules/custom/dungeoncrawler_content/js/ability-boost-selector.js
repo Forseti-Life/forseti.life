@@ -23,6 +23,9 @@
 
   var DEBOUNCE_MS = 300;
   var ANIM_MS = 300;
+  var SESSION_TOKEN_URL = '/session/token';
+  var csrfToken = null;
+  var csrfTokenRequest = null;
 
   // ── Per-widget initialisation ──────────────────────────────────────────────
 
@@ -36,15 +39,24 @@
 
     // Fallback: determine step by which hidden field exists in the page.
     if (!step) {
-      step = $('#background-boosts-field').length ? 'background' : 'free';
+      if ($('#ancestry-boosts-field').length) {
+        step = 'ancestry';
+      } else if ($('#background-boosts-field').length) {
+        step = 'background';
+      } else {
+        step = 'free';
+      }
     }
     if (!maxBoosts || isNaN(maxBoosts)) {
-      maxBoosts = step === 'background' ? 2 : 4;
+      maxBoosts = step === 'free' ? 4 : 2;
     }
 
-    var fieldId = step === 'background'
-      ? '#background-boosts-field'
-      : '#free-boosts-field';
+    var fieldId = '#free-boosts-field';
+    if (step === 'ancestry') {
+      fieldId = '#ancestry-boosts-field';
+    } else if (step === 'background') {
+      fieldId = '#background-boosts-field';
+    }
 
     return { step: step, maxBoosts: maxBoosts, fieldId: fieldId };
   }
@@ -86,6 +98,14 @@
 
     if ($container.data('character-data')) {
       characterData = $container.data('character-data');
+      if (typeof characterData === 'string') {
+        try {
+          var decodedCharacterData = $('<textarea/>').html(characterData).text();
+          characterData = JSON.parse(decodedCharacterData);
+        } catch (e) {
+          characterData = {};
+        }
+      }
     }
     ['background_boosts', 'free_boosts'].forEach(function (key) {
       if (typeof characterData[key] === 'string') {
@@ -112,7 +132,8 @@
 
     function buildPayload() {
       var data = $.extend({}, characterData);
-      if (step === 'background') { data.background_boosts = selectedBoosts; }
+      if (step === 'ancestry') { data.ancestry_boosts = selectedBoosts; }
+      else if (step === 'background') { data.background_boosts = selectedBoosts; }
       else if (step === 'class')  { data.class_key_ability = selectedBoosts[0] || null; }
       else                        { data.free_boosts = selectedBoosts; }
       return data;
@@ -127,6 +148,27 @@
       });
       $('body').append($el);
       setTimeout(function () { $el.fadeOut(ANIM_MS, function () { $(this).remove(); }); }, 2500);
+    }
+
+    function getCsrfToken() {
+      if (csrfToken) {
+        return $.Deferred().resolve(csrfToken).promise();
+      }
+      if (csrfTokenRequest) {
+        return csrfTokenRequest;
+      }
+
+      csrfTokenRequest = $.ajax({
+        url: SESSION_TOKEN_URL,
+        method: 'GET',
+        dataType: 'text',
+      }).done(function (token) {
+        csrfToken = token;
+      }).fail(function () {
+        csrfTokenRequest = null;
+      });
+
+      return csrfTokenRequest;
     }
 
     // ── Select / deselect ───────────────────────────────────────────────────
@@ -160,12 +202,20 @@
 
       pendingSyncRequest = $.ajax({
         url: API.AVAILABLE_BOOSTS + '/' + step,
-        method: 'GET',
-        data: { selected_boosts: JSON.stringify(selectedBoosts) },
+        method: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({
+          selected_boosts: selectedBoosts,
+          character_data: buildPayload()
+        }),
         dataType: 'json',
       }).done(function (res) {
         if (requestSeq !== latestSyncSeq) { return; }
         if (!res || !res.available) { return; }
+        if (res.max_selections && !isNaN(parseInt(res.max_selections, 10))) {
+          maxBoosts = parseInt(res.max_selections, 10);
+          updateCounter();
+        }
         var avail = res.available || [];
         var disabled = res.disabled || [];
         $widget.find('.ability-card--selectable').each(function () {
@@ -193,21 +243,29 @@
         pendingRecalcRequest.abort();
       }
 
-      pendingRecalcRequest = $.ajax({
-        url: API.CALCULATE,
-        method: 'POST',
-        contentType: 'application/json',
-        data: JSON.stringify({ character_data: buildPayload() }),
-        dataType: 'json',
-      }).done(function (res) {
-        if (requestSeq !== latestRecalcSeq) { return; }
-        if (res && res.success) { updateScores(res); }
-      }).always(function () {
+      getCsrfToken().done(function (token) {
+        pendingRecalcRequest = $.ajax({
+          url: API.CALCULATE,
+          method: 'POST',
+          contentType: 'application/json',
+          headers: {
+            'X-CSRF-Token': token
+          },
+          data: JSON.stringify({ character_data: buildPayload() }),
+          dataType: 'json',
+        }).done(function (res) {
+          if (requestSeq !== latestRecalcSeq) { return; }
+          if (res && res.success) { updateScores(res); }
+        }).always(function () {
+          calculating = false;
+          if (recalcQueued) {
+            recalcQueued = false;
+            recalculate();
+          }
+        });
+      }).fail(function () {
         calculating = false;
-        if (recalcQueued) {
-          recalcQueued = false;
-          recalculate();
-        }
+        showToast('Failed to load CSRF token for score recalculation.', '#dc3545');
       });
     }
 
@@ -253,28 +311,35 @@
         showToast('Maximum ' + maxBoosts + ' boosts selected. Deselect one first.', '#ffc107');
         return;
       }
-      $.ajax({
-        url: API.VALIDATE_BOOST,
-        method: 'POST',
-        contentType: 'application/json',
-        data: JSON.stringify({
-          ability: ability,
-          step: step,
-          selected_boosts: selectedBoosts,
-          current_character_data: buildPayload(),
-        }),
-        dataType: 'json',
-      }).done(function (res) {
-        if (!res || res.valid === false) {
-          showToast(res && res.error ? res.error : 'This boost selection is not valid.', '#dc3545');
-          return;
-        }
-        selectAbility($card, ability);
-        updateCounter();
-        debouncedRecalc();
-        syncAvailable();
+      getCsrfToken().done(function (token) {
+        $.ajax({
+          url: API.VALIDATE_BOOST,
+          method: 'POST',
+          contentType: 'application/json',
+          headers: {
+            'X-CSRF-Token': token
+          },
+          data: JSON.stringify({
+            ability: ability,
+            step: step,
+            selected_boosts: selectedBoosts,
+            current_character_data: buildPayload(),
+          }),
+          dataType: 'json',
+        }).done(function (res) {
+          if (!res || res.valid === false) {
+            showToast(res && res.error ? res.error : 'This boost selection is not valid.', '#dc3545');
+            return;
+          }
+          selectAbility($card, ability);
+          updateCounter();
+          debouncedRecalc();
+          syncAvailable();
+        }).fail(function () {
+          showToast('Failed to validate boost selection.', '#dc3545');
+        });
       }).fail(function () {
-        showToast('Failed to validate boost selection.', '#dc3545');
+        showToast('Failed to load CSRF token for boost validation.', '#dc3545');
       });
     }
 

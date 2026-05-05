@@ -108,9 +108,16 @@ class RequirementsImportCommands extends DrushCommands {
    *   Import from a custom path.
    */
   public function importRequirements(
-    string $refs_dir = '/home/ubuntu/forseti.life/docs/dungeoncrawler/PF2requirements/references',
+    string $refs_dir = '',
     array $options = ['force' => FALSE]
   ): void {
+    // Use provided path, or fall back to settings, or use module directory
+    if (empty($refs_dir)) {
+      $refs_dir = \Drupal::config('dungeoncrawler_content.settings')
+        ->get('requirements_path') ?: \Drupal::service('extension.list.module')
+        ->getPath('dungeoncrawler_content') . '/references';
+    }
+    
     if (!is_dir($refs_dir)) {
       $this->logger()->error("References directory not found: {$refs_dir}");
       return;

@@ -122,7 +122,7 @@ class AbilityScoreTracker {
 
     // Step 2: Apply ancestry boosts and flaws
     if (!empty($character_data['ancestry'])) {
-      $ancestry_result = $this->applyAncestryAbilities($scores, $sources, $character_data['ancestry']);
+      $ancestry_result = $this->applyAncestryAbilities($scores, $sources, $character_data);
       $scores = $ancestry_result['scores'];
       $sources = $ancestry_result['sources'];
       $breakdown[] = $ancestry_result['breakdown'];
@@ -203,10 +203,12 @@ class AbilityScoreTracker {
   /**
    * Applies ancestry boosts and flaws.
    */
-  protected function applyAncestryAbilities(array $scores, array $sources, string $ancestry_id): array {
+  protected function applyAncestryAbilities(array $scores, array $sources, array $character_data): array {
     $errors = [];
     $boost_log = [];
     $flaw_log = [];
+    $ancestry_id = (string) ($character_data['ancestry'] ?? '');
+    $selected_boosts = $character_data['ancestry_boosts'] ?? [];
 
     // Find ancestry data
     $ancestry = $this->findAncestryData($ancestry_id);
@@ -220,15 +222,20 @@ class AbilityScoreTracker {
     }
 
     $ancestry_name = $ancestry['name'];
+    $boost_config = CharacterManager::getAncestryBoostConfig($ancestry_id, (string) ($character_data['heritage'] ?? ''));
+    $fixed_boosts = [];
 
-    // Apply boosts
-    foreach (($ancestry['boosts'] ?? []) as $boost) {
-      $ability = $this->normalizeAbilityKey($boost);
+    foreach (($boost_config['fixed_boosts'] ?? []) as $boost) {
+      $ability = $this->normalizeAbilityKey((string) $boost);
       if (!$ability) {
-        $errors[] = "Invalid ability boost from ancestry: {$boost}";
+        $errors[] = "Invalid fixed ancestry ability boost: {$boost}";
         continue;
       }
+      $fixed_boosts[] = $ability;
+    }
 
+    // Apply fixed ancestry boosts.
+    foreach ($fixed_boosts as $ability) {
       $old_score = $scores[$ability];
       $scores[$ability] = $this->applyBoost($scores[$ability]);
       $boost_amount = $scores[$ability] - $old_score;
@@ -243,9 +250,53 @@ class AbilityScoreTracker {
       $boost_log[] = $this->formatAbilityChange($ability, $boost_amount);
     }
 
+    if (is_string($selected_boosts)) {
+      $decoded = json_decode($selected_boosts, TRUE);
+      $selected_boosts = is_array($decoded) ? $decoded : [$selected_boosts];
+    }
+    if (!is_array($selected_boosts)) {
+      $selected_boosts = [];
+    }
+
+    $normalized_selected_boosts = [];
+    foreach ($selected_boosts as $boost) {
+      if (!is_string($boost) || trim($boost) === '') {
+        continue;
+      }
+      $normalized_selected_boosts[] = $this->normalizeAbilityKey($boost);
+    }
+    $normalized_selected_boosts = array_values(array_filter($normalized_selected_boosts));
+
+    if (count($normalized_selected_boosts) > (int) ($boost_config['free_boosts'] ?? 0)) {
+      $errors[] = 'Too many free ancestry boosts selected.';
+    }
+    if (count($normalized_selected_boosts) !== count(array_unique($normalized_selected_boosts))) {
+      $errors[] = 'Ability boost selections must be unique.';
+    }
+
+    foreach ($normalized_selected_boosts as $ability) {
+      if (in_array($ability, $fixed_boosts, TRUE)) {
+        $errors[] = 'Cannot apply a free ancestry boost to an ability that already receives an ancestry boost.';
+        continue;
+      }
+
+      $old_score = $scores[$ability];
+      $scores[$ability] = $this->applyBoost($scores[$ability]);
+      $boost_amount = $scores[$ability] - $old_score;
+
+      $sources[$ability][] = [
+        'type' => 'boost',
+        'value' => $boost_amount,
+        'source' => $ancestry_name . ' ancestry (free)',
+        'step' => 'ancestry',
+      ];
+
+      $boost_log[] = $this->formatAbilityChange($ability, $boost_amount);
+    }
+
     // Apply flaw
-    if (!empty($ancestry['flaw'])) {
-      $ability = $this->normalizeAbilityKey($ancestry['flaw']);
+    if (!empty($boost_config['flaw'])) {
+      $ability = $this->normalizeAbilityKey((string) $boost_config['flaw']);
       if ($ability) {
         $scores[$ability] = max(self::MIN_SCORE, $scores[$ability] - 2);
         $sources[$ability][] = [

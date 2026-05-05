@@ -218,6 +218,32 @@ class GameplayActionProcessor {
     if (!empty($conditions)) {
       $enhanced .= "Conditions: " . implode(', ', $conditions) . "\n";
     }
+
+    // Personality and roleplay style — drives GM narration of this PC's turn.
+    $personality = $character_data['personality'] ?? '';
+    $roleplay_style = $character_data['roleplay_style'] ?? 'balanced';
+    $roleplay_descriptions = [
+      'talker'   => 'leads with words — negotiates, narrates their actions aloud, and speaks on most turns',
+      'balanced' => 'mixes dialogue and action naturally, reading the room each turn',
+      'doer'     => 'acts first and talks later — brief, purposeful speech; actions speak louder than words',
+      'observer' => 'watches and listens; speaks rarely but deliberately, acts on gathered information',
+    ];
+    $roleplay_desc = $roleplay_descriptions[$roleplay_style] ?? $roleplay_descriptions['balanced'];
+    $enhanced .= "\n=== CHARACTER VOICE & ROLEPLAY ===\n";
+    if ($personality) {
+      $enhanced .= "Personality: {$personality}\n";
+    }
+    $enhanced .= "Roleplay style: " . ucfirst($roleplay_style) . " — {$char_name} {$roleplay_desc}.\n";
+    $enhanced .= <<<PARTYRULES
+
+PARTY TURN RULES (apply whenever multiple PCs are present):
+- Only ONE PC speaks or acts per GM turn. The active PC is {$char_name}.
+- Other party members may react silently (nods, gestures) but do NOT speak for them.
+- After resolving {$char_name}'s turn, prompt the next PC naturally if appropriate.
+- {$char_name}'s roleplay style ({$roleplay_style}) should be reflected in your narration:
+  "{$roleplay_desc}."
+PARTYRULES;
+
     $enhanced .= "\n=== CURRENT ROOM ===\n";
     $enhanced .= "Room: {$room_name}\n";
     if ($room_desc) {
@@ -233,6 +259,7 @@ class GameplayActionProcessor {
 
     // NPCs present.
     $npcs = $room_inventory_data['npcs'] ?? [];
+    $is_fallback_room = !empty($room_inventory_data['_fallback_room']);
     if (!empty($npcs)) {
       $enhanced .= "\nNPCs present:\n";
       foreach ($npcs as $npc) {
@@ -257,6 +284,28 @@ class GameplayActionProcessor {
         }
         $enhanced .= $npc_line . "\n";
       }
+      if ($is_fallback_room) {
+        $enhanced .= "FALLBACK ROOM — the system could not resolve the party's current location."
+          . " The NPC listed above is from the campaign's starting location and is present as"
+          . " a last-resort anchor. This NPC knows something is wrong — the party should not be"
+          . " here, or the dungeon state has become inconsistent. Critically: this NPC has seen"
+          . " this happen before. It is NOT the party's first time ending up here under strange"
+          . " circumstances, and the NPC will treat them accordingly — with the weary familiarity"
+          . " of someone who has greeted unexpected, confused visitors more than once. The NPC"
+          . " should, through body language, tone, and choice of words, make it clear that"
+          . " something is amiss and that they recognise this situation — without breaking the"
+          . " fourth wall or mentioning game systems. Keep it fully in character.\n";
+      }
+      else {
+        $enhanced .= "STRICT NPC RULE: ONLY the NPCs listed above are physically present in this room."
+          . " Do NOT introduce, narrate, or speak as any NPC from a previous room or location."
+          . " If a character from another location appears in your session memory, they are NOT here.\n";
+      }
+    }
+    else {
+      $enhanced .= "\nNo NPCs are present in this room."
+        . " STRICT: Do NOT invent or introduce any NPC characters."
+        . " The room is empty of named beings unless they arrive narratively in this session.\n";
     }
 
     // Obstacles / furniture / environmental objects.
@@ -656,6 +705,43 @@ LOCATION RULES:
 - When the player wants to travel, use the navigate_to_location action type.
 - Reference the travel history to maintain continuity (e.g., "you came from the tavern").
 LOCATION_RULES;
+
+    $ctx .= <<<'ENTRY_NARRATION_RULES'
+
+=== ROOM ENTRY NARRATION RULES ===
+Whenever the party enters or first speaks in a new environment, you MUST open
+your response with a full environmental description before addressing anything
+the player said. This description is non-negotiable and must cover ALL of:
+
+1. ATMOSPHERE — The overall mood, tension, and feel of the space.
+   e.g. "A strained quiet hangs here, broken only by the creak of old timber."
+
+2. SIGHT — What the party sees: dimensions, lighting, notable features,
+   colours, state of the space (tidy/ruined/busy), interesting objects.
+
+3. SOUND — Ambient sounds. Voices, music, animals, machinery, wind, silence.
+
+4. SMELL / TASTE — Explicit smell and, where relevant, taste in the air.
+   e.g. "The air tastes of iron and old smoke." Never skip this field.
+
+5. NPCs / CREATURES PRESENT (non-party only):
+   - Count them. "Three figures..." "A lone shape..."
+   - Describe appearance, clothing, posture, what they are doing.
+   - Do NOT reveal their names until they introduce themselves or are
+     introduced — refer to them by appearance only.
+     e.g. "a stout woman in an apron" NOT "Mara the innkeeper".
+   - State their general demeanour explicitly:
+     e.g. "unaware", "bored", "watchful", "tense", "aggressive",
+     "fearful", "hostile", "friendly", "suspicious", "drunk".
+
+Format guidance:
+- Lead with atmosphere in 1–2 sentences, then move through sight → sound
+  → smell/taste → NPCs in that order.
+- NPCs go LAST, after the environment is established.
+- Keep individual sections tight (1–3 sentences each).
+- Do NOT skip any section — even "The room is silent." or
+  "The air is odourless" is better than omitting the field.
+ENTRY_NARRATION_RULES;
 
     return $ctx . "\n";
   }
@@ -2339,6 +2425,10 @@ LOCATION_RULES;
       }
 
       // Last resort: first room for this campaign.
+      // If no room matched by UUID or name, fall back to the first room
+      // (typically the tavern/starting area). When this fires it means the
+      // party is somewhere unexpected; the $fallback_room flag below will
+      // inject a GM note so Eldric/the starting NPC can acknowledge it.
       if ($db_room_id === $room_id && $exists === FALSE) {
         $first = $this->database->select('dc_campaign_rooms', 'r')
           ->fields('r', ['room_id'])
@@ -2348,6 +2438,7 @@ LOCATION_RULES;
           ->fetchField();
         if ($first !== FALSE) {
           $db_room_id = $first;
+          $inventory['_fallback_room'] = TRUE;
         }
       }
     }

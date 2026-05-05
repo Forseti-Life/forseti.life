@@ -31,7 +31,7 @@ class HPManager {
    *
    * @see /docs/dungeoncrawler/issues/combat-engine-service.md#applydamage
    */
-  public function applyDamage($participant_id, $damage, $damage_type, $source, $encounter_id, bool $is_nonlethal = FALSE) {
+  public function applyDamage($participant_id, $damage, $damage_type, $source, $encounter_id, bool $is_nonlethal = FALSE, bool $is_critical = FALSE) {
     $participant = $this->loadParticipant($participant_id);
     if (!$participant) {
       return ['final_damage' => 0, 'new_hp' => 0, 'new_status' => 'not_found'];
@@ -42,6 +42,10 @@ class HPManager {
     $max_hp = (int) ($participant['max_hp'] ?? 0);
     $temp_hp = (int) ($participant['temp_hp'] ?? 0);
     $damage = max(0, (int) $damage);
+    // DEF-2114: Capture original incoming damage BEFORE resistances so the
+    // min-1 rule (PF2E req 2114) fires correctly when resistance fully absorbs
+    // damage that started > 0.
+    $original_damage = $damage;
 
     // PF2e: Apply damage type resistances/weaknesses if present on participant.
     $entity_data = !empty($participant['entity_data']) ? json_decode($participant['entity_data'], TRUE) : [];
@@ -54,8 +58,7 @@ class HPManager {
         break;
       }
     }
-    // PF2E req 2114: after resistances, damage > 0 must be at least 1.
-    $original_damage = $damage;
+    // PF2E req 2114: after resistances, original damage > 0 means final must be >= 1.
     foreach ($weaknesses as $w) {
       if (strtolower((string) ($w['type'] ?? '')) === $damage_type_str) {
         $damage += (int) ($w['value'] ?? 0);
@@ -78,7 +81,8 @@ class HPManager {
       $new_temp_hp = $temp_hp;
     }
 
-    $new_hp = $base_hp - $remaining_damage;
+    // DEF-2151: Clamp to 0 — HP must never be stored as negative.
+    $new_hp = max(0, $base_hp - $remaining_damage);
     $is_defeated = $new_hp <= 0 ? 1 : (int) ($participant['is_defeated'] ?? 0);
 
     $txn = $this->database->startTransaction();
@@ -133,13 +137,33 @@ class HPManager {
         $this->conditionManager->applyCondition($participant_id, 'unconscious', 1, ['type' => 'encounter', 'remaining' => NULL], $source, $encounter_id);
       }
       else {
-        $this->conditionManager->applyCondition($participant_id, 'dying', 1, ['type' => 'encounter', 'remaining' => NULL], $source, $encounter_id);
+        // DEF-2154/2155: Route through applyDyingCondition() so wounded is
+        // added and crits correctly apply dying 2 instead of dying 1.
+        $this->applyDyingCondition($participant_id, 1, $encounter_id, $is_critical);
       }
     }
 
     // REQ 2170: Receiving damage wakes an unconscious character with HP > 0.
     if (!$is_defeated && $base_hp > 0 && $this->conditionManager->hasCondition($participant_id, 'unconscious', $encounter_id)) {
       $this->removeUnconsciousCondition($participant_id, $encounter_id);
+    }
+
+    // GAP-2178: If entity has regeneration_bypassed_by and the damage type matches,
+    // flag regeneration as bypassed this turn so startTurn() skips regen healing.
+    if ($damage > 0 && !empty($participant['entity_ref'])) {
+      $entity_ref_data = json_decode($participant['entity_ref'], TRUE);
+      if (!empty($entity_ref_data['regeneration_bypassed_by']) && !empty($entity_ref_data['regeneration'])) {
+        $bypass_types = is_array($entity_ref_data['regeneration_bypassed_by'])
+          ? $entity_ref_data['regeneration_bypassed_by']
+          : [$entity_ref_data['regeneration_bypassed_by']];
+        if (in_array($damage_type_str, array_map('strtolower', $bypass_types), TRUE)) {
+          $entity_ref_data['regeneration_bypassed'] = TRUE;
+          $this->database->update('combat_participants')
+            ->fields(['entity_ref' => json_encode($entity_ref_data), 'updated' => $now])
+            ->condition('id', $participant_id)
+            ->execute();
+        }
+      }
     }
 
     return [
@@ -292,6 +316,25 @@ class HPManager {
     }
 
     $effective_dying = $dying_value + $wounded_value;
+
+    // GAP-2166: doomed reduces the dying death threshold; if effective_dying already
+    // meets or exceeds the threshold, the character dies immediately without entering
+    // the dying track (REQ 2165/2166).
+    $doomed_value = 0;
+    foreach ($active as $cond) {
+      if ($cond['condition_type'] === 'doomed') {
+        $doomed_value = max($doomed_value, (int) ($cond['value'] ?? 0));
+      }
+    }
+    $death_threshold = max(1, 4 - $doomed_value);
+    if ($effective_dying >= $death_threshold) {
+      $now = time();
+      $this->database->update('combat_participants')
+        ->fields(['status' => 'dead', 'updated' => $now])
+        ->condition('id', $participant_id)
+        ->execute();
+      return ['instant_death' => TRUE, 'doomed' => $doomed_value, 'effective_dying' => $effective_dying, 'threshold' => $death_threshold];
+    }
 
     $this->conditionManager->applyCondition($participant_id, 'dying', $effective_dying, ['type' => 'encounter', 'remaining' => NULL], 'dying_condition', $encounter_id);
     $this->conditionManager->applyCondition($participant_id, 'unconscious', 0, ['type' => 'encounter', 'remaining' => NULL], 'dying_condition', $encounter_id);

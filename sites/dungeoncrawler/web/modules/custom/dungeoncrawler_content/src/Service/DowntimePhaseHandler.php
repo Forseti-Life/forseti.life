@@ -549,7 +549,10 @@ class DowntimePhaseHandler implements PhaseHandlerInterface {
    * {@inheritdoc}
    */
   public function getAvailableActions(array $game_state, array $dungeon_data, ?string $actor_id = NULL): array {
-    $actions = ['long_rest', 'downtime_rest', 'earn_income', 'craft', 'talk', 'return_to_exploration'];
+    $actions = ['long_rest', 'downtime_rest', 'earn_income', 'craft', 'craft_snare', 'subsist', 'talk', 'return_to_exploration'];
+    if ($this->resolveActorHeritage($actor_id, $dungeon_data) === 'chameleon') {
+      $actions[] = 'dramatic_color_shift';
+    }
     if (!empty($game_state['downtime']['retraining'])) {
       $actions[] = 'advance_day';
     }
@@ -557,6 +560,28 @@ class DowntimePhaseHandler implements PhaseHandlerInterface {
       $actions[] = 'retrain';
     }
     return $actions;
+  }
+
+  /**
+   * Resolves actor heritage from dungeon entity data when available.
+   */
+  protected function resolveActorHeritage(?string $actor_id, array $dungeon_data): ?string {
+    if (!$actor_id || empty($dungeon_data['entities']) || !is_array($dungeon_data['entities'])) {
+      return NULL;
+    }
+
+    foreach ($dungeon_data['entities'] as $entity) {
+      if (!is_array($entity)) {
+        continue;
+      }
+      $entity_id = $entity['entity_instance_id'] ?? ($entity['instance_id'] ?? ($entity['id'] ?? NULL));
+      if ($entity_id === $actor_id) {
+        $heritage = $entity['heritage'] ?? ($entity['state']['heritage'] ?? NULL);
+        return is_string($heritage) ? $heritage : NULL;
+      }
+    }
+
+    return NULL;
   }
 
   // =========================================================================

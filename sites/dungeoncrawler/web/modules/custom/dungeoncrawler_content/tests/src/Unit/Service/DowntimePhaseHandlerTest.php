@@ -58,6 +58,8 @@ class DowntimePhaseHandlerTest extends UnitTestCase {
 
     $this->assertContains('earn_income', $actions);
     $this->assertContains('craft', $actions);
+    $this->assertContains('craft_snare', $actions);
+    $this->assertContains('subsist', $actions);
     $this->assertContains('long_rest', $actions);
     $this->assertContains('downtime_rest', $actions);
     $this->assertContains('retrain', $actions);
@@ -77,6 +79,71 @@ class DowntimePhaseHandlerTest extends UnitTestCase {
 
     $this->assertContains('advance_day', $actions);
     $this->assertNotContains('retrain', $actions);
+  }
+
+  /**
+   * Chameleon Gnomes expose dramatic color shift during downtime.
+   */
+  public function testGetAvailableActionsIncludesDramaticColorShiftForChameleonGnome(): void {
+    $game_state = ['phase' => 'downtime', 'downtime' => ['days_elapsed' => 0]];
+    $dungeon_data = [
+      'entities' => [
+        [
+          'instance_id' => 'char-001',
+          'heritage' => 'chameleon',
+        ],
+      ],
+    ];
+    $actions = $this->handler->getAvailableActions($game_state, $dungeon_data, 'char-001');
+
+    $this->assertContains('dramatic_color_shift', $actions);
+  }
+
+  /**
+   * Dramatic Color Shift updates coloration for Chameleon Gnomes.
+   */
+  public function testProcessIntentDramaticColorShiftUpdatesColoration(): void {
+    $game_state = $this->makeGameState();
+    $dungeon_data = [];
+    $intent = [
+      'type' => 'dramatic_color_shift',
+      'actor' => 'char-001',
+      'params' => [
+        'heritage' => 'chameleon',
+        'target_terrain_color' => 'ashen_gray',
+      ],
+    ];
+
+    $response = $this->handler->processIntent($intent, $game_state, $dungeon_data, 42);
+
+    $this->assertTrue($response['success']);
+    $this->assertSame('ashen_gray', $response['result']['coloration_tag']);
+    $this->assertSame('up to 1 hour', $response['result']['duration']);
+    $this->assertSame(
+      ['type' => 'char_state', 'key' => 'coloration_tag', 'value' => 'ashen_gray'],
+      $response['mutations'][0]
+    );
+  }
+
+  /**
+   * Dramatic Color Shift rejects non-Chameleon heritages.
+   */
+  public function testProcessIntentDramaticColorShiftRejectsNonChameleonActor(): void {
+    $game_state = $this->makeGameState();
+    $dungeon_data = [];
+    $intent = [
+      'type' => 'dramatic_color_shift',
+      'actor' => 'char-001',
+      'params' => [
+        'heritage' => 'sensate',
+        'target_terrain_color' => 'ashen_gray',
+      ],
+    ];
+
+    $response = $this->handler->processIntent($intent, $game_state, $dungeon_data, 42);
+
+    $this->assertFalse($response['success']);
+    $this->assertSame('Dramatic Color Shift requires Chameleon Gnome heritage.', $response['result']['error']);
   }
 
   // ---------------------------------------------------------------------------

@@ -97,6 +97,11 @@ services:
     tags:
       - {name: access_check, applies_to: _campaign_access}
 
+  dungeoncrawler_content.campaign_gm_access_check:
+    class: Drupal\dungeoncrawler_content\Access\CampaignGmAccessCheck
+    tags:
+      - {name: access_check, applies_to: _campaign_gm_access}
+
   # Game Content System Services
   dungeoncrawler_content.content_registry:
     class: Drupal\dungeoncrawler_content\Service\ContentRegistry
@@ -682,3 +687,14 @@ services:
     class: Drupal\dungeoncrawler_content\Service\VariantRulesService
     arguments:
       - '@database'
+
+  dungeoncrawler_content.gun_gears_controller:
+    class: Drupal\dungeoncrawler_content\Controller\GunGearsController
+    arguments:
+      - '@dungeoncrawler_content.character_manager'
+      - '@dungeoncrawler_content.equipment_catalog'
+
+  dungeoncrawler_content.som_controller:
+    class: Drupal\dungeoncrawler_content\Controller\SomController
+    arguments:
+      - '@dungeoncrawler_content.character_manager'

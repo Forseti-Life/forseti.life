@@ -194,8 +194,13 @@
 
         // ── Form submit ───────────────────────────────────────────────────────
 
-        $form.on('submit', function () {
-          $submitButton.prop('disabled', true).text('Saving\u2026');
+        $form.on('submit', function (e) {
+          window.setTimeout(function () {
+            if (e.isDefaultPrevented() || (formEl.checkValidity && !formEl.checkValidity())) {
+              return;
+            }
+            $submitButton.prop('disabled', true).text('Saving\u2026');
+          }, 0);
         });
       });
     },

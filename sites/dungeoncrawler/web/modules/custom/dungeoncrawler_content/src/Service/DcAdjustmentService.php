@@ -275,6 +275,21 @@ class DcAdjustmentService {
   }
 
   /**
+   * Apply NPC attitude adjustment to a social check DC.
+   *
+   * @param int $base_dc
+   *   The unmodified social check DC.
+   * @param string $attitude
+   *   One of: helpful, friendly, indifferent, unfriendly, hostile.
+   *
+   * @return int
+   *   The final DC after applying the standard NPC attitude adjustment.
+   */
+  public function adjustDcForNpcAttitude(int $base_dc, string $attitude): int {
+    return max(0, $base_dc + $this->attitudeDelta($attitude));
+  }
+
+  /**
    * Validate proficiency rank against a required minimum.
    *
    * Per PF2e rules, characters below the minimum required rank may attempt the

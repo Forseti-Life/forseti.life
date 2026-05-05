@@ -2981,3 +2981,167 @@
   color: #fff;
   border-color: var(--primary);
 }
+
+/* ==========================================================================
+   Sidebar Drawer Toggle
+   ========================================================================== */
+
+.btn--drawer-toggle {
+  background: var(--gray-100);
+  color: var(--gray-600);
+  border: 1px solid var(--gray-300);
+  border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-base);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, transform 0.2s;
+}
+
+.btn--drawer-toggle:hover {
+  background: var(--primary);
+  color: #fff;
+  border-color: var(--primary);
+}
+
+/* Collapsed sidebar: full-width grid, sidebar hidden */
+.game-layout--drawer-collapsed {
+  grid-template-columns: 100% !important;
+}
+
+.game-layout--drawer-collapsed .game-layout__sidebar {
+  display: none !important;
+}
+
+/* Drawer open/close animation for sidebar */
+.game-layout__sidebar {
+  transition: opacity 0.2s ease;
+}
+
+/* Inspector placeholder */
+.inspector-placeholder {
+  padding: var(--space-3);
+  font-size: var(--text-sm);
+  color: var(--text-muted, #94a3b8);
+  text-align: center;
+}
+
+/* ==========================================================================
+   Chat Dock Toggle
+   ========================================================================== */
+
+.btn--chat-dock-toggle {
+  background: transparent;
+  border: none;
+  color: var(--text-muted, #94a3b8);
+  font-size: 1rem;
+  cursor: pointer;
+  padding: var(--space-1);
+  border-radius: var(--radius-sm);
+  transition: color 0.15s;
+  flex-shrink: 0;
+}
+
+.btn--chat-dock-toggle:hover {
+  color: var(--text, #e2e8f0);
+}
+
+/* Maximize chat button — mirrors dock toggle style */
+.btn--chat-maximize-toggle {
+  background: transparent;
+  border: none;
+  color: var(--text-muted, #94a3b8);
+  font-size: 1rem;
+  cursor: pointer;
+  padding: var(--space-1);
+  border-radius: var(--radius-sm);
+  transition: color 0.15s;
+  flex-shrink: 0;
+}
+
+.btn--chat-maximize-toggle:hover {
+  color: var(--text, #e2e8f0);
+}
+
+.btn--chat-maximize-toggle[aria-pressed="true"] {
+  color: var(--primary, #60a5fa);
+}
+
+/* Maximized chat: fixed full-screen overlay */
+.hexmap-chat--maximized {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 650;
+  margin: 0 !important;
+  border-radius: 0 !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  display: flex;
+  flex-direction: column;
+  background: var(--overlay-panel-98) !important;
+  box-shadow: none !important;
+}
+
+.hexmap-chat--maximized .hexmap-chat__log {
+  flex: 1;
+  min-height: 0;
+  max-height: none !important;
+  height: auto !important;
+}
+
+/* Collapsed chat dock: hide body, show only header */
+.hexmap-chat--collapsed .hexmap-chat__session-tabs,
+.hexmap-chat--collapsed .hexmap-chat__channels,
+.hexmap-chat--collapsed .hexmap-chat__channel-indicator,
+.hexmap-chat--collapsed .hexmap-chat__log,
+.hexmap-chat--collapsed .hexmap-chat__input {
+  display: none;
+}
+
+/* ==========================================================================
+   Sidebar Backdrop (mobile overlay)
+   ========================================================================== */
+
+.sidebar-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  z-index: 499;
+}
+
+/* ==========================================================================
+   Responsive: Mobile Sidebar Overlay
+   ========================================================================== */
+
+@media (max-width: 768px) {
+  /* Override grid to single column — sidebar is always fixed */
+  .game-layout {
+    grid-template-columns: 100% !important;
+  }
+
+  .game-layout--drawer-collapsed .game-layout__sidebar {
+    display: block !important; /* restore so fixed overlay still works */
+  }
+
+  .game-layout__sidebar {
+    position: fixed;
+    top: 0;
+    right: 0;
+    height: 100vh;
+    width: min(360px, 90vw);
+    z-index: 500;
+    transform: translateX(100%);
+    transition: transform 0.25s ease, opacity 0.25s ease;
+    overflow-y: auto;
+    background: var(--bg, #0f172a);
+    padding: var(--space-3);
+    box-shadow: -4px 0 24px rgba(0, 0, 0, 0.6);
+  }
+
+  .game-layout--drawer-open .game-layout__sidebar {
+    transform: translateX(0);
+  }
+
+  .game-layout-controls {
+    display: none;
+  }
+}

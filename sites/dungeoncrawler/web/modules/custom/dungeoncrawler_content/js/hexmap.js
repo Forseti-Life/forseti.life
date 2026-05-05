@@ -1318,8 +1318,8 @@ import { SpriteService } from './SpriteService.js';
         const characterName = characterData.name || 'You';
         const characterId = characterData.id || null;
 
-        if (!campaignId || !roomId) {
-          this.appendChatLine('System', 'Unable to send message: No active room', 'system');
+        if (!campaignId) {
+          this.appendChatLine('System', 'Unable to send message: No active campaign', 'system');
           return;
         }
 
@@ -1354,6 +1354,13 @@ import { SpriteService } from './SpriteService.js';
         }
 
         // Send to legacy room chat server
+        if (!roomId) {
+          isSubmitting = false;
+          if (sendButton) { sendButton.disabled = false; sendButton.textContent = originalText || 'Send'; }
+          input.value = message;
+          this.appendChatLine('System', 'Unable to send message: No active room', 'system');
+          return;
+        }
         try {
           await this.postChatMessage(campaignId, roomId, characterName, message, characterId);
           // Message will appear when server confirms (or from loadChatHistory)
@@ -2690,6 +2697,7 @@ import { SpriteService } from './SpriteService.js';
       if (combat && combat.isPlayerTeam()) {
         this.selectEntity(entity);
       }
+      this.syncTokenBadgeState();
     },
     
     /**
@@ -3928,12 +3936,6 @@ import { SpriteService } from './SpriteService.js';
       const name = identity ? identity.name : `Entity ${entity.id}`;
       console.log(`Selected entity: ${name}`);
       
-      // Highlight selected entity (could add visual feedback on sprite)
-      const render = entity.getComponent('RenderComponent');
-      if (render && render.sprite) {
-        render.sprite.tint = 0x60a5fa; // Blue tint
-      }
-      
       // Show entity info panel via UIManager
       this.uiManager.showEntityInfo(entity);
 
@@ -3947,6 +3949,7 @@ import { SpriteService } from './SpriteService.js';
         isPlayersTurn
       });
       this.refreshFogOfWar(entity);
+      this.syncTokenBadgeState();
     },
     
     /**
@@ -3958,7 +3961,7 @@ import { SpriteService } from './SpriteService.js';
         return;
       }
       
-      // Remove tint from sprite
+      // Remove tint from sprite (no-op now — tint is never set, but keep for safety)
       const render = selectedEntity.getComponent('RenderComponent');
       if (render && render.sprite) {
         render.sprite.tint = 0xffffff; // Reset to white
@@ -3972,9 +3975,50 @@ import { SpriteService } from './SpriteService.js';
       // Hide entity info panel
       this.uiManager.hideEntityInfo();
       
+      this.syncTokenBadgeState();
+      
       console.log('Entity deselected');
     },
     
+    /**
+     * Sync per-token badge state flags onto all RenderComponents.
+     * Sets _isSelected, _isCurrentTurn, _conditions, and _isInteractable on each entity's
+     * RenderComponent so RenderSystem can draw rings/badges without coupling to stateManager.
+     *
+     * Interactable types: item, npc, obstacle.
+     */
+    syncTokenBadgeState: function () {
+      const selectedEntity = this.stateManager.get('selectedEntity');
+      const selectedId = selectedEntity ? selectedEntity.id : null;
+      const currentTurnEntity = this.turnManagementSystem
+        ? this.turnManagementSystem.getCurrentTurnEntity()
+        : null;
+      const currentTurnId = currentTurnEntity ? currentTurnEntity.id : null;
+
+      const interactableTypes = new Set(['item', 'npc', 'obstacle']);
+
+      const entities = this.entityManager.getAllEntities();
+      for (const entity of entities) {
+        const render = entity.getComponent('RenderComponent');
+        if (!render) {
+          continue;
+        }
+
+        render._isSelected = entity.id === selectedId;
+        render._isCurrentTurn = entity.id === currentTurnId;
+
+        // Conditions: default empty; will be populated from server hydration in future
+        if (!Array.isArray(render._conditions)) {
+          render._conditions = [];
+        }
+
+        const identity = entity.getComponent('IdentityComponent');
+        render._isInteractable = identity
+          ? interactableTypes.has(identity.type)
+          : false;
+      }
+    },
+
     /**
      * Show movement range overlay for entity.
      * @param {Entity} entity - Entity to show range for

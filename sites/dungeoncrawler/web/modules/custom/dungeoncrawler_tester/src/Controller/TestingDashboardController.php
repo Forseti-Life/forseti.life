@@ -585,7 +585,7 @@ class TestingDashboardController extends ControllerBase {
       )->toRenderable(),
       Link::fromTextAndUrl(
         $this->t('GitHub Issues (testing-related)'),
-        Url::fromUri('https://github.com/Forseti-Life/forseti.life/issues?q=is%3Aissue+is%3Aopen+label%3Atesting')
+        Url::fromUri('https://github.com/keithaumiller/forseti.life/issues?q=is%3Aissue+is%3Aopen+label%3Atesting')
       )->toRenderable(),
     ];
 

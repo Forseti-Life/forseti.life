@@ -20,6 +20,7 @@
         {% if is_admin %}
         <button id="debug-panel-toggle" class="btn btn-icon btn--debug-toggle" title="{{ 'Toggle dev panels'|t }}" aria-pressed="false">{{ '🛠'|t }}</button>
         {% endif %}
+        <button id="sidebar-drawer-toggle" class="btn btn-icon btn--drawer-toggle" title="{{ 'Toggle sidebar'|t }}" aria-expanded="true" aria-controls="game-layout">{{ '⟩'|t }}</button>
         <button id="fullscreen-toggle" class="btn btn-icon" title="{{ 'Enter fullscreen'|t }}">{{ '⛶'|t }}</button>
       </div>
     </div>
@@ -142,6 +143,8 @@
       <div class="hexmap-chat__header">
         <h3 id="chat-panel-title">{{ 'Room Dialogue'|t }}</h3>
         <span class="chip chip-live" id="chat-status">{{ 'Open'|t }}</span>
+        <button id="chat-maximize-toggle" class="btn btn-icon btn--chat-maximize-toggle" title="{{ 'Maximize chat'|t }}" aria-pressed="false">{{ '⛶'|t }}</button>
+        <button id="chat-dock-toggle" class="btn btn-icon btn--chat-dock-toggle" title="{{ 'Collapse chat'|t }}" aria-expanded="true">{{ '▾'|t }}</button>
       </div>
       {# Session view tabs — top-level navigation between chat views #}
       <div class="hexmap-chat__session-tabs" id="chat-session-tabs">
@@ -193,6 +196,9 @@
     </button>
     <button class="sidebar-tab" data-panel="quests">
       <span class="sidebar-tab__icon">&#x1F3AF;</span>{{ 'Quests'|t }}
+    </button>
+    <button class="sidebar-tab" data-panel="inspector">
+      <span class="sidebar-tab__icon">&#x1F50E;</span>{{ 'Inspector'|t }}
     </button>
   </div>
 
@@ -458,6 +464,35 @@
     </div>
   </div>{# /.sidebar-panel-quests #}
 
+  {# === Inspector Tab Panel === #}
+  <div class="sidebar-panel" id="sidebar-panel-inspector" style="display:none;">
+    <p class="inspector-placeholder muted" id="inspector-placeholder">{{ 'Select an entity on the map to inspect it.'|t }}</p>
+    {# entity-info-panel is managed by UIManager.showEntityInfo / hideEntityInfo #}
+    <div class="info-panel dc-is-hidden" id="entity-info-panel">
+      <h3>{{ 'Selected Entity'|t }}</h3>
+      <div class="info-content">
+        <div class="entity-inspect-media dc-is-hidden" id="entity-image-wrap">
+          <img id="entity-image" src="" alt="" loading="lazy">
+        </div>
+        <p><strong>{{ 'Name:'|t }}</strong> <span id="entity-name">-</span></p>
+        <p><strong>{{ 'Type:'|t }}</strong> <span id="entity-type">-</span></p>
+        <p><strong>{{ 'Summary:'|t }}</strong> <span id="entity-summary">-</span></p>
+        <p><strong>{{ 'Team:'|t }}</strong> <span id="entity-team">-</span></p>
+        <p><strong>{{ 'HP:'|t }}</strong> <span id="entity-hp">-</span></p>
+        <p><strong>{{ 'AC:'|t }}</strong> <span id="entity-ac">-</span></p>
+        <p><strong>{{ 'Actions:'|t }}</strong> <span id="entity-actions">-</span></p>
+        <p><strong>{{ 'Movement:'|t }}</strong> <span id="entity-movement">-</span></p>
+        <p><strong>{{ 'Description:'|t }}</strong> <span id="entity-description">-</span></p>
+        <div class="entity-known-block">
+          <strong>{{ 'Known Details:'|t }}</strong>
+          <ul id="entity-known-details" class="entity-known-list">
+            <li>{{ 'No additional details are known yet.'|t }}</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>{# /.sidebar-panel-inspector #}
+
   </div>{# /.game-layout__sidebar #}
   </div>{# /.game-layout #}
 
@@ -549,29 +584,7 @@
       </div>
     {% endif %}
     
-    <div class="info-panel dc-is-hidden" id="entity-info-panel">
-      <h3>{{ 'Selected Entity'|t }}</h3>
-      <div class="info-content">
-        <div class="entity-inspect-media dc-is-hidden" id="entity-image-wrap">
-          <img id="entity-image" src="" alt="" loading="lazy">
-        </div>
-        <p><strong>{{ 'Name:'|t }}</strong> <span id="entity-name">-</span></p>
-        <p><strong>{{ 'Type:'|t }}</strong> <span id="entity-type">-</span></p>
-        <p><strong>{{ 'Summary:'|t }}</strong> <span id="entity-summary">-</span></p>
-        <p><strong>{{ 'Team:'|t }}</strong> <span id="entity-team">-</span></p>
-        <p><strong>{{ 'HP:'|t }}</strong> <span id="entity-hp">-</span></p>
-        <p><strong>{{ 'AC:'|t }}</strong> <span id="entity-ac">-</span></p>
-        <p><strong>{{ 'Actions:'|t }}</strong> <span id="entity-actions">-</span></p>
-        <p><strong>{{ 'Movement:'|t }}</strong> <span id="entity-movement">-</span></p>
-        <p><strong>{{ 'Description:'|t }}</strong> <span id="entity-description">-</span></p>
-        <div class="entity-known-block">
-          <strong>{{ 'Known Details:'|t }}</strong>
-          <ul id="entity-known-details" class="entity-known-list">
-            <li>{{ 'No additional details are known yet.'|t }}</li>
-          </ul>
-        </div>
-      </div>
-    </div>
+    {# entity-info-panel moved to sidebar-panel-inspector — see game-layout__sidebar above #}
     
     <div class="info-panel">
       <h3>{{ 'Legend'|t }}</h3>
@@ -602,6 +615,8 @@
   </div>
 
   <script>
+  /* Safe Drupal.t() fallback for inline scripts that run before drupal.js loads */
+  var _dt = typeof Drupal !== 'undefined' ? Drupal.t.bind(Drupal) : function(s) { return s; };
   (function () {
     const STORAGE_KEY = 'dc_layout_ratio';
     const slider = document.getElementById('layout-ratio-slider');
@@ -646,11 +661,11 @@
       if (on) {
         container.classList.add(CSS_CLASS);
         btn.setAttribute('aria-pressed', 'true');
-        btn.title = Drupal.t('Hide dev panels');
+        btn.title = _dt('Hide dev panels');
       } else {
         container.classList.remove(CSS_CLASS);
         btn.setAttribute('aria-pressed', 'false');
-        btn.title = Drupal.t('Show dev panels');
+        btn.title = _dt('Show dev panels');
       }
       localStorage.setItem(DEBUG_KEY, on ? '1' : '0');
     }
@@ -979,5 +994,157 @@
     // Expose syncInventory globally so hexmap.js can call it after data loads
     window.dcSyncInventory = syncInventory;
   })();
+
+  /* ---- Sidebar Drawer Toggle ---- */
+  (function () {
+    var btn = document.getElementById('sidebar-drawer-toggle');
+    var layout = document.getElementById('game-layout');
+    var backdrop = document.getElementById('sidebar-backdrop');
+    if (!btn || !layout) return;
+    var DRAWER_KEY = 'dc_drawer_open';
+
+    function isMobile() {
+      return window.matchMedia('(max-width: 768px)').matches;
+    }
+
+    function setDrawerOpen(open) {
+      if (isMobile()) {
+        layout.classList.toggle('game-layout--drawer-open', open);
+        layout.classList.remove('game-layout--drawer-collapsed');
+        if (backdrop) backdrop.hidden = !open;
+      } else {
+        layout.classList.toggle('game-layout--drawer-collapsed', !open);
+        layout.classList.remove('game-layout--drawer-open');
+        if (backdrop) backdrop.hidden = true;
+      }
+      btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+      btn.textContent = isMobile() ? (open ? '✕' : '☰') : (open ? '⟩' : '⟨');
+      localStorage.setItem(DRAWER_KEY, open ? '1' : '0');
+    }
+
+    // Restore saved preference; default open on desktop, closed on mobile
+    var saved = localStorage.getItem(DRAWER_KEY);
+    if (saved !== null) {
+      setDrawerOpen(saved === '1');
+    } else {
+      setDrawerOpen(!isMobile());
+    }
+
+    btn.addEventListener('click', function () {
+      var isOpen = isMobile()
+        ? layout.classList.contains('game-layout--drawer-open')
+        : !layout.classList.contains('game-layout--drawer-collapsed');
+      setDrawerOpen(!isOpen);
+    });
+
+    if (backdrop) {
+      backdrop.addEventListener('click', function () {
+        setDrawerOpen(false);
+      });
+    }
+
+    // Re-apply on resize (desktop ↔ mobile transition)
+    window.addEventListener('resize', function () {
+      var saved2 = localStorage.getItem(DRAWER_KEY);
+      if (saved2 !== null) setDrawerOpen(saved2 === '1');
+    });
+  })();
+
+  /* ---- Chat Dock Toggle ---- */
+  (function () {
+    var btn = document.getElementById('chat-dock-toggle');
+    var chat = document.getElementById('hexmap-chat');
+    if (!btn || !chat) return;
+    var CHAT_KEY = 'dc_chat_collapsed';
+
+    function setChatCollapsed(collapsed) {
+      chat.classList.toggle('hexmap-chat--collapsed', collapsed);
+      btn.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+      btn.textContent = collapsed ? '▴' : '▾';
+      btn.title = _dt(collapsed ? 'Expand chat' : 'Collapse chat');
+      localStorage.setItem(CHAT_KEY, collapsed ? '1' : '0');
+    }
+
+    var saved = localStorage.getItem(CHAT_KEY);
+    setChatCollapsed(saved === '1');
+
+    btn.addEventListener('click', function () {
+      setChatCollapsed(!chat.classList.contains('hexmap-chat--collapsed'));
+    });
+  })();
+
+  /* ---- Chat Maximize Toggle ---- */
+  (function () {
+    var btn = document.getElementById('chat-maximize-toggle');
+    var chat = document.getElementById('hexmap-chat');
+    if (!btn || !chat) return;
+    var MAXIMIZE_KEY = 'dc_chat_maximized';
+
+    function setChatMaximized(maximized) {
+      chat.classList.toggle('hexmap-chat--maximized', maximized);
+      btn.setAttribute('aria-pressed', maximized ? 'true' : 'false');
+      btn.textContent = maximized ? '⛌' : '⛶';
+      btn.title = _dt(maximized ? 'Restore chat' : 'Maximize chat');
+      localStorage.setItem(MAXIMIZE_KEY, maximized ? '1' : '0');
+      // Scroll chat log to bottom after resize settles
+      if (maximized) {
+        requestAnimationFrame(function () {
+          var log = document.getElementById('chat-log');
+          if (log) log.scrollTop = log.scrollHeight;
+        });
+      }
+    }
+
+    var saved = localStorage.getItem(MAXIMIZE_KEY);
+    setChatMaximized(saved === '1');
+
+    btn.addEventListener('click', function () {
+      setChatMaximized(!chat.classList.contains('hexmap-chat--maximized'));
+    });
+
+    // Close on Escape key
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && chat.classList.contains('hexmap-chat--maximized')) {
+        setChatMaximized(false);
+      }
+    });
+  })();
+
+  /* ---- Inspector Tab Auto-switch ---- */
+  (function () {
+    var entityPanel = document.getElementById('entity-info-panel');
+    var placeholder = document.getElementById('inspector-placeholder');
+    var tabBar = document.getElementById('sidebar-tabs');
+    if (!entityPanel || !tabBar) return;
+
+    function activateInspectorTab() {
+      var inspectorTab = tabBar.querySelector('[data-panel="inspector"]');
+      if (inspectorTab) inspectorTab.click();
+    }
+
+    function syncPlaceholder() {
+      if (!placeholder) return;
+      var panelHidden = entityPanel.classList.contains('dc-is-hidden');
+      placeholder.style.display = panelHidden ? '' : 'none';
+    }
+
+    syncPlaceholder();
+
+    var observer = new MutationObserver(function (mutations) {
+      mutations.forEach(function (m) {
+        if (m.type === 'attributes' && m.attributeName === 'class') {
+          var hidden = entityPanel.classList.contains('dc-is-hidden');
+          if (!hidden) {
+            // Entity was selected — switch to inspector tab
+            activateInspectorTab();
+          }
+          syncPlaceholder();
+        }
+      });
+    });
+    observer.observe(entityPanel, { attributes: true, attributeFilter: ['class'] });
+  })();
   </script>
+
+  <div id="sidebar-backdrop" class="sidebar-backdrop" hidden></div>
 </div>

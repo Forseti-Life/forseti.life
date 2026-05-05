@@ -380,7 +380,13 @@ class SpellCatalogService {
    * @param array $entity_state  Modified by reference.
    */
   public function resetInnateSpells(array &$entity_state): void {
-    foreach ($entity_state['innate_spells'] ?? [] as $spell_id => &$def) {
+    // Avoid ?? [] in the foreach expression — using a null-coalescing expression
+    // as the iterable causes PHP to iterate a copy, so by-reference writes
+    // inside the loop would not propagate back to $entity_state.
+    if (empty($entity_state['innate_spells'])) {
+      return;
+    }
+    foreach ($entity_state['innate_spells'] as $spell_id => &$def) {
       if (empty($def['is_cantrip'])) {
         $def['used_today'] = FALSE;
       }

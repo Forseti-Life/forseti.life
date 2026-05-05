@@ -49,6 +49,8 @@ class AncestryController extends ControllerBase {
         $item = $this->buildAncestryItem($name, $data);
         // Attach heritages keyed by canonical name.
         $item['heritages'] = CharacterManager::HERITAGES[$name] ?? [];
+        // TC-DWF-09–14: ancestry feats available for this ancestry (level 1+).
+        $item['ancestry_feats'] = CharacterManager::ANCESTRY_FEATS[$name] ?? [];
         return new JsonResponse(['ancestry' => $item], 200);
       }
     }
@@ -73,6 +75,17 @@ class AncestryController extends ControllerBase {
     ];
     if (!empty($data['special'])) {
       $item['special'] = $data['special'];
+    }
+    // TC-DWF-05: bonus_language_pool / bonus_language_source for Intelligence-
+    // modifier based extra languages (e.g. Dwarf, Gnome bonus_language_per_int).
+    if (!empty($data['bonus_language_pool'])) {
+      $item['bonus_language_pool']   = $data['bonus_language_pool'];
+      $item['bonus_language_source'] = $data['bonus_language_source'] ?? NULL;
+    }
+    // TC-DWF-06: starting_equipment granted to every character of this ancestry
+    // at creation (e.g. Dwarven Clan Dagger).
+    if (!empty($data['starting_equipment'])) {
+      $item['starting_equipment'] = $data['starting_equipment'];
     }
     return $item;
   }

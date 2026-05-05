@@ -16,6 +16,6 @@ dependencies:
   - drupal:text
 
 # Module maintainer information
-author: 'Forseti Development Team'
-homepage: 'https://forseti.life/dungeoncrawler'
-support: 'https://github.com/Forseti-Life/forseti.life'
+author: 'DungeonCrawler Development Team'
+homepage: 'https://www.drupal.org/project/dungeoncrawler_content'
+support: 'https://www.drupal.org/project/dungeoncrawler_content/issues'

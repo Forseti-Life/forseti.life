@@ -22,7 +22,7 @@ class EquipmentCatalogService {
    * Valid source book values for filtering.
    * 'all' is a pseudo-value meaning no filter (return all source books).
    */
-  const VALID_BOOKS = ['crb', 'apg', 'gmg', 'all'];
+  const VALID_BOOKS = ['crb', 'apg', 'gmg', 'gng', 'som', 'all'];
 
   /**
    * Canonical PF2E equipment catalog.
@@ -1160,6 +1160,127 @@ class EquipmentCatalogService {
         'uses'        => ['scouting', 'alarm configurations'],
         'traits'      => ['fire', 'light', 'mechanical', 'snare', 'trap'],
         'description' => 'A signal snare that emits bright light on activation. Deals no damage. Useful for scouting perimeters and alarm configurations.',
+      ],
+    ],
+
+    // =========================================================
+    // GUNS AND GEARS — FIREARMS (source_book: gng)
+    //
+    // Firearms use the shared weapon schema. Additional fields:
+    //   reload: N  — actions required to reload; 0 = free (rare)
+    //   misfire: N — misfire threshold; roll ≤ N on attack die = misfire
+    //               (misfire = jam on crit fail, i.e., if the die shows ≤ N
+    //               AND the attack is a critical failure, the weapon jams)
+    //   combination_modes: present on combination weapons only;
+    //               lists melee and ranged mode stat overrides
+    //
+    // Firearm state (reload_count, jammed, last_fired_at) is server-computed
+    // by GunGearsController — not stored in this catalog.
+    // =========================================================
+
+    'flintlock-pistol' => [
+      'id'          => 'flintlock-pistol',
+      'name'        => 'Flintlock Pistol',
+      'type'        => 'weapon',
+      'source_book' => 'gng',
+      'price_gp'    => 4,
+      'bulk'        => 'L',
+      'hands'       => '1',
+      'weapon_stats' => [
+        'category'    => 'martial',
+        'group'       => 'firearm',
+        'damage_dice' => '1d4',
+        'damage_type' => 'piercing',
+        'range'       => 40,
+        'reload'      => '1',
+        'misfire'     => 1,
+        'traits'      => ['concussive', 'fatal 1d8'],
+      ],
+    ],
+
+    'flintlock-musket' => [
+      'id'          => 'flintlock-musket',
+      'name'        => 'Flintlock Musket',
+      'type'        => 'weapon',
+      'source_book' => 'gng',
+      'price_gp'    => 6,
+      'bulk'        => '2',
+      'hands'       => '2',
+      'weapon_stats' => [
+        'category'    => 'martial',
+        'group'       => 'firearm',
+        'damage_dice' => '1d6',
+        'damage_type' => 'piercing',
+        'range'       => 80,
+        'reload'      => '1',
+        'misfire'     => 1,
+        'traits'      => ['concussive', 'fatal 1d12'],
+      ],
+    ],
+
+    'pepperbox' => [
+      'id'          => 'pepperbox',
+      'name'        => 'Pepperbox',
+      'type'        => 'weapon',
+      'source_book' => 'gng',
+      'price_gp'    => 8,
+      'bulk'        => '1',
+      'hands'       => '1',
+      'weapon_stats' => [
+        'category'    => 'martial',
+        'group'       => 'firearm',
+        'damage_dice' => '1d4',
+        'damage_type' => 'piercing',
+        'range'       => 30,
+        // 6-shot cylinder; reload applies per cylinder, not per shot.
+        'reload'      => '0',
+        'cylinder_capacity' => 6,
+        'cylinder_reload'   => '3',
+        'misfire'     => 1,
+        'traits'      => ['concussive', 'fatal 1d6', 'repeating'],
+      ],
+    ],
+
+    'sword-pistol' => [
+      'id'          => 'sword-pistol',
+      'name'        => 'Sword Pistol',
+      'type'        => 'weapon',
+      'source_book' => 'gng',
+      'price_gp'    => 10,
+      'bulk'        => '1',
+      'hands'       => '1',
+      // Combination weapon: two modes. Server tracks active_mode.
+      'combination'  => TRUE,
+      'combination_modes' => [
+        'melee' => [
+          'mode_id'     => 'melee',
+          'label'       => 'Sword Mode',
+          'group'       => 'sword',
+          'damage_dice' => '1d6',
+          'damage_type' => 'slashing',
+          'traits'      => ['versatile P'],
+        ],
+        'ranged' => [
+          'mode_id'     => 'ranged',
+          'label'       => 'Pistol Mode',
+          'group'       => 'firearm',
+          'damage_dice' => '1d4',
+          'damage_type' => 'piercing',
+          'range'       => 30,
+          'reload'      => '1',
+          'misfire'     => 1,
+          'traits'      => ['concussive', 'fatal 1d6'],
+        ],
+      ],
+      // Default mode used when no active_mode is tracked.
+      'default_mode' => 'melee',
+      // Shared weapon_stats mirrors the melee mode for catalog filtering.
+      'weapon_stats' => [
+        'category'    => 'martial',
+        'group'       => 'sword',
+        'damage_dice' => '1d6',
+        'damage_type' => 'slashing',
+        'traits'      => ['combination', 'versatile P'],
       ],
     ],
   ];
