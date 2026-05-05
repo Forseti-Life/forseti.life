@@ -1,0 +1,3 @@
+[submodule "sites/forseti/web/modules/custom/drupal_langgraph"]
+	path = sites/forseti/web/modules/custom/drupal_langgraph
+	url = https://github.com/Forseti-Life/drupal-langgraph.git

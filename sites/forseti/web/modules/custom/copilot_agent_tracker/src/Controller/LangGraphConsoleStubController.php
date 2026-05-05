@@ -34,6 +34,7 @@ final class LangGraphConsoleStubController extends ControllerBase {
     'observe/runtime-metrics',
     'observe/drift-anomalies',
     'observe/alerts-incidents',
+    'observe/feature-progress',
     'build/state-schema',
     'build/nodes-routing',
     'build/subgraphs',
@@ -226,6 +227,7 @@ final class LangGraphConsoleStubController extends ControllerBase {
           'runtime-metrics' => ['Runtime Metrics', 'Latency, failure, token, and cost metric placeholders by graph/node.'],
           'drift-anomalies' => ['Drift & Anomalies', 'Behavior drift and anomalous route frequency placeholders.'],
           'alerts-incidents' => ['Alerts & Incidents', 'Threshold alert and incident timeline placeholders.'],
+          'feature-progress' => ['Feature Progress', 'Live feature-flow dashboard showing release progress and status.'],
         ],
       ],
       'release' => [
@@ -879,6 +881,7 @@ final class LangGraphConsoleStubController extends ControllerBase {
       'observe/runtime-metrics' => $this->subObserveRuntimeMetrics($sub_info, $back),
       'observe/drift-anomalies' => $this->subObserveDriftAnomalies($sub_info, $back),
       'observe/alerts-incidents' => $this->subObserveAlertsIncidents($sub_info, $back),
+      'observe/feature-progress' => $this->subObserveFeatureProgress($sub_info, $back),
       'build/state-schema'    => $this->subBuildStateSchema($sub_info, $back),
       'build/nodes-routing'   => $this->subBuildNodesRouting($sub_info, $back),
       'build/subgraphs'       => $this->subBuildSubgraphs($sub_info, $back),
@@ -1168,118 +1171,525 @@ final class LangGraphConsoleStubController extends ControllerBase {
   private function subObserveNodeTraces(array $sub, array $back): array {
     ['tick' => $tick] = $this->loadTelemetry();
     $steps = (array) ($tick['step_results'] ?? []);
-    $rows  = [];
-    foreach ($steps as $name => $data) {
-      $rc_cell = isset($data['rc'])
-        ? ['data' => ['#markup' => $this->rcBadge((int) $data['rc'])]]
-        : '—';
-      $payload = is_array($data)
-        ? json_encode($data, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT)
-        : (string) $data;
+
+    // Early return if no trace data
+    if (empty($steps)) {
+      return $this->buildSubPage((string) $sub[0], (string) $sub[1], $back, [
+        'warning' => [
+          '#markup' => '<div role="alert" style="background:#fff3cd;border:1px solid #ffc107;padding:12px;border-radius:4px;margin-bottom:12px;">'
+            . '<strong>' . $this->t('No trace data available') . '</strong> — '
+            . $this->t('No ticks recorded yet.') . '</div>',
+        ],
+      ]);
+    }
+
+    $rows = [];
+    $tick_ts = (string) ($tick['ts'] ?? '');
+
+    // Build trace rows with timestamp, duration, status, summary
+    foreach ($steps as $node_id => $step_data) {
+      $step_duration = (int) ($step_data['duration_ms'] ?? 0);
+      $status = isset($step_data['error']) ? '✗' : '✓';
+      $status_color = isset($step_data['error']) ? '#b71c1c' : '#2e7d32';
+
+      // Extract summary from step_data; truncate to 120 chars and sanitize
+      $summary_raw = '';
+      if (isset($step_data['result'])) {
+        $summary_raw = is_array($step_data['result'])
+          ? json_encode($step_data['result'], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE)
+          : (string) $step_data['result'];
+      } elseif (isset($step_data['error'])) {
+        $summary_raw = (string) $step_data['error'];
+      }
+      $summary = htmlspecialchars(substr($summary_raw, 0, 120) . (strlen($summary_raw) > 120 ? '…' : ''));
+
+      // Prepare detail content for expandable view
+      $detail_html = '<div style="background:#f5f5f5;padding:12px;border-radius:4px;">';
+      $detail_html .= '<h5>' . htmlspecialchars((string) $node_id) . '</h5>';
+      $detail_html .= '<strong>' . $this->t('Timestamp') . ':</strong> ' . $this->fmtTs($tick_ts) . '<br>';
+      $detail_html .= '<strong>' . $this->t('Duration') . ':</strong> ' . $step_duration . ' ms<br>';
+      $detail_html .= '<strong>' . $this->t('Status') . ':</strong> ' . ($status === '✓' ? $this->t('Success') : $this->t('Error')) . '<br>';
+
+      // Full I/O summaries
+      if (isset($step_data['input'])) {
+        $input_json = is_array($step_data['input'])
+          ? json_encode($step_data['input'], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT)
+          : (string) $step_data['input'];
+        $detail_html .= '<details style="margin-top:8px;"><summary>' . $this->t('Input') . '</summary>'
+          . '<pre style="margin:8px 0;background:#fff;padding:8px;border:1px solid #ddd;overflow-x:auto;font-size:0.85em;">'
+          . htmlspecialchars($input_json) . '</pre></details>';
+      }
+
+      if (isset($step_data['result'])) {
+        $result_json = is_array($step_data['result'])
+          ? json_encode($step_data['result'], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT)
+          : (string) $step_data['result'];
+        $detail_html .= '<details style="margin-top:8px;"><summary>' . $this->t('Output') . '</summary>'
+          . '<pre style="margin:8px 0;background:#fff;padding:8px;border:1px solid #ddd;overflow-x:auto;font-size:0.85em;">'
+          . htmlspecialchars($result_json) . '</pre></details>';
+      }
+
+      if (isset($step_data['error'])) {
+        $detail_html .= '<details style="margin-top:8px;"><summary>' . $this->t('Error') . '</summary>'
+          . '<pre style="margin:8px 0;background:#ffebee;padding:8px;border:1px solid #ef5350;overflow-x:auto;font-size:0.85em;color:#c62828;">'
+          . htmlspecialchars((string) $step_data['error']) . '</pre></details>';
+      }
+
+      $detail_html .= '</div>';
+
       $rows[] = [
-        (string) $name,
-        $rc_cell,
-        ['data' => ['#markup' => '<pre style="margin:0;font-size:0.8em;max-width:600px;white-space:pre-wrap">' . htmlspecialchars((string) $payload) . '</pre>']],
+        htmlspecialchars((string) $node_id),
+        $this->fmtTs(preg_replace('/Z$/', '', $tick_ts) . 'Z'),
+        (string) $step_duration,
+        ['data' => ['#markup' => '<span style="color:' . $status_color . '">' . $status . '</span>']],
+        $summary,
+        ['data' => ['#markup' => '<details style="cursor:pointer;user-select:none;"><summary style="color:#0066cc;text-decoration:underline;">'
+          . $this->t('Expand') . '</summary>' . $detail_html . '</details>']],
       ];
     }
+
     return $this->buildSubPage((string) $sub[0], (string) $sub[1], $back, [
+      'filters' => [
+        '#markup' => '<div style="margin-bottom:16px;">'
+          . '<label><strong>' . $this->t('Filter by node/agent ID') . ':</strong> '
+          . '<input type="text" id="trace-filter-node" placeholder="e.g., agent-exec" style="padding:6px;border:1px solid #ccc;border-radius:3px;width:300px;" />'
+          . '</label>'
+          . '</div>',
+      ],
       'table' => [
         '#type' => 'table',
-        '#header' => [$this->t('Step / Node'), $this->t('RC'), $this->t('Output')],
+        '#header' => [
+          $this->t('Node/Agent ID'),
+          $this->t('Timestamp'),
+          $this->t('Duration (ms)'),
+          $this->t('Status'),
+          $this->t('Summary'),
+          $this->t('Details'),
+        ],
         '#rows' => $rows,
         '#empty' => $this->t('No trace data.'),
+        '#attributes' => ['id' => 'trace-table'],
+      ],
+      'script' => [
+        '#markup' => '<script>'
+          . '(function() {'
+          . '  const input = document.getElementById("trace-filter-node");'
+          . '  const table = document.getElementById("trace-table");'
+          . '  if (input && table) {'
+          . '    input.addEventListener("input", function() {'
+          . '      const filter = this.value.toLowerCase();'
+          . '      const rows = table.querySelectorAll("tbody tr");'
+          . '      rows.forEach(function(row) {'
+          . '        const cell = row.cells[0];'
+          . '        if (cell) {'
+          . '          row.style.display = cell.textContent.toLowerCase().includes(filter) ? "" : "none";'
+          . '        }'
+          . '      });'
+          . '    });'
+          . '  }'
+          . '})();'
+          . '</script>',
       ],
     ]);
   }
 
   /** @param array<mixed> $sub @param array<mixed> $back */
   private function subObserveRuntimeMetrics(array $sub, array $back): array {
-    ['tick' => $tick, 'parity' => $parity] = $this->loadTelemetry();
-    $exec  = (array) ($tick['step_results']['exec_agents']['ran'] ?? []);
-    $errs  = (array) ($tick['errors'] ?? []);
-    $ok    = count(array_filter($exec, fn($e) => (int) ($e['rc'] ?? -1) === 0));
-    $fail  = count($exec) - $ok;
-    $par   = isset($parity['parity_ok']) ? (bool) $parity['parity_ok'] : NULL;
-    $rows  = [
-      [$this->t('Last tick timestamp'), $this->fmtTs((string) ($tick['ts'] ?? ''))],
-      [$this->t('Pipeline steps executed'), (string) count((array) ($tick['step_results'] ?? []))],
-      [$this->t('Agents executed'), (string) count($exec)],
-      [$this->t('Agents succeeded'), (string) $ok],
-      [$this->t('Agents failed'), (string) $fail],
-      [$this->t('Tick errors'), (string) count($errs)],
-      [$this->t('Parity health'), ['data' => ['#markup' => $this->badge($par)]]],
+    $tick_path = $this->hqPath(self::TICKS_RELATIVE);
+    
+    // Read last tick for current metrics
+    $current_tick = $this->readLastJsonl($tick_path);
+    if (empty($current_tick)) {
+      return $this->buildSubPage((string) $sub[0], (string) $sub[1], $back, [
+        'info' => [
+          '#markup' => '<div role="alert" style="background:#e3f2fd;border:1px solid #2196f3;padding:12px;border-radius:4px;">'
+            . '<strong>' . $this->t('Metrics unavailable') . '</strong> — '
+            . $this->t('No tick data yet.') . '</div>',
+        ],
+      ]);
+    }
+
+    // Extract current tick metrics
+    $current_duration = (int) ($current_tick['duration_ms'] ?? 0);
+    $steps_count = count((array) ($current_tick['step_results'] ?? []));
+    $selected_agents = count((array) ($current_tick['selected_agents'] ?? []));
+    $total_agents = (int) ($current_tick['total_agents'] ?? $selected_agents);
+    $backlog_agents = max(0, $total_agents - $selected_agents);
+
+    $current_metrics_rows = [
+      [$this->t('Timestamp'), $this->fmtTs((string) ($current_tick['ts'] ?? ''))],
+      [$this->t('Duration (ms)'), (string) $current_duration],
+      [$this->t('Pipeline steps'), (string) $steps_count],
+      [$this->t('Agents dispatched'), (string) $selected_agents],
+      [$this->t('Agents in backlog'), (string) $backlog_agents],
+      [$this->t('Concurrency level'), (string) $selected_agents],
     ];
+
+    // Read all ticks for trend analysis
+    $all_ticks = $this->readAllJsonlTicks($tick_path);
+    $trend_html = '';
+    $anomaly_html = '';
+
+    if (count($all_ticks) >= 10) {
+      // Get last 10 ticks
+      $last_10_ticks = array_slice($all_ticks, -10);
+      $durations = array_map(fn($t) => (int) ($t['duration_ms'] ?? 0), $last_10_ticks);
+
+      // Calculate statistics
+      $mean = count($durations) > 0 ? array_sum($durations) / count($durations) : 0;
+      $variance = count($durations) > 0
+        ? array_sum(array_map(fn($d) => ($d - $mean) ** 2, $durations)) / count($durations)
+        : 0;
+      $stdev = sqrt($variance);
+
+      // Build trend table
+      $trend_rows = [];
+      foreach ($durations as $idx => $duration) {
+        $tick_num = count($all_ticks) - 10 + $idx + 1;
+        $is_current = ($idx === count($durations) - 1);
+        $color = $is_current ? '#0066cc' : '#888';
+        $label = $is_current ? ' (current)' : '';
+        $trend_rows[] = [
+          'Tick #' . $tick_num . $label,
+          '<span style="color:' . $color . '"><strong>' . $duration . '</strong></span> ms',
+        ];
+      }
+
+      $trend_html = '<div style="margin:16px 0;">'
+        . '<h4>' . $this->t('Trend (last 10 ticks)') . '</h4>'
+        . '<table style="width:100%;border-collapse:collapse;">'
+        . '<tbody>';
+      foreach ($trend_rows as $row) {
+        $trend_html .= '<tr style="border-bottom:1px solid #eee;"><td style="padding:8px;">' . $row[0] . '</td>'
+          . '<td style="padding:8px;text-align:right;"><div style="' . $row[1] . '"></div></td></tr>';
+      }
+      $trend_html .= '</tbody></table>'
+        . '<p style="margin-top:12px;color:#666;font-size:0.9em;">'
+        . $this->t('Average (last 10 ticks):') . ' <strong>' . round($mean, 1) . '</strong> ms'
+        . '</p></div>';
+
+      // Anomaly detection: 2-sigma check
+      $threshold = $mean + (2 * $stdev);
+      if ($current_duration > $threshold) {
+        $percent_slow = round((($current_duration - $mean) / $mean) * 100, 0);
+        $anomaly_html = '<div style="background:#fff3cd;border:1px solid #ffc107;padding:12px;border-radius:4px;margin-bottom:12px;">'
+          . '<strong style="color:#cc8800;">⚠️ ' . $this->t('Slow tick detected') . '</strong> — '
+          . $this->t('Current tick is @percent% above average. Check node traces for bottlenecks.', ['@percent' => $percent_slow])
+          . '</div>';
+      }
+    } elseif (count($all_ticks) > 1) {
+      $trend_html = '<div style="background:#e3f2fd;border:1px solid #2196f3;padding:12px;border-radius:4px;margin:16px 0;">'
+        . $this->t('Trend analysis requires at least 10 ticks. Currently have @count ticks.', ['@count' => count($all_ticks)])
+        . '</div>';
+    }
+
     return $this->buildSubPage((string) $sub[0], (string) $sub[1], $back, [
-      'table' => [
+      'anomaly' => ['#markup' => $anomaly_html],
+      'current' => [
         '#type' => 'table',
         '#header' => [$this->t('Metric'), $this->t('Value')],
-        '#rows' => $rows,
+        '#rows' => $current_metrics_rows,
       ],
+      'trend' => ['#markup' => $trend_html],
     ]);
+  }
+
+  /**
+   * Read all JSON objects from a JSONL file.
+   *
+   * @return array<array<mixed>>
+   */
+  private function readAllJsonlTicks(string $path): array {
+    if (!is_readable($path)) {
+      return [];
+    }
+    try {
+      $lines = @file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: [];
+      $result = [];
+      foreach ($lines as $line) {
+        $decoded = json_decode(trim((string) $line), TRUE);
+        if (is_array($decoded)) {
+          $result[] = $decoded;
+        }
+      }
+      return $result;
+    }
+    catch (\Throwable) {
+      return [];
+    }
   }
 
   /** @param array<mixed> $sub @param array<mixed> $back */
   private function subObserveDriftAnomalies(array $sub, array $back): array {
-    ['parity' => $parity] = $this->loadTelemetry();
-    $par_ok     = isset($parity['parity_ok']) ? (bool) $parity['parity_ok'] : NULL;
-    $exp_steps  = (array) ($parity['steps']['expected'] ?? []);
-    $act_steps  = (array) ($parity['steps']['actual'] ?? []);
-    $exp_agents = (array) ($parity['selected_agents']['actual'] ?? []);
-    $step_match = isset($parity['steps']['match']) ? (bool) $parity['steps']['match'] : NULL;
-    $ag_match   = isset($parity['selected_agents']['match']) ? (bool) $parity['selected_agents']['match'] : NULL;
+    $tick_path = $this->hqPath(self::TICKS_RELATIVE);
+    $all_ticks = $this->readAllJsonlTicks($tick_path);
 
-    $overview = [
-      [$this->t('Overall parity'), ['data' => ['#markup' => $this->badge($par_ok)]]],
-      [$this->t('Pipeline steps match'), ['data' => ['#markup' => $this->badge($step_match)]]],
-      [$this->t('Agent selection match'), ['data' => ['#markup' => $this->badge($ag_match)]]],
-    ];
+    if (count($all_ticks) < 5) {
+      return $this->buildSubPage((string) $sub[0], (string) $sub[1], $back, [
+        'info' => [
+          '#markup' => '<div role="alert" style="background:#e3f2fd;border:1px solid #2196f3;padding:12px;border-radius:4px;">'
+            . $this->t('Drift detection requires at least 5 ticks of history. Currently have @count ticks.', ['@count' => count($all_ticks)])
+            . '</div>',
+        ],
+      ]);
+    }
 
-    $missing = array_diff($exp_steps, $act_steps);
-    $extra   = array_diff($act_steps, $exp_steps);
-    $drift_rows = [];
-    foreach ($missing as $s) {
-      $drift_rows[] = ['step', (string) $s, ['data' => ['#markup' => '<span style="color:#b71c1c">missing in actual</span>']]];
+    // Calculate baseline: mean duration for each node across ALL historical ticks
+    $baseline = [];
+    foreach ($all_ticks as $tick) {
+      $steps = (array) ($tick['step_results'] ?? []);
+      foreach ($steps as $node_id => $step_data) {
+        $duration = (int) ($step_data['duration_ms'] ?? 0);
+        if (!isset($baseline[$node_id])) {
+          $baseline[$node_id] = ['durations' => [], 'count' => 0];
+        }
+        $baseline[$node_id]['durations'][] = $duration;
+        $baseline[$node_id]['count']++;
+      }
     }
-    foreach ($extra as $s) {
-      $drift_rows[] = ['step', (string) $s, ['data' => ['#markup' => '<span style="color:#e65100">extra in actual</span>']]];
+
+    // Calculate mean for baseline
+    foreach ($baseline as &$entry) {
+      $entry['mean'] = $entry['count'] > 0
+        ? array_sum($entry['durations']) / $entry['count']
+        : 0;
     }
+
+    // Collect current metrics from last 5 ticks
+    $last_5_ticks = array_slice($all_ticks, -5);
+    $drift_alerts = [];
+
+    foreach ($last_5_ticks as $tick_idx => $tick) {
+      $tick_num = count($all_ticks) - 5 + $tick_idx + 1;
+      $steps = (array) ($tick['step_results'] ?? []);
+      foreach ($steps as $node_id => $step_data) {
+        $current_duration = (int) ($step_data['duration_ms'] ?? 0);
+        if (isset($baseline[$node_id])) {
+          $baseline_mean = $baseline[$node_id]['mean'];
+          if ($baseline_mean > 0) {
+            $variance_pct = abs($current_duration - $baseline_mean) / $baseline_mean * 100;
+            if ($variance_pct > 50) {
+              $direction = $current_duration > $baseline_mean ? '+' : '−';
+              $drift_alerts[] = [
+                'node_id' => $node_id,
+                'baseline_ms' => round($baseline_mean, 1),
+                'current_ms' => $current_duration,
+                'variance_pct' => round($variance_pct, 1),
+                'direction' => $direction,
+                'tick_num' => $tick_num,
+              ];
+            }
+          }
+        }
+      }
+    }
+
+    // Sort by variance descending
+    usort($drift_alerts, fn($a, $b) => $b['variance_pct'] <=> $a['variance_pct']);
+
+    if (empty($drift_alerts)) {
+      return $this->buildSubPage((string) $sub[0], (string) $sub[1], $back, [
+        'info' => [
+          '#markup' => '<div style="background:#e8f5e9;border:1px solid #4caf50;padding:12px;border-radius:4px;color:#2e7d32;">'
+            . '✓ ' . $this->t('No performance anomalies detected. System running nominal.')
+            . '</div>',
+        ],
+      ]);
+    }
+
+    // Build alert table
+    $alert_rows = [];
+    foreach ($drift_alerts as $alert) {
+      $alert_rows[] = [
+        htmlspecialchars($alert['node_id']),
+        round($alert['baseline_ms'], 1) . ' ms',
+        $alert['current_ms'] . ' ms',
+        $alert['direction'] . round($alert['variance_pct'], 1) . '%',
+        'Tick #' . $alert['tick_num'],
+      ];
+    }
+
+    // CSV export data
+    $csv_link = $this->generateCsvExportLink($all_ticks);
 
     return $this->buildSubPage((string) $sub[0], (string) $sub[1], $back, [
-      'overview' => [
-        '#type' => 'table',
-        '#header' => [$this->t('Check'), $this->t('Result')],
-        '#rows' => $overview,
+      'threshold_filter' => [
+        '#markup' => '<div style="margin-bottom:16px;">'
+          . '<label><strong>' . $this->t('Filter by variance threshold') . ':</strong> '
+          . '<select id="variance-threshold" style="padding:6px;border:1px solid #ccc;border-radius:3px;">'
+          . '<option value="50">50%</option>'
+          . '<option value="75">75%</option>'
+          . '<option value="100">100%</option>'
+          . '</select>'
+          . ' <a href="' . $csv_link . '" style="margin-left:16px;padding:6px 12px;background:#2196f3;color:#fff;text-decoration:none;border-radius:3px;display:inline-block;">'
+          . $this->t('Export CSV')
+          . '</a>'
+          . '</label></div>',
       ],
-      'drift_header' => ['#markup' => '<h4>' . $this->t('Pipeline Drift') . '</h4>'],
-      'drift_table' => [
+      'table' => [
         '#type' => 'table',
-        '#header' => [$this->t('Type'), $this->t('Name'), $this->t('Status')],
-        '#rows' => $drift_rows,
-        '#empty' => $this->t('No drift detected.'),
+        '#header' => [
+          $this->t('Node'),
+          $this->t('Baseline (ms)'),
+          $this->t('Current (ms)'),
+          $this->t('Variance'),
+          $this->t('Tick'),
+        ],
+        '#rows' => $alert_rows,
+        '#empty' => $this->t('No anomalies detected.'),
+        '#attributes' => ['id' => 'drift-table'],
+      ],
+      'script' => [
+        '#markup' => '<script>'
+          . '(function() {'
+          . '  const select = document.getElementById("variance-threshold");'
+          . '  if (select) {'
+          . '    select.addEventListener("change", function() {'
+          . '      const threshold = parseFloat(this.value);'
+          . '      const table = document.getElementById("drift-table");'
+          . '      if (table) {'
+          . '        const rows = table.querySelectorAll("tbody tr");'
+          . '        rows.forEach(function(row) {'
+          . '          const variance_cell = row.cells[3];'
+          . '          if (variance_cell) {'
+          . '            const variance_text = variance_cell.textContent;'
+          . '            const variance_num = parseFloat(variance_text);'
+          . '            row.style.display = variance_num >= threshold ? "" : "none";'
+          . '          }'
+          . '        });'
+          . '      }'
+          . '    });'
+          . '  }'
+          . '})();'
+          . '</script>',
       ],
     ]);
   }
 
+  /**
+   * Generate a CSV export link for the last 100 ticks.
+   */
+  private function generateCsvExportLink(array $all_ticks): string {
+    // This is a placeholder; in production, this would be a proper download endpoint
+    return '#';
+  }
+
   /** @param array<mixed> $sub @param array<mixed> $back */
   private function subObserveAlertsIncidents(array $sub, array $back): array {
-    ['tick' => $tick, 'parity' => $parity] = $this->loadTelemetry();
-    $tick_errs  = (array) ($tick['errors'] ?? []);
-    $par_errs   = (array) ($parity['errors'] ?? []);
-    $rows       = [];
-    foreach ($tick_errs as $e) {
-      $rows[] = ['tick', (string) $e, $this->fmtTs((string) ($tick['ts'] ?? ''))];
+    $incidents = [];
+    $now = time();
+    $twenty_four_hours_ago = $now - (24 * 3600);
+
+    // Source 1: Executor failures
+    $executor_failures_path = $this->hqPath('tmp/executor-failures');
+    if (is_dir($executor_failures_path)) {
+      $files = @glob($executor_failures_path . '/*.json') ?: [];
+      foreach ($files as $file) {
+        if (filemtime($file) > $twenty_four_hours_ago) {
+          $data = $this->readJson($file);
+          if (!empty($data)) {
+            $incidents[] = [
+              'timestamp' => (string) ($data['timestamp'] ?? date('c', filemtime($file))),
+              'severity' => 'error',
+              'category' => 'executor-failure',
+              'summary' => (string) ($data['error'] ?? 'Executor failed'),
+              'agent_id' => (string) ($data['agent_id'] ?? 'unknown'),
+              'sort_time' => $this->parseIso8601($data['timestamp'] ?? date('c', filemtime($file))),
+            ];
+          }
+        }
+      }
     }
-    foreach ($par_errs as $e) {
-      $rows[] = ['parity', (string) $e, $this->fmtTs((string) ($parity['generated_at'] ?? ''))];
+
+    // Source 2: Agent blocks from sessions
+    $sessions_path = $this->hqPath('sessions');
+    if (is_dir($sessions_path)) {
+      $seats = @scandir($sessions_path) ?: [];
+      foreach ($seats as $seat) {
+        if ($seat === '.' || $seat === '..') continue;
+        $inbox_path = $sessions_path . '/' . $seat . '/inbox';
+        if (is_dir($inbox_path)) {
+          $items = @scandir($inbox_path) ?: [];
+          foreach ($items as $item) {
+            if ($item === '.' || $item === '..') continue;
+            $cmd_file = $inbox_path . '/' . $item . '/command.md';
+            if (is_readable($cmd_file) && filemtime($cmd_file) > $twenty_four_hours_ago) {
+              $content = (string) file_get_contents($cmd_file);
+              if (preg_match('/Status:\s*blocked/i', $content)) {
+                $summary = $item;
+                if (preg_match('/##\s*Blockers?\s*\n\s*-\s*(.+)/i', $content, $m)) {
+                  $summary = $m[1];
+                }
+                $incidents[] = [
+                  'timestamp' => date('c', filemtime($cmd_file)),
+                  'severity' => 'warn',
+                  'category' => 'agent-blocked',
+                  'summary' => 'Awaiting: ' . htmlspecialchars($summary),
+                  'agent_id' => $seat,
+                  'sort_time' => filemtime($cmd_file),
+                ];
+              }
+            }
+          }
+        }
+      }
     }
+
+    if (empty($incidents)) {
+      return $this->buildSubPage((string) $sub[0], (string) $sub[1], $back, [
+        'info' => [
+          '#markup' => '<div style="background:#e8f5e9;border:1px solid #4caf50;padding:12px;border-radius:4px;color:#2e7d32;">'
+            . '✓ ' . $this->t('No incidents detected.')
+            . '</div>',
+        ],
+      ]);
+    }
+
+    // Sort by timestamp DESC (most recent first)
+    usort($incidents, fn($a, $b) => $b['sort_time'] <=> $a['sort_time']);
+
+    // Pagination: show last 50
+    $incidents = array_slice($incidents, 0, 50);
+
+    $incident_rows = [];
+    foreach ($incidents as $incident) {
+      $severity_color = $incident['severity'] === 'error' ? '#b71c1c' : '#f57f17';
+      $severity_label = $incident['severity'] === 'error' ? '✗ Error' : '⚠ Warning';
+      $incident_rows[] = [
+        $this->fmtTs($incident['timestamp']),
+        ['data' => ['#markup' => '<span style="color:' . $severity_color . ';">' . $severity_label . '</span>']],
+        htmlspecialchars($incident['category']),
+        $incident['summary'],
+        htmlspecialchars($incident['agent_id']),
+      ];
+    }
+
     return $this->buildSubPage((string) $sub[0], (string) $sub[1], $back, [
       'table' => [
         '#type' => 'table',
-        '#header' => [$this->t('Source'), $this->t('Error'), $this->t('Timestamp')],
-        '#rows' => $rows,
-        '#empty' => $this->t('No errors recorded.'),
+        '#header' => [
+          $this->t('Timestamp'),
+          $this->t('Severity'),
+          $this->t('Category'),
+          $this->t('Summary'),
+          $this->t('Affected Agent(s)'),
+        ],
+        '#rows' => $incident_rows,
+        '#empty' => $this->t('No incidents in last 24 hours.'),
       ],
     ]);
+  }
+
+  /**
+   * Parse ISO 8601 timestamp to Unix timestamp for sorting.
+   */
+  private function parseIso8601(string $timestamp): int {
+    try {
+      return (int) (new \DateTimeImmutable($timestamp))->getTimestamp();
+    }
+    catch (\Throwable) {
+      return time();
+    }
   }
 
   // -------------------------------------------------------------------------
@@ -1903,6 +2313,75 @@ final class LangGraphConsoleStubController extends ControllerBase {
         ],
       ],
     ];
+  }
+
+  /**
+   * Observe → Feature Progress subsection.
+   *
+   * @param array<mixed> $sub
+   * @param array<mixed> $back
+   */
+  private function subObserveFeatureProgress(array $sub, array $back): array {
+    $progress_file = $this->hqPath(self::FEATURE_PROGRESS);
+    $stats = $this->featureProgressStats();
+
+    if (!is_readable($progress_file)) {
+      return $this->buildSubPage((string) $sub[0], (string) $sub[1], $back, [
+        'info' => [
+          '#markup' => '<div role="alert" style="background:#e3f2fd;border:1px solid #2196f3;padding:12px;border-radius:4px;">'
+            . $this->t('Feature progress data not available.')
+            . '</div>',
+        ],
+      ]);
+    }
+
+    // Summary counts
+    $total_features = ($stats['by_status']['done'] ?? 0) + ($stats['by_status']['in_progress'] ?? 0)
+      + ($stats['by_status']['blocked'] ?? 0) + ($stats['by_status']['pending'] ?? 0);
+    $done = $stats['by_status']['done'] ?? 0;
+    $in_progress = $stats['by_status']['in_progress'] ?? 0;
+    $blocked = $stats['by_status']['blocked'] ?? 0;
+
+    $summary_html = '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px;">'
+      . '<div style="background:#e8f5e9;border-left:4px solid #4caf50;padding:12px;border-radius:4px;">'
+      . '<div style="font-size:1.5em;font-weight:bold;color:#2e7d32;">' . $total_features . '</div>'
+      . '<div style="font-size:0.85em;color:#666;">' . $this->t('Total Features') . '</div>'
+      . '</div>'
+      . '<div style="background:#fff3e0;border-left:4px solid #ff9800;padding:12px;border-radius:4px;">'
+      . '<div style="font-size:1.5em;font-weight:bold;color:#e65100;">' . $in_progress . '</div>'
+      . '<div style="font-size:0.85em;color:#666;">' . $this->t('In Progress') . '</div>'
+      . '</div>'
+      . '<div style="background:#e8f5e9;border-left:4px solid #2e7d32;padding:12px;border-radius:4px;">'
+      . '<div style="font-size:1.5em;font-weight:bold;color:#2e7d32;">' . $done . '</div>'
+      . '<div style="font-size:0.85em;color:#666;">' . $this->t('Done') . '</div>'
+      . '</div>'
+      . '<div style="background:#ffebee;border-left:4px solid #b71c1c;padding:12px;border-radius:4px;">'
+      . '<div style="font-size:1.5em;font-weight:bold;color:#b71c1c;">' . $blocked . '</div>'
+      . '<div style="font-size:0.85em;color:#666;">' . $this->t('Blocked') . '</div>'
+      . '</div>'
+      . '</div>';
+
+    // Site breakdown
+    $site_rows = [];
+    foreach (($stats['by_site'] ?? []) as $site => $count) {
+      $site_rows[] = [htmlspecialchars((string) $site), (string) $count];
+    }
+
+    return $this->buildSubPage((string) $sub[0], (string) $sub[1], $back, [
+      'summary' => ['#markup' => $summary_html],
+      'by_site_header' => ['#markup' => '<h4>' . $this->t('Features by Site') . '</h4>'],
+      'by_site' => [
+        '#type' => 'table',
+        '#header' => [$this->t('Site'), $this->t('Count')],
+        '#rows' => $site_rows,
+        '#empty' => $this->t('No site data available.'),
+      ],
+      'freshness' => [
+        '#markup' => '<p style="margin-top:16px;color:#666;font-size:0.9em;">'
+          . $this->t('Last updated: @date', ['@date' => date('Y-m-d H:i', filemtime($progress_file) ?: time())])
+          . '</p>',
+      ],
+    ]);
   }
 
 }
